@@ -82,7 +82,7 @@ export interface Report {
     }[];
     customSections: CustomSection[];
     comments: ReportComment[];
-    labor?: { id: string; personnelId?: string; role: string; qty: number; hours: number; isOutsourced?: boolean }[];
+    labor?: { id: string; personnelId?: string; role: string; qty: number; timeIn?: string; timeOut?: string; hours: number; type?: 'On Site' | 'Travel' | 'Other'; isOutsourced?: boolean }[];
     media?: { id: string; url: string; caption: string }[];
     occurrences?: ReportOccurrence[];
     checklists?: ReportChecklist[];
@@ -143,8 +143,11 @@ export interface TimesheetEntry {
     id: string;
     personnelId: string;
     date: string; // ISO yyyy-mm-dd
+    timeIn?: string; // HH:mm
+    timeOut?: string; // HH:mm
     hours: number;
-    type: 'Regular' | 'Overtime' | 'Travel';
+    type: 'On Site' | 'Travel' | 'Other';
+    classification?: 'Regular' | 'Overtime' | 'Double Time' | 'Unclassified';
     projectId?: string;
     notes?: string;
     status?: 'Pending' | 'Approved' | 'Rejected';

@@ -1,13 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, ChevronRight, Users, ArrowLeft } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, ChevronRight, Users, ArrowLeft, MapPin, ExternalLink, Map } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { ManageScopesModal } from '../components/project/ManageScopesModal';
 import { Project } from '../store/useStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 // Circular Progress Component
 const CircularProgress = ({ progress }: { progress: number }) => {
@@ -51,8 +52,18 @@ export default function Projects() {
         userRole === 'Customer' ? clientId : null
     );
     const [manageScopesProject, setManageScopesProject] = useState<Project | null>(null);
+    const [mapProject, setMapProject] = useState<Project | null>(null);
 
-    const recentReports = reports.slice().reverse().slice(0, 5); // get 5 most recent
+    const recentReports = reports
+        .filter(r => {
+            if (userRole === 'Customer') {
+                return r.clientId === clientId && r.state !== 'Draft';
+            }
+            return true;
+        })
+        .slice()
+        .reverse()
+        .slice(0, 5);
 
     // Filter projects for the selected client and user role
     const visibleProjects = useMemo(() => {
@@ -180,6 +191,19 @@ export default function Projects() {
                                             <div>
                                                 <h3 className="text-lg font-bold text-accent-greyDark mb-1 group-hover:text-brand-teal transition-colors">{proj.name}</h3>
                                                 <p className="text-xs text-gray-400 font-mono">{proj.id} • {proj.type}</p>
+                                                {proj.location && (
+                                                    <div 
+                                                        className="mt-2 flex items-center gap-1.5 text-xs text-brand-teal bg-brand-teal/5 border border-brand-teal/20 px-2 py-1 rounded w-fit hover:bg-brand-teal/10 transition-colors"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setMapProject(proj);
+                                                        }}
+                                                    >
+                                                        <MapPin size={12} />
+                                                        <span className="truncate max-w-[150px]">{proj.location}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex flex-col gap-2 items-end">
                                                 <Badge variant={proj.status === 'Active' ? 'default' : proj.status === 'Completed' ? 'secondary' : 'destructive'}
@@ -244,55 +268,96 @@ export default function Projects() {
                 {/* Right Column: Activity Feed */}
                 <div className="flex flex-col h-full space-y-6">
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                        <ActivityIcon className="text-brand-teal" size={24} />
-                        Activity Feed
-                    </h2>
+                            <ActivityIcon className="text-brand-teal" size={24} />
+                            Activity Feed
+                        </h2>
 
-                    <Card className="flex-1 rounded-2xl border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                        <CardHeader className="bg-gray-50 border-b border-gray-100 pb-4">
-                            <CardTitle className="text-base">Recent Reports</CardTitle>
-                            <CardDescription>Latest submissions from the field.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 p-0 overflow-y-auto">
-                            <div className="divide-y divide-gray-100">
-                                {recentReports.map(report => (
-                                    <Link
-                                        to={`/reports/${report.id}`}
-                                        key={report.id}
-                                        className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors group"
-                                    >
-                                        <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${report.state === 'Closed' ? 'bg-status-success' :
-                                            report.state.includes('Review') || report.state === 'Approved' ? 'bg-status-warning' : 'bg-gray-300'
-                                            }`} />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-start mb-1">
-                                                <p className="text-sm font-bold text-accent-greyDark truncate pr-2 group-hover:text-brand-teal">{report.projectName}</p>
-                                                <span className="text-xs text-gray-400 whitespace-nowrap">{report.date}</span>
+                        <Card className="flex-1 rounded-2xl border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                            <CardHeader className="bg-gray-50 border-b border-gray-100 pb-4">
+                                <CardTitle className="text-base">Recent Reports</CardTitle>
+                                <CardDescription>Latest submissions from the field.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-0 overflow-y-auto">
+                                <div className="divide-y divide-gray-100">
+                                    {recentReports.map(report => (
+                                        <Link
+                                            to={`/reports/${report.id}`}
+                                            key={report.id}
+                                            className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors group"
+                                        >
+                                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${report.state === 'Closed' ? 'bg-status-success' :
+                                                report.state.includes('Review') || report.state === 'Approved' ? 'bg-status-warning' : 'bg-gray-300'
+                                                }`} />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <p className="text-sm font-bold text-accent-greyDark truncate pr-2 group-hover:text-brand-teal">{report.projectName}</p>
+                                                    <span className="text-xs text-gray-400 whitespace-nowrap">{report.date}</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 truncate">{report.id} • {report.state}</p>
                                             </div>
-                                            <p className="text-xs text-gray-500 truncate">{report.id} • {report.state}</p>
+                                            <ChevronRight size={16} className="text-gray-300 mt-2 group-hover:text-brand-teal transition-colors" />
+                                        </Link>
+                                    ))}
+                                    {recentReports.length === 0 && (
+                                        <div className="p-8 text-center text-gray-500">
+                                            <Clock size={32} className="mx-auto mb-3 text-gray-300" />
+                                            <p className="text-sm">No recent activity.</p>
                                         </div>
-                                        <ChevronRight size={16} className="text-gray-300 mt-2 group-hover:text-brand-teal transition-colors" />
-                                    </Link>
-                                ))}
-                                {recentReports.length === 0 && (
-                                    <div className="p-8 text-center text-gray-500">
-                                        <Clock size={32} className="mx-auto mb-3 text-gray-300" />
-                                        <p className="text-sm">No recent activity.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
 
             {manageScopesProject && (
-                <ManageScopesModal 
-                    open={!!manageScopesProject} 
-                    onOpenChange={(open) => !open && setManageScopesProject(null)} 
                     project={manageScopesProject} 
                 />
             )}
+
+            <Dialog open={!!mapProject} onOpenChange={(open) => !open && setMapProject(null)}>
+                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl border-none">
+                    <div className="bg-brand-teal p-4 text-white flex items-center justify-between">
+                        <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+                            <Map className="w-5 h-5" />
+                            Location - {mapProject?.name}
+                        </DialogTitle>
+                    </div>
+                    <div className="p-4 bg-white space-y-4">
+                        <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <MapPin className="text-brand-teal shrink-0 mt-0.5" size={18} />
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Stated Address / Coordinates</p>
+                                <p className="text-accent-greyDark font-medium text-sm">{mapProject?.location}</p>
+                            </div>
+                        </div>
+
+                        {mapProject && mapProject.location && (
+                            <div className="w-full h-[300px] rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    frameBorder="0"
+                                    style={{ border: 0 }}
+                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(mapProject.location)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                                    allowFullScreen
+                                />
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-end gap-3 pt-2">
+                            <Button variant="outline" onClick={() => setMapProject(null)}>Close</Button>
+                            <Button 
+                                className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2"
+                                onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(mapProject?.location || '')}`, '_blank')}
+                            >
+                                <ExternalLink size={16} /> Open in Maps Apps
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

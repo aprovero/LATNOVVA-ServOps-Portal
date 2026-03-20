@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Users, Building2, ClipboardList, PenTool, HardHat } from 'lucide-react';
-import PersonnelManager from '../components/settings/PersonnelManager';
+import { Settings as SettingsIcon, Users, Building2, PenTool, HardHat } from 'lucide-react';
 
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -8,14 +7,29 @@ export default function Settings() {
     const configTabs = [
         { id: 'companies', name: 'Companies', description: 'Manage clients and contractors', icon: Building2 },
         { id: 'users', name: 'Users', description: 'Access control and roles', icon: Users },
-        { id: 'personnel', name: 'Personnel', description: 'Manage employees and certifications', icon: HardHat },
-        { id: 'templates', name: 'Templates', description: 'Report and field templates', icon: ClipboardList },
-        { id: 'labor', name: 'Labor Types', description: 'Define workforce categories (e.g. Electrician, Mason)', icon: Users },
+        { id: 'labor', name: 'Labor Types', description: 'Define workforce categories (e.g. Electrician, Mason)', icon: HardHat },
         { id: 'checklists', name: 'Checklists', description: 'Quality control lists', icon: PenTool },
     ];
 
-    if (activeTab === 'personnel') {
-        return <PersonnelManager onBack={() => setActiveTab(null)} />;
+    if (activeTab) {
+        const tab = configTabs.find(t => t.id === activeTab);
+        return (
+            <div className="space-y-6 pb-20 md:pb-0">
+                <button 
+                    onClick={() => setActiveTab(null)}
+                    className="flex items-center gap-2 text-brand-teal font-semibold hover:opacity-80 transition-opacity"
+                >
+                    ← Back to Settings
+                </button>
+                <div className="bg-white p-12 rounded-2xl border border-gray-100 shadow-sm text-center">
+                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
+                        {tab && <tab.icon size={32} />}
+                    </div>
+                    <h2 className="text-2xl font-bold text-accent-greyDark mb-2">{tab?.name} Settings</h2>
+                    <p className="text-gray-500 max-w-md mx-auto">This section is currently under development. Here you will be able to configure {tab?.name.toLowerCase()} for the platform.</p>
+                </div>
+            </div>
+        );
     }
 
     return (
