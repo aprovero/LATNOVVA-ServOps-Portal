@@ -198,7 +198,7 @@ export default function ReportEditor() {
 
 
             <div className="editor-fade">
-                {weatherState && <WeatherWidget weather={weatherState} reportDate={report.date} onChange={setWeatherState} readOnly={!canEditFields} />}
+                {weatherState && <WeatherWidget weather={weatherState} reportDate={report.date} projectLocation={project?.location} onChange={setWeatherState} readOnly={!canEditFields} />}
             </div>
 
             <div className="editor-fade">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
 import { ManageScopesModal } from '../project/ManageScopesModal';
 import gsap from 'gsap';
@@ -162,6 +162,21 @@ export default function Layout() {
         navigate('/projects');
     };
 
+    const handleGetGPS = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setNewProjectLocation(`${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`);
+            },
+            (error) => {
+                alert(`Error getting location: ${error.message}`);
+            }
+        );
+    };
+
     const handleCreateReport = () => {
         if (!newReportProject) return;
         const selectedProj = projects.find(p => p.id === newReportProject);
@@ -175,7 +190,7 @@ export default function Layout() {
             clientId: selectedProj.clientId,
             date: newReportDate || new Date().toISOString().split('T')[0],
             state: 'Draft' as const,
-            weather: { temp: 20, condition: 'Clear', practicable: true },
+            weather: { temp: 0, condition: 'Unknown' },
             equipment: [],
             customSections: [],
             comments: [],
@@ -486,13 +501,19 @@ export default function Layout() {
                             </select>
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="projectLocation">Site Location / Address</Label>
-                            <Input
-                                id="projectLocation"
-                                value={newProjectLocation}
-                                onChange={(e) => setNewProjectLocation(e.target.value)}
-                                placeholder="E.g., 123 Solar Way, Austin TX"
-                            />
+                            <Label htmlFor="projectLocation">Site Location (Address or Coordinates)</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="projectLocation"
+                                    value={newProjectLocation}
+                                    onChange={(e) => setNewProjectLocation(e.target.value)}
+                                    placeholder="E.g., 123 Solar Way or 30.2672, -97.7431"
+                                    className="flex-1"
+                                />
+                                <Button type="button" variant="outline" onClick={handleGetGPS} className="px-3" title="Get Current GPS Location">
+                                    <MapPin size={18} className="text-brand-teal" />
+                                </Button>
+                            </div>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="projectSize">Project Size</Label>

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { ThermometerSun, MapPin, CloudRain, Edit2, Cpu } from 'lucide-react';
 import gsap from 'gsap';
 
-export default function WeatherWidget({ weather, reportDate, onChange, readOnly }: {
+export default function WeatherWidget({ weather, reportDate, projectLocation, onChange, readOnly }: {
     weather: any;
     reportDate?: string;
+    projectLocation?: string;
     onChange: (weather: any) => void;
     readOnly?: boolean;
 }) {
@@ -31,8 +32,7 @@ export default function WeatherWidget({ weather, reportDate, onChange, readOnly 
                 condition: 'Clear / Sunny',
                 humidity: '45%',
                 wind: '12 km/h',
-                locationName: 'Site Alpha (Syncing...)',
-                practicable: true
+                locationName: projectLocation || 'Unknown Coordinates',
             };
 
             // Save to parent so it's persisted in the report and doesn't load again
