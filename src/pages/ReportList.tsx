@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { FileText, Search } from 'lucide-react';
 import gsap from 'gsap';
 import { useStore } from '../store/useStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function ReportList() {
     const { reports, userRole, clientId } = useStore();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const projectIdFilter = searchParams.get('project');
     const [filter, setFilter] = useState<'All' | 'Draft' | 'Review' | 'Closed'>('All');
     const [search, setSearch] = useState('');
 
@@ -23,6 +25,7 @@ export default function ReportList() {
     // Managers and Supervisors see all.
     // Techs shouldn't be here (navlink hidden), but if they navigate directly we'll show nothing.
     const visibleReports = reports.filter((r) => {
+        if (projectIdFilter && r.projectId !== projectIdFilter) return false;
         if (userRole === 'Customer') {
             return r.clientId === clientId && r.state !== 'Draft';
         }

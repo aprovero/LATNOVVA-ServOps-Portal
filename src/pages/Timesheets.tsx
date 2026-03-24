@@ -7,7 +7,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -252,23 +251,6 @@ export default function Timesheets() {
                                             <option value="Travel">Travel</option>
                                             <option value="Other">Other</option>
                                         </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark flex justify-between">
-                                            Classification
-                                        </label>
-                                        <select
-                                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal disabled:bg-gray-50"
-                                            value={newEntry.classification || 'Regular'}
-                                            onChange={e => setNewEntry({ ...newEntry, classification: e.target.value as any })}
-                                            disabled={!['Manager', 'Supervisor', 'HR'].includes(userRole)} // Techs can't change this
-                                        >
-                                            <option value="Regular">Regular</option>
-                                            <option value="Overtime">Overtime</option>
-                                            <option value="Double Time">Double Time</option>
-                                            <option value="Unclassified">Unclassified</option>
-                                        </select>
-                                        {userRole === 'Tech' && <span className="text-[10px] text-gray-400">Locked to HR/Manager</span>}
                                     </div>
                                 </div>
 

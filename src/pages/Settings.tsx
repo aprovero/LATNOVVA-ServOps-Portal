@@ -1,8 +1,28 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Users, Building2, PenTool, HardHat } from 'lucide-react';
+import { useStore, Client } from '../store/useStore';
+import { Settings as SettingsIcon, Users, Building2, PenTool, HardHat, Pencil, Camera } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
+    const { clients, projects, updateClient } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
+
+    const [editingClient, setEditingClient] = useState<Client | null>(null);
+    const [editClientName, setEditClientName] = useState('');
+    const [editClientLogo, setEditClientLogo] = useState('');
+
+    const handleEditClientSubmit = () => {
+        if (!editingClient || !editClientName.trim()) return;
+        updateClient(editingClient.id, {
+            name: editClientName,
+            logo: editClientLogo
+        });
+        setEditingClient(null);
+    };
 
     const configTabs = [
         { id: 'companies', name: 'Companies', description: 'Manage clients and contractors', icon: Building2 },
@@ -11,10 +31,13 @@ export default function Settings() {
         { id: 'checklists', name: 'Checklists', description: 'Quality control lists', icon: PenTool },
     ];
 
-    if (activeTab) {
-        const tab = configTabs.find(t => t.id === activeTab);
-        return (
-            <div className="space-y-6 pb-20 md:pb-0">
+    const tab = activeTab ? configTabs.find(t => t.id === activeTab) : null;
+
+    return (
+        <>
+            {activeTab ? (
+                // Inside a tab
+                <div className="space-y-6 pb-20 md:pb-0">
                 <button 
                     onClick={() => setActiveTab(null)}
                     className="flex items-center gap-2 text-brand-teal font-semibold hover:opacity-80 transition-opacity"
@@ -22,19 +45,75 @@ export default function Settings() {
                     ← Back to Settings
                 </button>
                 <div className="bg-white p-12 rounded-2xl border border-gray-100 shadow-sm text-center">
-                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
-                        {tab && <tab.icon size={32} />}
-                    </div>
-                    <h2 className="text-2xl font-bold text-accent-greyDark mb-2">{tab?.name} Settings</h2>
-                    <p className="text-gray-500 max-w-md mx-auto">This section is currently under development. Here you will be able to configure {tab?.name.toLowerCase()} for the platform.</p>
+                    {activeTab === 'companies' ? (
+                        <div className="bg-white border flex flex-col border-gray-100 rounded-2xl shadow-sm overflow-hidden text-left">
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                <div>
+                                    <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2"><Building2 className="text-brand-teal" size={24}/> Client Management</h2>
+                                    <p className="text-sm text-gray-500 mt-1">Manage global clients and organization information.</p>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm text-gray-500">
+                                    <thead className="text-xs text-gray-400 uppercase bg-white border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-4 font-bold tracking-wider">Company</th>
+                                            <th className="px-6 py-4 font-bold tracking-wider text-center">Active Projects</th>
+                                            <th className="px-6 py-4 font-bold tracking-wider text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {clients.map(client => {
+                                            const activeCount = projects.filter(p => p.clientId === client.id && p.status === 'Active').length;
+                                            return (
+                                                <tr key={client.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal overflow-hidden border border-brand-teal/20 shrink-0">
+                                                                {client.logo ? <img src={client.logo} alt={client.name} className="w-full h-full object-cover" /> : <Building2 size={20} />}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-accent-greyDark">{client.name}</p>
+                                                                <p className="text-xs text-gray-400 font-mono mt-0.5">{client.id}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <Badge variant="secondary" className="px-2 py-0.5 text-xs font-bold bg-brand-teal/10 text-brand-teal border-none">
+                                                            {activeCount} Active
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10" onClick={() => {
+                                                            setEditingClient(client);
+                                                            setEditClientName(client.name);
+                                                            setEditClientLogo(client.logo || '');
+                                                        }}>
+                                                            <Pencil size={16} /> <span className="ml-2 font-medium">Edit</span>
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                {tab && <tab.icon size={32} />}
+                            </div>
+                            <h2 className="text-2xl font-bold text-accent-greyDark mb-2">{tab?.name} Settings</h2>
+                            <p className="text-gray-500 max-w-md mx-auto">This section is currently under development. Here you will be able to configure {tab?.name?.toLowerCase()} for the platform.</p>
+                        </>
+                    )}
                 </div>
             </div>
-        );
-    }
-
-    return (
-        <div className="space-y-8 pb-20 md:pb-0">
-            <div>
+            ) : (
+                // Main settings dashboard
+                <div className="space-y-8 pb-20 md:pb-0">
+                    <div>
                 <h1 className="text-3xl font-bold text-accent-greyDark mb-1 flex items-center gap-3">
                     <SettingsIcon size={32} className="text-brand-teal" />
                     Global Settings
@@ -58,6 +137,59 @@ export default function Settings() {
                     );
                 })}
             </div>
-        </div>
+                </div>
+            )}
+            
+            {/* Edit Customer Modal */}
+            <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Edit Customer ({editingClient?.name})</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="editCustomerName">Customer / Company Name</Label>
+                            <Input
+                                id="editCustomerName"
+                                value={editClientName}
+                                onChange={(e) => setEditClientName(e.target.value)}
+                                placeholder="E.g., COR Solutions"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Company Logo Thumbnail</Label>
+                            <div className="flex items-center gap-4 mt-2">
+                                <div className="w-16 h-16 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal overflow-hidden border border-gray-100 shrink-0">
+                                    {editClientLogo ? (
+                                        <img src={editClientLogo} alt="Preview" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Camera size={24} />
+                                    )}
+                                </div>
+                                <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setEditClientLogo(reader.result as string);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    className="cursor-pointer flex-1"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingClient(null)}>Cancel</Button>
+                        <Button onClick={handleEditClientSubmit}>Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

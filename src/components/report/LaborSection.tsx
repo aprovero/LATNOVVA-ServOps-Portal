@@ -148,6 +148,8 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                     const expiredCerts = isPersonSelected ? getExpiredCerts(entry.personnelId) : [];
                     const hasWarning = expiredCerts.length > 0;
 
+                    if (userRole === 'Customer' && hasWarning) return null;
+
                     return (
                         <div key={entry.id} className={`flex flex-col gap-4 p-4 bg-surface-alt rounded-2xl border ${hasWarning ? 'border-status-error/40 bg-red-50/30' : 'border-gray-100'}`}>
                             <div className="flex flex-wrap items-start gap-4">

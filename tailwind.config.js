@@ -9,25 +9,25 @@ export default {
     	extend: {
     		colors: {
     			brand: {
-    				teal: '#0097A7',
-    				tealDark: '#007A87',
-    				tealLight: '#33ABB8'
+    				teal: '#0F766E',
+    				tealDark: '#134E4A',
+    				tealLight: '#2DD4BF'
     			},
     			accent: {
-    				grey: '#424242',
-    				greyLight: '#757575',
-    				greyDark: '#212121',
+    				grey: '#475569',
+    				greyLight: '#94A3B8',
+    				greyDark: '#0F172A',
     				DEFAULT: 'hsl(var(--accent))',
     				foreground: 'hsl(var(--accent-foreground))'
     			},
     			status: {
-    				success: '#2E7D32',
-    				warning: '#F9A825',
-    				error: '#C62828'
+    				success: '#22C55E',
+    				warning: '#F59E0B',
+    				error: '#EF4444'
     			},
     			surface: {
     				DEFAULT: '#FFFFFF',
-    				alt: '#F5F5F5'
+    				alt: '#F8FAFC'
     			},
     			background: 'hsl(var(--background))',
     			foreground: 'hsl(var(--foreground))',
@@ -68,11 +68,11 @@ export default {
     		},
     		fontFamily: {
     			sans: [
-    				'Plus Jakarta Sans"',
+    				'"Inter"',
     				'sans-serif'
     			],
     			mono: [
-    				'Roboto Mono"',
+    				'"Roboto Mono"',
     				'monospace'
     			]
     		},

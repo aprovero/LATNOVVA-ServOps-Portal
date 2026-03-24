@@ -155,20 +155,69 @@ interface PrintableReportTemplateProps {
   report: Report;
 }
 
-export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps) => (
+export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps) => {
+  const state = useStore.getState();
+  const client = state.clients.find(c => c.id === report.clientId);
+  
+  const validLabor = (report.labor || []).filter(l => {
+      if (!l.personnelId) return true;
+      const person = state.personnel.find(p => p.id === l.personnelId);
+      if (!person || !person.certifications) return true;
+      const hasExpired = person.certifications.some(cert => cert.expirationDate && new Date(cert.expirationDate) < new Date());
+      return !hasExpired;
+  });
+
+  const validTools = (report.usedTools || []).filter(toolId => {
+      const tool = state.tools.find(t => t.id === toolId);
+      if (!tool) return false;
+      const isExpired = new Date(tool.certificationExpiry) < new Date();
+      return !isExpired;
+  });
+  
+  const getPersonName = (idOrName?: string) => {
+    if (!idOrName) return 'System / Unknown';
+    const person = state.personnel.find(p => p.id === idOrName);
+    return person ? person.name : idOrName;
+  };
+
+  const formatDateTime = (isoString?: string) => {
+    if (!isoString) return 'N/A';
+    try {
+        return new Date(isoString).toLocaleString();
+    } catch (e) {
+        return isoString;
+    }
+  };
+
+  return (
   <Document>
     <Page size="A4" style={styles.page}>
       
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Logos */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 }}>
         <View style={styles.logoContainer}>
-            {/* Note: In a real app we'd load base64 logos or public URLs here. Or just text if no logos. */}
-            <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 20 }}>LATNOVVA</Text>
-            <Text style={{ fontSize: 10, color: '#666', marginLeft: 4, marginTop: 8 }}>Service Operations</Text>
+            <Image src="/latnovva-logo.png" style={{ height: 40, objectFit: 'contain' }} />
         </View>
-        <View style={styles.titleContainer}>
+        <View style={styles.logoContainer}>
+            {client?.logo ? (
+                <Image src={client.logo} style={{ height: 40, objectFit: 'contain' }} />
+            ) : (
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 14 }}>{client?.name || report.clientId}</Text>
+            )}
+        </View>
+      </View>
+
+      {/* Header Title & Meta */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+        <View style={{ flex: 1 }}>
           <Text style={styles.reportTitle}>Daily Field Report</Text>
           <Text style={styles.reportSubtitle}>ID: {report.id} | Date: {report.date}</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 8, color: '#666' }}>Created: {formatDateTime(report.createdAt)} by {getPersonName(report.createdBy)}</Text>
+          {report.updatedAt && (
+             <Text style={{ fontSize: 8, color: '#666', marginTop: 2 }}>Last Edited: {formatDateTime(report.updatedAt)} by {getPersonName(report.updatedBy)}</Text>
+          )}
         </View>
       </View>
 
@@ -206,7 +255,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       </View>
 
       {/* Labor Section */}
-      {report.labor && report.labor.length > 0 && (
+      {validLabor.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>2. Labor Allocation</Text>
           <View style={styles.table}>
@@ -216,7 +265,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
               <Text style={styles.tableCellBold}>Hours/Ea</Text>
               <Text style={styles.tableCellBold}>Total Hours</Text>
             </View>
-            {report.labor.map((l, i) => (
+            {validLabor.map((l, i) => (
               <View style={styles.tableRow} key={i}>
                 <Text style={styles.tableCell}>{l.role} {l.isOutsourced ? '(Sub)' : ''}</Text>
                 <Text style={styles.tableCell}>{l.qty}</Text>
@@ -258,7 +307,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       </View>
 
       {/* Tools Used */}
-      {report.usedTools && report.usedTools.length > 0 && (
+      {validTools.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tools Used</Text>
           <View style={styles.table}>
@@ -267,8 +316,8 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
               <Text style={styles.tableCellBold}>Model</Text>
               <Text style={styles.tableCellBold}>Serial Number</Text>
             </View>
-            {report.usedTools.map((toolId, i) => {
-              const tool = useStore.getState().tools.find(t => t.id === toolId);
+            {validTools.map((toolId, i) => {
+              const tool = state.tools.find(t => t.id === toolId);
               if (!tool) return null;
               return (
                 <View style={styles.tableRow} key={i}>
@@ -383,4 +432,5 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
 
     </Page>
   </Document>
-);
+  );
+};

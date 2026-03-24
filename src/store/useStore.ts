@@ -97,6 +97,10 @@ export interface Report {
         progressReported?: number;
         notes?: string;
     }[];
+    createdAt?: string; // ISO string
+    createdBy?: string; // User ID
+    updatedAt?: string; // ISO string
+    updatedBy?: string; // User ID
 }
 
 export interface Client {
@@ -127,6 +131,12 @@ export interface ChecklistTemplate {
     id: string;
     name: string;
     items: string[];
+}
+
+export interface ScopeTemplate {
+    id: string;
+    name: string;
+    activities: string[];
 }
 
 export interface ScheduledEvent {
@@ -166,6 +176,7 @@ export interface ProjectScope {
     id: string;
     name: string;
     activities: ProjectActivity[];
+    completedDate?: string;
 }
 
 export interface Project {
@@ -192,11 +203,13 @@ interface AppState {
     tools: Tool[];
     personnel: Personnel[];
     templates: ChecklistTemplate[];
+    scopeTemplates: ScopeTemplate[];
     events: ScheduledEvent[];
     timesheets: TimesheetEntry[];
     initDb: () => void;
     setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer') => void;
     addClient: (client: Client) => void;
+    updateClient: (id: string, updates: Partial<Client>) => void;
     addProject: (project: Project) => void;
     addReport: (report: Report) => void;
     updateReport: (id: string, updates: Partial<Report>) => void;
@@ -210,6 +223,9 @@ interface AppState {
     addTemplate: (template: ChecklistTemplate) => void;
     updateTemplate: (id: string, updates: Partial<ChecklistTemplate>) => void;
     deleteTemplate: (id: string) => void;
+    addScopeTemplate: (template: ScopeTemplate) => void;
+    updateScopeTemplate: (id: string, updates: Partial<ScopeTemplate>) => void;
+    deleteScopeTemplate: (id: string) => void;
     addEvent: (event: ScheduledEvent) => void;
     updateEvent: (id: string, updates: Partial<ScheduledEvent>) => void;
     deleteEvent: (id: string) => void;
@@ -242,6 +258,18 @@ export const useStore = create<AppState>()(
                     items: ['Verify PPE', 'Check weather conditions', 'Inspect equipment for damage', 'Review safety protocols']
                 }
             ],
+            scopeTemplates: [
+                {
+                    id: 'STPL-001',
+                    name: 'Civil Works Default',
+                    activities: ['Site Preparation', 'Trenching', 'Mounting Structures', 'Fencing']
+                },
+                {
+                    id: 'STPL-002',
+                    name: 'Commissioning Standard',
+                    activities: ['Cold Commissioning', 'Hot Commissioning', 'Performance Testing', 'Handover']
+                }
+            ],
             events: [
                 {
                     id: 'EVT-001',
@@ -270,11 +298,18 @@ export const useStore = create<AppState>()(
             },
             setUserRole: (role) => set({ userRole: role }),
             addClient: (client) => set((state) => ({ clients: [...state.clients, client] })),
+            updateClient: (id, updates) => set((state) => ({ clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c) })),
             addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
-            addReport: (report) => set((state) => ({ reports: [...state.reports, report] })),
+            addReport: (report) => set((state) => ({ 
+                reports: [...state.reports, { 
+                    ...report, 
+                    createdAt: report.createdAt || new Date().toISOString(), 
+                    createdBy: report.createdBy || state.userId 
+                }] 
+            })),
             updateReport: (id, updates) =>
                 set((state) => ({
-                    reports: state.reports.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+                    reports: state.reports.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString(), updatedBy: state.userId } : r)),
                 })),
             addComment: (reportId, text) => {
                 const { userRole, userId } = get();
@@ -320,6 +355,15 @@ export const useStore = create<AppState>()(
             deleteTemplate: (id) =>
                 set((state) => ({
                     templates: state.templates.filter((t) => t.id !== id),
+                })),
+            addScopeTemplate: (template) => set((state) => ({ scopeTemplates: [...state.scopeTemplates, template] })),
+            updateScopeTemplate: (id, updates) =>
+                set((state) => ({
+                    scopeTemplates: state.scopeTemplates.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+                })),
+            deleteScopeTemplate: (id) =>
+                set((state) => ({
+                    scopeTemplates: state.scopeTemplates.filter((t) => t.id !== id),
                 })),
             addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
             updateEvent: (id, updates) =>
@@ -370,7 +414,7 @@ export const useStore = create<AppState>()(
                             return {
                                 ...p,
                                 scopes: p.scopes.map((s) => 
-                                    s.id === scopeId ? { ...s, activities: [...s.activities, activity] } : s
+                                    s.id === scopeId ? { ...s, activities: [...s.activities, activity], completedDate: undefined } : s
                                 )
                             };
                         }
@@ -385,11 +429,14 @@ export const useStore = create<AppState>()(
                                 ...p,
                                 scopes: p.scopes.map((s) => {
                                     if (s.id === scopeId) {
+                                        const newActivities = s.activities.map((a) =>
+                                            a.id === activityId ? { ...a, ...updates } : a
+                                        );
+                                        const allCompleted = newActivities.length > 0 && newActivities.every(a => a.progress === 100 || a.status === 'Completed');
                                         return {
                                             ...s,
-                                            activities: s.activities.map((a) =>
-                                                a.id === activityId ? { ...a, ...updates } : a
-                                            )
+                                            activities: newActivities,
+                                            completedDate: allCompleted && !s.completedDate ? new Date().toISOString() : (!allCompleted ? undefined : s.completedDate)
                                         };
                                     }
                                     return s;

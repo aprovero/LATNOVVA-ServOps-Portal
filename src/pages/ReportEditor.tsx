@@ -320,6 +320,7 @@ export default function ReportEditor() {
                             const tool = useStore.getState().tools.find(t => t.id === toolId);
                             if (!tool) return null;
                             const isExpired = new Date(tool.certificationExpiry) < new Date();
+                            if (userRole === 'Customer' && isExpired) return null;
                             return (
                                 <div key={tool.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface-alt rounded-2xl border border-gray-100 gap-4">
                                     <div className="flex flex-col gap-1">
@@ -472,84 +473,87 @@ export default function ReportEditor() {
 
             {/* Workflow Controls */}
             <div className="editor-fade card-container bg-surface flex flex-col md:flex-row justify-between items-center gap-4">
-                {canEditFields ? (
-                    <>
+                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                    <PDFDownloadLink 
+                        document={<PrintableReportTemplate report={report} />} 
+                        fileName={`LATNOVVA_Report_${report.state.replace(/\s+/g, '_')}_${report.id}.pdf`}
+                    >
+                        {({ loading }) => (
+                            <button className="w-full md:w-auto btn-secondary text-brand-teal border-brand-teal/20 bg-brand-teal/5 hover:bg-brand-teal/10 flex items-center justify-center gap-2" disabled={loading}>
+                                <FileText size={18} /> {loading ? 'Generating PDF...' : 'Download PDF'}
+                            </button>
+                        )}
+                    </PDFDownloadLink>
+                    {canEditFields && (
                         <button onClick={handleSave} className="w-full md:w-auto btn-secondary flex items-center justify-center gap-2">
                             <Save size={18} /> Save Draft
                         </button>
-                        <div className="flex gap-2 w-full md:w-auto">
-                            <PDFDownloadLink 
-                                document={<PrintableReportTemplate report={report} />} 
-                                fileName={`LATNOVVA_Report_Draft_${report.id}.pdf`}
-                            >
-                                {({ loading }) => (
-                                    <button className="w-full btn-secondary text-brand-teal border-brand-teal/20 bg-brand-teal/5 hover:bg-brand-teal/10 flex items-center justify-center gap-2" disabled={loading}>
-                                        <FileText size={18} /> {loading ? 'Gen...' : 'PDF'}
-                                    </button>
-                                )}
-                            </PDFDownloadLink>
-                            <button onClick={() => { 
-                                if (!signatures.some(s => s.role === 'Supervisor')) {
-                                    alert('A Tech or Supervisor signature is required before submitting the report for review.');
-                                    return;
-                                }
-                                handleSave(); 
-                                handleChangeState('Pending Manager Review'); 
-                            }} className="w-full btn-primary flex items-center justify-center gap-2 whitespace-nowrap">
-                                Submit for Review
-                            </button>
-                        </div>
-                    </>
-                ) : isManager && report.state === 'Pending Manager Review' ? (
-                    <>
-                        <button onClick={() => handleChangeState('Draft')} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
-                            <Ban size={18} /> Reject & Return to Draft
-                        </button>
-                        <button onClick={() => {
-                            if (!signatures.some(s => s.role === 'Supervisor') || !signatures.some(s => s.role === 'Management')) {
-                                alert('Both Tech/Supervisor and Management signatures are required before sending to the Customer.');
+                    )}
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto justify-end items-center">
+                    {canEditFields ? (
+                        <button onClick={() => { 
+                            if (!signatures.some(s => s.role === 'Supervisor')) {
+                                alert('A Tech or Supervisor signature is required before submitting the report for review.');
                                 return;
                             }
-                            handleChangeState('Pending Customer Review');
-                            // Mock Email Notification
-                            alert("Mock: Email sent via Resend to the Customer to review and approve the report.");
-                        }} className="w-full md:w-auto btn-primary bg-status-success hover:bg-green-700 shadow-status-success/20 flex items-center justify-center gap-2">
-                            <Lock size={18} /> Approve & Send to Customer
+                            handleSave(); 
+                            handleChangeState('Pending Manager Review'); 
+                        }} className="w-full md:w-auto btn-primary flex items-center justify-center gap-2 whitespace-nowrap">
+                            Submit for Review
                         </button>
-                    </>
-                ) : isCustomer && report.state === 'Pending Customer Review' ? (
-                     <>
-                        <button onClick={() => handleChangeState('Pending Manager Review')} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
-                            <Ban size={18} /> Reject
-                        </button>
-                        <button onClick={() => {
-                            // Mocking Digital Signature Apply on Approved
-                            const currentSigs = report.signatures || [];
-                            updateReport(report.id, {
-                                state: 'Approved',
-                                signatures: [
-                                    ...currentSigs.filter(s => s.role !== 'Customer'),
-                                    { role: 'Customer', signedBy: 'Client Representative', timestamp: new Date().toISOString(), blob: signatureBlob }
-                                ]
-                            });
-                            navigate('/reports');
-                        }} className="w-full md:w-auto btn-primary bg-brand-teal hover:bg-brand-teal/90 shadow-sm flex items-center justify-center gap-2">
-                            <Lock size={18} /> Approve Report
-                        </button>
-                    </>
-                ) : isManager && report.state === 'Approved' ? (
-                     <>
-                        <button onClick={() => {
-                            handleChangeState('Closed');
-                        }} className="w-full md:w-auto btn-primary bg-gray-900 hover:bg-black shadow-sm flex items-center justify-center gap-2">
-                            <Lock size={18} /> Close & Seal Report
-                        </button>
-                    </>
-                ) : (
-                    <p className="text-sm text-gray-500 w-full text-center py-2">
-                        Read-only mode. You do not have permissions to alter this report in its current state.
-                    </p>
-                )}
+                    ) : isManager && report.state === 'Pending Manager Review' ? (
+                        <>
+                            <button onClick={() => handleChangeState('Draft')} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
+                                <Ban size={18} /> Reject & Return to Draft
+                            </button>
+                            <button onClick={() => {
+                                if (!signatures.some(s => s.role === 'Supervisor') || !signatures.some(s => s.role === 'Management')) {
+                                    alert('Both Tech/Supervisor and Management signatures are required before sending to the Customer.');
+                                    return;
+                                }
+                                handleChangeState('Pending Customer Review');
+                                // Mock Email Notification
+                                alert("Mock: Email sent via Resend to the Customer to review and approve the report.");
+                            }} className="w-full md:w-auto btn-primary bg-status-success hover:bg-green-700 shadow-status-success/20 flex items-center justify-center gap-2">
+                                <Lock size={18} /> Approve & Send to Customer
+                            </button>
+                        </>
+                    ) : isCustomer && report.state === 'Pending Customer Review' ? (
+                         <>
+                            <button onClick={() => handleChangeState('Pending Manager Review')} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
+                                <Ban size={18} /> Reject
+                            </button>
+                            <button onClick={() => {
+                                // Mocking Digital Signature Apply on Approved
+                                const currentSigs = report.signatures || [];
+                                updateReport(report.id, {
+                                    state: 'Approved',
+                                    signatures: [
+                                        ...currentSigs.filter(s => s.role !== 'Customer'),
+                                        { role: 'Customer', signedBy: 'Client Representative', timestamp: new Date().toISOString(), blob: signatureBlob }
+                                    ]
+                                });
+                                navigate('/reports');
+                            }} className="w-full md:w-auto btn-primary bg-brand-teal hover:bg-brand-teal/90 shadow-sm flex items-center justify-center gap-2">
+                                <Lock size={18} /> Approve Report
+                            </button>
+                        </>
+                    ) : isManager && report.state === 'Approved' ? (
+                         <>
+                            <button onClick={() => {
+                                handleChangeState('Closed');
+                            }} className="w-full md:w-auto btn-primary bg-gray-900 hover:bg-black shadow-sm flex items-center justify-center gap-2">
+                                <Lock size={18} /> Close & Seal Report
+                            </button>
+                        </>
+                    ) : (
+                        <p className="text-sm text-gray-500 w-full text-right py-2">
+                            Read-only workflow mode.
+                        </p>
+                    )}
+                </div>
             </div>
 
             <div className="editor-fade mt-6 mb-10">

@@ -5,7 +5,17 @@ import { useMemo, useEffect } from 'react';
 import gsap from 'gsap';
 
 export default function DataAnalysis() {
-    const { reports, projects } = useStore();
+    const { reports, projects, userRole } = useStore();
+
+    if (userRole !== 'Manager') {
+        return (
+            <div className="flex flex-col items-center justify-center pt-24 text-gray-400">
+                <AlertTriangle size={48} className="mb-4 text-status-warning/50" />
+                <h2 className="text-xl font-bold text-accent-grey">Access Denied</h2>
+                <p className="text-sm mt-2">Global intelligence requires Manager privileges.</p>
+            </div>
+        );
+    }
 
     useEffect(() => {
         gsap.fromTo(

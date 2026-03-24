@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
 import { useStore, Tool } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -13,7 +13,7 @@ import {
 } from '../components/ui/dialog';
 
 export default function Tools() {
-    const { tools, addTool, deleteTool, projects } = useStore();
+    const { tools, addTool, updateTool, deleteTool, projects } = useStore();
     const location = useLocation();
     const [searchTerm, setSearchTerm] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -32,6 +32,35 @@ export default function Tools() {
     const [newTool, setNewTool] = useState<Partial<Tool>>({
         name: '', model: '', serialNumber: '', certificationExpiry: '', assignedProjectId: ''
     });
+
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [currentTool, setCurrentTool] = useState<Tool | null>(null);
+    const [newHistoryEntry, setNewHistoryEntry] = useState({ date: new Date().toISOString().split('T')[0], description: '', projectId: '' });
+
+    const openEdit = (tool: Tool) => {
+        setCurrentTool(tool);
+        setTimeout(() => setIsEditModalOpen(true), 0);
+    };
+
+    const handleEditTool = () => {
+        if (!currentTool?.id) return;
+        updateTool(currentTool.id, currentTool);
+        setIsEditModalOpen(false);
+        setCurrentTool(null);
+    };
+
+    const handleAddHistory = () => {
+        if (!currentTool || !newHistoryEntry.description) return;
+        const updatedHistory = [...currentTool.history, newHistoryEntry];
+        setCurrentTool({ ...currentTool, history: updatedHistory });
+        setNewHistoryEntry({ date: new Date().toISOString().split('T')[0], description: '', projectId: '' });
+    };
+
+    const handleRemoveHistory = (index: number) => {
+        if (!currentTool) return;
+        const updatedHistory = currentTool.history.filter((_, i) => i !== index);
+        setCurrentTool({ ...currentTool, history: updatedHistory });
+    };
 
     const isExpired = (expiryStr: string) => {
         return new Date(expiryStr) < new Date();
@@ -167,9 +196,14 @@ export default function Tools() {
                                     <h3 className="font-bold text-accent-greyDark text-lg block">{tool.name}</h3>
                                     <p className="text-sm text-gray-500">{tool.model} • SN: {tool.serialNumber}</p>
                                 </div>
-                                <button className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" onClick={() => deleteTool(tool.id)}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                </button>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-brand-teal/10 hover:text-brand-teal transition-colors" onClick={() => openEdit(tool)}>
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" onClick={() => deleteTool(tool.id)}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-3 flex-1 mb-6">
@@ -241,6 +275,135 @@ export default function Tools() {
                     </div>
                 )}
             </div>
+
+            {/* Edit Modal */}
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto rounded-2xl p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                            <Wrench className="text-brand-teal" size={20} />
+                            Edit Tool
+                        </DialogTitle>
+                    </DialogHeader>
+                    {currentTool && (
+                        <div className="space-y-6 py-4">
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-accent-greyDark border-b pb-2">Basic Info</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark">Name</label>
+                                        <Input
+                                            value={currentTool.name}
+                                            onChange={(e) => setCurrentTool({ ...currentTool, name: e.target.value })}
+                                            className="rounded-xl border-gray-200 h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark">Model</label>
+                                        <Input
+                                            value={currentTool.model}
+                                            onChange={(e) => setCurrentTool({ ...currentTool, model: e.target.value })}
+                                            className="rounded-xl border-gray-200 h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark">Serial Number</label>
+                                        <Input
+                                            value={currentTool.serialNumber}
+                                            onChange={(e) => setCurrentTool({ ...currentTool, serialNumber: e.target.value })}
+                                            className="rounded-xl border-gray-200 h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark">Certification Expiry</label>
+                                        <Input
+                                            type="date"
+                                            value={currentTool.certificationExpiry}
+                                            onChange={(e) => setCurrentTool({ ...currentTool, certificationExpiry: e.target.value })}
+                                            className="rounded-xl border-gray-200 h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 col-span-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark text-left block">Assign to Project (Optional)</label>
+                                        <select
+                                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-2 focus:ring-brand-teal transition-all"
+                                            value={currentTool.assignedProjectId || ''}
+                                            onChange={(e) => setCurrentTool({ ...currentTool, assignedProjectId: e.target.value })}
+                                        >
+                                            <option value="">Unassigned</option>
+                                            {projects.filter(p => p.status === 'Active').map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-accent-greyDark border-b pb-2 flex justify-between items-center">
+                                    <span>History & Tracking</span>
+                                    <span className="text-xs font-normal text-gray-500">{currentTool.history.length} Entries</span>
+                                </h3>
+                                
+                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-3">
+                                    <div className="text-xs font-bold text-gray-500 uppercase">Add New Entry</div>
+                                    <Input
+                                        placeholder="Description (e.g. Recalibrated, Repaired...)"
+                                        value={newHistoryEntry.description}
+                                        onChange={(e) => setNewHistoryEntry({ ...newHistoryEntry, description: e.target.value })}
+                                        className="h-8 text-sm bg-white"
+                                    />
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="date"
+                                            value={newHistoryEntry.date}
+                                            onChange={(e) => setNewHistoryEntry({ ...newHistoryEntry, date: e.target.value })}
+                                            className="h-8 text-sm bg-white flex-1"
+                                        />
+                                        <select
+                                            className="h-8 text-sm bg-white border border-gray-200 rounded-md px-2 flex-1 outline-none focus:border-brand-teal"
+                                            value={newHistoryEntry.projectId}
+                                            onChange={(e) => setNewHistoryEntry({ ...newHistoryEntry, projectId: e.target.value })}
+                                        >
+                                            <option value="">No Project</option>
+                                            {projects.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                        <Button size="sm" onClick={handleAddHistory} className="h-8 px-3 bg-brand-teal text-white rounded-md">Add</Button>
+                                    </div>
+                                </div>
+
+                                <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                                    {currentTool.history.slice().reverse().map((h, i) => {
+                                        const actualIndex = currentTool.history.length - 1 - i;
+                                        const hProj = h.projectId ? projects.find(p => p.id === h.projectId) : null;
+                                        return (
+                                            <div key={i} className="flex gap-3 p-2 bg-white border border-gray-100 rounded-lg relative group">
+                                                <div className="text-brand-teal/50 pt-1"><Clock size={14}/></div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-accent-greyDark">{h.description}</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[10px] font-mono bg-gray-100 px-1 rounded text-gray-500">{new Date(h.date).toLocaleDateString()}</span>
+                                                        {hProj && <span className="text-[10px] bg-brand-teal/10 text-brand-teal px-1 rounded truncate max-w-[120px]">{hProj.name}</span>}
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => handleRemoveHistory(actualIndex)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                            
+                            <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleEditTool}>
+                                Save Changes
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

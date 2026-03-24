@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
-import { ManageScopesModal } from '../project/ManageScopesModal';
+import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -109,18 +109,40 @@ export default function Layout() {
         );
     }, []);
 
-    const navLinks = [
-        { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
-        { name: 'Reports', path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
-        { name: 'Tools', path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager'] },
-        { name: 'Data Analysis', path: '/analysis', icon: Activity, roles: ['Supervisor', 'Manager'] },
-        { name: 'Calendar', path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager'] },
-        { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
-        { name: 'Personnel', path: '/personnel', icon: User, roles: ['Supervisor', 'Manager'] },
-        { name: 'Org Chart', path: '/org-chart', icon: User, roles: ['Manager'] },
-        { name: 'Templates', path: '/templates', icon: CheckSquare, roles: ['Supervisor', 'Manager'] },
-        { name: 'Settings', path: '/settings', icon: Settings, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
-    ].filter(link => link.roles.includes(userRole));
+    const navGroups = [
+        {
+            name: 'OPERATIONS',
+            links: [
+                { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
+                { name: 'Reports', path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
+                { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
+            ]
+        },
+        {
+            name: 'RESOURCES',
+            links: [
+                { name: 'Personnel', path: '/personnel', icon: User, roles: ['Supervisor', 'Manager'] },
+                { name: 'Tools', path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager'] },
+            ]
+        },
+        {
+            name: 'INTELLIGENCE',
+            links: [
+                { name: 'Data Analysis', path: '/analysis', icon: Activity, roles: ['Supervisor', 'Manager'] },
+                { name: 'Calendar', path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager'] },
+            ]
+        },
+        {
+            name: 'SYSTEM',
+            links: [
+                { name: 'Templates', path: '/templates', icon: CheckSquare, roles: ['Supervisor', 'Manager'] },
+                { name: 'Settings', path: '/settings', icon: Settings, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
+                { name: 'Org Chart', path: '/org-chart', icon: User, roles: ['Manager'] },
+            ]
+        }
+    ];
+
+    const flatNavLinks = navGroups.flatMap(g => g.links).filter(link => link.roles.includes(userRole));
 
     const handleCreateCustomer = () => {
         if (!newCustomerName) return;
@@ -208,35 +230,35 @@ export default function Layout() {
             {/* Sidebar */}
             <aside className="w-64 bg-surface border-r border-gray-100 flex flex-col justify-between hidden md:flex shadow-soft z-10 relative">
                 <div className="p-6">
-                    <div className="flex flex-col gap-2 mb-10 w-fit">
-                        <div className="flex items-center gap-3">
-                            <img src="/cor-logo.png" alt="COR Solutions" className="h-8 object-contain" />
-                            <div className="w-px h-8 bg-gray-200 hidden xl:block"></div>
-                            <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-8 object-contain -ml-1" />
-                        </div>
-                        <div className="flex w-full justify-between items-center mt-1 px-1 text-[13.5px] font-[800] text-accent-grey uppercase opacity-90">
-                            {"SERVICE OPERATIONS HUB".split('').map((char, index) => (
-                                char === ' ' ? <span key={index} className="w-1" /> : <span key={index}>{char}</span>
-                            ))}
-                        </div>
-                    </div>
-
-                    <nav className="space-y-2">
-                        {navLinks.map((link) => {
-                            const Icon = link.icon;
-                            const isActive = location.pathname.startsWith(link.path);
+                    <nav className="space-y-6">
+                        {navGroups.map(group => {
+                            const visibleLinks = group.links.filter(link => link.roles.includes(userRole));
+                            if (visibleLinks.length === 0) return null;
+                            
                             return (
-                                <Link
-                                    key={link.name}
-                                    to={link.path}
-                                    className={`nav-item flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 ${isActive
-                                        ? 'bg-brand-teal text-white shadow-soft'
-                                        : 'text-accent-grey hover:bg-gray-50'
-                                        }`}
-                                >
-                                    <Icon size={20} className={isActive ? 'text-white' : 'text-brand-teal'} />
-                                    <span className="font-semibold">{link.name}</span>
-                                </Link>
+                                <div key={group.name} className="space-y-2">
+                                    <h3 className="text-[11px] font-bold text-accent-greyLight tracking-wider px-2 mb-2">{group.name}</h3>
+                                    <div className="space-y-1">
+                                        {visibleLinks.map(link => {
+                                            const Icon = link.icon;
+                                            const isActive = location.pathname.startsWith(link.path);
+                                            return (
+                                                <Link
+                                                    key={link.name}
+                                                    to={link.path}
+                                                    className={`nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 ${
+                                                        isActive 
+                                                            ? 'bg-brand-teal/10 text-brand-teal font-semibold' 
+                                                            : 'text-accent-greyDark hover:bg-gray-50 font-medium hover:text-brand-teal'
+                                                    }`}
+                                                >
+                                                    <Icon size={18} className={isActive ? 'text-brand-teal' : 'text-accent-greyLight'} />
+                                                    <span>{link.name}</span>
+                                                </Link>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
                             );
                         })}
                     </nav>
@@ -271,13 +293,22 @@ export default function Layout() {
             <main className="flex-1 overflow-y-auto relative flex flex-col bg-[#F8FAFC]">
                 {/* Desktop Top Bar */}
                 <header className="hidden md:flex bg-white h-[88px] border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
-                    {/* Search */}
-                    <div className="relative w-96">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <Input
-                            placeholder="Search projects, reports, tasks..."
-                            className="pl-10 bg-gray-50 border-gray-200 focus-visible:ring-brand-teal h-10 rounded-xl"
-                        />
+                    <div className="flex items-center gap-8">
+                        {/* Logo */}
+                        <div className="flex items-center gap-3">
+                            <img src="/cor-logo.png" alt="COR Solutions" className="h-7 object-contain" />
+                            <div className="w-px h-6 bg-gray-200"></div>
+                            <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-7 object-contain" />
+                        </div>
+
+                        {/* Search */}
+                        <div className="relative w-96 hidden lg:block">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <Input
+                                placeholder="Search projects, reports, tasks..."
+                                className="pl-10 bg-gray-50 border-gray-200 focus-visible:ring-brand-teal h-10 rounded-xl"
+                            />
+                        </div>
                     </div>
 
                     {/* Right Actions */}
@@ -394,7 +425,7 @@ export default function Layout() {
 
             {/* Bottom Nav Mobile */}
             <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-gray-100 flex justify-around p-3 z-30 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
-                {navLinks.map((link) => {
+                {flatNavLinks.slice(0, 5).map((link) => {
                     const Icon = link.icon;
                     const isActive = location.pathname.startsWith(link.path);
                     return (
@@ -584,7 +615,7 @@ export default function Layout() {
             </Dialog>
 
             {newlyCreatedProject && (
-                <ManageScopesModal 
+                <AddScopeModal 
                     open={!!newlyCreatedProject} 
                     onOpenChange={(open) => !open && setNewlyCreatedProject(null)} 
                     project={newlyCreatedProject} 
