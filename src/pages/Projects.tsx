@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, Users, ArrowLeft, MapPin, ExternalLink, Map, Pencil, Camera, AlertCircle, List } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, ExternalLink, Map, Camera, AlertCircle, List } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -54,7 +54,7 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 
 export default function Projects() {
     const { projects, reports, clients, userRole, clientId, timesheets, updateClient } = useStore();
-    const [selectedClientId, setSelectedClientId] = useState<string | null>(
+    const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
     const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
@@ -134,15 +134,7 @@ export default function Projects() {
         );
     }, [selectedClientId]);
 
-    const handleClientSelect = (id: string) => {
-        setSelectedClientId(id);
-    };
 
-    const handleBack = () => {
-        if (userRole !== 'Customer') {
-            setSelectedClientId(null);
-        }
-    };
 
     return (
         <div className="space-y-8 pb-20 md:pb-0 h-full flex flex-col">
