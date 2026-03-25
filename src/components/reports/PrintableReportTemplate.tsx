@@ -195,8 +195,10 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       
       {/* Logos */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 }}>
-        <View style={styles.logoContainer}>
-            <Image src="/latnovva-logo.png" style={{ height: 40, objectFit: 'contain' }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image src="/cor-logo.png" style={{ height: 25, objectFit: 'contain' }} />
+            <View style={{ width: 1, height: 20, backgroundColor: '#ccc', marginHorizontal: 15 }}></View>
+            <Image src="/latnovva-logo.png" style={{ height: 25, objectFit: 'contain' }} />
         </View>
         <View style={styles.logoContainer}>
             {client?.logo ? (

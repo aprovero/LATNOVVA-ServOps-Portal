@@ -143,10 +143,23 @@ export default function Personnel() {
         </div>
     );
 
-    const filteredPersonnel = personnel.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        p.position.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [filterCertification, setFilterCertification] = useState('');
+
+    const allCertifications = Array.from(new Set(
+        personnel
+            .filter(p => p.appRole !== 'Customer')
+            .flatMap(p => p.certifications || [])
+            .map(c => c.name)
+            .filter(Boolean)
+    )).sort();
+
+    const filteredPersonnel = personnel
+        .filter(p => p.appRole !== 'Customer')
+        .filter(p => filterCertification ? p.certifications?.some(c => c.name.toLowerCase() === filterCertification.toLowerCase()) : true)
+        .filter(p => 
+            p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            p.position.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     return (
         <div className="space-y-6">
@@ -154,17 +167,29 @@ export default function Personnel() {
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <User className="text-brand-teal" size={32} />
-                        Personnel & Users
+                        Personnel
                     </h1>
-                    <p className="text-gray-500 mt-1">Manage field staff, employees, and app access roles.</p>
+                    <p className="text-gray-500 mt-1">Manage field staff and internal employees.</p>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="relative">
+                        <Award className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <select
+                            className="pl-10 w-full md:w-56 bg-white border border-gray-200 outline-none focus:ring-2 focus:ring-brand-teal h-11 rounded-xl text-sm text-accent-grey appearance-none"
+                            value={filterCertification}
+                            onChange={(e) => setFilterCertification(e.target.value)}
+                        >
+                            <option value="">All Certifications</option>
+                            {allCertifications.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <Input
                             placeholder="Find by name or position..."
-                            className="pl-10 w-full md:w-80 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
+                            className="pl-10 w-full md:w-72 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />

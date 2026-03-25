@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, Client } from '../store/useStore';
-import { Settings as SettingsIcon, Users, Building2, PenTool, HardHat, Pencil, Camera } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Building2, PenTool, HardHat, Pencil, Camera, Trash2, Shield, Plus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -8,8 +8,28 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
-    const { clients, projects, updateClient } = useStore();
+    const { clients, projects, updateClient, personnel, addPersonnel, deletePersonnel } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
+
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteRole, setInviteRole] = useState<'Tech' | 'Supervisor' | 'Manager' | 'Customer'>('Tech');
+
+    const handleInviteUser = () => {
+        if (!inviteEmail) return;
+        addPersonnel({
+            id: `usr-${Date.now()}`,
+            name: inviteEmail.split('@')[0],
+            email: inviteEmail,
+            position: inviteRole === 'Customer' ? 'Customer Contact' : 'Invited User',
+            employeeNumber: `EMP-${Math.floor(Math.random() * 1000)}`,
+            certifications: [],
+            appRole: inviteRole
+        });
+        setIsInviteModalOpen(false);
+        setInviteEmail('');
+        setInviteRole('Tech');
+    };
 
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [editClientName, setEditClientName] = useState('');
@@ -95,6 +115,67 @@ export default function Settings() {
                                                 </tr>
                                             );
                                         })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ) : activeTab === 'users' ? (
+                        <div className="bg-white border flex flex-col border-gray-100 rounded-2xl shadow-sm overflow-hidden text-left">
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                <div>
+                                    <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2"><Users className="text-brand-teal" size={24}/> User Management</h2>
+                                    <p className="text-sm text-gray-500 mt-1">Manage global access and invite new users by email.</p>
+                                </div>
+                                <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-semibold shadow-sm" onClick={() => setIsInviteModalOpen(true)}>
+                                    <Plus size={16} /> Invite User
+                                </Button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm text-gray-500">
+                                    <thead className="text-xs text-gray-400 uppercase bg-white border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-4 font-bold tracking-wider">User</th>
+                                            <th className="px-6 py-4 font-bold tracking-wider">Role</th>
+                                            <th className="px-6 py-4 font-bold tracking-wider text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {personnel.map(user => (
+                                            <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal font-bold shrink-0">
+                                                            {user.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-accent-greyDark">{user.name}</p>
+                                                            <p className="text-xs text-gray-400">{user.email || 'No email provided'}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 w-max ${
+                                                        user.appRole === 'Manager' ? 'bg-purple-100 text-purple-700' :
+                                                        user.appRole === 'Supervisor' ? 'bg-brand-teal/10 text-brand-teal' :
+                                                        user.appRole === 'Customer' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        <Shield size={12} />
+                                                        {user.appRole || 'Tech'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <button onClick={() => deletePersonnel(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {personnel.length === 0 && (
+                                            <tr>
+                                                <td colSpan={3} className="px-6 py-8 text-center text-gray-400">No users found.</td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -187,6 +268,44 @@ export default function Settings() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setEditingClient(null)}>Cancel</Button>
                         <Button onClick={handleEditClientSubmit}>Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Invite User Modal */}
+            <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Invite New User</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="inviteEmail">Email Address</Label>
+                            <Input
+                                id="inviteEmail"
+                                type="email"
+                                value={inviteEmail}
+                                onChange={(e) => setInviteEmail(e.target.value)}
+                                placeholder="name@company.com"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Access Role</Label>
+                            <select
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                value={inviteRole}
+                                onChange={e => setInviteRole(e.target.value as any)}
+                            >
+                                <option value="Tech">Tech</option>
+                                <option value="Supervisor">Supervisor</option>
+                                <option value="Manager">Manager</option>
+                                <option value="Customer">Customer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsInviteModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handleInviteUser} className="bg-brand-teal hover:bg-brand-teal/90 text-white">Send Invite</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

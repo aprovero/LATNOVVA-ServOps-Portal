@@ -241,7 +241,13 @@ export default function Layout() {
         <div className="flex h-screen w-full bg-surface-alt font-sans">
             {/* Sidebar */}
             <aside className="w-64 bg-surface border-r border-gray-100 flex flex-col justify-between hidden md:flex shadow-soft z-10 relative">
-                <div className="p-6">
+                <div className="px-6 py-6 pb-2">
+                    {/* Logo Setup */}
+                    <div className="flex items-center gap-4 mb-8">
+                        <img src="/cor-logo.png" alt="COR Solutions" className="h-5 object-contain" />
+                        <div className="w-px h-5 bg-gray-300"></div>
+                        <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-5 object-contain" />
+                    </div>
                     <nav className="space-y-6">
                         {navGroups.map(group => {
                             const visibleLinks = group.links.filter(link => link.roles.includes(userRole));
@@ -305,20 +311,13 @@ export default function Layout() {
             <main className="flex-1 overflow-y-auto relative flex flex-col bg-[#F8FAFC]">
                 {/* Desktop Top Bar */}
                 <header className="hidden md:flex bg-white h-[64px] border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
-                    <div className="flex items-center gap-8">
-                        {/* Logo */}
-                        <div className="flex items-center gap-3">
-                            <img src="/cor-logo.png" alt="COR Solutions" className="h-5 object-contain" />
-                            <div className="w-px h-5 bg-gray-200"></div>
-                            <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-5 object-contain" />
-                        </div>
-
-                        {/* Search */}
-                        <div className="relative w-96 hidden lg:block">
+                    {/* Search */}
+                    <div className="flex items-center flex-1">
+                        <div className="relative w-full max-w-md hidden lg:block">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <Input
                                 placeholder="Search projects, reports, tasks..."
-                                className="pl-10 bg-gray-50 border-gray-200 focus-visible:ring-brand-teal h-10 rounded-xl"
+                                className="pl-10 bg-gray-50 border-gray-200 focus-visible:ring-brand-teal h-10 rounded-xl w-full"
                             />
                         </div>
                     </div>

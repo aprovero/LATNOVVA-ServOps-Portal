@@ -121,6 +121,7 @@ export interface Personnel {
     name: string;
     position: string;
     employeeNumber: string;
+    email?: string;
     certifications: Certification[];
     appRole?: 'Tech' | 'Supervisor' | 'Manager' | 'Customer';
     supervisorId?: string;
