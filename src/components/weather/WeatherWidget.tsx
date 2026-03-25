@@ -54,18 +54,25 @@ export default function WeatherWidget({ weather, reportDate, projectLocation, on
 
     return (
         <div className="card-container bg-gradient-to-br from-brand-teal/5 to-white relative overflow-hidden">
-            <div className="absolute -right-4 -top-4 text-brand-teal/5">
+            <div className="absolute -right-10 -top-10 text-brand-teal/5">
                 <ThermometerSun size={120} />
             </div>
 
-            <div className="flex items-center justify-between mb-6 relative z-10">
+            <div className="flex items-center justify-between mb-3 relative z-10">
                 <div>
                     <h2 className="text-xl font-bold flex items-center gap-2">
                         <CloudRain className="text-brand-teal" /> Site Intelligence
                     </h2>
                     <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                         <MapPin size={14} /> {loading ? 'Acquiring GPS...' : weather?.locationName || 'Unknown Location'}
-                        {reportDate && <span className="ml-2 pl-2 border-l border-gray-300">Date: {reportDate}</span>}
+                        {reportDate && (
+                            <span className="ml-2 pl-2 border-l border-gray-300 flex items-center gap-2">
+                                {reportDate}
+                                {reportDate !== new Date().toISOString().split('T')[0] && (
+                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded uppercase">Historical Data</span>
+                                )}
+                            </span>
+                        )}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -83,69 +90,69 @@ export default function WeatherWidget({ weather, reportDate, projectLocation, on
             </div>
 
             {!loading && (
-                <div className="weather-element space-y-6 relative z-10">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-4 bg-white rounded-2xl shadow-sm border border-brand-teal/10">
-                            <p className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Temp (°C)</p>
+                <div className="weather-element space-y-3 relative z-10">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="p-3 bg-white rounded-xl shadow-sm border border-brand-teal/10">
+                            <p className="text-[10px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Temp (°C)</p>
                             {isManual ? (
                                 <input
                                     type="number"
-                                    className="w-full text-2xl font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
+                                    className="w-full text-lg font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
                                     value={weather?.temp || ''}
                                     onChange={e => handleFieldChange('temp', Number(e.target.value))}
                                 />
                             ) : (
-                                <p className="text-2xl font-bold text-accent-greyDark">{weather?.temp || 0}°C</p>
+                                <p className="text-lg font-bold text-accent-greyDark">{weather?.temp || 0}°C</p>
                             )}
                         </div>
-                        <div className="p-4 bg-white rounded-2xl shadow-sm border border-brand-teal/10">
-                            <p className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Condition</p>
+                        <div className="p-3 bg-white rounded-xl shadow-sm border border-brand-teal/10">
+                            <p className="text-[10px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Condition</p>
                             {isManual ? (
                                 <input
                                     type="text"
-                                    className="w-full text-lg font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
+                                    className="w-full text-base font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
                                     value={weather?.condition || ''}
                                     onChange={e => handleFieldChange('condition', e.target.value)}
                                 />
                             ) : (
-                                <p className="text-lg font-bold text-accent-greyDark">{weather?.condition || 'Unknown'}</p>
+                                <p className="text-base font-bold text-accent-greyDark">{weather?.condition || 'Unknown'}</p>
                             )}
                         </div>
-                        <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-                            <p className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Humidity</p>
+                        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-[10px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Humidity</p>
                             {isManual ? (
                                 <input
                                     type="text"
-                                    className="w-full text-lg font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
+                                    className="w-full text-base font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
                                     value={weather?.humidity || ''}
                                     onChange={e => handleFieldChange('humidity', e.target.value)}
                                 />
                             ) : (
-                                <p className="text-lg font-bold text-accent-greyDark">{weather?.humidity || 'N/A'}</p>
+                                <p className="text-base font-bold text-accent-greyDark">{weather?.humidity || 'N/A'}</p>
                             )}
                         </div>
-                        <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-                            <p className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">Wind</p>
+                        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-[10px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Wind</p>
                             {isManual ? (
                                 <input
                                     type="text"
-                                    className="w-full text-lg font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
+                                    className="w-full text-base font-bold text-accent-greyDark bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none focus:border-brand-teal"
                                     value={weather?.wind || ''}
                                     onChange={e => handleFieldChange('wind', e.target.value)}
                                 />
                             ) : (
-                                <p className="text-lg font-bold text-accent-greyDark">{weather?.wind || 'N/A'}</p>
+                                <p className="text-base font-bold text-accent-greyDark">{weather?.wind || 'N/A'}</p>
                             )}
                         </div>
                     </div>
 
-                    <div className="p-5 rounded-2xl bg-surface-alt border border-brand-teal/20">
-                        <div>
-                            <h3 className="font-bold flex items-center gap-2 mb-2 text-brand-teal">
-                                <CloudRain size={18} />
+                    <div className="p-3 rounded-xl bg-surface-alt border border-brand-teal/20">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold flex items-center gap-2 text-brand-teal">
+                                <CloudRain size={16} />
                                 Rainfall / Delays
                             </h3>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                                 <input
                                     type="number"
                                     min="0"
@@ -153,9 +160,9 @@ export default function WeatherWidget({ weather, reportDate, projectLocation, on
                                     onChange={(e) => handleFieldChange('rainfallMm', Number(e.target.value))}
                                     disabled={readOnly}
                                     placeholder="0"
-                                    className="w-24 bg-white border border-gray-200 focus:border-brand-teal outline-none rounded-xl py-2 px-3 text-center font-mono disabled:opacity-70"
+                                    className="w-16 bg-white border border-gray-200 focus:border-brand-teal outline-none rounded-lg py-1 px-2 text-center text-sm font-mono disabled:opacity-70"
                                 />
-                                <span className="text-sm font-bold text-gray-500">mm recorded</span>
+                                <span className="text-xs font-bold text-gray-500">mm recorded</span>
                             </div>
                         </div>
                     </div>

@@ -40,6 +40,8 @@ export default function Timesheets() {
 
     const [filterProject, setFilterProject] = useState('');
     const [filterPersonnel, setFilterPersonnel] = useState('');
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
 
     useEffect(() => {
         // Auto-update hours when time in/out changes
@@ -146,6 +148,8 @@ export default function Timesheets() {
         .filter(t => filterProject ? t.projectId === filterProject : true)
         .filter(t => filterPersonnel ? t.personnelId === filterPersonnel : true)
         .filter(t => userRole === 'Tech' ? t.personnelId === newEntry.personnelId : true)
+        .filter(t => filterStartDate ? new Date(t.date) >= new Date(filterStartDate) : true)
+        .filter(t => filterEndDate ? new Date(t.date) <= new Date(filterEndDate) : true)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const totalHours = filteredTimesheets.reduce((sum, t) => sum + t.hours, 0);
@@ -311,8 +315,26 @@ export default function Timesheets() {
                         </select>
                     </div>
                 )}
-                {(filterProject || filterPersonnel) && (
-                    <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl px-4 py-2.5 h-auto text-sm font-bold" onClick={() => { setFilterProject(''); setFilterPersonnel(''); }}>
+                <div className="space-y-1.5 flex-1 min-w-[150px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><CalendarIcon size={12} /> From Date</label>
+                    <Input
+                        type="date"
+                        className="bg-gray-50 border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-brand-teal h-[42px]"
+                        value={filterStartDate}
+                        onChange={e => setFilterStartDate(e.target.value)}
+                    />
+                </div>
+                <div className="space-y-1.5 flex-1 min-w-[150px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><CalendarIcon size={12} /> To Date</label>
+                    <Input
+                        type="date"
+                        className="bg-gray-50 border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-brand-teal h-[42px]"
+                        value={filterEndDate}
+                        onChange={e => setFilterEndDate(e.target.value)}
+                    />
+                </div>
+                {(filterProject || filterPersonnel || filterStartDate || filterEndDate) && (
+                    <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl px-4 py-2.5 h-auto text-sm font-bold" onClick={() => { setFilterProject(''); setFilterPersonnel(''); setFilterStartDate(''); setFilterEndDate(''); }}>
                         Clear Filters
                     </Button>
                 )}
@@ -328,8 +350,6 @@ export default function Timesheets() {
                                 <th className="p-4">Personnel</th>
                                 <th className="p-4 whitespace-nowrap">Time In/Out</th>
                                 <th className="p-4 whitespace-nowrap">Hours</th>
-                                <th className="p-4">Type</th>
-                                <th className="p-4">Class</th>
                                 <th className="p-4 min-w-[150px]">Project</th>
                                 <th className="p-4 rounded-tr-xl text-right">Actions</th>
                             </tr>
@@ -337,7 +357,7 @@ export default function Timesheets() {
                         <tbody className="divide-y divide-gray-100">
                             {filteredTimesheets.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="p-8 text-center text-gray-500">
+                                    <td colSpan={6} className="p-8 text-center text-gray-500">
                                         <Clock className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                                         <p className="text-lg font-semibold text-accent-greyDark flex items-center justify-center gap-2">No timesheets found.</p>
                                         <p className="text-sm">Log hours above to get started.</p>
@@ -360,25 +380,6 @@ export default function Timesheets() {
                                         </td>
                                         <td className="p-4">
                                             <span className="font-bold text-lg text-brand-teal">{entry.hours}</span> <span className="text-xs text-gray-500 font-medium">hrs</span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                                                entry.type === 'On Site' ? 'bg-blue-50 text-blue-700' :
-                                                entry.type === 'Travel' ? 'bg-purple-50 text-purple-700' :
-                                                'bg-gray-100 text-gray-700'
-                                            }`}>
-                                                {entry.type}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                                                entry.classification === 'Overtime' ? 'bg-amber-100 text-amber-800' :
-                                                entry.classification === 'Double Time' ? 'bg-red-100 text-red-800' :
-                                                entry.classification === 'Regular' ? 'bg-green-50 text-green-700' :
-                                                'bg-gray-100 text-gray-500'
-                                            }`}>
-                                                {entry.classification || 'Regular'}
-                                            </span>
                                         </td>
                                         <td className="p-4 text-sm font-medium text-gray-700">
                                             <div className="flex items-center gap-2">

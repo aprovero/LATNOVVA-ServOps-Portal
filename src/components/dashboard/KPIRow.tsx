@@ -1,8 +1,10 @@
 import { useStore } from '../../store/useStore';
 import { Activity, Users, AlertCircle, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function KPIRow() {
     const { projects, reports, userRole } = useStore();
+    const navigate = useNavigate();
 
     // Only Managers and Supervisors see global KPIs
     if (userRole === 'Customer' || userRole === 'Tech') return null;
@@ -20,10 +22,10 @@ export function KPIRow() {
     const issuesDiff = "+1 today";
 
     const kpis = [
-        { label: 'Active Projects', value: activeProjects, diff: activeProjectsDiff, icon: Activity, color: 'text-brand-teal', bg: 'bg-brand-teal/10' },
-        { label: 'Techs Deployed', value: techsDeployed, diff: techsDiff, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { label: 'Open Reports', value: openReports, diff: reportsDiff, icon: FileText, color: 'text-status-warning', bg: 'bg-status-warning/10' },
-        { label: 'Critical Issues', value: criticalIssues, diff: issuesDiff, icon: AlertCircle, color: 'text-status-error', bg: 'bg-status-error/10' },
+        { label: 'Active Projects', value: activeProjects, diff: activeProjectsDiff, icon: Activity, color: 'text-brand-teal', bg: 'bg-brand-teal/10', link: '/projects?q=Active' },
+        { label: 'Techs Deployed', value: techsDeployed, diff: techsDiff, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', link: '/personnel' },
+        { label: 'Open Reports', value: openReports, diff: reportsDiff, icon: FileText, color: 'text-status-warning', bg: 'bg-status-warning/10', link: '/reports?q=Pending' },
+        { label: 'Critical Issues', value: criticalIssues, diff: issuesDiff, icon: AlertCircle, color: 'text-status-error', bg: 'bg-status-error/10', link: '/projects?q=Hold' },
     ];
 
     return (
@@ -31,14 +33,18 @@ export function KPIRow() {
             {kpis.map((kpi, i) => {
                 const Icon = kpi.icon;
                 return (
-                    <div key={i} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-start justify-between">
+                    <div 
+                        key={i} 
+                        onClick={() => navigate(kpi.link)}
+                        className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-start justify-between cursor-pointer hover:shadow-md transition-shadow hover:border-brand-teal/30"
+                    >
                         <div>
-                            <p className="text-sm font-semibold text-accent-greyLight mb-1">{kpi.label}</p>
-                            <h3 className="text-3xl font-bold text-accent-greyDark">{kpi.value}</h3>
-                            <p className="text-xs font-medium mt-2 text-gray-400">{kpi.diff}</p>
+                            <p className="text-xs font-semibold text-accent-greyLight mb-1">{kpi.label}</p>
+                            <h3 className="text-2xl font-bold text-accent-greyDark">{kpi.value}</h3>
+                            <p className="text-[10px] font-medium mt-1 text-gray-400">{kpi.diff}</p>
                         </div>
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${kpi.bg}`}>
-                            <Icon size={24} className={kpi.color} />
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.bg}`}>
+                            <Icon size={20} className={kpi.color} />
                         </div>
                     </div>
                 );

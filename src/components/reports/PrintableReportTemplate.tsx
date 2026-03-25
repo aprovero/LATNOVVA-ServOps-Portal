@@ -235,20 +235,14 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
           </View>
         </View>
         <View style={[styles.row, { marginTop: 8 }]}>
-          <View style={styles.col3}>
+          <View style={styles.col2}>
             <Text style={styles.label}>Weather</Text>
             <Text style={styles.value}>{report.weather.temp}°C, {report.weather.condition}</Text>
           </View>
-          <View style={styles.col3}>
+          <View style={styles.col2}>
             <Text style={styles.label}>Location</Text>
             <Text style={styles.value}>
               {report.location ? `${report.location.lat.toFixed(4)}, ${report.location.lng.toFixed(4)}` : 'N/A'}
-            </Text>
-          </View>
-          <View style={styles.col3}>
-            <Text style={styles.label}>Schedule</Text>
-            <Text style={styles.value}>
-              {report.schedule?.arrival || '-'} to {report.schedule?.departure || '-'} ({report.schedule?.shift})
             </Text>
           </View>
         </View>

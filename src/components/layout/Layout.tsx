@@ -48,7 +48,8 @@ export default function Layout() {
     const [newlyCreatedProject, setNewlyCreatedProject] = useState<Project | null>(null);
     const [newReportProject, setNewReportProject] = useState('');
     const [newReportDate, setNewReportDate] = useState(new Date().toISOString().split('T')[0]);
-
+    const [newReportCompany, setNewReportCompany] = useState('');
+    const [locationError, setLocationError] = useState('');
     // Compute Notifications
     const notifications: { id: string; title: string; message: string; type: 'warning' | 'error', link?: string }[] = [];
 
@@ -159,6 +160,17 @@ export default function Layout() {
 
     const handleCreateProject = () => {
         if (!newProjectName || !newProjectClient) return;
+
+        // Basic Coordinate or Address Validation
+        if (newProjectLocation) {
+            const isCoord = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(newProjectLocation.trim());
+            if (!isCoord && newProjectLocation.trim().length < 5) {
+                setLocationError("Please enter valid GPS coordinates (lat, lng) or a full address.");
+                return;
+            }
+        }
+        setLocationError('');
+
         const newProj: Project = {
             id: `PROJ-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
             clientId: newProjectClient,
@@ -284,7 +296,7 @@ export default function Layout() {
                         <option value="Tech">Tech</option>
                         <option value="Supervisor">Supervisor</option>
                         <option value="Manager">Manager</option>
-                        <option value="Customer">Customer</option>
+                        <option value="Customer">Company</option>
                     </select>
                 </div>
             </aside>
@@ -292,13 +304,13 @@ export default function Layout() {
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto relative flex flex-col bg-[#F8FAFC]">
                 {/* Desktop Top Bar */}
-                <header className="hidden md:flex bg-white h-[88px] border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
+                <header className="hidden md:flex bg-white h-[64px] border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
                     <div className="flex items-center gap-8">
                         {/* Logo */}
                         <div className="flex items-center gap-3">
-                            <img src="/cor-logo.png" alt="COR Solutions" className="h-7 object-contain" />
-                            <div className="w-px h-6 bg-gray-200"></div>
-                            <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-7 object-contain" />
+                            <img src="/cor-logo.png" alt="COR Solutions" className="h-5 object-contain" />
+                            <div className="w-px h-5 bg-gray-200"></div>
+                            <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-5 object-contain" />
                         </div>
 
                         {/* Search */}
@@ -325,7 +337,7 @@ export default function Layout() {
                                     {['Supervisor', 'Manager'].includes(userRole) && (
                                         <>
                                             <DropdownMenuItem onClick={() => setIsCreateCustomerOpen(true)} className="cursor-pointer">
-                                                New Customer
+                                                New Company
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => setIsCreateProjectOpen(true)} className="cursor-pointer">
                                                 New Project
@@ -401,11 +413,11 @@ export default function Layout() {
                 </header>
 
                 {/* Mobile Header */}
-                <header className="md:hidden bg-white p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+                <header className="md:hidden bg-white p-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                     <div className="flex items-center gap-3">
-                        <img src="/cor-logo.png" alt="COR" className="h-6 object-contain" />
-                        <div className="w-px h-6 bg-gray-200"></div>
-                        <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-6 object-contain" />
+                        <img src="/cor-logo.png" alt="COR" className="h-4 object-contain" />
+                        <div className="w-px h-4 bg-gray-200"></div>
+                        <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-4 object-contain" />
                     </div>
                     <div className="flex items-center gap-3">
                         <button className="p-2 text-gray-500 rounded-full bg-gray-50">
@@ -446,16 +458,16 @@ export default function Layout() {
             <Dialog open={isCreateCustomerOpen} onOpenChange={setIsCreateCustomerOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Create New Customer</DialogTitle>
+                        <DialogTitle>Create New Company</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="customerName">Customer Name</Label>
+                            <Label htmlFor="customerName">Company Name</Label>
                             <Input
                                 id="customerName"
                                 value={newCustomerName}
                                 onChange={(e) => setNewCustomerName(e.target.value)}
-                                placeholder="Enter customer name"
+                                placeholder="Enter company name"
                             />
                         </div>
                         <div className="grid gap-2">
@@ -487,7 +499,7 @@ export default function Layout() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateCustomerOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreateCustomer}>Save Customer</Button>
+                        <Button onClick={handleCreateCustomer}>Save Company</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -537,7 +549,10 @@ export default function Layout() {
                                 <Input
                                     id="projectLocation"
                                     value={newProjectLocation}
-                                    onChange={(e) => setNewProjectLocation(e.target.value)}
+                                    onChange={(e) => {
+                                        setNewProjectLocation(e.target.value);
+                                        setLocationError('');
+                                    }}
                                     placeholder="E.g., 123 Solar Way or 30.2672, -97.7431"
                                     className="flex-1"
                                 />
@@ -545,6 +560,7 @@ export default function Layout() {
                                     <MapPin size={18} className="text-brand-teal" />
                                 </Button>
                             </div>
+                            {locationError && <p className="text-xs text-red-500 font-medium">{locationError}</p>}
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="projectSize">Project Size</Label>
@@ -583,14 +599,31 @@ export default function Layout() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
+                            <Label>Select Company</Label>
+                            <select
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
+                                value={newReportCompany}
+                                onChange={(e) => {
+                                    setNewReportCompany(e.target.value);
+                                    setNewReportProject('');
+                                }}
+                            >
+                                <option value="" disabled>Select a company</option>
+                                {clients.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="grid gap-2">
                             <Label>Select Project</Label>
                             <select
                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
                                 value={newReportProject}
                                 onChange={(e) => setNewReportProject(e.target.value)}
+                                disabled={!newReportCompany}
                             >
                                 <option value="" disabled>Select a project</option>
-                                {projects.filter(p => p.status === 'Active').map(p => (
+                                {projects.filter(p => p.status === 'Active' && p.clientId === newReportCompany).map(p => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}
                             </select>

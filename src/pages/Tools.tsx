@@ -196,7 +196,7 @@ export default function Tools() {
                                     <h3 className="font-bold text-accent-greyDark text-lg block">{tool.name}</h3>
                                     <p className="text-sm text-gray-500">{tool.model} • SN: {tool.serialNumber}</p>
                                 </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex gap-2 transition-opacity">
                                     <button className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-brand-teal/10 hover:text-brand-teal transition-colors" onClick={() => openEdit(tool)}>
                                         <Edit2 size={16} />
                                     </button>

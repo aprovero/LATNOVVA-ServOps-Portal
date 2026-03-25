@@ -110,17 +110,30 @@ export default function Personnel() {
                             />
                         </div>
                      </div>
-                     <div className="flex items-center gap-2 mt-1">
-                         <label className="text-xs flex items-center gap-2 cursor-pointer">
+                     <div className="flex flex-col gap-2 mt-2 border-t border-gray-100 pt-2">
+                         <label className="text-xs flex items-center gap-2 cursor-pointer w-fit">
                              <input 
-                                type="checkbox" 
-                                checked={!!cert.hasAttachment}
-                                onChange={e => handleUpdateCert(index, 'hasAttachment', e.target.checked)}
-                                className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
+                                type="file" 
+                                accept="application/pdf,image/*"
+                                onChange={e => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        handleUpdateCert(index, 'hasAttachment', true);
+                                        handleUpdateCert(index, 'attachmentName', e.target.files[0].name);
+                                    }
+                                }}
+                                className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-teal/10 file:text-brand-teal hover:file:bg-brand-teal/20"
                              />
-                             <span className="text-gray-600 font-medium">Digital Certificate Attached</span>
                          </label>
-                         {cert.hasAttachment && <FilePlus size={14} className="text-brand-teal" />}
+                         {cert.hasAttachment && cert.attachmentName && (
+                             <span className="text-xs text-brand-teal flex items-center gap-1 font-medium bg-brand-teal/5 px-2 py-1 rounded w-fit mt-1 border border-brand-teal/20">
+                                 <FilePlus size={12} /> {cert.attachmentName}
+                             </span>
+                         )}
+                         {cert.hasAttachment && !cert.attachmentName && (
+                             <span className="text-xs text-brand-teal flex items-center gap-1 font-medium bg-brand-teal/5 px-2 py-1 rounded w-fit mt-1 border border-brand-teal/20">
+                                 <FilePlus size={12} /> Digital Certificate Attached
+                             </span>
+                         )}
                      </div>
                 </div>
             ))}
@@ -257,13 +270,20 @@ export default function Personnel() {
                                 </div>
                             )}
                             <div className="flex flex-wrap gap-2">
-                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold font-mono">
+                                <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${
+                                    person.appRole === 'Customer' ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-blue-50 text-blue-700 border border-blue-100'
+                                }`}>
+                                    {person.appRole === 'Customer' ? 'CUSTOMER' : 'INTERNAL STAFF'}
+                                </span>
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold font-mono border border-gray-200">
                                     ID: {person.employeeNumber}
                                 </span>
-                                <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${person.appRole === 'Manager' ? 'bg-purple-100 text-purple-700' :
+                                <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${
+                                    person.appRole === 'Manager' ? 'bg-purple-100 text-purple-700' :
                                     person.appRole === 'Supervisor' ? 'bg-brand-teal/10 text-brand-teal' :
-                                        'bg-blue-100 text-blue-700'
-                                    }`}>
+                                    person.appRole === 'Customer' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-blue-100 text-blue-700'
+                                }`}>
                                     <Shield size={10} />
                                     {person.appRole || 'Tech'}
                                 </span>

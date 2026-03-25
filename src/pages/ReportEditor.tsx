@@ -11,7 +11,6 @@ import EquipmentDropdown from '../components/report/EquipmentDropdown';
 import ToolDropdown from '../components/report/ToolDropdown';
 import MediaGrid from '../components/report/MediaGrid';
 import MultisignaturePad from '../components/report/MultisignaturePad';
-import WorkSchedule from '../components/report/WorkSchedule';
 import Occurrences from '../components/report/Occurrences';
 import Checklists from '../components/report/Checklists';
 import { PDFDownloadLink } from '@react-pdf/renderer';
@@ -31,7 +30,6 @@ export default function ReportEditor() {
     const [newComment, setNewComment] = useState('');
 
     // Complex state modules
-    const [schedule, setSchedule] = useState(report?.schedule || { arrival: '', departure: '', shift: 'Morning' as const });
     const currentSignature = report?.signatures?.find(s => s.role === userRole) || null;
     const [labor, setLabor] = useState(report?.labor || []);
     const [media, setMedia] = useState(report?.media || []);
@@ -51,7 +49,6 @@ export default function ReportEditor() {
             setWeatherState(report.weather);
             setLocationState(report.location);
             setSections(report.customSections || []);
-            setSchedule(report.schedule || { arrival: '', departure: '', shift: 'Morning' });
             setLabor(report.labor || []);
             setMedia(report.media || []);
             setOccurrences(report.occurrences || []);
@@ -82,7 +79,6 @@ export default function ReportEditor() {
     const handleSave = () => {
         updateReport(report.id, {
             notes,
-            schedule,
             weather: weatherState || { temp: 0, condition: 'Unknown' },
             location: locationState,
             customSections: sections,
@@ -202,10 +198,6 @@ export default function ReportEditor() {
             </div>
 
             <div className="editor-fade">
-                <WorkSchedule schedule={schedule} onChange={setSchedule} readOnly={!canEditFields} />
-            </div>
-
-            <div className="editor-fade">
                 <LaborSection labor={labor} onChange={setLabor} readOnly={!canEditFields} currentReportId={report.id} currentDate={report.date} />
             </div>
 
@@ -222,7 +214,7 @@ export default function ReportEditor() {
 
             <div className="editor-fade card-container">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-accent-greyDark">Equipment Telemetry & Log</h2>
+                    <h2 className="text-xl font-bold text-accent-greyDark">Asset & Equipment Scanning</h2>
                     {canEditFields && (
                         <div className="flex flex-col sm:flex-row gap-3">
                             <EquipmentDropdown onAdd={handleAddEquipmentDropdown} readOnly={!canEditFields} />
@@ -297,7 +289,7 @@ export default function ReportEditor() {
             <div className="editor-fade card-container">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                        <Wrench className="text-brand-teal" size={24} /> Tools Used
+                        <Wrench className="text-brand-teal" size={24} /> Equipment & Tools Used
                     </h2>
                     {canEditFields && (
                         <ToolDropdown
