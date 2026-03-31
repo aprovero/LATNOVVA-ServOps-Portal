@@ -122,7 +122,6 @@ export default function Layout() {
             name: 'OPERATIONS',
             links: [
                 { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
-                { name: 'Clock In', path: '/clock-in', icon: Fingerprint, roles: ['Tech', 'Supervisor'] },
                 { name: 'Live Map', path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
                 { name: 'Reports', path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
                 { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
@@ -258,9 +257,26 @@ export default function Layout() {
                     <div className="flex items-center gap-4 mb-8">
                         <img src="/cor-logo.png" alt="COR Solutions" className="h-[26px] object-contain" />
                         <div className="w-px h-6 bg-gray-300"></div>
-                        <img src="/latnovva-O-logo.png" alt="LATNOVVA" className="h-[26px] object-contain" />
+                        <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-[26px] object-contain" />
                     </div>
                     <nav className="space-y-6">
+                        {/* Clock In — pinned above nav groups, visible to Tech + Supervisor */}
+                        {['Tech', 'Supervisor'].includes(userRole) && (() => {
+                            const isClockActive = location.pathname.startsWith('/clock-in');
+                            return (
+                                <Link
+                                    to="/clock-in"
+                                    className={`nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 font-semibold ${
+                                        isClockActive
+                                            ? 'bg-emerald-500/10 text-emerald-600'
+                                            : 'text-emerald-600 hover:bg-emerald-50'
+                                    }`}
+                                >
+                                    <Fingerprint size={18} className="text-emerald-500" />
+                                    <span>Clock In</span>
+                                </Link>
+                            );
+                        })()}
                         {navGroups.map(group => {
                             const visibleLinks = group.links.filter(link => link.roles.includes(userRole));
                             if (visibleLinks.length === 0) return null;
@@ -448,15 +464,24 @@ export default function Layout() {
 
             {/* Bottom Nav Mobile */}
             <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-gray-100 flex justify-around p-3 z-30 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
-                {flatNavLinks.slice(0, 5).map((link) => {
+                {/* Clock In pinned first for Tech/Supervisor */}
+                {['Tech', 'Supervisor'].includes(userRole) && (
+                    <Link
+                        to="/clock-in"
+                        className={`flex flex-col items-center p-2 rounded-xl transition-colors ${location.pathname.startsWith('/clock-in') ? 'text-emerald-600' : 'text-emerald-500'}`}
+                    >
+                        <Fingerprint size={24} className="mb-1" />
+                        <span className="text-[10px] font-semibold">Clock In</span>
+                    </Link>
+                )}
+                {flatNavLinks.slice(0, ['Tech', 'Supervisor'].includes(userRole) ? 4 : 5).map((link) => {
                     const Icon = link.icon;
                     const isActive = location.pathname.startsWith(link.path);
                     return (
                         <Link
                             key={link.name}
                             to={link.path}
-                            className={`flex flex-col items-center p-2 rounded-xl transition-colors ${isActive ? 'text-brand-teal' : 'text-accent-grey'
-                                }`}
+                            className={`flex flex-col items-center p-2 rounded-xl transition-colors ${isActive ? 'text-brand-teal' : 'text-accent-grey'}`}
                         >
                             <Icon size={24} className="mb-1" />
                             <span className="text-[10px] font-semibold">{link.name}</span>
