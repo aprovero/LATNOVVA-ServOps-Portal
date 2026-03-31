@@ -86,7 +86,7 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
         {/* Logos & Header */}
         <View style={styles.logoContainer}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image src="/latnovva-logo.png" style={{ height: 30, objectFit: 'contain' }} />
+                <Image src="https://www.latnovva.com/wp-content/uploads/2023/11/LOGO-LATNOVVA-COLOR.png" style={{ height: 30, objectFit: 'contain' }} />
             </View>
             <View>
                 {client?.logo ? (

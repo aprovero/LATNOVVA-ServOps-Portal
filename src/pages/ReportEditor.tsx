@@ -325,7 +325,7 @@ export default function ReportEditor() {
             </div>
 
             <div className="editor-fade">
-                <SubReportsSection currentReport={report} subReportIds={subReportIds} onChange={setSubReportIds} readOnly={!canEditFields} />
+                <SubReportsSection currentReport={report} subReportIds={subReportIds} onChange={setSubReportIds} readOnly={!canEditFields} onOpen={(srId) => { handleSave(); navigate(`/sub-reports/${srId}`); }} />
             </div>
 
             <div className="editor-fade">

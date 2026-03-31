@@ -249,9 +249,9 @@ export default function Layout() {
                 <div className="px-6 py-6 pb-2">
                     {/* Logo Setup */}
                     <div className="flex items-center gap-4 mb-8">
-                        <img src="/cor-logo.png" alt="COR Solutions" className="h-5 object-contain" />
-                        <div className="w-px h-5 bg-gray-300"></div>
-                        <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-5 object-contain" />
+                        <img src="/cor-logo.png" alt="COR Solutions" className="h-10 object-contain" />
+                        <div className="w-px h-8 bg-gray-300"></div>
+                        <img src="https://www.latnovva.com/wp-content/uploads/2023/11/LOGO-LATNOVVA-COLOR.png" alt="LATNOVVA" className="h-10 object-contain" />
                     </div>
                     <nav className="space-y-6">
                         {navGroups.map(group => {

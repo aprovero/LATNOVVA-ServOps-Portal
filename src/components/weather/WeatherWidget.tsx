@@ -146,26 +146,6 @@ export default function WeatherWidget({ weather, reportDate, projectLocation, on
                         </div>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-surface-alt border border-brand-teal/20">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-bold flex items-center gap-2 text-brand-teal">
-                                <CloudRain size={16} />
-                                Rainfall / Delays
-                            </h3>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={weather?.rainfallMm || ''}
-                                    onChange={(e) => handleFieldChange('rainfallMm', Number(e.target.value))}
-                                    disabled={readOnly}
-                                    placeholder="0"
-                                    className="w-16 bg-white border border-gray-200 focus:border-brand-teal outline-none rounded-lg py-1 px-2 text-center text-sm font-mono disabled:opacity-70"
-                                />
-                                <span className="text-xs font-bold text-gray-500">mm recorded</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             )}
         </div>

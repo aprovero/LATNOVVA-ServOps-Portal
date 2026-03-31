@@ -7,9 +7,10 @@ interface SubReportsSectionProps {
     subReportIds: string[] | undefined;
     onChange: (subReportIds: string[]) => void;
     readOnly: boolean;
+    onOpen?: (srId: string) => void;
 }
 
-export default function SubReportsSection({ currentReport, subReportIds = [], onChange, readOnly }: SubReportsSectionProps) {
+export default function SubReportsSection({ currentReport, subReportIds = [], onChange, readOnly, onOpen }: SubReportsSectionProps) {
     const { subReportTemplates, subReportInstances, addSubReportInstance, deleteSubReportInstance } = useStore();
     const navigate = useNavigate();
 
@@ -84,7 +85,11 @@ export default function SubReportsSection({ currentReport, subReportIds = [], on
                             </div>
                             <div className="flex items-center gap-3">
                                 <button 
-                                    onClick={(e) => { e.preventDefault(); navigate(`/sub-reports/${sr.id}`); }} 
+                                    onClick={(e) => { 
+                                        e.preventDefault(); 
+                                        if (onOpen) onOpen(sr.id);
+                                        else navigate(`/sub-reports/${sr.id}`); 
+                                    }} 
                                     className="btn-primary hover:bg-brand-teal/90 text-sm py-2 px-4 flex items-center gap-2 rounded-xl h-10"
                                 >
                                     <ExternalLink size={16} /> Open Form

@@ -202,7 +202,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Image src="/cor-logo.png" style={{ height: 25, objectFit: 'contain' }} />
             <View style={{ width: 1, height: 20, backgroundColor: '#ccc', marginHorizontal: 8 }} />
-            <Image src="/latnovva-logo.png" style={{ height: 25, objectFit: 'contain' }} />
+            <Image src="https://www.latnovva.com/wp-content/uploads/2023/11/LOGO-LATNOVVA-COLOR.png" style={{ height: 25, objectFit: 'contain' }} />
         </View>
         {/* Right: Client logo or name */}
         <View style={{ alignItems: 'flex-end' }}>
