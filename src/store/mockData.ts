@@ -10,14 +10,14 @@ export const mockClients: Client[] = [
 
 export const mockProjects: Project[] = [
     // SUNGROW
-    { id: 'PROJ-S1', clientId: 'CUST_SUNGROW', name: 'Sungrow Outback Array', type: 'Complete', status: 'Active', progress: 45, scopes: [{ id: 's1-scp1', name: 'Civil Works', activities: [{ id: 's1-a1', title: 'Trenching', status: 'Completed', progress: 100 }, { id: 's1-a2', title: 'Mounting', status: 'In Progress', progress: 50 }] }] },
-    { id: 'PROJ-S2', clientId: 'CUST_SUNGROW', name: 'Texas Desert Inverter Install', type: 'Simple', status: 'Completed', progress: 100, scopes: [] },
-    { id: 'PROJ-S3', clientId: 'CUST_SUNGROW', name: 'Sungrow Coastal BESS', type: 'Complete', status: 'Active', progress: 15, scopes: [] },
+    { id: 'PROJ-S1', clientId: 'CUST_SUNGROW', name: 'Sungrow Outback Array', codeName: 'EST-LNV-000 CDMX', type: 'Complete', status: 'Active', progress: 45, scopes: [{ id: 's1-scp1', name: 'Civil Works', activities: [{ id: 's1-a1', title: 'Trenching', status: 'Completed', progress: 100 }, { id: 's1-a2', title: 'Mounting', status: 'In Progress', progress: 50 }] }] },
+    { id: 'PROJ-S2', clientId: 'CUST_SUNGROW', name: 'Texas Desert Inverter Install', codeName: 'EST-LNV-000 MID', type: 'Simple', status: 'Completed', progress: 100, scopes: [] },
+    { id: 'PROJ-S3', clientId: 'CUST_SUNGROW', name: 'Sungrow Coastal BESS', codeName: 'VM-LNV-098', type: 'Complete', status: 'Active', progress: 15, scopes: [] },
     
     // SAFT
-    { id: 'PROJ-SF1', clientId: 'CUST_SAFT', name: 'SAFT Battery Hub Alpha', type: 'Complete', status: 'Active', progress: 80, scopes: [] },
-    { id: 'PROJ-SF2', clientId: 'CUST_SAFT', name: 'SAFT Urban Microgrid', type: 'Complete', status: 'Completed', progress: 100, scopes: [] },
-    { id: 'PROJ-SF3', clientId: 'CUST_SAFT', name: 'New York Storage Ext.', type: 'Simple', status: 'On Hold', progress: 20, scopes: [] },
+    { id: 'PROJ-SF1', clientId: 'CUST_SAFT', name: 'SAFT Battery Hub Alpha', codeName: 'CH-LNVEM-090', type: 'Complete', status: 'Active', progress: 80, scopes: [] },
+    { id: 'PROJ-SF2', clientId: 'CUST_SAFT', name: 'SAFT Urban Microgrid', codeName: 'OPDE-LNV-085', type: 'Complete', status: 'Completed', progress: 100, scopes: [] },
+    { id: 'PROJ-SF3', clientId: 'CUST_SAFT', name: 'New York Storage Ext.', codeName: 'NK-LNV-089', type: 'Simple', status: 'On Hold', progress: 20, scopes: [] },
     { id: 'PROJ-SF4', clientId: 'CUST_SAFT', name: 'Grid Support Station', type: 'Complete', status: 'Active', progress: 5, scopes: [] },
     
     // Power Electronics

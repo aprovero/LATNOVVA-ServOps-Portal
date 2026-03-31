@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Search, CheckSquare, Trash2, ListChecks, FolderGit2 } from 'lucide-react';
-import { useStore, ChecklistTemplate, ScopeTemplate } from '../store/useStore';
+import { Plus, Search, CheckSquare, Trash2, ListChecks, FolderGit2, FileText } from 'lucide-react';
+import { useStore, ChecklistTemplate, ScopeTemplate, SubReportTemplate, SubReportFieldType } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import {
@@ -12,8 +12,8 @@ import {
 } from '../components/ui/dialog';
 
 export default function Templates() {
-    const { templates, scopeTemplates, addTemplate, deleteTemplate, addScopeTemplate, deleteScopeTemplate } = useStore();
-    const [activeTab, setActiveTab] = useState<'checklists' | 'scopes'>('scopes');
+    const { templates, scopeTemplates, subReportTemplates, addTemplate, deleteTemplate, addScopeTemplate, deleteScopeTemplate, addSubReportTemplate, deleteSubReportTemplate } = useStore();
+    const [activeTab, setActiveTab] = useState<'checklists' | 'scopes' | 'subreports'>('scopes');
     const [searchTerm, setSearchTerm] = useState('');
     
     // Checklist State
@@ -28,6 +28,13 @@ export default function Templates() {
     const [newScopeTemplate, setNewScopeTemplate] = useState<{ name: string; activities: string[] }>({
         name: '',
         activities: [''],
+    });
+
+    // Sub-Report Template State
+    const [isAddSubReportOpen, setIsAddSubReportOpen] = useState(false);
+    const [newSubReportTemplate, setNewSubReportTemplate] = useState<{ name: string; fields: { name: string; type: SubReportFieldType }[] }>({
+        name: '',
+        fields: [{ name: '', type: 'text' }],
     });
 
     // --- Checklists Logic ---
@@ -56,11 +63,27 @@ export default function Templates() {
         setIsAddScopeOpen(false);
     };
 
+    // --- Sub-Reports Logic ---
+    const handleAddSubReportTemplate = () => {
+        if (!newSubReportTemplate.name.trim() || newSubReportTemplate.fields.length === 0) return;
+        const template: SubReportTemplate = {
+            id: `SRT-${Date.now()}`,
+            name: newSubReportTemplate.name,
+            fields: newSubReportTemplate.fields.map((f, i) => ({ id: `f${i}`, name: f.name || `Field ${i+1}`, type: f.type }))
+        };
+        addSubReportTemplate(template);
+        setNewSubReportTemplate({ name: '', fields: [{ name: '', type: 'text' }] });
+        setIsAddSubReportOpen(false);
+    };
+
     // Derived filtering
     const filteredChecklists = templates.filter(t =>
         t.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     const filteredScopes = (scopeTemplates || []).filter(t =>
+        t.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const filteredSubReports = (subReportTemplates || []).filter(t =>
         t.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -100,6 +123,12 @@ export default function Templates() {
                     onClick={() => setActiveTab('checklists')}
                 >
                     <CheckSquare size={16} /> Checklists
+                </button>
+                <button 
+                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'subreports' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} 
+                    onClick={() => setActiveTab('subreports')}
+                >
+                    <FileText size={16} /> Forms / Sub-Reports
                 </button>
             </div>
 
@@ -319,6 +348,130 @@ export default function Templates() {
                                 <CheckSquare size={48} className="mx-auto text-gray-300 mb-4" />
                                 <h3 className="text-lg font-bold text-gray-500">No checklist templates found</h3>
                                 <p className="text-gray-400">Try adjusting your search or create a new template.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+            {/* Sub-Reports Tab */}
+            {activeTab === 'subreports' && (
+                <div className="space-y-6">
+                    <div className="flex justify-end">
+                        <Dialog open={isAddSubReportOpen} onOpenChange={setIsAddSubReportOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
+                                    <Plus size={18} /> Add Form Template
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px] rounded-2xl p-6">
+                                <DialogHeader>
+                                    <DialogTitle className="text-xl font-bold text-accent-greyDark">Create Form / Sub-Report Template</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-6 py-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark text-left block">Form Name</label>
+                                        <Input
+                                            placeholder="e.g. Unit Commissioning Report"
+                                            value={newSubReportTemplate.name}
+                                            onChange={(e) => setNewSubReportTemplate({ ...newSubReportTemplate, name: e.target.value })}
+                                            className="rounded-xl border-gray-200"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-sm font-semibold text-accent-greyDark text-left block">
+                                                Form Fields
+                                            </label>
+                                            <Button variant="outline" size="sm" onClick={() => setNewSubReportTemplate({ ...newSubReportTemplate, fields: [...newSubReportTemplate.fields, { name: '', type: 'text' }] })} className="h-7 text-xs px-2">
+                                                <Plus size={14} className="mr-1" /> Add Field
+                                            </Button>
+                                        </div>
+                                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                                            {newSubReportTemplate.fields.map((field, index) => (
+                                                <div key={index} className="flex items-center gap-2">
+                                                    <Input
+                                                        placeholder={`Field Name (e.g. Serial Number)`}
+                                                        value={field.name}
+                                                        onChange={(e) => {
+                                                            const newFields = [...newSubReportTemplate.fields];
+                                                            newFields[index].name = e.target.value;
+                                                            setNewSubReportTemplate({ ...newSubReportTemplate, fields: newFields });
+                                                        }}
+                                                        className="rounded-xl border-gray-200 flex-1"
+                                                    />
+                                                    <select
+                                                        className="h-10 rounded-xl border border-gray-200 px-3 text-sm outline-none focus:ring-1 focus:ring-brand-teal"
+                                                        value={field.type}
+                                                        onChange={(e) => {
+                                                            const newFields = [...newSubReportTemplate.fields];
+                                                            newFields[index].type = e.target.value as SubReportFieldType;
+                                                            setNewSubReportTemplate({ ...newSubReportTemplate, fields: newFields });
+                                                        }}
+                                                    >
+                                                        <option value="text">Text Input</option>
+                                                        <option value="number">Number</option>
+                                                        <option value="checkbox">Checkbox (Pass/Fail)</option>
+                                                        <option value="picture">Picture Upload</option>
+                                                    </select>
+                                                    <button
+                                                        onClick={() => {
+                                                            const newFields = newSubReportTemplate.fields.filter((_, i) => i !== index);
+                                                            setNewSubReportTemplate({ ...newSubReportTemplate, fields: newFields.length ? newFields : [{ name: '', type: 'text' }] });
+                                                        }}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddSubReportTemplate}>
+                                        Save Template
+                                    </Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredSubReports.map(template => (
+                            <div key={template.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft flex flex-col hover:border-brand-teal/30 hover:shadow-md transition-all">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-brand-teal/10 text-brand-teal rounded-xl">
+                                            <FileText size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-accent-greyDark text-lg">{template.name}</h3>
+                                            <p className="text-sm text-gray-400">{template.fields.length} predefined fields</p>
+                                        </div>
+                                    </div>
+                                    <button className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" onClick={() => deleteSubReportTemplate(template.id)}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2 flex-1 mt-2">
+                                    {template.fields.slice(0, 4).map((field, idx) => (
+                                        <div key={idx} className="flex justify-between items-center text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                            <span className="font-medium truncate">{field.name}</span>
+                                            <span className="text-[10px] font-mono bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded uppercase">{field.type}</span>
+                                        </div>
+                                    ))}
+                                    {template.fields.length > 4 && (
+                                        <p className="text-xs text-brand-teal font-medium mt-2 pl-1">
+                                            + {template.fields.length - 4} more fields...
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {filteredSubReports.length === 0 && (
+                            <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
+                                <FileText size={48} className="mx-auto text-gray-300 mb-4" />
+                                <h3 className="text-lg font-bold text-gray-500">No Form templates found</h3>
+                                <p className="text-gray-400">Create a sub-report template so users can append it to their daily reports.</p>
                             </div>
                         )}
                     </div>

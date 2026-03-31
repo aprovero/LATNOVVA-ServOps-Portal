@@ -56,7 +56,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Manage Scopes & Activities - {currentProject.name}</DialogTitle>
+                    <DialogTitle>Manage Scopes & Activities - {currentProject.codeName ? `${currentProject.codeName} • ` : ''}{currentProject.name}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
                     {/* Add New Scope */}

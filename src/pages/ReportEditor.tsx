@@ -13,6 +13,7 @@ import MediaGrid from '../components/report/MediaGrid';
 import MultisignaturePad from '../components/report/MultisignaturePad';
 import Occurrences from '../components/report/Occurrences';
 import Checklists from '../components/report/Checklists';
+import SubReportsSection from '../components/report/SubReportsSection';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PrintableReportTemplate } from '../components/reports/PrintableReportTemplate';
 
@@ -34,6 +35,7 @@ export default function ReportEditor() {
     const [labor, setLabor] = useState(report?.labor || []);
     const [media, setMedia] = useState(report?.media || []);
     const [checklists, setChecklists] = useState(report?.checklists || []);
+    const [subReportIds, setSubReportIds] = useState<string[]>(report?.subReportIds || []);
     const [occurrences, setOccurrences] = useState(report?.occurrences || []);
     const [signatureBlob, setSignatureBlob] = useState(currentSignature?.blob || '');
     const [signatures, setSignatures] = useState(report?.signatures || []);
@@ -53,6 +55,7 @@ export default function ReportEditor() {
             setMedia(report.media || []);
             setOccurrences(report.occurrences || []);
             setChecklists(report.checklists || []);
+            setSubReportIds(report.subReportIds || []);
             setSignatures(report.signatures || []);
             setUsedTools(report.usedTools || []);
             setActivityLogs(report.activityLogs || []);
@@ -86,6 +89,7 @@ export default function ReportEditor() {
             media,
             occurrences,
             checklists,
+            subReportIds,
             signatures,
             usedTools,
             activityLogs
@@ -348,6 +352,10 @@ export default function ReportEditor() {
             </div>
 
             <div className="editor-fade">
+                <SubReportsSection currentReport={report} subReportIds={subReportIds} onChange={setSubReportIds} readOnly={!canEditFields} />
+            </div>
+
+            <div className="editor-fade">
                 <MediaGrid media={media} onChange={setMedia} readOnly={!canEditFields} />
             </div>
 
@@ -452,7 +460,7 @@ export default function ReportEditor() {
                     </div>
                     <PDFDownloadLink 
                         document={<PrintableReportTemplate report={report} />} 
-                        fileName={`LATNOVVA_Report_${report.id}.pdf`}
+                        fileName={`${project?.codeName ? `${project.codeName.replace(/\s+/g, '_')}_` : ''}LATNOVVA_Report_${report.id}.pdf`}
                     >
                         {({ loading }) => (
                             <button className="bg-white/10 hover:bg-white/20 text-white py-2 px-6 rounded-xl font-semibold transition-colors flex items-center gap-2" disabled={loading}>
@@ -468,7 +476,7 @@ export default function ReportEditor() {
                 <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                     <PDFDownloadLink 
                         document={<PrintableReportTemplate report={report} />} 
-                        fileName={`LATNOVVA_Report_${report.state.replace(/\s+/g, '_')}_${report.id}.pdf`}
+                        fileName={`${project?.codeName ? `${project.codeName.replace(/\s+/g, '_')}_` : ''}LATNOVVA_Report_${report.state.replace(/\s+/g, '_')}_${report.id}.pdf`}
                     >
                         {({ loading }) => (
                             <button className="w-full md:w-auto btn-secondary text-brand-teal border-brand-teal/20 bg-brand-teal/5 hover:bg-brand-teal/10 flex items-center justify-center gap-2" disabled={loading}>

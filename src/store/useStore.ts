@@ -86,6 +86,7 @@ export interface Report {
     media?: { id: string; url: string; caption: string }[];
     occurrences?: ReportOccurrence[];
     checklists?: ReportChecklist[];
+    subReportIds?: string[];
     notes: string;
     signatures?: ReportSignature[];
     usedTools?: string[]; // IDs of tools used in this report
@@ -140,6 +141,33 @@ export interface ScopeTemplate {
     activities: string[];
 }
 
+export type SubReportFieldType = 'text' | 'number' | 'checkbox' | 'picture';
+
+export interface SubReportFieldDef {
+    id: string;
+    name: string;
+    type: SubReportFieldType;
+}
+
+export interface SubReportTemplate {
+    id: string;
+    name: string;
+    fields: SubReportFieldDef[];
+}
+
+export interface SubReportInstance {
+    id: string;
+    templateId: string;
+    templateName: string;
+    projectId: string;
+    parentReportId: string;
+    createdAt: string;
+    updatedAt?: string;
+    createdBy?: string;
+    state: ReportState;
+    values: Record<string, any>; // Maps Field ID -> Value
+}
+
 export interface ScheduledEvent {
     id: string;
     title: string;
@@ -192,6 +220,7 @@ export interface Project {
     location?: string;
     projectSize?: string;
     systemType?: 'Solar' | 'BESS' | 'Hybrid' | 'Other' | string;
+    codeName?: string;
 }
 
 interface AppState {
@@ -205,6 +234,8 @@ interface AppState {
     personnel: Personnel[];
     templates: ChecklistTemplate[];
     scopeTemplates: ScopeTemplate[];
+    subReportTemplates: SubReportTemplate[];
+    subReportInstances: SubReportInstance[];
     events: ScheduledEvent[];
     timesheets: TimesheetEntry[];
     initDb: () => void;
@@ -227,6 +258,12 @@ interface AppState {
     addScopeTemplate: (template: ScopeTemplate) => void;
     updateScopeTemplate: (id: string, updates: Partial<ScopeTemplate>) => void;
     deleteScopeTemplate: (id: string) => void;
+    addSubReportTemplate: (template: SubReportTemplate) => void;
+    updateSubReportTemplate: (id: string, updates: Partial<SubReportTemplate>) => void;
+    deleteSubReportTemplate: (id: string) => void;
+    addSubReportInstance: (instance: SubReportInstance) => void;
+    updateSubReportInstance: (id: string, updates: Partial<SubReportInstance>) => void;
+    deleteSubReportInstance: (id: string) => void;
     addEvent: (event: ScheduledEvent) => void;
     updateEvent: (id: string, updates: Partial<ScheduledEvent>) => void;
     deleteEvent: (id: string) => void;
@@ -271,6 +308,19 @@ export const useStore = create<AppState>()(
                     activities: ['Cold Commissioning', 'Hot Commissioning', 'Performance Testing', 'Handover']
                 }
             ],
+            subReportTemplates: [
+                {
+                    id: 'SRT-001',
+                    name: 'Transformer Commissioning',
+                    fields: [
+                        { id: 'f1', name: 'Serial Number', type: 'text' },
+                        { id: 'f2', name: 'Insulation Resistance (MΩ)', type: 'number' },
+                        { id: 'f3', name: 'Visual Inspection Passed?', type: 'checkbox' },
+                        { id: 'f4', name: 'Nameplate Picture', type: 'picture' }
+                    ]
+                }
+            ],
+            subReportInstances: [],
             events: [
                 {
                     id: 'EVT-001',
@@ -365,6 +415,24 @@ export const useStore = create<AppState>()(
             deleteScopeTemplate: (id) =>
                 set((state) => ({
                     scopeTemplates: state.scopeTemplates.filter((t) => t.id !== id),
+                })),
+            addSubReportTemplate: (template) => set((state) => ({ subReportTemplates: [...state.subReportTemplates, template] })),
+            updateSubReportTemplate: (id, updates) =>
+                set((state) => ({
+                    subReportTemplates: state.subReportTemplates.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+                })),
+            deleteSubReportTemplate: (id) =>
+                set((state) => ({
+                    subReportTemplates: state.subReportTemplates.filter((t) => t.id !== id),
+                })),
+            addSubReportInstance: (instance) => set((state) => ({ subReportInstances: [...state.subReportInstances, instance] })),
+            updateSubReportInstance: (id, updates) =>
+                set((state) => ({
+                    subReportInstances: state.subReportInstances.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t)),
+                })),
+            deleteSubReportInstance: (id) =>
+                set((state) => ({
+                    subReportInstances: state.subReportInstances.filter((t) => t.id !== id),
                 })),
             addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
             updateEvent: (id, updates) =>

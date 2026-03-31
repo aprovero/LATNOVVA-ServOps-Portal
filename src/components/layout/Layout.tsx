@@ -40,6 +40,7 @@ export default function Layout() {
     const [newCustomerName, setNewCustomerName] = useState('');
     const [newCustomerLogo, setNewCustomerLogo] = useState('');
     const [newProjectName, setNewProjectName] = useState('');
+    const [newProjectCodeName, setNewProjectCodeName] = useState('');
     const [newProjectClient, setNewProjectClient] = useState('');
     const [newProjectType, setNewProjectType] = useState<'Complete' | 'Simple'>('Complete');
     const [newProjectLocation, setNewProjectLocation] = useState('');
@@ -175,6 +176,7 @@ export default function Layout() {
             id: `PROJ-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
             clientId: newProjectClient,
             name: newProjectName,
+            codeName: newProjectCodeName,
             type: newProjectType,
             status: 'Active' as const,
             progress: 0,
@@ -186,6 +188,7 @@ export default function Layout() {
         addProject(newProj);
         setIsCreateProjectOpen(false);
         setNewProjectName('');
+        setNewProjectCodeName('');
         setNewProjectClient('');
         setNewProjectLocation('');
         setNewProjectSize('');
@@ -516,6 +519,15 @@ export default function Layout() {
                                 value={newProjectName}
                                 onChange={(e) => setNewProjectName(e.target.value)}
                                 placeholder="Enter project name"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="projectCodeName">Code Name / Notation (Optional)</Label>
+                            <Input
+                                id="projectCodeName"
+                                value={newProjectCodeName}
+                                onChange={(e) => setNewProjectCodeName(e.target.value)}
+                                placeholder="E.g., EST-LNV-000 CDMX"
                             />
                         </div>
                         <div className="grid gap-2">

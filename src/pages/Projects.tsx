@@ -224,7 +224,11 @@ export default function Projects() {
                                                     <Link to={`/reports?project=${proj.id}`} className="font-bold text-accent-greyDark group-hover:text-brand-teal block">
                                                         {proj.name}
                                                     </Link>
-                                                    <span className="text-xs text-gray-500 font-mono mt-0.5 block">{proj.id} • {proj.type}</span>
+                                                    <span className="text-xs text-gray-500 font-mono mt-0.5 block">
+                                                        {proj.codeName ? <span className="text-brand-teal font-bold">{proj.codeName}</span> : null} 
+                                                        {proj.codeName ? ' • ' : ''}
+                                                        {proj.id} • {proj.type}
+                                                    </span>
                                                     {proj.location && (
                                                         <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-teal bg-brand-teal/5 border border-brand-teal/10 px-2 py-1 rounded w-fit cursor-pointer hover:bg-brand-teal/10 transition-colors" onClick={() => setMapProject(proj)}>
                                                             <MapPin size={12} />

@@ -10,6 +10,7 @@ import Settings from './pages/Settings';
 import Tools from './pages/Tools';
 import ReportList from './pages/ReportList';
 import ReportEditor from './pages/ReportEditor';
+import SubReportEditor from './pages/SubReportEditor';
 import Templates from './pages/Templates';
 import Calendar from './pages/Calendar';
 import Layout from './components/layout/Layout';
@@ -37,6 +38,7 @@ function App() {
                     <Route path="projects" element={<Projects />} />
                     <Route path="reports" element={<ReportList />} />
                     <Route path="reports/:id" element={<ReportEditor />} />
+                    <Route path="sub-reports/:id" element={<SubReportEditor />} />
                     <Route path="analysis" element={<DataAnalysis />} />
                     <Route path="tools" element={<Tools />} />
                     <Route path="templates" element={<Templates />} />

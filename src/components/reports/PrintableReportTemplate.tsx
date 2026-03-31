@@ -158,6 +158,7 @@ interface PrintableReportTemplateProps {
 export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps) => {
   const state = useStore.getState();
   const client = state.clients.find(c => c.id === report.clientId);
+  const project = state.projects.find(p => p.id === report.projectId);
   
   const validLabor = (report.labor || []).filter(l => {
       if (!l.personnelId) return true;
@@ -189,16 +190,16 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
     }
   };
 
+  const documentTitle = `${project?.codeName ? `${project.codeName} - ` : ''}LATNOVVA Report ${report.id}`;
+
   return (
-  <Document>
+  <Document title={documentTitle}>
     <Page size="A4" style={styles.page}>
       
       {/* Logos */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image src="/cor-logo.png" style={{ height: 25, objectFit: 'contain' }} />
-            <View style={{ width: 1, height: 20, backgroundColor: '#ccc', marginHorizontal: 15 }}></View>
-            <Image src="/latnovva-logo.png" style={{ height: 25, objectFit: 'contain' }} />
+            <Image src="/latnovva-logo.png" style={{ height: 30, objectFit: 'contain' }} />
         </View>
         <View style={styles.logoContainer}>
             {client?.logo ? (
@@ -248,6 +249,20 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
             </Text>
           </View>
         </View>
+        {report.schedule && (
+          <View style={[styles.row, { marginTop: 8 }]}>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Shift</Text>
+              <Text style={styles.value}>{report.schedule.shift}</Text>
+            </View>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Working Hours</Text>
+              <Text style={styles.value}>
+                {report.schedule.arrival || 'N/A'} - {report.schedule.departure || 'N/A'}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Labor Section */}
@@ -269,6 +284,37 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
                 <Text style={styles.tableCell}>{l.qty * l.hours}</Text>
               </View>
             ))}
+          </View>
+        </View>
+      )}
+
+      {/* Project Progress */}
+      {report.activityLogs && report.activityLogs.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Project Progress Updates</Text>
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableCellBold, { flex: 2 }]}>Task / Activity</Text>
+              <Text style={styles.tableCellBold}>Reported Progress</Text>
+              <Text style={[styles.tableCellBold, { flex: 2 }]}>Notes</Text>
+            </View>
+            {report.activityLogs.map((log, i) => {
+              let taskName = log.customTaskName || 'Unknown Task';
+              if (log.scopeId && log.activityId && project) {
+                 const scope = project.scopes.find(s => s.id === log.scopeId);
+                 const activity = scope?.activities.find(a => a.id === log.activityId);
+                 if (activity) {
+                     taskName = `${scope?.name} - ${activity.title}`;
+                 }
+              }
+              return (
+                <View style={styles.tableRow} key={i}>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{taskName}</Text>
+                  <Text style={styles.tableCell}>{log.progressReported}%</Text>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{log.notes || '-'}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
       )}
@@ -342,6 +388,29 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
                 <Text style={styles.tableCell}>{chk.status}</Text>
               </View>
             ))}
+          </View>
+        </View>
+      )}
+
+      {/* Attached Forms / Sub-Reports */}
+      {report.subReportIds && report.subReportIds.length > 0 && (
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Attached Forms & Sub-Reports</Text>
+          <View style={styles.table}>
+             <View style={styles.tableHeader}>
+                 <Text style={[styles.tableCellBold, { flex: 3 }]}>Form Title</Text>
+                 <Text style={styles.tableCellBold}>Reference ID</Text>
+             </View>
+             {report.subReportIds.map((srId, i) => {
+               const sr = state.subReportInstances.find((s: any) => s.id === srId);
+               if (!sr) return null;
+               return (
+                 <View style={styles.tableRow} key={i}>
+                    <Text style={[styles.tableCell, { flex: 3, fontFamily: 'Helvetica-Bold' }]}>{sr.templateName}</Text>
+                    <Text style={styles.tableCell}>{sr.id}</Text>
+                 </View>
+               );
+             })}
           </View>
         </View>
       )}
