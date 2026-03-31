@@ -256,6 +256,7 @@ interface AppState {
     updateClient: (id: string, updates: Partial<Client>) => void;
     deleteClient: (id: string) => void;
     addProject: (project: Project) => void;
+    updateProject: (id: string, updates: Partial<Project>) => void;
     addReport: (report: Report) => void;
     updateReport: (id: string, updates: Partial<Report>) => void;
     addComment: (reportId: string, text: string) => void;
@@ -365,6 +366,7 @@ export const useStore = create<AppState>()(
             updateClient: (id, updates) => set((state) => ({ clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c) })),
             deleteClient: (id) => set((state) => ({ clients: state.clients.filter(c => c.id !== id) })),
             addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
+            updateProject: (id, updates) => set((state) => ({ projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p) })),
             addReport: (report) => set((state) => ({ 
                 reports: [...state.reports, { 
                     ...report, 

@@ -198,14 +198,18 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       
       {/* Logos */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image src="/latnovva-logo.png" style={{ height: 30, objectFit: 'contain' }} />
+        {/* Left: COR + LATNOVVA */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Image src="/cor-logo.png" style={{ height: 25, objectFit: 'contain' }} />
+            <View style={{ width: 1, height: 20, backgroundColor: '#ccc', marginHorizontal: 8 }} />
+            <Image src="/latnovva-logo.png" style={{ height: 25, objectFit: 'contain' }} />
         </View>
-        <View style={styles.logoContainer}>
+        {/* Right: Client logo or name */}
+        <View style={{ alignItems: 'flex-end' }}>
             {client?.logo ? (
-                <Image src={client.logo} style={{ height: 40, objectFit: 'contain' }} />
+                <Image src={client.logo} style={{ height: 35, objectFit: 'contain' }} />
             ) : (
-                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 14 }}>{client?.name || report.clientId}</Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 13, color: '#333' }}>{client?.name || report.clientId}</Text>
             )}
         </View>
       </View>
