@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
@@ -116,6 +116,7 @@ export default function Layout() {
             name: 'OPERATIONS',
             links: [
                 { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
+                { name: 'Live Map', path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
                 { name: 'Reports', path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
                 { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
             ]
@@ -157,6 +158,7 @@ export default function Layout() {
         setIsCreateCustomerOpen(false);
         setNewCustomerName('');
         setNewCustomerLogo('');
+        alert(`Company ${newCustomerName} saved successfully!`);
     };
 
     const handleCreateProject = () => {

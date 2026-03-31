@@ -191,6 +191,11 @@ export interface TimesheetEntry {
     notes?: string;
     status?: 'Pending' | 'Approved' | 'Rejected';
     approvedBy?: string;
+    signature?: {
+        name: string;
+        timestamp: string;
+        blob: string;
+    };
 }
 
 export interface ProjectActivity {
@@ -242,6 +247,7 @@ interface AppState {
     setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer') => void;
     addClient: (client: Client) => void;
     updateClient: (id: string, updates: Partial<Client>) => void;
+    deleteClient: (id: string) => void;
     addProject: (project: Project) => void;
     addReport: (report: Report) => void;
     updateReport: (id: string, updates: Partial<Report>) => void;
@@ -350,6 +356,7 @@ export const useStore = create<AppState>()(
             setUserRole: (role) => set({ userRole: role }),
             addClient: (client) => set((state) => ({ clients: [...state.clients, client] })),
             updateClient: (id, updates) => set((state) => ({ clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c) })),
+            deleteClient: (id) => set((state) => ({ clients: state.clients.filter(c => c.id !== id) })),
             addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
             addReport: (report) => set((state) => ({ 
                 reports: [...state.reports, { 

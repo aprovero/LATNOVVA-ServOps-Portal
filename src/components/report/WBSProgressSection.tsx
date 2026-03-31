@@ -29,7 +29,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
     const [notes, setNotes] = useState('');
 
     const availableScopes = project.scopes || [];
-    const availableActivities = availableScopes.find(s => s.id === selectedScope)?.activities || [];
+    const availableActivities = availableScopes.find(s => s.id === selectedScope)?.activities.filter(a => a.progress < 100) || [];
 
     const handleAddLog = () => {
         if (isCustom) {

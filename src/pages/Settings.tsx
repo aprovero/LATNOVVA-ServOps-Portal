@@ -8,7 +8,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
-    const { clients, projects, updateClient, personnel, addPersonnel, deletePersonnel } = useStore();
+    const { userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -109,8 +109,17 @@ export default function Settings() {
                                                             setEditClientName(client.name);
                                                             setEditClientLogo(client.logo || '');
                                                         }}>
-                                                            <Pencil size={16} /> <span className="ml-2 font-medium">Edit</span>
+                                                            <Pencil size={16} /> <span className="ml-2 font-medium hidden sm:inline">Edit</span>
                                                         </Button>
+                                                        {['Manager'].includes(userRole) && (
+                                                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500 hover:bg-red-50 ml-2" onClick={() => {
+                                                                if (window.confirm(`Are you sure you want to completely delete ${client.name}?`)) {
+                                                                    deleteClient(client.id);
+                                                                }
+                                                            }}>
+                                                                <Trash2 size={16} />
+                                                            </Button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );

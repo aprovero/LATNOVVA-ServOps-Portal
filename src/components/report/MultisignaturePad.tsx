@@ -66,7 +66,7 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
 }
 
 // Sub-component to handle canvas drawing logic per box
-function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void }) {
+export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
 

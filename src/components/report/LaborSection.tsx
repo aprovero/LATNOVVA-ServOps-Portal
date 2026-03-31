@@ -136,7 +136,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                     )}
                     {!readOnly && (
                         <button onClick={handleAdd} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-gray-50 border-gray-200">
-                            <Plus size={16} /> Add Role
+                            <Plus size={16} /> Add Worker
                         </button>
                     )}
                 </div>
@@ -158,11 +158,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                     <select
                                         value={entry.personnelId || ''}
                                         onChange={(e) => {
-                                            const p = personnel.find(person => person.id === e.target.value);
                                             handleUpdate(entry.id, 'personnelId', e.target.value);
-                                            if (p && !entry.role) {
-                                                handleUpdate(entry.id, 'role', p.position);
-                                            }
                                         }}
                                         disabled={readOnly}
                                         className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 disabled:opacity-70 text-sm font-semibold"
@@ -186,28 +182,6 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                             <AlertTriangle size={12} /> Expired: {expiredCerts.join(', ')}
                                         </div>
                                     )}
-                                </div>
-                                <div className="flex-[1.5] min-w-[150px]">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Role</label>
-                                    <input
-                                        type="text"
-                                        value={entry.role}
-                                        onChange={(e) => handleUpdate(entry.id, 'role', e.target.value)}
-                                        disabled={readOnly || isPersonSelected}
-                                        placeholder="Position"
-                                        className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 disabled:opacity-70 text-sm"
-                                    />
-                                </div>
-                                <div className="w-16 shrink-0">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Qty</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={entry.qty}
-                                        onChange={(e) => handleUpdate(entry.id, 'qty', parseInt(e.target.value) || 0)}
-                                        disabled={readOnly}
-                                        className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 text-center disabled:opacity-70 text-sm"
-                                    />
                                 </div>
                                 <div className="w-24 shrink-0">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Time In</label>

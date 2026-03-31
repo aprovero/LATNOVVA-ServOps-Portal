@@ -271,17 +271,17 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
           <Text style={styles.sectionTitle}>2. Labor Allocation</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              <Text style={styles.tableCellBold}>Role</Text>
-              <Text style={styles.tableCellBold}>Quantity</Text>
-              <Text style={styles.tableCellBold}>Hours/Ea</Text>
-              <Text style={styles.tableCellBold}>Total Hours</Text>
+              <Text style={[styles.tableCellBold, { flex: 2 }]}>Personnel</Text>
+              <Text style={styles.tableCellBold}>Time In / Out</Text>
+              <Text style={styles.tableCellBold}>Hours</Text>
             </View>
             {validLabor.map((l, i) => (
               <View style={styles.tableRow} key={i}>
-                <Text style={styles.tableCell}>{l.role} {l.isOutsourced ? '(Sub)' : ''}</Text>
-                <Text style={styles.tableCell}>{l.qty}</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>
+                  {getPersonName(l.personnelId)} {l.isOutsourced ? '(Outsourced)' : ''}
+                </Text>
+                <Text style={styles.tableCell}>{l.timeIn || '—'} - {l.timeOut || '—'}</Text>
                 <Text style={styles.tableCell}>{l.hours}</Text>
-                <Text style={styles.tableCell}>{l.qty * l.hours}</Text>
               </View>
             ))}
           </View>

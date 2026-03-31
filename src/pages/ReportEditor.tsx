@@ -7,7 +7,6 @@ import OCRScanner from '../components/scanner/OCRScanner';
 import WeatherWidget from '../components/weather/WeatherWidget';
 import LaborSection from '../components/report/LaborSection';
 import WBSProgressSection from '../components/report/WBSProgressSection';
-import EquipmentDropdown from '../components/report/EquipmentDropdown';
 import ToolDropdown from '../components/report/ToolDropdown';
 import MediaGrid from '../components/report/MediaGrid';
 import MultisignaturePad from '../components/report/MultisignaturePad';
@@ -216,49 +215,9 @@ export default function ReportEditor() {
                 </div>
             ) : null}
 
+
+
             <div className="editor-fade card-container">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-accent-greyDark">Asset & Equipment Scanning</h2>
-                    {canEditFields && (
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <EquipmentDropdown onAdd={handleAddEquipmentDropdown} readOnly={!canEditFields} />
-                            <div className="w-px h-10 bg-gray-200 hidden sm:block mx-1"></div>
-                            <button
-                                onClick={() => setShowScanner(true)}
-                                className="btn-secondary flex items-center justify-center gap-2 text-sm py-2 px-4 shadow-sm"
-                            >
-                                <Camera size={16} /> Scan Plate
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                <div className="space-y-3 mb-6">
-                    {report.equipment.length === 0 ? (
-                        <div className="text-center p-6 bg-surface-alt rounded-2xl border border-dashed border-gray-300 text-gray-400">
-                            No equipment scanned yet.
-                        </div>
-                    ) : (
-                        report.equipment.map((eq, i) => (
-                            <div key={i} className="flex items-center justify-between p-4 bg-surface-alt rounded-2xl border border-gray-100">
-                                <div className="flex items-center gap-3">
-                                    <ShieldCheck className="text-brand-teal" size={24} />
-                                    <div>
-                                        <p className="font-bold text-accent-greyDark">{eq.type}</p>
-                                        <p className="font-mono text-xs text-gray-500">{eq.serialNumber}</p>
-                                    </div>
-                                </div>
-                                {eq.scanned && (
-                                    <span className="text-xs font-bold text-status-success bg-status-success/10 px-2 py-1 rounded-md">
-                                        VERIFIED
-                                    </span>
-                                )}
-                            </div>
-                        ))
-                    )}
-                </div>
-
-                <div>
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Field Notes & Observations</h3>
                         {canEditFields && (
@@ -288,7 +247,6 @@ export default function ReportEditor() {
                         placeholder="Enter daily remarks, incidents, or completion notes..."
                     />
                 </div>
-            </div>
 
             <div className="editor-fade card-container">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">

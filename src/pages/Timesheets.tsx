@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useStore, TimesheetEntry } from '../store/useStore';
-import { Clock, Plus, Calendar as CalendarIcon, User, Briefcase, Filter, Download, Edit2, Trash2 } from 'lucide-react';
+import { Clock, Plus, Calendar as CalendarIcon, User, Briefcase, Filter, Download, Edit2, Trash2, PenTool } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { SignatureCanvasBox } from '../components/report/MultisignaturePad';
 import {
     Dialog,
     DialogContent,
@@ -24,6 +25,8 @@ export default function Timesheets() {
     const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole } = useStore();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+    const [signatureBlob, setSignatureBlob] = useState<string>('');
+    const [signatureName, setSignatureName] = useState<string>('');
 
     // Form state
     const [newEntry, setNewEntry] = useState<Partial<TimesheetEntry>>({
@@ -52,6 +55,8 @@ export default function Timesheets() {
 
     const openAddModal = () => {
         setEditingEntryId(null);
+        setSignatureBlob('');
+        setSignatureName('');
         setNewEntry({
             date: format(new Date(), 'yyyy-MM-dd'),
             timeIn: '08:00',
@@ -70,11 +75,18 @@ export default function Timesheets() {
     const openEditModal = (entry: TimesheetEntry) => {
         setEditingEntryId(entry.id);
         setNewEntry(entry);
+        setSignatureBlob(entry.signature?.blob || '');
+        setSignatureName(entry.signature?.name || '');
         setIsAddModalOpen(true);
     };
 
     const handleSaveEntry = () => {
         if (!newEntry.personnelId || !newEntry.date || !newEntry.hours) return;
+
+        if (newEntry.type === 'On Site' && newEntry.projectId && !signatureBlob) {
+            alert("A customer or site supervisor signature is required for On-Site project hours.");
+            return;
+        }
 
         // Overlap validation
         const overlap = timesheets.some(t => {
@@ -96,22 +108,29 @@ export default function Timesheets() {
             return;
         }
 
+        const payload = {
+            id: editingEntryId || `TS-${Date.now()}`,
+            personnelId: newEntry.personnelId,
+            date: newEntry.date,
+            timeIn: newEntry.timeIn,
+            timeOut: newEntry.timeOut,
+            hours: Number(newEntry.hours),
+            type: newEntry.type as any,
+            classification: newEntry.classification as any,
+            projectId: newEntry.projectId,
+            notes: newEntry.notes || '',
+            status: newEntry.status || 'Pending',
+            signature: signatureBlob ? {
+                name: signatureName || 'Customer',
+                timestamp: new Date().toISOString(),
+                blob: signatureBlob
+            } : newEntry.signature
+        };
+
         if (editingEntryId) {
-            updateTimesheet(editingEntryId, newEntry);
+            updateTimesheet(editingEntryId, payload as any);
         } else {
-            addTimesheet({
-                id: `TS-${Date.now()}`,
-                personnelId: newEntry.personnelId,
-                date: newEntry.date,
-                timeIn: newEntry.timeIn,
-                timeOut: newEntry.timeOut,
-                hours: Number(newEntry.hours),
-                type: newEntry.type as any,
-                classification: newEntry.classification as any,
-                projectId: newEntry.projectId,
-                notes: newEntry.notes || '',
-                status: newEntry.status || 'Pending'
-            });
+            addTimesheet(payload as any);
         }
 
         setIsAddModalOpen(false);
@@ -280,6 +299,34 @@ export default function Timesheets() {
                                     />
                                 </div>
 
+                                <div className="space-y-2 mt-6 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                        <PenTool size={16} className="text-brand-teal" /> Site Supervisor / Customer Signature
+                                    </label>
+                                    <p className="text-xs text-gray-500 mb-2">Required for all on-site project hours.</p>
+                                    <div className="space-y-3">
+                                        <Input 
+                                            placeholder="Signer's Name" 
+                                            value={signatureName} 
+                                            onChange={e => setSignatureName(e.target.value)}
+                                            className="rounded-xl bg-white"
+                                        />
+                                        {signatureBlob ? (
+                                            <div className="bg-white border text-center p-2 rounded-xl relative group">
+                                                <img src={signatureBlob} alt="Signature" className="mx-auto max-h-24" />
+                                                <button onClick={() => setSignatureBlob('')} className="absolute top-2 right-2 p-1.5 bg-red-100 text-red-600 font-bold text-xs rounded-md shadow-sm transition-opacity">Clear</button>
+                                            </div>
+                                        ) : (
+                                            <div className="h-32 bg-white border border-dashed border-gray-300 rounded-xl relative overflow-hidden group">
+                                                <SignatureCanvasBox onSign={(blob) => setSignatureBlob(blob)} />
+                                                <div className="absolute inset-x-0 bottom-4 pointer-events-none text-center opacity-30">
+                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sign Here</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleSaveEntry}>
                                     {editingEntryId ? 'Update Entry' : 'Save Entry'}
                                 </Button>
@@ -386,6 +433,11 @@ export default function Timesheets() {
                                                 <Briefcase size={14} className="text-gray-400 shrink-0" />
                                                 <span className="truncate max-w-[150px]" title={getProjectName(entry.projectId)}>{getProjectName(entry.projectId)}</span>
                                             </div>
+                                            {entry.signature && (
+                                                <div className="flex items-center gap-1 mt-1.5 text-[10px] text-status-success font-bold px-1.5 py-0.5 bg-green-50 border border-green-100/50 rounded-md w-fit uppercase tracking-wider" title={`Signed by ${entry.signature.name}`}>
+                                                    <PenTool size={10} /> Verified
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
