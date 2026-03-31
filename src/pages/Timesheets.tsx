@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore, TimesheetEntry } from '../store/useStore';
-import { Clock, Plus, Calendar as CalendarIcon, User, Briefcase, Filter, Download, Edit2, Trash2, PenTool } from 'lucide-react';
+import { Clock, Plus, Calendar as CalendarIcon, User, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { SignatureCanvasBox } from '../components/report/MultisignaturePad';
 import {
@@ -21,12 +21,29 @@ const calculateHours = (inTime: string, outTime: string) => {
     return Number((diff / 60).toFixed(2));
 };
 
+const punchLabel: Record<string, string> = {
+    clockIn: 'Clock In',
+    lunchOut: 'Lunch Out',
+    lunchIn: 'Back from Lunch',
+    clockOut: 'Clock Out',
+};
+
+const punchDotColor: Record<string, string> = {
+    clockIn: '#00B4A6',
+    lunchOut: '#F59E0B',
+    lunchIn: '#F59E0B',
+    clockOut: '#EF4444',
+};
+
+const formatPunchTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
 export default function Timesheets() {
     const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole } = useStore();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
     const [signatureBlob, setSignatureBlob] = useState<string>('');
     const [signatureName, setSignatureName] = useState<string>('');
+    const [expandedPunchId, setExpandedPunchId] = useState<string | null>(null);
 
     // Form state
     const [newEntry, setNewEntry] = useState<Partial<TimesheetEntry>>({
@@ -398,6 +415,7 @@ export default function Timesheets() {
                                 <th className="p-4 whitespace-nowrap">Time In/Out</th>
                                 <th className="p-4 whitespace-nowrap">Hours</th>
                                 <th className="p-4 min-w-[150px]">Project</th>
+                                <th className="p-4 whitespace-nowrap">GPS</th>
                                 <th className="p-4 rounded-tr-xl text-right">Actions</th>
                             </tr>
                         </thead>
@@ -412,59 +430,126 @@ export default function Timesheets() {
                                 </tr>
                             ) : (
                                 filteredTimesheets.map((entry) => (
-                                    <tr key={entry.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="p-4 text-sm font-medium text-accent-greyDark whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <CalendarIcon size={14} className="text-gray-400" />
-                                                {format(parseISO(entry.date), 'MMM d, yyyy')}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-sm font-bold text-accent-greyDark whitespace-nowrap">
-                                            {getPersonnelName(entry.personnelId)}
-                                        </td>
-                                        <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
-                                            {entry.timeIn && entry.timeOut ? `${entry.timeIn} - ${entry.timeOut}` : '-'}
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="font-bold text-lg text-brand-teal">{entry.hours}</span> <span className="text-xs text-gray-500 font-medium">hrs</span>
-                                        </td>
-                                        <td className="p-4 text-sm font-medium text-gray-700">
-                                            <div className="flex items-center gap-2">
-                                                <Briefcase size={14} className="text-gray-400 shrink-0" />
-                                                <span className="truncate max-w-[150px]" title={getProjectName(entry.projectId)}>{getProjectName(entry.projectId)}</span>
-                                            </div>
-                                            {entry.signature && (
-                                                <div className="flex items-center gap-1 mt-1.5 text-[10px] text-status-success font-bold px-1.5 py-0.5 bg-green-50 border border-green-100/50 rounded-md w-fit uppercase tracking-wider" title={`Signed by ${entry.signature.name}`}>
-                                                    <PenTool size={10} /> Verified
+                                    <>
+                                        <tr key={entry.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <td className="p-4 text-sm font-medium text-accent-greyDark whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    <CalendarIcon size={14} className="text-gray-400" />
+                                                    {format(parseISO(entry.date), 'MMM d, yyyy')}
                                                 </div>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {/* Only Supervisors, Managers, or the Tech who owns the entry can edit/delete */}
-                                                {['Supervisor', 'Manager'].includes(userRole) || (
-                                                    userRole === 'Tech' && entry.personnelId === newEntry.personnelId /* using newEntry.personnelId as mock current user */
-                                                ) ? (
-                                                    <>
-                                                        <button
-                                                            onClick={() => openEditModal(entry)}
-                                                            className="text-brand-teal hover:text-brand-teal/80 hover:bg-teal-50 p-2 rounded-lg transition-colors"
-                                                            title="Edit Timesheet"
-                                                        >
-                                                            <Edit2 size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => deleteTimesheet(entry.id)}
-                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                            title="Delete Timesheet"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </>
-                                                ) : null}
-                                            </div>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td className="p-4 text-sm font-bold text-accent-greyDark whitespace-nowrap">
+                                                {getPersonnelName(entry.personnelId)}
+                                            </td>
+                                            <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
+                                                {entry.timeIn && entry.timeOut ? `${entry.timeIn} - ${entry.timeOut}` : '-'}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="font-bold text-lg text-brand-teal">{entry.hours}</span> <span className="text-xs text-gray-500 font-medium">hrs</span>
+                                            </td>
+                                            <td className="p-4 text-sm font-medium text-gray-700">
+                                                <div className="flex items-center gap-2">
+                                                    <Briefcase size={14} className="text-gray-400 shrink-0" />
+                                                    <span className="truncate max-w-[150px]" title={getProjectName(entry.projectId)}>{getProjectName(entry.projectId)}</span>
+                                                </div>
+                                                {entry.signature && (
+                                                    <div className="flex items-center gap-1 mt-1.5 text-[10px] text-status-success font-bold px-1.5 py-0.5 bg-green-50 border border-green-100/50 rounded-md w-fit uppercase tracking-wider" title={`Signed by ${entry.signature.name}`}>
+                                                        <PenTool size={10} /> Verified
+                                                    </div>
+                                                )}
+                                            </td>
+                                            {/* GPS Badge */}
+                                            <td className="p-4">
+                                                {entry.punches && entry.punches.length > 0 ? (
+                                                    <button
+                                                        onClick={() => setExpandedPunchId(expandedPunchId === entry.id ? null : entry.id)}
+                                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+                                                            entry.gpsVerified
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                        }`}
+                                                        title="Click to view GPS punch trail"
+                                                    >
+                                                        {entry.gpsVerified
+                                                            ? <><CheckCircle size={11} /> GPS ✓</>                                                                : <><AlertTriangle size={11} /> Review</>}
+                                                        {expandedPunchId === entry.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-[11px] px-2 py-1 bg-gray-100 text-gray-400 rounded-full font-semibold border border-gray-200">⚠ Manual</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {/* Only Supervisors, Managers, or the Tech who owns the entry can edit/delete */}
+                                                    {['Supervisor', 'Manager'].includes(userRole) || (
+                                                        userRole === 'Tech' && entry.personnelId === newEntry.personnelId /* using newEntry.personnelId as mock current user */
+                                                    ) ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => openEditModal(entry)}
+                                                                className="text-brand-teal hover:text-brand-teal/80 hover:bg-teal-50 p-2 rounded-lg transition-colors"
+                                                                title="Edit Timesheet"
+                                                            >
+                                                                <Edit2 size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => deleteTimesheet(entry.id)}
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                                                title="Delete Timesheet"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </>
+                                                    ) : null}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {/* GPS Punch Audit Trail */}
+                                        {expandedPunchId === entry.id && entry.punches && (
+                                            <tr key={`${entry.id}-punches`}>
+                                                <td colSpan={7} className="px-6 pb-4 pt-0 bg-gray-50/60">
+                                                    <div className="border border-gray-100 rounded-xl p-4 bg-white shadow-sm">
+                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                            <MapPin size={12} /> GPS Punch Audit Trail
+                                                        </p>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                            {entry.punches.map((punch, i) => (
+                                                                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                                    <div className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ backgroundColor: punchDotColor[punch.type] }} />
+                                                                    <div className="min-w-0">
+                                                                        <p className="text-xs font-bold text-gray-700">{punchLabel[punch.type] || punch.type}</p>
+                                                                        <p className="text-xs text-gray-500 font-mono">{formatPunchTime(punch.timestamp)}</p>
+                                                                        {punch.lat !== 0 ? (
+                                                                            <a
+                                                                                href={`https://maps.google.com/?q=${punch.lat},${punch.lng}`}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="text-[10px] text-teal-600 hover:underline flex items-center gap-1 mt-0.5"
+                                                                            >
+                                                                                <MapPin size={9} />
+                                                                                {punch.lat.toFixed(4)}, {punch.lng.toFixed(4)} · ±{Math.round(punch.accuracy)}m
+                                                                            </a>
+                                                                        ) : <p className="text-[10px] text-gray-400">No GPS data</p>}
+                                                                        {punch.manualAdjustment && (
+                                                                            <span className="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full font-bold">
+                                                                                ✏ Manual Adj.
+                                                                            </span>
+                                                                        )}
+                                                                        {punch.adjustmentNote && (
+                                                                            <p className="text-[10px] text-gray-400 italic mt-0.5 truncate" title={punch.adjustmentNote}>"{punch.adjustmentNote}"</p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        {entry.lunchSkipped && (
+                                                            <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">☕ No lunch break taken</p>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </>
                                 ))
                             )}
                         </tbody>

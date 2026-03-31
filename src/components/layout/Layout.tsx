@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
@@ -66,6 +66,12 @@ export default function Layout() {
         });
 
         personnel.forEach(person => {
+            // Techs only see their own personnel warnings
+            if (userRole === 'Tech') {
+                const isCurrentUser = person.id === useStore.getState().userId;
+                if (!isCurrentUser) return;
+            }
+
             person.certifications.forEach(cert => {
                 if (!cert.expirationDate) return;
                 const daysLeft = differenceInDays(parseISO(cert.expirationDate), new Date());
@@ -116,6 +122,7 @@ export default function Layout() {
             name: 'OPERATIONS',
             links: [
                 { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
+                { name: 'Clock In', path: '/clock-in', icon: Fingerprint, roles: ['Tech', 'Supervisor'] },
                 { name: 'Live Map', path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
                 { name: 'Reports', path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
                 { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
@@ -139,7 +146,7 @@ export default function Layout() {
             name: 'SYSTEM',
             links: [
                 { name: 'Templates', path: '/templates', icon: CheckSquare, roles: ['Supervisor', 'Manager'] },
-                { name: 'Settings', path: '/settings', icon: Settings, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
+                { name: 'Settings', path: '/settings', icon: Settings, roles: ['Supervisor', 'Manager'] },
                 { name: 'Org Chart', path: '/org-chart', icon: User, roles: ['Manager'] },
             ]
         }
@@ -315,7 +322,7 @@ export default function Layout() {
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto relative flex flex-col bg-[#F8FAFC]">
                 {/* Desktop Top Bar */}
-                <header className="hidden md:flex bg-white h-[64px] border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
+                <header className="hidden md:flex bg-white h-[64px] min-h-[64px] shrink-0 border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
                     {/* Search */}
                     <div className="flex items-center flex-1">
                         <div className="relative w-full max-w-md hidden lg:block">

@@ -186,6 +186,16 @@ export interface ScheduledEvent {
     toolId?: string;
 }
 
+export interface ClockPunch {
+    timestamp: string;   // ISO string
+    lat: number;
+    lng: number;
+    accuracy: number;    // GPS accuracy in meters
+    type: 'clockIn' | 'lunchOut' | 'lunchIn' | 'clockOut';
+    manualAdjustment?: boolean; // true if time was entered retroactively
+    adjustmentNote?: string;
+}
+
 export interface TimesheetEntry {
     id: string;
     personnelId: string;
@@ -204,6 +214,9 @@ export interface TimesheetEntry {
         timestamp: string;
         blob: string;
     };
+    punches?: ClockPunch[];     // GPS audit trail from clock-in system
+    gpsVerified?: boolean;      // true when all punches have accuracy <= 50m
+    lunchSkipped?: boolean;     // true when tech explicitly skipped lunch
 }
 
 export interface ProjectActivity {
@@ -291,6 +304,7 @@ interface AppState {
     deleteTimesheet: (id: string) => void;
     approveTimesheet: (id: string, approverId: string) => void;
     rejectTimesheet: (id: string, approverId: string) => void;
+    clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean) => void;
     assignSupervisor: (personnelId: string, supervisorId?: string, managerId?: string) => void;
     addScopeToProject: (projectId: string, scope: ProjectScope) => void;
     addActivityToScope: (projectId: string, scopeId: string, activity: ProjectActivity) => void;
@@ -499,6 +513,63 @@ export const useStore = create<AppState>()(
                         t.id === id ? { ...t, status: 'Rejected', approvedBy: approverId } : t
                     )
                 })),
+            clockPunch: (personnelId, punch, projectId, lunchSkipped) =>
+                set((state) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const existing = state.timesheets.find(
+                        t => t.personnelId === personnelId && t.date === today
+                    );
+
+                    const updatedPunches = [...(existing?.punches ?? []), punch];
+                    const allAccurate = updatedPunches.every(p => p.accuracy <= 50);
+
+                    // Compute timeIn / timeOut / hours from punches
+                    const clockIn = updatedPunches.find(p => p.type === 'clockIn');
+                    const clockOut = updatedPunches.find(p => p.type === 'clockOut');
+                    const lunchOut = updatedPunches.find(p => p.type === 'lunchOut');
+                    const lunchIn = updatedPunches.find(p => p.type === 'lunchIn');
+
+                    const toHHMM = (iso: string) => iso.substring(11, 16);
+
+                    let computedHours = 0;
+                    if (clockIn && clockOut) {
+                        const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
+                        let lunchMs = 0;
+                        if (lunchOut && lunchIn) {
+                            lunchMs = new Date(lunchIn.timestamp).getTime() - new Date(lunchOut.timestamp).getTime();
+                        }
+                        computedHours = Math.round(((totalMs - lunchMs) / 3600000) * 100) / 100;
+                    }
+
+                    const entryUpdates: Partial<TimesheetEntry> = {
+                        punches: updatedPunches,
+                        gpsVerified: allAccurate,
+                        ...(clockIn ? { timeIn: toHHMM(clockIn.timestamp) } : {}),
+                        ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
+                        ...(computedHours > 0 ? { hours: computedHours } : {}),
+                        ...(projectId ? { projectId } : {}),
+                        ...(lunchSkipped !== undefined ? { lunchSkipped } : {}),
+                    };
+
+                    if (existing) {
+                        return {
+                            timesheets: state.timesheets.map(t =>
+                                t.id === existing.id ? { ...t, ...entryUpdates } : t
+                            )
+                        };
+                    } else {
+                        const newEntry: TimesheetEntry = {
+                            id: `TS-${Date.now()}`,
+                            personnelId,
+                            date: today,
+                            hours: 0,
+                            type: 'On Site',
+                            status: 'Pending',
+                            ...entryUpdates,
+                        };
+                        return { timesheets: [...state.timesheets, newEntry] };
+                    }
+                }),
             assignSupervisor: (personnelId, supervisorId, managerId) =>
                 set((state) => ({
                     personnel: state.personnel.map((p) => 

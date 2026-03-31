@@ -59,7 +59,7 @@ export default function ReportList() {
     const visibleReports = combinedReports.filter((r) => {
         if (projectIdFilter && r.projectId !== projectIdFilter) return false;
         if (userRole === 'Customer') {
-            return r.clientId === clientId && r.state !== 'Draft';
+            return r.clientId === clientId && ['Approved', 'Closed', 'Pending Customer Review'].includes(r.state);
         }
         if (userRole === 'Tech') {
             return false;

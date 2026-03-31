@@ -304,7 +304,7 @@ export default function Projects() {
                         </div>
                 </div>
 
-                {userRole !== 'Customer' && (
+                {['Supervisor', 'Manager'].includes(userRole) && (
                     <div className="flex flex-col h-full space-y-6">
                         {/* Right Column: Intelligence Layer */}
                         <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">

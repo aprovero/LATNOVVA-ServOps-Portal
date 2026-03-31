@@ -20,6 +20,7 @@ import Timesheets from './pages/Timesheets';
 import OrgChart from './pages/OrgChart';
 import LiveMap from './pages/LiveMap';
 import ProjectDetail from './pages/ProjectDetail';
+import ClockIn from './pages/ClockIn';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -51,6 +52,7 @@ function App() {
                     <Route path="personnel" element={<Personnel />} />
                     <Route path="org-chart" element={<OrgChart />} />
                     <Route path="timesheets" element={<Timesheets />} />
+                    <Route path="clock-in" element={<ClockIn />} />
                 </Route>
             </Routes>
         </Router>
