@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, ExternalLink, AlertCircle } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, ExternalLink, Map, Camera, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
