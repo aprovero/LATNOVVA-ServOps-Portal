@@ -86,9 +86,7 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
         {/* Logos & Header */}
         <View style={styles.logoContainer}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image src="/cor-logo.png" style={{ height: 25, objectFit: 'contain' }} />
-                <View style={{ width: 1, height: 20, backgroundColor: '#ccc', marginHorizontal: 15 }}></View>
-                <Image src="/latnovva-logo.png" style={{ height: 25, objectFit: 'contain' }} />
+                <Image src="/latnovva-logo.png" style={{ height: 30, objectFit: 'contain' }} />
             </View>
             <View>
                 {client?.logo ? (
@@ -123,7 +121,7 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
             {!template ? (
                 <Text style={styles.value}>Warning: Original Template Definition not found.</Text>
             ) : (
-                template.fields.map((field, i) => {
+                template.fields.map((field) => {
                     const val = subReport.values[field.id];
                     
                     if (field.type === 'picture' && val) {
