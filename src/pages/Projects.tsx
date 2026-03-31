@@ -79,16 +79,6 @@ export default function Projects() {
     const [editProjStatus, setEditProjStatus] = useState<'Active' | 'Completed' | 'On Hold'>('Active');
     const [editProjClientId, setEditProjClientId] = useState('');
 
-    const openEditProject = (proj: Project) => {
-        setEditingProject(proj);
-        setEditProjName(proj.name);
-        setEditProjCodeName(proj.codeName || '');
-        setEditProjLocation(proj.location || '');
-        setEditProjSize(proj.projectSize || '');
-        setEditProjSystemType(proj.systemType || 'Solar');
-        setEditProjStatus(proj.status);
-        setEditProjClientId(proj.clientId);
-    };
 
     const handleEditProjectSubmit = () => {
         if (!editingProject || !editProjName.trim()) return;
@@ -239,9 +229,15 @@ export default function Projects() {
                                         {visibleProjects.map(proj => (
                                             <tr key={proj.id} className="hover:bg-gray-50/50 transition-colors group">
                                                 <td className="p-4 align-middle">
-                                                    <Link to={`/reports?project=${proj.id}`} className="font-bold text-accent-greyDark group-hover:text-brand-teal block">
-                                                        {proj.name}
-                                                    </Link>
+                                                    {['Supervisor', 'Manager'].includes(userRole) ? (
+                                                        <Link to={`/projects/${proj.id}`} className="font-bold text-accent-greyDark hover:text-brand-teal block">
+                                                            {proj.name}
+                                                        </Link>
+                                                    ) : (
+                                                        <Link to={`/reports?project=${proj.id}`} className="font-bold text-accent-greyDark group-hover:text-brand-teal block">
+                                                            {proj.name}
+                                                        </Link>
+                                                    )}
                                                     <span className="text-xs text-gray-500 font-mono mt-0.5 block">
                                                         {proj.codeName ? <span className="text-brand-teal font-bold">{proj.codeName}</span> : null} 
                                                         {proj.codeName ? ' • ' : ''}
@@ -328,9 +324,6 @@ export default function Projects() {
                                                         <div className="flex items-center justify-end gap-2 xl:opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <Button variant="outline" size="sm" className="h-8 text-xs border-gray-200 text-gray-600 hover:text-brand-teal hover:border-brand-teal/50 transition-colors" onClick={() => setManageScopesProject(proj)}>
                                                                 WBS
-                                                            </Button>
-                                                            <Button variant="outline" size="sm" className="h-8 text-xs border-gray-200 text-gray-600 hover:text-brand-teal hover:border-brand-teal/50 transition-colors" onClick={() => openEditProject(proj)}>
-                                                                Edit
                                                             </Button>
                                                             <Button variant="default" size="sm" className="h-8 text-xs bg-brand-teal hover:bg-brand-teal/90 text-white shadow-soft" onClick={() => setAddScopeProject(proj)}>
                                                                 + Scope

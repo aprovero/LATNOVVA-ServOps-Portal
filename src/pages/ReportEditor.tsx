@@ -19,7 +19,7 @@ import { PrintableReportTemplate } from '../components/reports/PrintableReportTe
 export default function ReportEditor() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { reports, projects, updateReport, updateActivityProgress, userRole, addComment } = useStore();
+    const { reports, projects, personnel, updateReport, updateActivityProgress, userRole, addComment } = useStore();
 
     const report = reports.find(r => r.id === id);
     const project = projects.find(p => p.id === report?.projectId);
@@ -31,7 +31,31 @@ export default function ReportEditor() {
 
     // Complex state modules
     const currentSignature = report?.signatures?.find(s => s.role === userRole) || null;
-    const [labor, setLabor] = useState(report?.labor || []);
+    // Auto-populate labor from project.assignedPersonnel if labor is empty
+    const buildDefaultLabor = () => {
+        if (!project?.assignedPersonnel?.length) return [];
+        // Use shift times from report.labor if it already has entries, or derive a default
+        return project.assignedPersonnel.map((persId, idx) => {
+            const person = personnel.find(p => p.id === persId);
+            return {
+                id: `l-auto-${Date.now()}-${idx}`,
+                personnelId: persId,
+                role: person?.position || 'Technician',
+                qty: 1,
+                timeIn: '08:00',
+                timeOut: '17:00',
+                type: 'On Site' as const,
+                hours: 9,
+                isOutsourced: false,
+            };
+        });
+    };
+
+    const [labor, setLabor] = useState(() => {
+        const existing = report?.labor || [];
+        if (existing.length > 0) return existing;
+        return buildDefaultLabor();
+    });
     const [media, setMedia] = useState(report?.media || []);
     const [checklists, setChecklists] = useState<ChecklistGroup[]>(report?.checklists || []);
     const [subReportIds, setSubReportIds] = useState<string[]>(report?.subReportIds || []);

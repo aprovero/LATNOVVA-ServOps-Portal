@@ -19,6 +19,7 @@ import Personnel from './pages/Personnel';
 import Timesheets from './pages/Timesheets';
 import OrgChart from './pages/OrgChart';
 import LiveMap from './pages/LiveMap';
+import ProjectDetail from './pages/ProjectDetail';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/" element={<Layout />}>
                     <Route index element={<Navigate to="/projects" replace />} />
                     <Route path="projects" element={<Projects />} />
+                    <Route path="projects/:id" element={<ProjectDetail />} />
                     <Route path="live-map" element={<LiveMap />} />
                     <Route path="reports" element={<ReportList />} />
                     <Route path="reports/:id" element={<ReportEditor />} />
