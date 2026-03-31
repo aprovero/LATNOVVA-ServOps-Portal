@@ -103,6 +103,7 @@ export interface Report {
         activityId?: string;
         customTaskName?: string;
         progressReported?: number;
+        priorProgress?: number;
         notes?: string;
     }[];
     createdAt?: string; // ISO string
@@ -233,6 +234,10 @@ export interface Project {
     projectSize?: string;
     systemType?: 'Solar' | 'BESS' | 'Hybrid' | 'Other' | string;
     codeName?: string;
+    epc?: string;
+    oAndM?: string;
+    pointOfContact?: string;
+    notes?: string;
 }
 
 interface AppState {

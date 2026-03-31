@@ -200,16 +200,18 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 }}>
         {/* Left: COR + LATNOVVA */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Image src="/cor-logo.png" style={{ height: 25, objectFit: 'contain' }} />
+            <Image src="/cor-logo.png" style={{ height: 26, objectFit: 'contain' }} />
             <View style={{ width: 1, height: 20, backgroundColor: '#ccc', marginHorizontal: 8 }} />
-            <Image src="https://www.latnovva.com/wp-content/uploads/2023/11/LOGO-LATNOVVA-COLOR.png" style={{ height: 25, objectFit: 'contain' }} />
+            <Image src="/latnovva-logo.png" style={{ height: 22, objectFit: 'contain' }} />
         </View>
         {/* Right: Client logo or name */}
-        <View style={{ alignItems: 'flex-end' }}>
+        <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
             {client?.logo ? (
                 <Image src={client.logo} style={{ height: 35, objectFit: 'contain' }} />
             ) : (
-                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 13, color: '#333' }}>{client?.name || report.clientId}</Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 13, color: '#333', textAlign: 'right' }}>
+                  {client?.name || report.clientId || 'Client Info Missing'}
+                </Text>
             )}
         </View>
       </View>
@@ -295,11 +297,13 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {/* Project Progress */}
       {report.activityLogs && report.activityLogs.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Project Progress Updates</Text>
+          <Text style={styles.sectionTitle}>3. Project Progress Updates</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={[styles.tableCellBold, { flex: 2 }]}>Task / Activity</Text>
-              <Text style={styles.tableCellBold}>Reported Progress</Text>
+              <Text style={styles.tableCellBold}>Prior %</Text>
+              <Text style={styles.tableCellBold}>Added Today</Text>
+              <Text style={styles.tableCellBold}>Current Total</Text>
               <Text style={[styles.tableCellBold, { flex: 2 }]}>Notes</Text>
             </View>
             {report.activityLogs.map((log, i) => {
@@ -311,10 +315,13 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
                      taskName = `${scope?.name} - ${activity.title}`;
                  }
               }
+              const total = (log.priorProgress || 0) + (log.progressReported || 0);
               return (
                 <View style={styles.tableRow} key={i}>
                   <Text style={[styles.tableCell, { flex: 2 }]}>{taskName}</Text>
-                  <Text style={styles.tableCell}>{log.progressReported}%</Text>
+                  <Text style={styles.tableCell}>{log.priorProgress || 0}%</Text>
+                  <Text style={styles.tableCell}>+{log.progressReported || 0}%</Text>
+                  <Text style={styles.tableCell}>{total}%</Text>
                   <Text style={[styles.tableCell, { flex: 2 }]}>{log.notes || '-'}</Text>
                 </View>
               );
@@ -326,7 +333,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {/* Equipment Section */}
       {report.equipment && report.equipment.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Equipment Verified</Text>
+          <Text style={styles.sectionTitle}>4. Equipment Verified</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={styles.tableCellBold}>Type</Text>
@@ -346,7 +353,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
 
       {/* Field Notes */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>4. Field Notes & Observations</Text>
+        <Text style={styles.sectionTitle}>5. Field Notes & Observations</Text>
         <View style={styles.notesBox}>
           <Text style={styles.value}>{report.notes || 'No remarks provided.'}</Text>
         </View>
@@ -355,7 +362,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {/* Tools Used */}
       {validTools.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tools Used</Text>
+          <Text style={styles.sectionTitle}>6. Tools Used</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={styles.tableCellBold}>Tool Name</Text>
@@ -380,7 +387,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {/* Checklists */}
       {report.checklists && report.checklists.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quality & Safety Checklists</Text>
+          <Text style={styles.sectionTitle}>7. Quality & Safety Checklists</Text>
           {report.checklists.map((group, gi) => (
             <View key={gi} style={{ marginBottom: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
@@ -474,7 +481,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {/* Custom Sections */}
       {report.customSections && report.customSections.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>5. Custom Modules</Text>
+          <Text style={styles.sectionTitle}>8. Custom Modules</Text>
           {report.customSections.map((sec, i) => (
              <View key={i} style={{ marginBottom: 10 }}>
                 <Text style={styles.label}>{sec.title}</Text>

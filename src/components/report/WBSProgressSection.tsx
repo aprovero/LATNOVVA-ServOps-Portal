@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ClipboardList, Plus, Trash2 } from 'lucide-react';
+import { ClipboardList, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import { Project } from '../../store/useStore';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -10,6 +10,7 @@ export interface ActivityLog {
     activityId?: string;
     customTaskName?: string;
     progressReported?: number;
+    priorProgress?: number;
     notes?: string;
 }
 
@@ -27,29 +28,71 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
     const [customTaskName, setCustomTaskName] = useState('');
     const [progressReported, setProgressReported] = useState<number | ''>('');
     const [notes, setNotes] = useState('');
+    const [editIndex, setEditIndex] = useState<number | null>(null);
 
     const availableScopes = project.scopes || [];
     const availableActivities = availableScopes.find(s => s.id === selectedScope)?.activities.filter(a => a.progress < 100) || [];
 
     const handleAddLog = () => {
+        let priorProgress = 0;
+        if (!isCustom) {
+            const scope = availableScopes.find(s => s.id === selectedScope);
+            const act = scope?.activities.find(a => a.id === selectedActivity);
+            priorProgress = act?.progress || 0;
+        }
+
+        const newLog: ActivityLog = {
+            notes,
+            progressReported: progressReported === '' ? 0 : Number(progressReported),
+            priorProgress
+        };
+
         if (isCustom) {
             if (!customTaskName.trim()) return;
-            onLogChange([...activityLogs, { customTaskName, notes, progressReported: progressReported ? Number(progressReported) : undefined }]);
+            newLog.customTaskName = customTaskName;
+            newLog.priorProgress = 0; // Custom tasks start at 0%
         } else {
             if (!selectedScope || !selectedActivity) return;
-            onLogChange([...activityLogs, { scopeId: selectedScope, activityId: selectedActivity, progressReported: progressReported ? Number(progressReported) : undefined, notes }]);
+            newLog.scopeId = selectedScope;
+            newLog.activityId = selectedActivity;
+        }
+
+        if (editIndex !== null) {
+            const updatedLogs = [...activityLogs];
+            updatedLogs[editIndex] = newLog;
+            onLogChange(updatedLogs);
+            setEditIndex(null);
+        } else {
+            onLogChange([...activityLogs, newLog]);
         }
         
+        resetForm();
+    };
+
+    const resetForm = () => {
         setSelectedScope('');
         setSelectedActivity('');
         setCustomTaskName('');
         setProgressReported('');
         setNotes('');
         setIsCustom(false);
+        setEditIndex(null);
+    };
+
+    const handleEditLog = (idx: number) => {
+        const log = activityLogs[idx];
+        setEditIndex(idx);
+        setIsCustom(!!log.customTaskName);
+        setCustomTaskName(log.customTaskName || '');
+        setSelectedScope(log.scopeId || '');
+        setSelectedActivity(log.activityId || '');
+        setProgressReported(log.progressReported ?? '');
+        setNotes(log.notes || '');
     };
 
     const handleRemoveLog = (index: number) => {
         onLogChange(activityLogs.filter((_, i) => i !== index));
+        if (editIndex === index) resetForm();
     };
 
     return (
@@ -70,28 +113,44 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                     activityLogs.map((log, i) => {
                         const scope = availableScopes.find(s => s.id === log.scopeId);
                         const act = scope?.activities.find(a => a.id === log.activityId);
+                        const totalProgress = (log.priorProgress || 0) + (log.progressReported || 0);
                         
                         return (
-                            <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface-alt rounded-2xl border border-gray-100 gap-4">
+                            <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all ${editIndex === i ? 'bg-brand-teal/5 border-brand-teal ring-1 ring-brand-teal' : 'bg-surface-alt border-gray-100'}`}>
                                 <div className="space-y-1">
-                                    <h4 className="font-bold text-accent-greyDark">
-                                        {log.customTaskName ? log.customTaskName : act?.title || 'Unknown Activity'}
-                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="font-bold text-accent-greyDark">
+                                            {log.customTaskName ? log.customTaskName : act?.title || 'Unknown Activity'}
+                                        </h4>
+                                        {editIndex === i && <span className="text-[10px] font-bold bg-brand-teal text-white px-1.5 py-0.5 rounded">EDITING</span>}
+                                    </div>
                                     {!log.customTaskName && scope && (
                                         <p className="text-xs font-semibold tracking-wide text-brand-teal uppercase">{scope.name}</p>
                                     )}
                                     {log.notes && <p className="text-sm text-gray-600 mt-1 italic">"{log.notes}"</p>}
                                 </div>
                                 <div className="flex items-center gap-4 shrink-0">
-                                    {log.progressReported !== undefined && (
-                                        <span className="text-sm font-bold bg-brand-teal/10 text-brand-teal px-3 py-1 rounded-lg">
-                                            {log.progressReported}% Progress
-                                        </span>
-                                    )}
+                                    <div className="text-right">
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Total</div>
+                                        <div className="text-sm font-bold text-brand-teal">
+                                            {totalProgress}% 
+                                            <span className="text-gray-400 font-medium ml-1">
+                                                ({log.priorProgress}% + {log.progressReported}%)
+                                            </span>
+                                        </div>
+                                    </div>
                                     {!readOnly && (
-                                        <button onClick={() => handleRemoveLog(i)} className="text-gray-400 hover:text-status-error transition-colors p-2">
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div className="flex items-center gap-1 border-l border-gray-200 pl-3 ml-2">
+                                            <button 
+                                                onClick={() => handleEditLog(i)} 
+                                                className={`p-2 transition-colors ${editIndex === i ? 'text-brand-teal' : 'text-gray-400 hover:text-brand-teal'}`}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button onClick={() => handleRemoveLog(i)} className="text-gray-400 hover:text-status-error transition-colors p-2">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -102,8 +161,17 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
 
             {/* Log New Activity Form */}
             {!readOnly && (
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <h3 className="font-bold text-sm text-accent-greyDark mb-4">Log New Activity</h3>
+                <div className={`p-4 rounded-xl border transition-all ${editIndex !== null ? 'bg-brand-teal/5 border-brand-teal shadow-md' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-sm text-accent-greyDark">
+                            {editIndex !== null ? 'Update Logged Activity' : 'Log New Activity'}
+                        </h3>
+                        {editIndex !== null && (
+                            <Button variant="ghost" size="sm" onClick={resetForm} className="h-7 text-gray-500 hover:text-gray-700 font-bold">
+                                <X size={14} className="mr-1" /> CANCEL
+                            </Button>
+                        )}
+                    </div>
                     
                     <div className="flex items-center gap-2 mb-4">
                         <Button 
@@ -111,6 +179,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                             size="sm" 
                             className={!isCustom ? 'bg-brand-teal hover:bg-brand-teal/90 text-white' : ''}
                             onClick={() => setIsCustom(false)}
+                            disabled={editIndex !== null && !!activityLogs[editIndex].customTaskName}
                         >
                             Select from WBS
                         </Button>
@@ -119,6 +188,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                             size="sm" 
                             className={isCustom ? 'bg-brand-teal hover:bg-brand-teal/90 text-white' : ''}
                             onClick={() => setIsCustom(true)}
+                            disabled={editIndex !== null && !!activityLogs[editIndex].scopeId}
                         >
                             Custom/Ad-hoc Task
                         </Button>
@@ -133,6 +203,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                                         className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-brand-teal"
                                         value={selectedScope}
                                         onChange={e => setSelectedScope(e.target.value)}
+                                        disabled={editIndex !== null}
                                     >
                                         <option value="">Select Scope...</option>
                                         {availableScopes.map(s => (
@@ -146,12 +217,15 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                                         className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-brand-teal"
                                         value={selectedActivity}
                                         onChange={e => setSelectedActivity(e.target.value)}
-                                        disabled={!selectedScope}
+                                        disabled={!selectedScope || editIndex !== null}
                                     >
                                         <option value="">Select Activity...</option>
                                         {availableActivities.map(a => (
-                                            <option key={a.id} value={a.id}>{a.title} ({a.progress}% completed)</option>
+                                            <option key={a.id} value={a.id}>{a.title} ({a.progress}% current)</option>
                                         ))}
+                                        {editIndex !== null && selectedActivity && (
+                                            <option value={selectedActivity}>Keep Current Selection</option>
+                                        )}
                                     </select>
                                 </div>
                             </>
@@ -162,17 +236,18 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                                     placeholder="Enter ad-hoc task description..." 
                                     value={customTaskName}
                                     onChange={e => setCustomTaskName(e.target.value)}
+                                    disabled={editIndex !== null}
                                 />
                             </div>
                         )}
 
                         <div className="space-y-2">
-                            <Label>Progress Today (%)</Label>
+                            <Label>Added Today (%)</Label>
                             <Input 
                                 type="number" 
                                 min="0" 
                                 max="100" 
-                                placeholder="e.g. 50" 
+                                placeholder="e.g. 25" 
                                 value={progressReported}
                                 onChange={e => setProgressReported(e.target.value === '' ? '' : Number(e.target.value))}
                             />
@@ -189,10 +264,14 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
 
                     <Button 
                         onClick={handleAddLog} 
-                        className="w-full sm:w-auto bg-gray-900 hover:bg-black text-white"
+                        className={`w-full sm:w-auto text-white ${editIndex !== null ? 'bg-brand-teal hover:bg-brand-teal/90' : 'bg-gray-900 hover:bg-black'}`}
                         disabled={isCustom ? !customTaskName.trim() : (!selectedScope || !selectedActivity)}
                     >
-                        <Plus size={16} className="mr-2"/> Add to Log
+                        {editIndex !== null ? (
+                            <><Check size={16} className="mr-2"/> Update Entry</>
+                        ) : (
+                            <><Plus size={16} className="mr-2"/> Add to Log</>
+                        )}
                     </Button>
                 </div>
             )}

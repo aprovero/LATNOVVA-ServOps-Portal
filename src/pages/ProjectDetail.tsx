@@ -3,8 +3,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import {
     MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText,
-    BarChart2, Search, AlertCircle, Plus, ExternalLink
+    BarChart2, Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2
 } from 'lucide-react';
+import { ManageScopesModal } from '../components/project/ManageScopesModal';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -28,11 +29,20 @@ export default function ProjectDetail() {
     const [editSystemType, setEditSystemType] = useState('');
     const [editStatus, setEditStatus] = useState<'Active' | 'On Hold' | 'Completed'>('Active');
     const [editClientId, setEditClientId] = useState('');
+    const [editEpc, setEditEpc] = useState('');
+    const [editOandM, setEditOandM] = useState('');
+    const [editPointOfContact, setEditPointOfContact] = useState('');
+    const [editNotes, setEditNotes] = useState('');
 
     // Personnel picklist
     const [personnelSearch, setPersonnelSearch] = useState('');
+    const [isAddingPersonnel, setIsAddingPersonnel] = useState(false);
+
+    // Modals
+    const [manageScopesProject, setManageScopesProject] = useState<any>(null);
 
     const canEdit = ['Manager', 'Supervisor'].includes(userRole);
+    const canEditPersonnel = canEdit && project?.status !== 'Completed';
 
     // People already assigned to OTHER projects (conflict check)
     const assignedElsewhere = useMemo(() => {
@@ -64,6 +74,10 @@ export default function ProjectDetail() {
         setEditSystemType(project.systemType || 'Solar');
         setEditStatus(project.status as any);
         setEditClientId(project.clientId);
+        setEditEpc(project.epc || '');
+        setEditOandM(project.oAndM || '');
+        setEditPointOfContact(project.pointOfContact || '');
+        setEditNotes(project.notes || '');
         setIsEditing(true);
     };
 
@@ -77,6 +91,10 @@ export default function ProjectDetail() {
             systemType: editSystemType || undefined,
             status: editStatus,
             clientId: editClientId,
+            epc: editEpc || undefined,
+            oAndM: editOandM || undefined,
+            pointOfContact: editPointOfContact || undefined,
+            notes: editNotes || undefined,
         });
         setIsEditing(false);
     };
@@ -155,6 +173,16 @@ export default function ProjectDetail() {
                                     {project.systemType && <span>⚡ {project.systemType}</span>}
                                     <span className="font-mono text-gray-400">{project.id}</span>
                                 </div>
+                                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm mt-3 pt-3 border-t border-gray-100/60">
+                                    {project.epc && <span className="text-gray-600"><span className="text-gray-400">EPC:</span> font-semibold {project.epc}</span>}
+                                    {project.oAndM && <span className="text-gray-600"><span className="text-gray-400">O&M:</span> font-semibold {project.oAndM}</span>}
+                                    {project.pointOfContact && <span className="text-gray-600"><span className="text-gray-400">PoC:</span> font-semibold {project.pointOfContact}</span>}
+                                </div>
+                                {project.notes && (
+                                    <p className="mt-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                        {project.notes}
+                                    </p>
+                                )}
                             </div>
                             {canEdit && (
                                 <Button onClick={openEdit} variant="outline" className="flex items-center gap-2 shrink-0 border-gray-200 hover:border-brand-teal hover:text-brand-teal transition-colors">
@@ -212,6 +240,22 @@ export default function ProjectDetail() {
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
+                                <div className="grid gap-1.5">
+                                    <Label htmlFor="dp-epc">EPC</Label>
+                                    <Input id="dp-epc" value={editEpc} onChange={e => setEditEpc(e.target.value)} placeholder="EPC Contractor" />
+                                </div>
+                                <div className="grid gap-1.5">
+                                    <Label htmlFor="dp-oandm">O&M</Label>
+                                    <Input id="dp-oandm" value={editOandM} onChange={e => setEditOandM(e.target.value)} placeholder="O&M Provider" />
+                                </div>
+                                <div className="sm:col-span-2 grid gap-1.5">
+                                    <Label htmlFor="dp-poc">Point of Contact</Label>
+                                    <Input id="dp-poc" value={editPointOfContact} onChange={e => setEditPointOfContact(e.target.value)} placeholder="Name, Phone, Email..." />
+                                </div>
+                                <div className="sm:col-span-2 grid gap-1.5">
+                                    <Label htmlFor="dp-notes">Notes</Label>
+                                    <Input id="dp-notes" value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="General project notes" />
+                                </div>
                             </div>
                         </div>
                     )}
@@ -251,12 +295,22 @@ export default function ProjectDetail() {
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 lg:col-span-2 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2">
-                            <Users size={18} className="text-brand-teal" /> Assigned Personnel
+                            <Users size={18} className="text-brand-teal" /> {isAddingPersonnel ? 'Add Personnel' : 'Assigned Personnel'}
                             <span className="text-xs bg-brand-teal/10 text-brand-teal font-bold px-2 py-0.5 rounded-full">{assignedToThis.length}</span>
                         </h2>
+                        {canEditPersonnel && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className={`text-xs h-7 border-brand-teal/20 hover:border-brand-teal text-brand-teal transition-all ${isAddingPersonnel ? 'bg-brand-teal/10' : ''}`}
+                                onClick={() => setIsAddingPersonnel(!isAddingPersonnel)}
+                            >
+                                {isAddingPersonnel ? 'Done' : '+ Add Personnel'}
+                            </Button>
+                        )}
                     </div>
 
-                    {canEdit && (
+                    {isAddingPersonnel && (
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
                             <Input
@@ -269,19 +323,19 @@ export default function ProjectDetail() {
                     )}
 
                     <div className="overflow-y-auto max-h-52 space-y-1.5 pr-1">
-                        {(canEdit ? availablePersonnel : personnel.filter(p => assignedToThis.includes(p.id))).map(person => {
+                        {(isAddingPersonnel ? availablePersonnel : personnel.filter(p => assignedToThis.includes(p.id))).map(person => {
                             const isAssigned = assignedToThis.includes(person.id);
                             const isConflict = assignedElsewhere.has(person.id) && !isAssigned;
                             return (
                                 <div
                                     key={person.id}
-                                    onClick={() => canEdit && !isConflict && togglePersonnel(person.id)}
+                                    onClick={() => canEditPersonnel && isAddingPersonnel && !isConflict && togglePersonnel(person.id)}
                                     className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
                                         isAssigned
-                                            ? 'bg-brand-teal/5 border-brand-teal/20 cursor-pointer'
+                                            ? 'bg-brand-teal/5 border-brand-teal/20'
                                             : isConflict
                                             ? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed'
-                                            : canEdit ? 'bg-gray-50 border-gray-100 hover:border-brand-teal/30 hover:bg-brand-teal/5 cursor-pointer' : 'bg-gray-50 border-gray-100'
+                                            : canEditPersonnel && isAddingPersonnel ? 'bg-gray-50 border-gray-100 hover:border-brand-teal/30 hover:bg-brand-teal/5 cursor-pointer' : 'bg-gray-50 border-gray-100'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -293,12 +347,21 @@ export default function ProjectDetail() {
                                             <p className="text-xs text-gray-500">{person.position}</p>
                                         </div>
                                     </div>
-                                    {canEdit && (
-                                        isAssigned
-                                            ? <span className="text-brand-teal"><Check size={16} /></span>
-                                            : isConflict
-                                            ? <span className="text-xs text-gray-400 italic">On project</span>
-                                            : <span className="text-gray-300"><Plus size={16} /></span>
+                                    {canEditPersonnel && (
+                                        isAddingPersonnel ? (
+                                            isAssigned
+                                                ? <span className="text-brand-teal"><Check size={16} /></span>
+                                                : isConflict
+                                                ? <span className="text-xs text-gray-400 italic">On project</span>
+                                                : <span className="text-gray-300"><Plus size={16} /></span>
+                                        ) : (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); togglePersonnel(person.id); }}
+                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             );
@@ -308,6 +371,65 @@ export default function ProjectDetail() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* ── Scopes & WBS ────────────────────────────────────── */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2">
+                        <Network size={18} className="text-brand-teal" /> Scopes & WBS
+                        <span className="text-xs bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-full">{project.scopes?.length || 0}</span>
+                    </h2>
+                    {canEdit && (
+                        <Button 
+                            size="sm" 
+                            className="bg-brand-teal/10 hover:bg-brand-teal text-brand-teal hover:text-white transition-colors text-xs font-bold gap-1.5"
+                            onClick={() => setManageScopesProject(project)}
+                        >
+                            <Edit2 size={13} /> Manage WBS
+                        </Button>
+                    )}
+                </div>
+
+                {!project.scopes || project.scopes.length === 0 ? (
+                    <div className="py-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <p className="text-sm text-gray-500 mb-2">No work breakdown structure defined.</p>
+                        {canEdit && (
+                            <Button size="sm" variant="outline" className="text-xs border-brand-teal/30 text-brand-teal" onClick={() => setManageScopesProject(project)}>
+                                Create First Scope
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {project.scopes.map(scope => {
+                            const isCompleted = scope.completedDate || (scope.activities.length > 0 && scope.activities.every(a => a.progress === 100 || a.status === 'Completed'));
+                            const scopeProgress = scope.activities.length > 0 
+                                ? Math.round(scope.activities.reduce((sum, a) => sum + a.progress, 0) / scope.activities.length)
+                                : 0;
+                            return (
+                                <div key={scope.id} className={`p-4 rounded-2xl border relative overflow-hidden ${isCompleted ? 'bg-status-success/5 border-status-success/20' : 'bg-white border-gray-100'}`}>
+                                    {isCompleted && (
+                                        <div className="absolute top-0 right-0 p-2 text-status-success">
+                                            <CheckCircle2 size={24} className="opacity-20" />
+                                        </div>
+                                    )}
+                                    <h3 className="font-bold text-accent-greyDark text-sm pr-6 truncate">{scope.name}</h3>
+                                    <div className="flex items-center gap-2 mt-3 mb-1">
+                                        <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                            <div 
+                                                className={`h-full ${isCompleted ? 'bg-status-success' : 'bg-brand-teal'}`} 
+                                                style={{ width: `${scopeProgress}%` }}
+                                            />
+                                        </div>
+                                        <span className={`text-[10px] font-bold ${isCompleted ? 'text-status-success' : 'text-brand-teal'}`}>{scopeProgress}%</span>
+                                    </div>
+                                    <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">{scope.activities.length} Activities</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* ── Reports Table ───────────────────────────────────── */}
@@ -377,6 +499,15 @@ export default function ProjectDetail() {
                     </table>
                 )}
             </div>
+
+            {/* Modals */}
+            {manageScopesProject && (
+                <ManageScopesModal
+                    open={!!manageScopesProject}
+                    onOpenChange={(open) => !open && setManageScopesProject(null)}
+                    project={manageScopesProject}
+                />
+            )}
         </div>
     );
 }

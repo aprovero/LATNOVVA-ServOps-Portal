@@ -6,8 +6,6 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ManageScopesModal } from '../components/project/ManageScopesModal';
-import { AddScopeModal } from '../components/project/AddScopeModal';
 import { Project, Client } from '../store/useStore';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -53,48 +51,19 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 };
 
 export default function Projects() {
-    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, updateProject } = useStore();
+    const { projects, reports, clients, userRole, clientId, timesheets, updateClient } = useStore();
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
 
     const [filterStatus, setFilterStatus] = useState<string>('All');
     const [filterCustomer, setFilterCustomer] = useState<string>('All');
-    const [manageScopesProject, setManageScopesProject] = useState<Project | null>(null);
-    const [addScopeProject, setAddScopeProject] = useState<Project | null>(null);
     const [mapProject, setMapProject] = useState<Project | null>(null);
     
     // Edit Customer State
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [editClientName, setEditClientName] = useState('');
     const [editClientLogo, setEditClientLogo] = useState('');
-
-    // Edit Project State
-    const [editingProject, setEditingProject] = useState<Project | null>(null);
-    const [editProjName, setEditProjName] = useState('');
-    const [editProjCodeName, setEditProjCodeName] = useState('');
-    const [editProjLocation, setEditProjLocation] = useState('');
-    const [editProjSize, setEditProjSize] = useState('');
-    const [editProjSystemType, setEditProjSystemType] = useState('');
-    const [editProjStatus, setEditProjStatus] = useState<'Active' | 'Completed' | 'On Hold'>('Active');
-    const [editProjClientId, setEditProjClientId] = useState('');
-
-
-    const handleEditProjectSubmit = () => {
-        if (!editingProject || !editProjName.trim()) return;
-        updateProject(editingProject.id, {
-            name: editProjName,
-            codeName: editProjCodeName || undefined,
-            location: editProjLocation || undefined,
-            projectSize: editProjSize || undefined,
-            systemType: editProjSystemType || undefined,
-            status: editProjStatus,
-            clientId: editProjClientId,
-        });
-        setEditingProject(null);
-        alert(`Project "${editProjName}" updated successfully!`);
-    };
-
     const handleEditClientSubmit = () => {
         if (!editingClient || !editClientName.trim()) return;
         updateClient(editingClient.id, {
@@ -222,7 +191,6 @@ export default function Projects() {
                                         <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Status</th>
                                         <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Progress</th>
                                         <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden lg:table-cell">Team / Time</th>
-                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -319,22 +287,6 @@ export default function Projects() {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 align-middle text-right">
-                                                    {['Supervisor', 'Manager'].includes(userRole) ? (
-                                                        <div className="flex items-center justify-end gap-2 xl:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <Button variant="outline" size="sm" className="h-8 text-xs border-gray-200 text-gray-600 hover:text-brand-teal hover:border-brand-teal/50 transition-colors" onClick={() => setManageScopesProject(proj)}>
-                                                                WBS
-                                                            </Button>
-                                                            <Button variant="default" size="sm" className="h-8 text-xs bg-brand-teal hover:bg-brand-teal/90 text-white shadow-soft" onClick={() => setAddScopeProject(proj)}>
-                                                                + Scope
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <Link to={`/reports?project=${proj.id}`}>
-                                                            <Button variant="ghost" size="sm" className="h-8 text-brand-teal hover:bg-brand-teal/10 font-bold">View</Button>
-                                                        </Link>
-                                                    )}
-                                                </td>
                                             </tr>
                                         ))}
                                         {visibleProjects.length === 0 && (
@@ -414,22 +366,6 @@ export default function Projects() {
                     </div>
                 )}
             </div>
-
-            {manageScopesProject && (
-                <ManageScopesModal 
-                    open={!!manageScopesProject} 
-                    onOpenChange={(open) => !open && setManageScopesProject(null)} 
-                    project={manageScopesProject as Project} 
-                />
-            )}
-
-            {addScopeProject && (
-                <AddScopeModal 
-                    open={!!addScopeProject} 
-                    onOpenChange={(open) => !open && setAddScopeProject(null)} 
-                    project={addScopeProject as Project} 
-                />
-            )}
 
             <Dialog open={!!mapProject} onOpenChange={(open) => !open && setMapProject(null)}>
                 <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl border-none">
@@ -521,108 +457,6 @@ export default function Projects() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setEditingClient(null)}>Cancel</Button>
                         <Button onClick={handleEditClientSubmit}>Save Changes</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Edit Project Modal */}
-            <Dialog open={!!editingProject} onOpenChange={(o) => !o && setEditingProject(null)}>
-                <DialogContent className="sm:max-w-[520px]">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            Edit Project
-                            <span className="text-xs font-mono text-gray-400 font-normal ml-1">{editingProject?.id}</span>
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-2">
-                        <div className="grid gap-2">
-                            <Label htmlFor="editProjName">Project Name *</Label>
-                            <Input
-                                id="editProjName"
-                                value={editProjName}
-                                onChange={(e) => setEditProjName(e.target.value)}
-                                placeholder="Project name"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="editProjCodeName">Code Name / Notation</Label>
-                            <Input
-                                id="editProjCodeName"
-                                value={editProjCodeName}
-                                onChange={(e) => setEditProjCodeName(e.target.value)}
-                                placeholder="E.g. EST-LNV-000 CDMX"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="editProjClientId">Client</Label>
-                            <select
-                                id="editProjClientId"
-                                value={editProjClientId}
-                                onChange={(e) => setEditProjClientId(e.target.value)}
-                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
-                            >
-                                {clients.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="editProjLocation">Location / Coordinates</Label>
-                            <Input
-                                id="editProjLocation"
-                                value={editProjLocation}
-                                onChange={(e) => setEditProjLocation(e.target.value)}
-                                placeholder="E.g. 32.7157,-117.1611 or street address"
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="grid gap-2">
-                                <Label htmlFor="editProjSize">Project Size</Label>
-                                <Input
-                                    id="editProjSize"
-                                    value={editProjSize}
-                                    onChange={(e) => setEditProjSize(e.target.value)}
-                                    placeholder="E.g. 100 MW"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="editProjSystemType">System Type</Label>
-                                <select
-                                    id="editProjSystemType"
-                                    value={editProjSystemType}
-                                    onChange={(e) => setEditProjSystemType(e.target.value)}
-                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
-                                >
-                                    <option value="Solar">Solar</option>
-                                    <option value="BESS">BESS</option>
-                                    <option value="Hybrid">Hybrid</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="editProjStatus">Status</Label>
-                            <select
-                                id="editProjStatus"
-                                value={editProjStatus}
-                                onChange={(e) => setEditProjStatus(e.target.value as 'Active' | 'Completed' | 'On Hold')}
-                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
-                            >
-                                <option value="Active">Active</option>
-                                <option value="On Hold">On Hold</option>
-                                <option value="Completed">Completed</option>
-                            </select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditingProject(null)}>Cancel</Button>
-                        <Button
-                            onClick={handleEditProjectSubmit}
-                            disabled={!editProjName.trim()}
-                            className="bg-brand-teal hover:bg-brand-teal/90 text-white"
-                        >
-                            Save Changes
-                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -122,9 +122,10 @@ export default function ReportEditor() {
         if (project) {
             activityLogs.forEach(log => {
                 if (log.scopeId && log.activityId && log.progressReported !== undefined) {
+                    const newTotal = (log.priorProgress || 0) + log.progressReported;
                     updateActivityProgress(project.id, log.scopeId, log.activityId, {
-                        progress: log.progressReported,
-                        status: log.progressReported === 100 ? 'Completed' : 'In Progress'
+                        progress: Math.min(newTotal, 100),
+                        status: newTotal >= 100 ? 'Completed' : 'In Progress'
                     });
                 }
             });

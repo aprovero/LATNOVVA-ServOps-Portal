@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Plus, CheckCircle2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, ChevronDown, ChevronUp, ListChecks } from 'lucide-react';
 
 interface ManageScopesModalProps {
     open: boolean;
@@ -13,22 +13,41 @@ interface ManageScopesModalProps {
 }
 
 export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesModalProps) {
-    const { addScopeToProject, addActivityToScope, projects } = useStore();
+    const { addScopeToProject, addActivityToScope, projects, scopeTemplates } = useStore();
     const currentProject = projects.find(p => p.id === project.id) || project;
 
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string>('custom');
     const [newScopeName, setNewScopeName] = useState('');
     const [newActivityTitles, setNewActivityTitles] = useState<Record<string, string>>({});
     const [expandedScopes, setExpandedScopes] = useState<Record<string, boolean>>({});
 
     const handleAddScope = () => {
-        if (!newScopeName.trim()) return;
+        let finalScopeName = '';
+        let initialActivities: ProjectActivity[] = [];
+
+        if (selectedTemplateId === 'custom') {
+            if (!newScopeName.trim()) return;
+            finalScopeName = newScopeName;
+        } else {
+            const template = scopeTemplates.find(t => t.id === selectedTemplateId);
+            if (!template) return;
+            finalScopeName = template.name;
+            initialActivities = template.activities.map(actTitle => ({
+                id: `ACT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                title: actTitle,
+                status: 'Pending',
+                progress: 0
+            }));
+        }
+
         const newScope: ProjectScope = {
             id: `SCOPE-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-            name: newScopeName,
-            activities: []
+            name: finalScopeName,
+            activities: initialActivities
         };
         addScopeToProject(currentProject.id, newScope);
         setNewScopeName('');
+        setSelectedTemplateId('custom');
     };
 
     const handleAddActivity = (scopeId: string) => {
@@ -60,18 +79,62 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                 </DialogHeader>
                 <div className="space-y-6 py-4">
                     {/* Add New Scope */}
-                    <div className="flex items-end gap-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <div className="flex-1 space-y-2">
-                            <Label>New Scope Name</Label>
-                            <Input 
-                                placeholder="e.g. Civil Works, Commissioning..." 
-                                value={newScopeName}
-                                onChange={e => setNewScopeName(e.target.value)}
-                            />
+                    <div className="flex flex-col gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div className="space-y-2">
+                            <Label>Source</Label>
+                            <select
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none transition-all"
+                                value={selectedTemplateId}
+                                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                            >
+                                <option value="custom">Blank Custom Scope</option>
+                                {scopeTemplates.length > 0 && (
+                                    <optgroup label="Templates">
+                                        {scopeTemplates.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name} ({t.activities.length} tasks)</option>
+                                        ))}
+                                    </optgroup>
+                                )}
+                            </select>
                         </div>
-                        <Button onClick={handleAddScope} className="shrink-0 bg-brand-teal hover:bg-brand-teal/90 text-white">
-                            <Plus size={16} className="mr-2"/> Add Scope
-                        </Button>
+                        
+                        {selectedTemplateId === 'custom' ? (
+                            <div className="flex items-end gap-2">
+                                <div className="flex-1 space-y-2">
+                                    <Label>New Scope Name</Label>
+                                    <Input 
+                                        placeholder="e.g. Civil Works, Commissioning..." 
+                                        value={newScopeName}
+                                        onChange={e => setNewScopeName(e.target.value)}
+                                    />
+                                </div>
+                                <Button onClick={handleAddScope} className="shrink-0 bg-brand-teal hover:bg-brand-teal/90 text-white" disabled={!newScopeName.trim()}>
+                                    <Plus size={16} className="mr-2"/> Add Scope
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="bg-white p-3 rounded-lg border border-gray-100">
+                                    <h4 className="text-sm font-bold text-accent-greyDark flex items-center gap-2 mb-2">
+                                        <ListChecks size={16} className="text-brand-teal" />
+                                        Activities to be added
+                                    </h4>
+                                    <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-2">
+                                        {scopeTemplates.find(t => t.id === selectedTemplateId)?.activities.map((act, i) => (
+                                            <div key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                                                <div className="mt-1 w-1 h-1 rounded-full bg-brand-teal shrink-0" />
+                                                <span className="leading-tight">{act}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex justify-end">
+                                    <Button onClick={handleAddScope} className="shrink-0 bg-brand-teal hover:bg-brand-teal/90 text-white">
+                                        <Plus size={16} className="mr-2"/> Add Scope from Template
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Scopes List */}
