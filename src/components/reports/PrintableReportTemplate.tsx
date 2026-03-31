@@ -160,6 +160,25 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
   const client = state.clients.find(c => c.id === report.clientId);
   const project = state.projects.find(p => p.id === report.projectId);
   
+  // Build absolute URLs for logos so @react-pdf/renderer can load them
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const corLogoUrl = `${origin}/cor-logo.png`;
+  const latnovvaLogoUrl = `${origin}/latnovva-O-logo.png`;
+
+  const hasLabor = (report.labor || []).length > 0;
+  const hasProgress = (report.activityLogs || []).length > 0;
+  const hasEquipment = (report.equipment || []).length > 0;
+  const hasTools = (report.usedTools || []).length > 0;
+  const hasChecklists = (report.checklists || []).length > 0;
+  const hasSubReports = (report.subReportIds || []).length > 0;
+  const hasOccurrences = (report.occurrences || []).length > 0;
+  const hasMedia = (report.media || []).length > 0;
+  const hasCustom = (report.customSections || []).length > 0;
+
+  // Dynamic section counter — only numbered sections that are present
+  let sectionNum = 1;
+  const sec = () => sectionNum++;
+
   const validLabor = (report.labor || []).filter(l => {
       if (!l.personnelId) return true;
       const person = state.personnel.find(p => p.id === l.personnelId);
@@ -192,25 +211,40 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
 
   const documentTitle = `${project?.codeName ? `${project.codeName} - ` : ''}LATNOVVA Report ${report.id}`;
 
+  // Pre-compute section numbers so labels are stable during render
+  const secNums = {
+    general: sec(),
+    labor: hasLabor ? sec() : null,
+    progress: hasProgress ? sec() : null,
+    equipment: hasEquipment ? sec() : null,
+    fieldNotes: sec(),
+    tools: hasTools ? sec() : null,
+    checklists: hasChecklists ? sec() : null,
+    subReports: hasSubReports ? sec() : null,
+    occurrences: hasOccurrences ? sec() : null,
+    media: hasMedia ? sec() : null,
+    custom: hasCustom ? sec() : null,
+  };
+
   return (
   <Document title={documentTitle}>
     <Page size="A4" style={styles.page}>
       
-      {/* Logos */}
+      {/* Header: Logos */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 }}>
         {/* Left: COR + LATNOVVA */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Image src="/cor-logo.png" style={{ height: 26, objectFit: 'contain' }} />
-            <View style={{ width: 1, height: 20, backgroundColor: '#ccc', marginHorizontal: 8 }} />
-            <Image src="/latnovva-O-logo.png" style={{ height: 22, objectFit: 'contain' }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image src={corLogoUrl} style={{ height: 28, objectFit: 'contain' }} />
+            <View style={{ width: 1, height: 22, backgroundColor: '#ccc', marginLeft: 10, marginRight: 10 }} />
+            <Image src={latnovvaLogoUrl} style={{ height: 24, objectFit: 'contain' }} />
         </View>
         {/* Right: Client logo or name */}
-        <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+        <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
             {client?.logo ? (
-                <Image src={client.logo} style={{ height: 35, objectFit: 'contain' }} />
+                <Image src={client.logo} style={{ height: 32, objectFit: 'contain' }} />
             ) : (
-                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 13, color: '#333', textAlign: 'right' }}>
-                  {client?.name || report.clientId || 'Client Info Missing'}
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 12, color: '#444' }}>
+                  {client?.name || (report.clientId ? `Client: ${report.clientId}` : 'PREPARED FOR CLIENT')}
                 </Text>
             )}
         </View>
@@ -232,7 +266,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
 
       {/* Project & General Info */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. General Information</Text>
+        <Text style={styles.sectionTitle}>{secNums.general}. General Information</Text>
         <View style={styles.row}>
           <View style={styles.col2}>
             <Text style={styles.label}>Project Name</Text>
@@ -272,9 +306,9 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       </View>
 
       {/* Labor Section */}
-      {validLabor.length > 0 && (
+      {hasLabor && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Labor Allocation</Text>
+          <Text style={styles.sectionTitle}>{secNums.labor}. Labor Allocation</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={[styles.tableCellBold, { flex: 2 }]}>Personnel</Text>
@@ -295,9 +329,9 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       )}
 
       {/* Project Progress */}
-      {report.activityLogs && report.activityLogs.length > 0 && (
+      {hasProgress && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Project Progress Updates</Text>
+          <Text style={styles.sectionTitle}>{secNums.progress}. Project Progress Updates</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={[styles.tableCellBold, { flex: 2 }]}>Task / Activity</Text>
@@ -306,7 +340,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
               <Text style={styles.tableCellBold}>Current Total</Text>
               <Text style={[styles.tableCellBold, { flex: 2 }]}>Notes</Text>
             </View>
-            {report.activityLogs.map((log, i) => {
+            {(report.activityLogs || []).map((log, i) => {
               let taskName = log.customTaskName || 'Unknown Task';
               if (log.scopeId && log.activityId && project) {
                  const scope = project.scopes.find(s => s.id === log.scopeId);
@@ -331,9 +365,9 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       )}
 
       {/* Equipment Section */}
-      {report.equipment && report.equipment.length > 0 && (
+      {hasEquipment && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. Equipment Verified</Text>
+          <Text style={styles.sectionTitle}>{secNums.equipment}. Equipment Verified</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={styles.tableCellBold}>Type</Text>
@@ -353,16 +387,16 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
 
       {/* Field Notes */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>5. Field Notes & Observations</Text>
+        <Text style={styles.sectionTitle}>{secNums.fieldNotes}. Field Notes & Observations</Text>
         <View style={styles.notesBox}>
           <Text style={styles.value}>{report.notes || 'No remarks provided.'}</Text>
         </View>
       </View>
 
       {/* Tools Used */}
-      {validTools.length > 0 && (
+      {hasTools && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>6. Tools Used</Text>
+          <Text style={styles.sectionTitle}>{secNums.tools}. Tools Used</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={styles.tableCellBold}>Tool Name</Text>
@@ -385,10 +419,10 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       )}
 
       {/* Checklists */}
-      {report.checklists && report.checklists.length > 0 && (
+      {hasChecklists && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>7. Quality & Safety Checklists</Text>
-          {report.checklists.map((group, gi) => (
+          <Text style={styles.sectionTitle}>{secNums.checklists}. Quality & Safety Checklists</Text>
+          {(report.checklists || []).map((group, gi) => (
             <View key={gi} style={{ marginBottom: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
                 <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 10, color: '#333' }}>{group.title}</Text>
@@ -414,15 +448,15 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       )}
 
       {/* Attached Forms / Sub-Reports */}
-      {report.subReportIds && report.subReportIds.length > 0 && (
+      {hasSubReports && (
         <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitle}>Attached Forms & Sub-Reports</Text>
+          <Text style={styles.sectionTitle}>{secNums.subReports}. Attached Forms & Sub-Reports</Text>
           <View style={styles.table}>
              <View style={styles.tableHeader}>
                  <Text style={[styles.tableCellBold, { flex: 3 }]}>Form Title</Text>
                  <Text style={styles.tableCellBold}>Reference ID</Text>
              </View>
-             {report.subReportIds.map((srId, i) => {
+             {(report.subReportIds || []).map((srId, i) => {
                const sr = state.subReportInstances.find((s: any) => s.id === srId);
                if (!sr) return null;
                return (
@@ -437,15 +471,15 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       )}
 
       {/* Occurrences */}
-      {report.occurrences && report.occurrences.length > 0 && (
+      {hasOccurrences && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Occurrences & Events</Text>
+          <Text style={styles.sectionTitle}>{secNums.occurrences}. Occurrences & Events</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={styles.tableCellBold}>Time</Text>
               <Text style={[styles.tableCellBold, { flex: 3 }]}>Description</Text>
             </View>
-            {report.occurrences.map((occ, i) => (
+            {(report.occurrences || []).map((occ, i) => (
               <View style={styles.tableRow} key={i}>
                 <Text style={styles.tableCell}>{occ.time}</Text>
                 <Text style={[styles.tableCell, { flex: 3 }]}>{occ.description}</Text>
@@ -456,11 +490,11 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       )}
 
       {/* Media / Photos */}
-      {report.media && report.media.length > 0 && (
+      {hasMedia && (
         <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitle}>Attached Media & Photos</Text>
+          <Text style={styles.sectionTitle}>{secNums.media}. Attached Media & Photos</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
-            {report.media.map((m, i) => (
+            {(report.media || []).map((m, i) => (
               <View key={i} style={{ width: '48%', marginBottom: 15, marginRight: i % 2 === 0 ? '4%' : 0 }}>
                 {m.url && (m.url.startsWith('data:image') || m.url.startsWith('http')) ? (
                   <Image src={m.url} style={{ height: 150, objectFit: 'cover', backgroundColor: '#f0f0f0' }} />
@@ -479,9 +513,9 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       )}
 
       {/* Custom Sections */}
-      {report.customSections && report.customSections.length > 0 && (
+      {hasCustom && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>8. Custom Modules</Text>
+          <Text style={styles.sectionTitle}>{secNums.custom}. Custom Modules</Text>
           {report.customSections.map((sec, i) => (
              <View key={i} style={{ marginBottom: 10 }}>
                 <Text style={styles.label}>{sec.title}</Text>

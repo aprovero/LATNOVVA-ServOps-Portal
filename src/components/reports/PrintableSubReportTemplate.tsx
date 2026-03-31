@@ -70,6 +70,11 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
   const client = state.clients.find(c => c.id === project?.clientId);
   const template = state.subReportTemplates.find(t => t.id === subReport.templateId);
 
+  // Build absolute URLs for logos so @react-pdf/renderer can load them
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const corLogoUrl = `${origin}/cor-logo.png`;
+  const latnovvaLogoUrl = `${origin}/latnovva-O-logo.png`;
+
   const formatDateTime = (isoString?: string) => {
     if (!isoString) return 'N/A';
     try {
@@ -85,14 +90,20 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
         
         {/* Logos & Header */}
         <View style={styles.logoContainer}>
+            {/* Left: COR + LATNOVVA */}
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image src="https://www.latnovva.com/wp-content/uploads/2023/11/LOGO-LATNOVVA-COLOR.png" style={{ height: 30, objectFit: 'contain' }} />
+                <Image src={corLogoUrl} style={{ height: 28, objectFit: 'contain' }} />
+                <View style={{ width: 1, height: 22, backgroundColor: '#ccc', marginLeft: 10, marginRight: 10 }} />
+                <Image src={latnovvaLogoUrl} style={{ height: 24, objectFit: 'contain' }} />
             </View>
-            <View>
+            {/* Right: Client logo or name */}
+            <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
                 {client?.logo ? (
-                    <Image src={client.logo} style={{ height: 35, objectFit: 'contain' }} />
+                    <Image src={client.logo} style={{ height: 32, objectFit: 'contain' }} />
                 ) : (
-                    <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 12 }}>{client?.name || 'Customer'}</Text>
+                    <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 12, color: '#444' }}>
+                      {client?.name || (project?.clientId ? `Client: ${project.clientId}` : 'PREPARED FOR CLIENT')}
+                    </Text>
                 )}
             </View>
         </View>
