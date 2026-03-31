@@ -347,8 +347,8 @@ export const useStore = create<AppState>()(
             timesheets: [],
             initDb: () => {
                 set((state) => {
-                    // Update state with mock data if reports are empty
                     if (state.reports.length === 0) {
+                        // Fresh install - load all mock data
                         return {
                             clients: mockClients,
                             projects: mockProjects,
@@ -358,7 +358,21 @@ export const useStore = create<AppState>()(
                             timesheets: mockTimesheets,
                         };
                     }
-                    return {};
+                    // Already have data - merge location/metadata from mockData into existing projects
+                    // This ensures updated coordinates in mockData are reflected without clearing storage
+                    const mergedProjects = state.projects.map(p => {
+                        const mock = mockProjects.find(m => m.id === p.id);
+                        if (!mock) return p;
+                        return {
+                            ...p,
+                            // Always sync location/metadata from mockData so coordinate updates propagate
+                            location: mock.location ?? p.location,
+                            codeName: p.codeName ?? mock.codeName,
+                            projectSize: p.projectSize ?? mock.projectSize,
+                            systemType: p.systemType ?? mock.systemType,
+                        };
+                    });
+                    return { projects: mergedProjects };
                 });
             },
             setUserRole: (role) => set({ userRole: role }),

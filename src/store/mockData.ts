@@ -10,32 +10,32 @@ export const mockClients: Client[] = [
 
 export const mockProjects: Project[] = [
     // SUNGROW
-    { id: 'PROJ-S1', clientId: 'CUST_SUNGROW', name: 'Sungrow Outback Array', codeName: 'EST-LNV-000 CDMX', type: 'Complete', status: 'Active', progress: 45, scopes: [{ id: 's1-scp1', name: 'Civil Works', activities: [{ id: 's1-a1', title: 'Trenching', status: 'Completed', progress: 100 }, { id: 's1-a2', title: 'Mounting', status: 'In Progress', progress: 50 }] }], location: '32.7157,-117.1611' },
-    { id: 'PROJ-S2', clientId: 'CUST_SUNGROW', name: 'Texas Desert Inverter Install', codeName: 'EST-LNV-000 MID', type: 'Simple', status: 'Completed', progress: 100, scopes: [], location: '31.9686,-99.9018' },
-    { id: 'PROJ-S3', clientId: 'CUST_SUNGROW', name: 'Sungrow Coastal BESS', codeName: 'VM-LNV-098', type: 'Complete', status: 'Active', progress: 15, scopes: [], location: '25.7617,-80.1918' },
+    { id: 'PROJ-S1', clientId: 'CUST_SUNGROW', name: 'Sungrow Outback Array', codeName: 'EST-LNV-000 CDMX', type: 'Complete', status: 'Active', progress: 45, scopes: [{ id: 's1-scp1', name: 'Civil Works', activities: [{ id: 's1-a1', title: 'Trenching', status: 'Completed', progress: 100 }, { id: 's1-a2', title: 'Mounting', status: 'In Progress', progress: 50 }] }], location: '40.6892,-74.0445' },
+    { id: 'PROJ-S2', clientId: 'CUST_SUNGROW', name: 'Texas Desert Inverter Install', codeName: 'EST-LNV-000 MID', type: 'Simple', status: 'Completed', progress: 100, scopes: [], location: '31.9230,-104.8858' },
+    { id: 'PROJ-S3', clientId: 'CUST_SUNGROW', name: 'Sungrow Coastal BESS', codeName: 'VM-LNV-098', type: 'Complete', status: 'Active', progress: 15, scopes: [], location: '40.7484,-73.9857' },
     
     // SAFT
-    { id: 'PROJ-SF1', clientId: 'CUST_SAFT', name: 'SAFT Battery Hub Alpha', codeName: 'CH-LNVEM-090', type: 'Complete', status: 'Active', progress: 80, scopes: [], location: '41.8781,-87.6298' },
-    { id: 'PROJ-SF2', clientId: 'CUST_SAFT', name: 'SAFT Urban Microgrid', codeName: 'OPDE-LNV-085', type: 'Complete', status: 'Completed', progress: 100, scopes: [], location: '34.0522,-118.2437' },
-    { id: 'PROJ-SF3', clientId: 'CUST_SAFT', name: 'New York Storage Ext.', codeName: 'NK-LNV-089', type: 'Simple', status: 'On Hold', progress: 20, scopes: [], location: '40.7128,-74.0060' },
-    { id: 'PROJ-SF4', clientId: 'CUST_SAFT', name: 'Grid Support Station', type: 'Complete', status: 'Active', progress: 5, scopes: [], location: '47.6062,-122.3321' },
+    { id: 'PROJ-SF1', clientId: 'CUST_SAFT', name: 'SAFT Battery Hub Alpha', codeName: 'CH-LNVEM-090', type: 'Complete', status: 'Active', progress: 80, scopes: [], location: '38.8977,-77.0365' },
+    { id: 'PROJ-SF2', clientId: 'CUST_SAFT', name: 'SAFT Urban Microgrid', codeName: 'OPDE-LNV-085', type: 'Complete', status: 'Completed', progress: 100, scopes: [], location: '38.6247,-90.1848' },
+    { id: 'PROJ-SF3', clientId: 'CUST_SAFT', name: 'New York Storage Ext.', codeName: 'NK-LNV-089', type: 'Simple', status: 'On Hold', progress: 20, scopes: [], location: '51.4968,-116.1773' },
+    { id: 'PROJ-SF4', clientId: 'CUST_SAFT', name: 'Grid Support Station', type: 'Complete', status: 'Active', progress: 5, scopes: [], location: '43.8791,-103.4591' },
     
     // Power Electronics
-    { id: 'PROJ-PE1', clientId: 'CUST_POWER_ELEC', name: 'PE Inverter Array Beta', type: 'Complete', status: 'Active', progress: 95, scopes: [], location: '39.7392,-104.9903' },
-    { id: 'PROJ-PE2', clientId: 'CUST_POWER_ELEC', name: 'PE Grid Tie Expansion', type: 'Simple', status: 'Completed', progress: 100, scopes: [], location: '33.4484,-112.0740' },
-    { id: 'PROJ-PE3', clientId: 'CUST_POWER_ELEC', name: 'PE Rural Farm Install', type: 'Complete', status: 'Active', progress: 60, scopes: [], location: '44.9778,-93.2650' },
+    { id: 'PROJ-PE1', clientId: 'CUST_POWER_ELEC', name: 'PE Inverter Array Beta', type: 'Complete', status: 'Active', progress: 95, scopes: [], location: '44.4605,-110.8281' },
+    { id: 'PROJ-PE2', clientId: 'CUST_POWER_ELEC', name: 'PE Grid Tie Expansion', type: 'Simple', status: 'Completed', progress: 100, scopes: [], location: '28.4187,-81.5812' },
+    { id: 'PROJ-PE3', clientId: 'CUST_POWER_ELEC', name: 'PE Rural Farm Install', type: 'Complete', status: 'Active', progress: 60, scopes: [], location: '36.1069,-112.1129' },
 
     // Ferrovial
-    { id: 'PROJ-F1', clientId: 'CUST_FERROVIAL', name: 'Ferrovial Highway Solar', type: 'Complete', status: 'Active', progress: 30, scopes: [], location: '35.0844,-106.6504' },
-    { id: 'PROJ-F2', clientId: 'CUST_FERROVIAL', name: 'Interstate Charging Hub', type: 'Simple', status: 'Active', progress: 10, scopes: [], location: '36.1699,-115.1398' },
-    { id: 'PROJ-F3', clientId: 'CUST_FERROVIAL', name: 'Border Station Microgrid', type: 'Complete', status: 'On Hold', progress: 0, scopes: [], location: '31.7619,-106.4850' },
-    { id: 'PROJ-F4', clientId: 'CUST_FERROVIAL', name: 'Ferrovial Valley Wind', type: 'Complete', status: 'Completed', progress: 100, scopes: [], location: '36.7783,-119.4179' },
+    { id: 'PROJ-F1', clientId: 'CUST_FERROVIAL', name: 'Ferrovial Highway Solar', type: 'Complete', status: 'Active', progress: 30, scopes: [], location: '36.0156,-114.7378' },
+    { id: 'PROJ-F2', clientId: 'CUST_FERROVIAL', name: 'Interstate Charging Hub', type: 'Simple', status: 'Active', progress: 10, scopes: [], location: '47.6205,-122.3493' },
+    { id: 'PROJ-F3', clientId: 'CUST_FERROVIAL', name: 'Border Station Microgrid', type: 'Complete', status: 'On Hold', progress: 0, scopes: [], location: '46.8139,-71.2080' },
+    { id: 'PROJ-F4', clientId: 'CUST_FERROVIAL', name: 'Ferrovial Valley Wind', type: 'Complete', status: 'Completed', progress: 100, scopes: [], location: '46.8523,-121.7603' },
 
     // CEN Solutions
-    { id: 'PROJ-C1', clientId: 'CUST_CEN', name: 'CEN Smart Control Room', type: 'Complete', status: 'Completed', progress: 100, scopes: [], location: '32.7767,-96.7970' },
-    { id: 'PROJ-C2', clientId: 'CUST_CEN', name: 'CEN Substation Upgrade', type: 'Simple', status: 'Active', progress: 75, scopes: [], location: '29.7604,-95.3698' },
-    { id: 'PROJ-C3', clientId: 'CUST_CEN', name: 'Transmission Automation', type: 'Complete', status: 'Active', progress: 50, scopes: [], location: '30.2672,-97.7431' },
-    { id: 'PROJ-C4', clientId: 'CUST_CEN', name: 'SCADA Implementation', type: 'Complete', status: 'Active', progress: 25, scopes: [], location: '29.4241,-98.4936' },
+    { id: 'PROJ-C1', clientId: 'CUST_CEN', name: 'CEN Smart Control Room', type: 'Complete', status: 'Completed', progress: 100, scopes: [], location: '18.4670,-66.1239' },
+    { id: 'PROJ-C2', clientId: 'CUST_CEN', name: 'CEN Substation Upgrade', type: 'Simple', status: 'Active', progress: 75, scopes: [], location: '37.8199,-122.4783' },
+    { id: 'PROJ-C3', clientId: 'CUST_CEN', name: 'Transmission Automation', type: 'Complete', status: 'Active', progress: 50, scopes: [], location: '37.8267,-122.4230' },
+    { id: 'PROJ-C4', clientId: 'CUST_CEN', name: 'SCADA Implementation', type: 'Complete', status: 'Active', progress: 25, scopes: [], location: '19.4270,-99.1677' },
 ];
 
 const firstNames = ['James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda', 'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica', 'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa', 'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra'];

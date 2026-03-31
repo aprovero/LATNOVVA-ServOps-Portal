@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, ExternalLink, Map, Camera, AlertCircle, List } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, ExternalLink, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -57,7 +57,7 @@ export default function Projects() {
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
-    const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
+
     const [filterStatus, setFilterStatus] = useState<string>('All');
     const [filterCustomer, setFilterCustomer] = useState<string>('All');
     const [manageScopesProject, setManageScopesProject] = useState<Project | null>(null);
@@ -219,41 +219,23 @@ export default function Projects() {
                                     <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
                                 </>
                             )}
-
-                            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-100 shrink-0">
-                                <button 
-                                    className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-bold transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-brand-teal' : 'text-gray-400 hover:text-gray-600'}`} 
-                                    onClick={() => setViewMode('table')}
-                                >
-                                    <List size={16} /> <span className="hidden sm:inline">Table</span>
-                                </button>
-                                {['Manager', 'Supervisor'].includes(userRole) && (
-                                    <button 
-                                        className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-bold transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-brand-teal' : 'text-gray-400 hover:text-gray-600'}`} 
-                                        onClick={() => setViewMode('map')}
-                                    >
-                                        <MapPin size={16} /> <span className="hidden sm:inline">Map</span>
-                                    </button>
-                                )}
-                            </div>
                         </div>
                     </div>
 
-                    {viewMode === 'table' ? (
-                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">
-                            <div className="overflow-x-auto flex-1">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="sticky top-0 bg-gray-50 z-10 border-b border-gray-100 shadow-sm">
-                                        <tr>
-                                            <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Project</th>
-                                            <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">Customer</th>
-                                            <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Status</th>
-                                            <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Progress</th>
-                                            <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden lg:table-cell">Team / Time</th>
-                                            <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">
+                        <div className="overflow-x-auto flex-1">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="sticky top-0 bg-gray-50 z-10 border-b border-gray-100 shadow-sm">
+                                    <tr>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Project</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">Customer</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Status</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Progress</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden lg:table-cell">Team / Time</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
                                         {visibleProjects.map(proj => (
                                             <tr key={proj.id} className="hover:bg-gray-50/50 transition-colors group">
                                                 <td className="p-4 align-middle">
@@ -375,46 +357,6 @@ export default function Projects() {
                                 </table>
                             </div>
                         </div>
-                    ) : (
-                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 relative flex items-center justify-center">
-                            {/* Embedded Map */}
-                            {visibleProjects.filter(p => p.location).length > 0 ? (
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    frameBorder="0"
-                                    style={{ border: 0, minHeight: '400px' }}
-                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(visibleProjects.find(p => p.location)?.location || 'USA')}&t=&z=5&ie=UTF8&iwloc=&output=embed`}
-                                    allowFullScreen
-                                />
-                            ) : (
-                                <div className="text-center text-gray-500 p-12">
-                                    <Map size={48} className="mx-auto mb-4 text-gray-300" />
-                                    <p className="text-lg font-medium text-accent-greyDark">No Locations Available</p>
-                                    <p className="text-sm mt-1">None of the visible projects have location data.</p>
-                                </div>
-                            )}
-                            
-                            {/* Overlay Card for Map View */}
-                            <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-gray-100 w-64 z-10 hidden sm:block">
-                                <h3 className="font-bold text-accent-greyDark mb-3 text-sm flex items-center gap-2">
-                                    <MapPin size={16} className="text-brand-teal" /> Global Coverage
-                                </h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-500">Mappable Projects</span>
-                                        <span className="font-bold text-brand-teal">{visibleProjects.filter(p => p.location).length}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-500">Total Teams</span>
-                                        <span className="font-bold text-brand-teal">
-                                            {new Set(visibleProjects.flatMap(p => p.assignedPersonnel || [])).size}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {userRole !== 'Customer' && (
