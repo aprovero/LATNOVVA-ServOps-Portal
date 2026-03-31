@@ -46,6 +46,13 @@ export interface ReportChecklist {
     status: 'Matches' | 'Does not match' | 'N/A' | 'Unchecked';
 }
 
+export interface ChecklistGroup {
+    id: string;
+    title: string;
+    locked: boolean;
+    items: ReportChecklist[];
+}
+
 export interface ReportSignature {
     role: 'Supervisor' | 'Management' | 'Customer';
     signedBy: string;
@@ -85,7 +92,7 @@ export interface Report {
     labor?: { id: string; personnelId?: string; role: string; qty: number; timeIn?: string; timeOut?: string; hours: number; type?: 'On Site' | 'Travel' | 'Other'; isOutsourced?: boolean }[];
     media?: { id: string; url: string; caption: string }[];
     occurrences?: ReportOccurrence[];
-    checklists?: ReportChecklist[];
+    checklists?: ChecklistGroup[];
     subReportIds?: string[];
     notes: string;
     signatures?: ReportSignature[];

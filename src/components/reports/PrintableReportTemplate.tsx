@@ -377,18 +377,28 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {report.checklists && report.checklists.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quality & Safety Checklists</Text>
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableCellBold, { flex: 2 }]}>Item</Text>
-              <Text style={styles.tableCellBold}>Status</Text>
-            </View>
-            {report.checklists.map((chk, i) => (
-              <View style={styles.tableRow} key={i}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{chk.item}</Text>
-                <Text style={styles.tableCell}>{chk.status}</Text>
+          {report.checklists.map((group, gi) => (
+            <View key={gi} style={{ marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 10, color: '#333' }}>{group.title}</Text>
+                {group.locked && (
+                  <Text style={{ fontSize: 8, color: '#006B5E', backgroundColor: '#e6f4f1', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 }}>LOCKED</Text>
+                )}
               </View>
-            ))}
-          </View>
+              <View style={styles.table}>
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableCellBold, { flex: 2 }]}>Item</Text>
+                  <Text style={styles.tableCellBold}>Status</Text>
+                </View>
+                {group.items.map((chk, i) => (
+                  <View style={styles.tableRow} key={i}>
+                    <Text style={[styles.tableCell, { flex: 2 }]}>{chk.item}</Text>
+                    <Text style={styles.tableCell}>{chk.status}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
         </View>
       )}
 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useStore, ReportState } from '../store/useStore';
-import { ChevronLeft, Camera, ShieldCheck, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin } from 'lucide-react';
+import { useStore, ReportState, ChecklistGroup } from '../store/useStore';
+import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin } from 'lucide-react';
 import gsap from 'gsap';
-import OCRScanner from '../components/scanner/OCRScanner';
+
 import WeatherWidget from '../components/weather/WeatherWidget';
 import LaborSection from '../components/report/LaborSection';
 import WBSProgressSection from '../components/report/WBSProgressSection';
@@ -24,7 +24,7 @@ export default function ReportEditor() {
     const report = reports.find(r => r.id === id);
     const project = projects.find(p => p.id === report?.projectId);
     const [notes, setNotes] = useState('');
-    const [showScanner, setShowScanner] = useState(false);
+
     const [weatherState, setWeatherState] = useState(report?.weather || null);
     const [locationState, setLocationState] = useState(report?.location || undefined);
     const [newComment, setNewComment] = useState('');
@@ -33,7 +33,7 @@ export default function ReportEditor() {
     const currentSignature = report?.signatures?.find(s => s.role === userRole) || null;
     const [labor, setLabor] = useState(report?.labor || []);
     const [media, setMedia] = useState(report?.media || []);
-    const [checklists, setChecklists] = useState(report?.checklists || []);
+    const [checklists, setChecklists] = useState<ChecklistGroup[]>(report?.checklists || []);
     const [subReportIds, setSubReportIds] = useState<string[]>(report?.subReportIds || []);
     const [occurrences, setOccurrences] = useState(report?.occurrences || []);
     const [signatureBlob, setSignatureBlob] = useState(currentSignature?.blob || '');
@@ -112,16 +112,7 @@ export default function ReportEditor() {
         navigate('/reports');
     };
 
-    const handleScanComplete = (serial: string) => {
-        const updatedEq = [...report.equipment, { serialNumber: serial, scanned: true, type: 'Identified Asset' }];
-        updateReport(report.id, { equipment: updatedEq });
-        setShowScanner(false);
-    };
 
-    const handleAddEquipmentDropdown = (type: string, serial: string) => {
-        const updatedEq = [...report.equipment, { serialNumber: serial, scanned: false, type }];
-        updateReport(report.id, { equipment: updatedEq });
-    };
 
     const handleActivityLogChange = (logs: any[]) => {
         if (!canEditFields) return;
@@ -522,8 +513,6 @@ export default function ReportEditor() {
                     userRole={userRole as any} // Ignoring type error as it wants Engineer but gets Tech/Supervisor
                 />
             </div>
-
-            {showScanner && <OCRScanner onCancel={() => setShowScanner(false)} onScanComplete={handleScanComplete} />}
         </div>
     );
 }
