@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapPin, Clock, CheckCircle, AlertTriangle, Wifi, WifiOff, Coffee, LogIn, LogOut, ChevronDown, X, Edit2 } from 'lucide-react';
+import { MapPin, Clock, CheckCircle, AlertTriangle, Wifi, WifiOff, Coffee, LogIn, LogOut, ChevronDown, X, Edit2, Zap } from 'lucide-react';
 import { useStore, ClockPunch } from '../store/useStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -11,9 +11,39 @@ interface GpsState {
     lng: number | null;
     accuracy: number | null;
     status: 'acquiring' | 'locked' | 'poor' | 'denied';
+    // GPS satellite clock fields
+    gpsTimestampMs: number | null;    // position.timestamp from GPS API (ms since epoch, UTC)
+    gpsReceivedAt: number | null;     // performance.now() when we received that GPS fix
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the best available UTC timestamp as an ISO string.
+ * If a GPS fix is available, we interpolate forward from the last GPS
+ * satellite timestamp using a monotonic clock (performance.now) so we never
+ * depend on the device's wall-clock or local timezone.
+ */
+function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'device' } {
+    if (gps.gpsTimestampMs !== null && gps.gpsReceivedAt !== null) {
+        const elapsedMs = performance.now() - gps.gpsReceivedAt;
+        const adjustedMs = gps.gpsTimestampMs + elapsedMs;
+        return { iso: new Date(adjustedMs).toISOString(), source: 'gps' };
+    }
+    return { iso: new Date().toISOString(), source: 'device' };
+}
+
+/**
+ * Returns a live Date object driven by GPS satellite time when available,
+ * otherwise falls back to device clock.
+ */
+function getBestDate(gps: GpsState): Date {
+    if (gps.gpsTimestampMs !== null && gps.gpsReceivedAt !== null) {
+        const elapsedMs = performance.now() - gps.gpsReceivedAt;
+        return new Date(gps.gpsTimestampMs + elapsedMs);
+    }
+    return new Date();
+}
 
 const formatShort = (isoString: string) => {
     const d = new Date(isoString);
@@ -107,18 +137,14 @@ function ManualAdjustModal({
 export default function ClockIn() {
     const { userId, projects, timesheets, clockPunch } = useStore();
 
-    // Personnel ID — tied to current userId for now
     const personnelId = userId;
 
-    // Live clock
-    const [now, setNow] = useState(new Date());
-    useEffect(() => {
-        const id = setInterval(() => setNow(new Date()), 1000);
-        return () => clearInterval(id);
-    }, []);
-
-    // GPS
-    const [gps, setGps] = useState<GpsState>({ lat: null, lng: null, accuracy: null, status: 'acquiring' });
+    // ── GPS state (includes satellite timestamp) ──────────────────────────────
+    const [gps, setGps] = useState<GpsState>({
+        lat: null, lng: null, accuracy: null,
+        status: 'acquiring',
+        gpsTimestampMs: null, gpsReceivedAt: null,
+    });
     const watchRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -133,6 +159,9 @@ export default function ClockIn() {
                     lng: pos.coords.longitude,
                     accuracy: pos.coords.accuracy,
                     status: pos.coords.accuracy <= 50 ? 'locked' : 'poor',
+                    // pos.timestamp is UTC ms from satellite atomic clock
+                    gpsTimestampMs: pos.timestamp,
+                    gpsReceivedAt: performance.now(),
                 });
             },
             () => setGps(g => ({ ...g, status: 'denied' })),
@@ -143,12 +172,19 @@ export default function ClockIn() {
         };
     }, []);
 
-    // Today's timesheet
-    const today = now.toISOString().split('T')[0];
+    // ── Live clock — driven by GPS time when available ────────────────────────
+    const [displayTime, setDisplayTime] = useState<Date>(new Date());
+    useEffect(() => {
+        const id = setInterval(() => setDisplayTime(getBestDate(gps)), 500);
+        return () => clearInterval(id);
+    }, [gps]);
+
+    // ── Today's timesheet ─────────────────────────────────────────────────────
+    const today = displayTime.toISOString().split('T')[0];
     const todayEntry = timesheets.find(t => t.personnelId === personnelId && t.date === today);
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
 
-    // Derive step
+    // ── Derive punch step ─────────────────────────────────────────────────────
     const deriveStep = useCallback((): PunchStep => {
         const hasIn = punches.some(p => p.type === 'clockIn');
         const hasLunchOut = punches.some(p => p.type === 'lunchOut');
@@ -162,14 +198,14 @@ export default function ClockIn() {
 
     const step = deriveStep();
 
-    // Project selector
+    // ── Project selector ──────────────────────────────────────────────────────
     const [selectedProject, setSelectedProject] = useState(todayEntry?.projectId ?? '');
     const activeProjects = projects.filter(p => p.status === 'Active');
 
-    // Manual adjust modal
+    // ── Manual adjust modal ───────────────────────────────────────────────────
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
 
-    // ─── Punch action ─────────────────────────────────────────────────────────
+    // ── Punch action ──────────────────────────────────────────────────────────
 
     const doPunch = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
         const accuracy = gps.accuracy ?? 9999;
@@ -177,14 +213,19 @@ export default function ClockIn() {
         const lng = gps.lng ?? 0;
 
         let timestamp: string;
+        let timeSource: ClockPunch['timeSource'];
+
         if (overrideTime) {
-            // Build ISO string from today + HH:mm
+            // Manual entry — build ISO from today's date + HH:mm (local interpretation)
             const [h, m] = overrideTime.split(':');
-            const d = new Date();
+            const d = getBestDate(gps);
             d.setHours(parseInt(h), parseInt(m), 0, 0);
             timestamp = d.toISOString();
+            timeSource = 'device'; // manual entries treated as device-sourced
         } else {
-            timestamp = new Date().toISOString();
+            const best = getBestTimestampISO(gps);
+            timestamp = best.iso;
+            timeSource = best.source;
         }
 
         const punch: ClockPunch = {
@@ -193,6 +234,7 @@ export default function ClockIn() {
             lng,
             accuracy,
             type,
+            timeSource,
             ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
         };
 
@@ -200,22 +242,19 @@ export default function ClockIn() {
     };
 
     const handleSkipLunch = () => {
-        // Mark lunchSkipped directly — no punch recorded
-        const punch: ClockPunch = {
-            timestamp: new Date().toISOString(),
+        const best = getBestTimestampISO(gps);
+        const base: ClockPunch = {
+            timestamp: best.iso,
             lat: gps.lat ?? 0,
             lng: gps.lng ?? 0,
             accuracy: gps.accuracy ?? 9999,
             type: 'lunchOut',
+            timeSource: best.source,
             manualAdjustment: true,
             adjustmentNote: 'Lunch skipped – no break taken',
         };
-        // Use a synthetic lunchIn punch immediately after
-        const punchIn: ClockPunch = {
-            ...punch,
-            type: 'lunchIn',
-        };
-        clockPunch(personnelId, punch, selectedProject || undefined, true);
+        const punchIn: ClockPunch = { ...base, type: 'lunchIn' };
+        clockPunch(personnelId, base, selectedProject || undefined, true);
         setTimeout(() => clockPunch(personnelId, punchIn, selectedProject || undefined, true), 100);
     };
 
@@ -225,7 +264,13 @@ export default function ClockIn() {
         setManualModal(null);
     };
 
-    // ─── GPS status badge ─────────────────────────────────────────────────────
+    // ── Time source indicator ─────────────────────────────────────────────────
+
+    const timeSourceLabel = gps.gpsTimestampMs !== null
+        ? { icon: <Zap size={11} className="text-yellow-400" />, text: 'GPS Time', color: 'text-yellow-300' }
+        : { icon: <Clock size={11} className="text-gray-400" />, text: 'Device Time', color: 'text-gray-400' };
+
+    // ── GPS status badge ──────────────────────────────────────────────────────
 
     const gpsBadge = () => {
         if (gps.status === 'acquiring') return (
@@ -251,7 +296,7 @@ export default function ClockIn() {
         );
     };
 
-    // ─── Punch timeline ───────────────────────────────────────────────────────
+    // ── Punch timeline ────────────────────────────────────────────────────────
 
     const renderTimeline = () => {
         if (punches.length === 0) return null;
@@ -269,7 +314,14 @@ export default function ClockIn() {
                             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 ml-2">
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-sm font-bold text-gray-800">{punchLabel[p.type]}</span>
-                                    <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp)}</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp)}</span>
+                                        {p.timeSource === 'gps' && (
+                                            <span className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full font-bold border border-yellow-200">
+                                                <Zap size={8} /> GPS
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 {p.lat !== 0 && (
                                     <a
@@ -298,11 +350,13 @@ export default function ClockIn() {
         );
     };
 
-    // ─── Daily summary ────────────────────────────────────────────────────────
+    // ── Daily summary ─────────────────────────────────────────────────────────
 
     const renderSummary = () => {
         if (step !== 'clocked-out' || !todayEntry) return null;
         const proj = activeProjects.find(p => p.id === todayEntry.projectId);
+        const gpsTimedPunches = (todayEntry.punches ?? []).filter(p => p.timeSource === 'gps').length;
+        const totalPunches = (todayEntry.punches ?? []).length;
         return (
             <div className="w-full max-w-md bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl p-6 shadow-lg text-white">
                 <div className="flex items-center gap-2 mb-4">
@@ -323,9 +377,11 @@ export default function ClockIn() {
                         <p className="font-bold text-2xl">{todayEntry.hours.toFixed(2)}</p>
                     </div>
                     <div>
-                        <p className="text-teal-200 text-xs uppercase tracking-wide mb-0.5">GPS</p>
+                        <p className="text-teal-200 text-xs uppercase tracking-wide mb-0.5">Time Source</p>
                         <p className="font-bold text-sm flex items-center gap-1">
-                            {todayEntry.gpsVerified ? <><CheckCircle size={14} /> Verified</> : <><AlertTriangle size={14} /> Check Required</>}
+                            {gpsTimedPunches === totalPunches
+                                ? <><Zap size={14} className="text-yellow-300" /> GPS Synced</>
+                                : <><AlertTriangle size={14} /> {gpsTimedPunches}/{totalPunches} GPS</>}
                         </p>
                     </div>
                 </div>
@@ -342,7 +398,7 @@ export default function ClockIn() {
         );
     };
 
-    // ─── Action buttons ───────────────────────────────────────────────────────
+    // ── Action buttons ────────────────────────────────────────────────────────
 
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';
 
@@ -351,7 +407,6 @@ export default function ClockIn() {
 
         if (step === 'idle') return (
             <div className="w-full max-w-md space-y-4">
-                {/* Project selector */}
                 <div className="relative">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Select Project</label>
                     <div className="relative">
@@ -447,7 +502,7 @@ export default function ClockIn() {
         return null;
     };
 
-    // ─── Render ───────────────────────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────────────────────
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
@@ -457,14 +512,23 @@ export default function ClockIn() {
                     <Clock size={18} className="text-teal-400" />
                     <span className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Field Time Tracker</span>
                 </div>
-                {/* Live digital clock */}
+
+                {/* Live digital clock — GPS-synced when possible */}
                 <div className="font-mono text-5xl md:text-7xl font-bold tracking-tight tabular-nums text-white drop-shadow-lg">
-                    {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                    {displayTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                 </div>
                 <p className="mt-2 text-gray-400 text-sm font-medium">
-                    {now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    {displayTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
-                <div className="mt-4">{gpsBadge()}</div>
+
+                {/* Time source + GPS status */}
+                <div className="mt-3 flex flex-col items-center gap-2">
+                    <div className={`flex items-center gap-1.5 text-xs font-semibold ${timeSourceLabel.color}`}>
+                        {timeSourceLabel.icon}
+                        {timeSourceLabel.text}
+                    </div>
+                    <div>{gpsBadge()}</div>
+                </div>
             </div>
 
             {/* Current status chip */}

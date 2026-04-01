@@ -187,11 +187,12 @@ export interface ScheduledEvent {
 }
 
 export interface ClockPunch {
-    timestamp: string;   // ISO string
+    timestamp: string;   // ISO string — always UTC
     lat: number;
     lng: number;
     accuracy: number;    // GPS accuracy in meters
     type: 'clockIn' | 'lunchOut' | 'lunchIn' | 'clockOut';
+    timeSource: 'gps' | 'device'; // gps = satellite atomic clock, device = system clock
     manualAdjustment?: boolean; // true if time was entered retroactively
     adjustmentNote?: string;
 }
