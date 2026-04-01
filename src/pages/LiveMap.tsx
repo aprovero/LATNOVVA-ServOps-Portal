@@ -91,7 +91,7 @@ export default function LiveMap() {
     return (
         <div className="h-[calc(100vh-64px)] w-full relative flex flex-col bg-surface-alt z-0">
             {/* Overlay Dashboard Card */}
-            <div className="absolute top-6 left-6 z-[400] bg-white/95 backdrop-blur-md px-6 py-5 rounded-3xl shadow-xl border border-gray-100 max-w-xs pointer-events-auto select-none">
+            <div className="absolute bottom-6 left-6 z-[400] bg-white/95 backdrop-blur-md px-6 py-5 rounded-3xl shadow-xl border border-gray-100 max-w-xs pointer-events-auto select-none">
                 <div className="flex items-center gap-4 mb-4">
                     <div className="bg-brand-teal/10 p-3 rounded-2xl">
                         <Radio className="text-brand-teal animate-pulse" size={22} />

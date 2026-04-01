@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, ReportState, ChecklistGroup } from '../store/useStore';
-import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin } from 'lucide-react';
+import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench } from 'lucide-react';
 import gsap from 'gsap';
 
 import WeatherWidget from '../components/weather/WeatherWidget';
@@ -236,24 +236,6 @@ export default function ReportEditor() {
             <div className="editor-fade card-container">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Field Notes & Observations</h3>
-                        {canEditFields && (
-                            <button
-                                onClick={() => {
-                                    if (navigator.geolocation) {
-                                        navigator.geolocation.getCurrentPosition((position) => {
-                                            setLocationState({ lat: position.coords.latitude, lng: position.coords.longitude });
-                                        }, (error) => {
-                                            alert("Unable to retrieve location: " + error.message);
-                                        });
-                                    } else {
-                                        alert("Geolocation is not supported by this browser.");
-                                    }
-                                }}
-                                className="text-xs font-bold flex items-center gap-1.5 text-brand-teal hover:underline"
-                            >
-                                <MapPin size={14} /> {locationState ? 'Update Location' : 'Capture Location'}
-                            </button>
-                        )}
                     </div>
                     <textarea
                         value={notes}
