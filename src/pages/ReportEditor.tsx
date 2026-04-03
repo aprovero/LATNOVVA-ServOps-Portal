@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, ReportState, ChecklistGroup } from '../store/useStore';
-import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench } from 'lucide-react';
+import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin } from 'lucide-react';
 import gsap from 'gsap';
 
 import WeatherWidget from '../components/weather/WeatherWidget';
