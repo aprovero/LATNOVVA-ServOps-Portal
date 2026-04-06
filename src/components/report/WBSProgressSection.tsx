@@ -19,9 +19,10 @@ interface WBSProgressSectionProps {
     readOnly: boolean;
     activityLogs: ActivityLog[];
     onLogChange: (logs: ActivityLog[]) => void;
+    discipline?: string;
 }
 
-export default function WBSProgressSection({ project, readOnly, activityLogs, onLogChange }: WBSProgressSectionProps) {
+export default function WBSProgressSection({ project, readOnly, activityLogs, onLogChange, discipline }: WBSProgressSectionProps) {
     const [isCustom, setIsCustom] = useState(false);
     const [selectedScope, setSelectedScope] = useState('');
     const [selectedActivity, setSelectedActivity] = useState('');
@@ -30,8 +31,10 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
     const [notes, setNotes] = useState('');
     const [editIndex, setEditIndex] = useState<number | null>(null);
 
-    const availableScopes = project.scopes || [];
-    const availableActivities = availableScopes.find(s => s.id === selectedScope)?.activities.filter(a => a.progress < 100) || [];
+    const availableScopes = (project.scopes || []).filter(s => 
+        !discipline || s.discipline === discipline || s.discipline === 'Other'
+    );
+    const availableActivities = availableScopes.find(s => s.id === selectedScope)?.activities.filter(a => (a.progress || 0) < 100) || [];
 
     const handleAddLog = () => {
         let priorProgress = 0;

@@ -116,6 +116,7 @@ export interface Report {
     createdBy?: string; // User ID
     updatedAt?: string; // ISO string
     updatedBy?: string; // User ID
+    discipline?: string; // Multi-team support
 }
 
 export interface Client {
@@ -252,6 +253,7 @@ export interface ProjectActivity {
 export interface ProjectScope {
     id: string;
     name: string;
+    discipline?: 'Mechanical' | 'Commissioning' | 'Civil' | 'Electrical' | 'Other';
     activities: ProjectActivity[];
     completedDate?: string;
 }
@@ -264,6 +266,8 @@ export interface Project {
     status: 'Active' | 'Completed' | 'On Hold';
     progress: number;
     scopes: ProjectScope[];
+    hasNoDefinedScope?: boolean; // Labor only
+    disciplines?: string[];       // Active disciplines
     assignedPersonnel?: string[];
     location?: string;
     locationValidated?: boolean;

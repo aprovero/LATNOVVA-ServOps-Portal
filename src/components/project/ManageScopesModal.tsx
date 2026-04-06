@@ -28,6 +28,10 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
     const [editActivityTitle, setEditActivityTitle] = useState('');
     const [editActivitySteps, setEditActivitySteps] = useState<string[]>([]);
     const [newStepText, setNewStepText] = useState('');
+    const [newScopeDiscipline, setNewScopeDiscipline] = useState<'Mechanical' | 'Commissioning' | 'Civil' | 'Electrical' | 'Other'>('Other');
+    const [editScopeDiscipline, setEditScopeDiscipline] = useState<'Mechanical' | 'Commissioning' | 'Civil' | 'Electrical' | 'Other' | undefined>();
+
+    const DISCIPLINE_OPTIONS = ['Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
 
     const handleAddScope = () => {
         let finalScopeName = '';
@@ -53,10 +57,12 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
         const newScope: ProjectScope = {
             id: `SCOPE-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
             name: finalScopeName,
+            discipline: newScopeDiscipline,
             activities: initialActivities
         };
         addScopeToProject(currentProject.id, newScope);
         setNewScopeName('');
+        setNewScopeDiscipline('Other');
         setSelectedTemplateId('custom');
     };
 
@@ -81,7 +87,10 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
 
     const handleUpdateScopeName = (scopeId: string) => {
         if (!editScopeName.trim()) return;
-        updateProjectScope(currentProject.id, scopeId, { name: editScopeName });
+        updateProjectScope(currentProject.id, scopeId, { 
+            name: editScopeName,
+            discipline: editScopeDiscipline
+        });
         setEditingScopeId(null);
     };
 
@@ -137,19 +146,35 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                         </div>
                         
                         {selectedTemplateId === 'custom' ? (
-                            <div className="flex items-end gap-2">
-                                <div className="flex-1 space-y-2">
-                                    <Label>New Scope Name</Label>
-                                    <Input 
-                                        placeholder="e.g. Civil Works, Commissioning..." 
-                                        value={newScopeName}
-                                        onChange={e => setNewScopeName(e.target.value)}
-                                    />
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>New Scope Name</Label>
+                                        <Input 
+                                            placeholder="e.g. Civil Works, Commissioning..." 
+                                            value={newScopeName}
+                                            onChange={e => setNewScopeName(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Discipline</Label>
+                                        <select
+                                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none transition-all"
+                                            value={newScopeDiscipline}
+                                            onChange={(e) => setNewScopeDiscipline(e.target.value as any)}
+                                        >
+                                            {DISCIPLINE_OPTIONS.map(d => (
+                                                <option key={d} value={d}>{d}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
-                                <Button onClick={handleAddScope} className="shrink-0 bg-brand-teal hover:bg-brand-teal/90 text-white" disabled={!newScopeName.trim()}>
-                                    <Plus size={16} className="mr-2"/> Add Scope
-                                </Button>
-                            </div>
+                                <div className="flex justify-end mt-2">
+                                    <Button onClick={handleAddScope} className="shrink-0 bg-brand-teal hover:bg-brand-teal/90 text-white" disabled={!newScopeName.trim()}>
+                                        <Plus size={16} className="mr-2"/> Add Scope
+                                    </Button>
+                                </div>
+                            </>
                         ) : (
                             <div className="space-y-4">
                                 <div className="bg-white p-3 rounded-lg border border-gray-100">
@@ -207,6 +232,15 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                             className="h-8 py-0 focus-visible:ring-brand-teal"
                                                             autoFocus
                                                         />
+                                                        <select
+                                                            className="h-8 bg-white border border-gray-200 rounded-lg px-2 text-[10px] font-bold focus:ring-1 focus:ring-brand-teal outline-none border-gray-200"
+                                                            value={editScopeDiscipline}
+                                                            onChange={(e) => setEditScopeDiscipline(e.target.value as any)}
+                                                        >
+                                                            {DISCIPLINE_OPTIONS.map(d => (
+                                                                <option key={d} value={d}>{d}</option>
+                                                            ))}
+                                                        </select>
                                                         <Button size="icon" variant="ghost" className="h-8 w-8 text-status-success" onClick={() => handleUpdateScopeName(scope.id)}>
                                                             <Check size={16} />
                                                         </Button>
@@ -215,7 +249,16 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <h3 className="font-bold text-accent-greyDark">{scope.name}</h3>
+                                                    <div className="flex flex-col">
+                                                        <h3 className="font-bold text-accent-greyDark flex items-center gap-2">
+                                                            {scope.name}
+                                                            {scope.discipline && (
+                                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-teal/10 text-brand-teal border border-brand-teal/20 uppercase tracking-tighter">
+                                                                    {scope.discipline}
+                                                                </span>
+                                                            )}
+                                                        </h3>
+                                                    </div>
                                                 )}
                                                 {isCompleted && (
                                                     <span className="text-xs font-bold text-status-success bg-white/60 px-2 py-0.5 rounded-md border border-status-success/20">
@@ -232,6 +275,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                         onClick={() => {
                                                             setEditingScopeId(scope.id);
                                                             setEditScopeName(scope.name);
+                                                            setEditScopeDiscipline(scope.discipline || 'Other');
                                                         }}
                                                     >
                                                         <Pencil size={14} />

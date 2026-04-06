@@ -34,6 +34,8 @@ export default function ProjectDetail() {
     const [editOandM, setEditOandM] = useState('');
     const [editPointOfContact, setEditPointOfContact] = useState('');
     const [editNotes, setEditNotes] = useState('');
+    const [editHasNoDefinedScope, setEditHasNoDefinedScope] = useState(false);
+    const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
     const [isPreviewMapOpen, setIsPreviewMapOpen] = useState(false);
     const [locationError, setLocationError] = useState('');
 
@@ -85,6 +87,8 @@ export default function ProjectDetail() {
         setEditOandM(project.oAndM || '');
         setEditPointOfContact(project.pointOfContact || '');
         setEditNotes(project.notes || '');
+        setEditHasNoDefinedScope(!!project.hasNoDefinedScope);
+        setEditDisciplines(project.disciplines || []);
         setIsEditing(true);
     };
 
@@ -103,6 +107,8 @@ export default function ProjectDetail() {
             oAndM: editOandM || undefined,
             pointOfContact: editPointOfContact || undefined,
             notes: editNotes || undefined,
+            hasNoDefinedScope: editHasNoDefinedScope,
+            disciplines: editDisciplines,
         });
         setIsEditing(false);
     };
@@ -144,6 +150,8 @@ export default function ProjectDetail() {
         ? 'bg-amber-100 text-amber-700 border-amber-200'
         : 'bg-gray-100 text-gray-600 border-gray-200';
 
+    const DISCIPLINE_OPTIONS = ['Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
+
     return (
         <div className="space-y-6 pb-16">
             {/* Back */}
@@ -172,7 +180,12 @@ export default function ProjectDetail() {
                                         {project.status}
                                     </span>
                                 </div>
-                                <h1 className="text-2xl md:text-3xl font-bold text-accent-greyDark mb-1">{project.name}</h1>
+                                <h1 className="text-2xl md:text-3xl font-bold text-accent-greyDark mb-1 flex items-center gap-2">
+                                    {project.name}
+                                    {project.hasNoDefinedScope && (
+                                        <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Labor Only</span>
+                                    )}
+                                </h1>
                                 {project.codeName && (
                                     <p className="text-sm font-mono font-bold text-brand-teal mb-3">{project.codeName}</p>
                                 )}
@@ -308,12 +321,35 @@ export default function ProjectDetail() {
                                     <Input id="dp-oandm" value={editOandM} onChange={e => setEditOandM(e.target.value)} placeholder="O&M Provider" />
                                 </div>
                                 <div className="sm:col-span-2 grid gap-1.5">
-                                    <Label htmlFor="dp-poc">Point of Contact</Label>
-                                    <Input id="dp-poc" value={editPointOfContact} onChange={e => setEditPointOfContact(e.target.value)} placeholder="Name, Phone, Email..." />
-                                </div>
-                                <div className="sm:col-span-2 grid gap-1.5">
                                     <Label htmlFor="dp-notes">Notes</Label>
                                     <Input id="dp-notes" value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="General project notes" />
+                                </div>
+                                <div className="sm:col-span-2 flex items-center gap-2 py-2 px-1">
+                                    <input 
+                                        type="checkbox" 
+                                        id="dp-labor-only" 
+                                        checked={editHasNoDefinedScope} 
+                                        onChange={e => setEditHasNoDefinedScope(e.target.checked)}
+                                        className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
+                                    />
+                                    <Label htmlFor="dp-labor-only" className="cursor-pointer font-bold">No Defined Scope (Labor Only / IE Support)</Label>
+                                </div>
+                                <div className="sm:col-span-2 grid gap-1.5">
+                                    <Label>Active Disciplines / Streams</Label>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {DISCIPLINE_OPTIONS.map(d => (
+                                            <button
+                                                key={d}
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditDisciplines(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+                                                }}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${editDisciplines.includes(d) ? 'bg-brand-teal text-white border-brand-teal shadow-md' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-200'}`}
+                                            >
+                                                {d}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -439,7 +475,7 @@ export default function ProjectDetail() {
                         <Network size={18} className="text-brand-teal" /> Scopes & WBS
                         <span className="text-xs bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-full">{project.scopes?.length || 0}</span>
                     </h2>
-                    {canEdit && (
+                    {canEdit && !project.hasNoDefinedScope && (
                         <Button 
                             size="sm" 
                             className="bg-brand-teal/10 hover:bg-brand-teal text-brand-teal hover:text-white transition-colors text-xs font-bold gap-1.5"
@@ -450,7 +486,13 @@ export default function ProjectDetail() {
                     )}
                 </div>
 
-                {!project.scopes || project.scopes.length === 0 ? (
+                {project.hasNoDefinedScope ? (
+                    <div className="py-8 text-center bg-amber-50/30 rounded-3xl border border-dashed border-amber-200">
+                        <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm font-bold text-amber-700">Labor-Only Project</p>
+                        <p className="text-xs text-amber-600/70 mt-1">Metrics and WBS tracking are disabled for this discipline.</p>
+                    </div>
+                ) : !project.scopes || project.scopes.length === 0 ? (
                     <div className="py-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                         <p className="text-sm text-gray-500 mb-2">No work breakdown structure defined.</p>
                         {canEdit && (

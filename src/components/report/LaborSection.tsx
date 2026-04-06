@@ -25,6 +25,7 @@ interface LaborSectionProps {
     readOnly: boolean;
     currentReportId?: string;
     currentDate?: string;
+    discipline?: string;
 }
 
 const calculateHours = (inTime?: string, outTime?: string) => {
@@ -36,7 +37,7 @@ const calculateHours = (inTime?: string, outTime?: string) => {
     return Number((diff / 60).toFixed(2));
 };
 
-export default function LaborSection({ labor, onChange, readOnly, currentReportId, currentDate }: LaborSectionProps) {
+export default function LaborSection({ labor, onChange, readOnly, currentReportId, currentDate, discipline }: LaborSectionProps) {
     const { personnel, reports, timesheets, addTimesheet, userRole, projects, addPersonnel } = useStore();
     const currentReport = reports.find(r => r.id === currentReportId);
     const project = projects.find(p => p.id === currentReport?.projectId);
@@ -193,6 +194,11 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
                     <Users className="text-brand-teal" size={20} /> Workforce & Labor
+                    {discipline && (
+                        <span className="text-[10px] bg-brand-teal text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                            {discipline}
+                        </span>
+                    )}
                 </h2>
                 <div className="flex flex-wrap gap-2">
                     {!readOnly && labor.length > 0 && ['Manager', 'Supervisor', 'HR'].includes(userRole) && (

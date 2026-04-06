@@ -6,6 +6,9 @@ import gsap from 'gsap';
 
 export default function DataAnalysis() {
     const { reports, projects, personnel, userRole } = useStore();
+    const [activeDiscipline, setActiveDiscipline] = useState<string>('All');
+
+    const DISCIPLINE_OPTIONS = ['All', 'Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
 
     if (userRole !== 'Manager') {
         return (
@@ -27,15 +30,18 @@ export default function DataAnalysis() {
 
     // 1. Overall Project Health metrics
     const overallProgress = useMemo(() => {
-        if (projects.length === 0) return 0;
-        const total = projects.reduce((acc, p) => acc + p.progress, 0);
-        return Math.round(total / projects.length);
-    }, [projects]);
+        const relevantProjects = projects.filter(p => !p.hasNoDefinedScope && (activeDiscipline === 'All' || p.disciplines?.includes(activeDiscipline)));
+        if (relevantProjects.length === 0) return 0;
+        const total = relevantProjects.reduce((acc, p) => acc + p.progress, 0);
+        return Math.round(total / relevantProjects.length);
+    }, [projects, activeDiscipline]);
 
     // 2. Labor Hours trend
     const laborData = useMemo(() => {
         const grouping: Record<string, number> = {};
-        reports.forEach(r => {
+        const relevantReports = reports.filter(r => activeDiscipline === 'All' || r.discipline === activeDiscipline);
+        
+        relevantReports.forEach(r => {
             const date = r.date;
             const hours = r.labor?.reduce((acc, l) => acc + (l.hours * l.qty), 0) || 0;
             if (hours > 0) {
@@ -46,8 +52,8 @@ export default function DataAnalysis() {
         return Object.entries(grouping).map(([date, hours]) => ({
             name: new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
             hours
-        })).sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime()).slice(-7);
-    }, [reports]);
+        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-7);
+    }, [reports, activeDiscipline]);
 
     // 3. Resource Utilization
     const utilizationData = useMemo(() => {
@@ -75,7 +81,10 @@ export default function DataAnalysis() {
 
     // 5. Project Velocity (S-Curve)
     const velocityData = useMemo(() => {
-        const sortedReports = [...reports].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const relevantReports = reports.filter(r => activeDiscipline === 'All' || r.discipline === activeDiscipline);
+        const relevantProjectsCount = projects.filter(p => !p.hasNoDefinedScope && (activeDiscipline === 'All' || p.disciplines?.includes(activeDiscipline))).length || 1;
+        
+        const sortedReports = [...relevantReports].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         const dates = Array.from(new Set(sortedReports.map(r => r.date))).sort();
         
         let cumulativeProgress = 0;
@@ -84,7 +93,7 @@ export default function DataAnalysis() {
             const dailyDelta = dayReports.reduce((acc, r) => {
                 const logDelta = r.activityLogs?.reduce((sum, log) => sum + (log.progressReported || 0), 0) || 0;
                 return acc + logDelta;
-            }, 0) / (projects.length || 1);
+            }, 0) / relevantProjectsCount;
             
             cumulativeProgress = Math.min(100, cumulativeProgress + dailyDelta);
             return {
@@ -100,7 +109,7 @@ export default function DataAnalysis() {
              ];
         }
         return result;
-    }, [reports, projects, overallProgress]);
+    }, [reports, projects, overallProgress, activeDiscipline]);
 
     const activeProjects = projects.filter(p => p.status === 'Active').length;
     const totalReports = reports.length;
@@ -108,13 +117,25 @@ export default function DataAnalysis() {
 
     return (
         <div className="space-y-6 pb-20 md:pb-6">
-            <div className="dash-stagger flex items-center justify-between mb-8">
+            <div className="dash-stagger flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <Activity className="text-brand-teal" size={28} />
                         Intelligence Feed
                     </h1>
                     <p className="text-gray-500 mt-1">Operational analytics and portfolio trends.</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                    {DISCIPLINE_OPTIONS.map(d => (
+                        <button
+                            key={d}
+                            onClick={() => setActiveDiscipline(d)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${activeDiscipline === d ? 'bg-brand-teal text-white border-brand-teal shadow-md' : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200'}`}
+                        >
+                            {d}
+                        </button>
+                    ))}
                 </div>
             </div>
 

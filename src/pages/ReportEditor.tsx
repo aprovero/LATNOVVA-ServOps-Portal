@@ -64,6 +64,7 @@ export default function ReportEditor() {
     const [signatures, setSignatures] = useState(report?.signatures || []);
     const [usedTools, setUsedTools] = useState<string[]>(report?.usedTools || []);
     const [activityLogs, setActivityLogs] = useState(report?.activityLogs || []);
+    const [discipline, setDiscipline] = useState(report?.discipline || (project?.disciplines?.length === 1 ? project.disciplines[0] : ''));
 
     // Custom Sections State
     const [sections, setSections] = useState<{ id: string, title: string, content: string }[]>([]);
@@ -82,6 +83,7 @@ export default function ReportEditor() {
             setSignatures(report.signatures || []);
             setUsedTools(report.usedTools || []);
             setActivityLogs(report.activityLogs || []);
+            setDiscipline(report.discipline || (project?.disciplines?.length === 1 ? project.disciplines[0] : ''));
             setSignatureBlob(report.signatures?.find(s => s.role === userRole)?.blob || '');
         }
     }, [report]);
@@ -116,6 +118,7 @@ export default function ReportEditor() {
             signatures,
             usedTools,
             activityLogs,
+            discipline,
             externalAttachments: (report as any).externalAttachments || []
         });
 
@@ -201,6 +204,22 @@ export default function ReportEditor() {
                                 {locationState.lat.toFixed(6)}, {locationState.lng.toFixed(6)}
                             </div>
                         )}
+                        {project?.disciplines && project.disciplines.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Work Stream:</span>
+                                <select 
+                                    className="bg-brand-teal/5 border border-brand-teal/20 text-xs font-bold text-brand-teal rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-brand-teal h-7"
+                                    value={discipline}
+                                    onChange={(e) => setDiscipline(e.target.value)}
+                                    disabled={!canEditFields}
+                                >
+                                    <option value="">Select Stream...</option>
+                                    {project.disciplines.map(d => (
+                                        <option key={d} value={d}>{d}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -218,7 +237,14 @@ export default function ReportEditor() {
             </div>
 
             <div className="editor-fade">
-                <LaborSection labor={labor} onChange={setLabor} readOnly={!canEditFields} currentReportId={report.id} currentDate={report.date} />
+                <LaborSection 
+                    labor={labor} 
+                    onChange={setLabor} 
+                    readOnly={!canEditFields} 
+                    currentReportId={report.id} 
+                    currentDate={report.date} 
+                    discipline={discipline}
+                />
             </div>
 
             {project ? (
@@ -228,6 +254,7 @@ export default function ReportEditor() {
                         readOnly={!canEditFields} 
                         activityLogs={activityLogs} 
                         onLogChange={handleActivityLogChange}
+                        discipline={discipline}
                     />
                 </div>
             ) : null}
