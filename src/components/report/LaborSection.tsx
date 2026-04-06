@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { useStore, Personnel } from '../../store/useStore';
+import { useStore } from '../../store/useStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { UserPlus, UserCheck, X, Signature, Check, AlertTriangle, Plus, Users, Send, Trash2 } from 'lucide-react';
+import { UserPlus, UserCheck, Signature, Check, AlertTriangle, Plus, Users, Send, Trash2 } from 'lucide-react';
 
 interface LaborEntry {
     id: string;
