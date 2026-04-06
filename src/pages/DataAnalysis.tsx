@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { Activity, TrendingUp, Users, Clock, AlertTriangle, FolderGit2, PieChart as PieChartIcon, LineChart as LineChartIcon } from 'lucide-react';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import gsap from 'gsap';
 
@@ -50,6 +50,7 @@ export default function DataAnalysis() {
         });
 
         return Object.entries(grouping).map(([date, hours]) => ({
+            date,
             name: new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
             hours
         })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-7);
