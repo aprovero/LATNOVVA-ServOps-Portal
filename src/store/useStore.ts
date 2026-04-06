@@ -292,6 +292,7 @@ interface AppState {
     events: ScheduledEvent[];
     timesheets: TimesheetEntry[];
     initDb: () => void;
+    resetDb: () => void;
     setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer') => void;
     addClient: (client: Client) => void;
     updateClient: (id: string, updates: Partial<Client>) => void;
@@ -426,6 +427,16 @@ export const useStore = create<AppState>()(
                     });
                     return { projects: mergedProjects };
                 });
+            },
+            resetDb: () => {
+                set(() => ({
+                    clients: mockClients,
+                    projects: mockProjects,
+                    reports: mockReports,
+                    personnel: mockPersonnel,
+                    tools: mockTools,
+                    timesheets: mockTimesheets,
+                }));
             },
             setUserRole: (role) => set({ userRole: role }),
             addClient: (client) => set((state) => ({ clients: [...state.clients, client] })),

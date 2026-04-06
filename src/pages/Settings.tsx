@@ -8,7 +8,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
-    const { userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel } = useStore();
+    const { userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -54,6 +54,7 @@ export default function Settings() {
         { id: 'companies', name: 'Companies', description: 'Manage clients and contractors', icon: Building2 },
         { id: 'users', name: 'Users', description: 'Access control and roles', icon: Users },
         { id: 'wbs', name: 'WBS Templates', description: 'Standard activities and steps', icon: ListChecks },
+        { id: 'system', name: 'Sync Data', description: 'Force refresh environment data', icon: Shield },
     ];
 
     const tab = activeTab ? configTabs.find(t => t.id === activeTab) : null;
@@ -204,6 +205,30 @@ export default function Settings() {
                         </div>
                     ) : activeTab === 'wbs' ? (
                          <WBSTemplateManager />
+                    ) : activeTab === 'system' ? (
+                        <div className="max-w-md mx-auto text-center space-y-6 py-12">
+                            <div className="w-20 h-20 bg-brand-teal/10 rounded-full flex items-center justify-center mx-auto text-brand-teal">
+                                <Shield size={40} />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-accent-greyDark">Sync Environment</h2>
+                                <p className="text-gray-500 mt-2">This will force an update of all local projects, clients, and reports with the latest system definitions. Your browser local storage will be refreshed.</p>
+                            </div>
+                            <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl text-orange-800 text-sm">
+                                <strong>Warning:</strong> This will overwrite any local changes you've made to mock projects or reports.
+                            </div>
+                            <Button 
+                                onClick={() => {
+                                    if (window.confirm('Force environment sync? This will refresh all mock data.')) {
+                                        resetDb();
+                                        window.location.reload();
+                                    }
+                                }}
+                                className="bg-brand-teal hover:bg-brand-teal/90 text-white w-full h-12 text-lg font-bold rounded-xl"
+                            >
+                                Force Sync & Reload
+                            </Button>
+                        </div>
                     ) : (
                         <>
                             <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
