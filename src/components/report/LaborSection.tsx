@@ -79,7 +79,8 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
             position: quickPosition || 'Technician',
             employeeNumber: `TEMP-${Math.floor(Math.random() * 1000)}`,
             status: 'Active',
-            appRole: 'Tech'
+            appRole: 'Tech',
+            certifications: []
         });
         
         // Add to labor list

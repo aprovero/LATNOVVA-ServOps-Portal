@@ -343,7 +343,6 @@ export default function Templates() {
                                             </div>
                                         ))}
                                     </div>
-                                    </div>
                                     <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddScopeTemplate}>
                                         {editingScopeId ? 'Update Template' : 'Save Template'}
                                     </Button>

@@ -99,6 +99,7 @@ export interface Report {
     checklists?: ChecklistGroup[];
     subReportIds?: string[];
     attachments?: { id: string; url: string; name: string }[];
+    externalAttachments?: { id: string; url: string; name: string }[];
     notes: string;
     signatures?: ReportSignature[];
     usedTools?: string[]; // IDs of tools used in this report

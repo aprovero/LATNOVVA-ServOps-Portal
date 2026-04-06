@@ -50,7 +50,7 @@ export default function Timesheets() {
     const [batchAction, setBatchAction] = useState<'Check-in' | 'Check-out'>('Check-in');
     const [batchSignatures, setBatchSignatures] = useState<Record<string, string>>({});
     const [batchProject, setBatchProject] = useState('');
-    const [batchDate, setBatchDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [batchDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [batchTime, setBatchTime] = useState(format(new Date(), 'HH:mm'));
     const [signingPersonnelId, setSigningPersonnelId] = useState<string | null>(null);
 

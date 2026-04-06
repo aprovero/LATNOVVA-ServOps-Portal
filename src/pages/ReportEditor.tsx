@@ -597,6 +597,3 @@ export default function ReportEditor() {
         </div>
     );
 }
-
-import { FilePlus } from 'lucide-react';
-import { Input } from '../components/ui/input';

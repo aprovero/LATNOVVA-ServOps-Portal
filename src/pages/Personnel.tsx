@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
 export default function Personnel() {
-    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole } = useStore();
+    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects } = useStore();
     const location = useLocation();
     
     const [searchTerm, setSearchTerm] = useState(() => {
