@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { CheckSquare, Plus, Trash2, ShieldAlert, ListChecks, Lock, LockOpen, ChevronDown, ChevronUp, Paperclip, FileText, X, Camera } from 'lucide-react';
 import { ChecklistGroup, ReportChecklist, useStore } from '../../store/useStore';
 
@@ -20,7 +20,6 @@ const statusColors: Record<string, string> = {
 export default function Checklists({ checklists, onChange, readOnly }: ChecklistsProps) {
     const { templates } = useStore();
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-    const fileInputRef = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
     // ── Group-level operations ─────────────────────────────────────────────
 

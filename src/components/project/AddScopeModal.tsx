@@ -28,11 +28,13 @@ export function AddScopeModal({ open, onOpenChange, project }: AddScopeModalProp
             const template = scopeTemplates.find(t => t.id === selectedTemplateId);
             if (!template) return;
             newScopeName = template.name;
-            initialActivities = template.activities.map(actTitle => ({
+            initialActivities = template.activities.map(act => ({
                 id: `ACT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-                title: actTitle,
+                title: act.title,
                 status: 'Pending',
-                progress: 0
+                progress: 0,
+                expectedDays: act.expectedDays || 1,
+                steps: act.steps.map(s => ({ name: s, completed: false }))
             }));
         }
 
@@ -97,7 +99,7 @@ export function AddScopeModal({ open, onOpenChange, project }: AddScopeModalProp
                                 {activeTemplate?.activities.map((act, i) => (
                                     <div key={i} className="flex items-start gap-2 text-sm text-gray-600 bg-white px-2 py-1.5 rounded-lg border border-gray-100">
                                         <div className="mt-1 w-1.5 h-1.5 rounded-full bg-brand-teal shrink-0" />
-                                        <span className="leading-tight">{act}</span>
+                                        <span className="leading-tight">{act.title}</span>
                                     </div>
                                 ))}
                             </div>
