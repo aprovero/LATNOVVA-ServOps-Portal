@@ -90,8 +90,8 @@ export default function LiveMap() {
 
     return (
         <div className="h-[calc(100vh-64px)] w-full relative flex flex-col bg-surface-alt z-0">
-            {/* Overlay Dashboard Card */}
-            <div className="absolute bottom-6 left-6 z-[400] bg-white/95 backdrop-blur-md px-6 py-5 rounded-3xl shadow-xl border border-gray-100 max-w-xs pointer-events-auto select-none">
+            {/* Overlay Dashboard Card (Relocated to bottom-left) */}
+            <div className="absolute bottom-6 left-6 z-[400] bg-white/95 backdrop-blur-md px-6 py-5 rounded-3xl shadow-xl border border-gray-100 max-w-xs pointer-events-auto select-none hidden md:block">
                 <div className="flex items-center gap-4 mb-4">
                     <div className="bg-brand-teal/10 p-3 rounded-2xl">
                         <Radio className="text-brand-teal animate-pulse" size={22} />
@@ -182,6 +182,20 @@ export default function LiveMap() {
                                         {proj.codeName || proj.id}
                                     </p>
 
+                                    {/* Progress Bar */}
+                                    <div className="mb-4">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Project Progress</span>
+                                            <span className="text-[10px] font-bold text-brand-teal">{proj.progress}%</span>
+                                        </div>
+                                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                            <div 
+                                                className="h-full bg-brand-teal transition-all duration-700" 
+                                                style={{ width: `${proj.progress}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 mb-3">
                                         <div className="flex items-center gap-2 text-xs font-bold text-gray-700 mb-2">
                                             <Users size={13} className="text-brand-teal" />
@@ -213,5 +227,6 @@ export default function LiveMap() {
                 </MapContainer>
             </div>
         </div>
+
     );
 }

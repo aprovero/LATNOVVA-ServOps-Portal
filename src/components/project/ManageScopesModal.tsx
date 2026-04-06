@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Plus, CheckCircle2, Circle, ChevronDown, ChevronUp, ListChecks } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, ChevronDown, ChevronUp, ListChecks, Trash2, Pencil, X, Check } from 'lucide-react';
 
 interface ManageScopesModalProps {
     open: boolean;
@@ -20,6 +20,14 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
     const [newScopeName, setNewScopeName] = useState('');
     const [newActivityTitles, setNewActivityTitles] = useState<Record<string, string>>({});
     const [expandedScopes, setExpandedScopes] = useState<Record<string, boolean>>({});
+    
+    // Editing states
+    const [editingScopeId, setEditingScopeId] = useState<string | null>(null);
+    const [editScopeName, setEditScopeName] = useState('');
+    const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+    const [editActivityTitle, setEditActivityTitle] = useState('');
+    const [editActivitySteps, setEditActivitySteps] = useState<string[]>([]);
+    const [newStepText, setNewStepText] = useState('');
 
     const handleAddScope = () => {
         let finalScopeName = '';
@@ -32,11 +40,13 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
             const template = scopeTemplates.find(t => t.id === selectedTemplateId);
             if (!template) return;
             finalScopeName = template.name;
-            initialActivities = template.activities.map(actTitle => ({
+            initialActivities = template.activities.map(act => ({
                 id: `ACT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-                title: actTitle,
+                title: act.title,
                 status: 'Pending',
-                progress: 0
+                progress: 0,
+                expectedDays: act.expectedDays,
+                steps: act.steps.map(s => ({ name: s, completed: false }))
             }));
         }
 
@@ -58,13 +68,41 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
             id: `ACT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
             title,
             status: 'Pending',
-            progress: 0
+            progress: 0,
+            steps: []
         };
         
         addActivityToScope(currentProject.id, scopeId, newActivity);
         setNewActivityTitles(prev => ({ ...prev, [scopeId]: '' }));
-        // Ensure it's expanded so user sees the new activity
         setExpandedScopes(prev => ({ ...prev, [scopeId]: true }));
+    };
+
+    const { updateProjectScope, deleteProjectScope, deleteProjectActivity, updateActivityProgress } = useStore();
+
+    const handleUpdateScopeName = (scopeId: string) => {
+        if (!editScopeName.trim()) return;
+        updateProjectScope(currentProject.id, scopeId, { name: editScopeName });
+        setEditingScopeId(null);
+    };
+
+    const handleUpdateActivityTitle = (scopeId: string, activityId: string) => {
+        if (!editActivityTitle.trim()) return;
+        updateActivityProgress(currentProject.id, scopeId, activityId, { 
+            title: editActivityTitle,
+            steps: editActivitySteps.map(s => ({ name: s, completed: false }))
+        });
+        setEditingActivityId(null);
+        setEditActivitySteps([]);
+    };
+
+    const addStepToEdit = () => {
+        if (!newStepText.trim()) return;
+        setEditActivitySteps([...editActivitySteps, newStepText.trim()]);
+        setNewStepText('');
+    };
+
+    const removeStepFromEdit = (index: number) => {
+        setEditActivitySteps(editActivitySteps.filter((_, i) => i !== index));
     };
 
     const toggleScope = (scopeId: string) => {
@@ -119,11 +157,22 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                         <ListChecks size={16} className="text-brand-teal" />
                                         Activities to be added
                                     </h4>
-                                    <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-2">
+                                    <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2">
                                         {scopeTemplates.find(t => t.id === selectedTemplateId)?.activities.map((act, i) => (
-                                            <div key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                                                <div className="mt-1 w-1 h-1 rounded-full bg-brand-teal shrink-0" />
-                                                <span className="leading-tight">{act}</span>
+                                            <div key={i} className="flex flex-col gap-1 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-accent-greyDark">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-brand-teal shrink-0" />
+                                                    {act.title} <span className="text-[10px] text-gray-400 font-normal">({act.expectedDays} days)</span>
+                                                </div>
+                                                {act.steps.length > 0 && (
+                                                    <div className="pl-4 flex flex-wrap gap-x-3 gap-y-1">
+                                                        {act.steps.map((step, si) => (
+                                                            <span key={si} className="text-[10px] text-gray-500 italic flex items-center gap-1">
+                                                                <Circle size={8} /> {step}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -146,19 +195,62 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                             return (
                                 <div key={scope.id} className={`border ${isCompleted ? 'border-status-success/30 bg-status-success/5' : 'border-gray-200'} rounded-xl overflow-hidden transition-colors`}>
                                     <div 
-                                        className={`px-4 py-3 border-b ${isCompleted ? 'border-status-success/20 hover:bg-status-success/10' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'} flex justify-between items-center cursor-pointer transition-colors`}
-                                        onClick={() => toggleScope(scope.id)}
+                                        className={`px-4 py-3 border-b ${isCompleted ? 'border-status-success/20 hover:bg-status-success/10' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'} flex justify-between items-center transition-colors`}
                                     >
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                            <h3 className="font-bold text-accent-greyDark">{scope.name}</h3>
-                                            {isCompleted && (
-                                                <span className="text-xs font-bold text-status-success bg-white/60 px-2 py-0.5 rounded-md border border-status-success/20">
-                                                    Completed on {scope.completedDate ? new Date(scope.completedDate).toLocaleDateString() : 'Unknown Database State'}
-                                                </span>
-                                            )}
+                                        <div className="flex items-center gap-3 flex-1" onClick={() => toggleScope(scope.id)}>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                {editingScopeId === scope.id ? (
+                                                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                        <Input 
+                                                            value={editScopeName}
+                                                            onChange={e => setEditScopeName(e.target.value)}
+                                                            className="h-8 py-0 focus-visible:ring-brand-teal"
+                                                            autoFocus
+                                                        />
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-status-success" onClick={() => handleUpdateScopeName(scope.id)}>
+                                                            <Check size={16} />
+                                                        </Button>
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-status-error" onClick={() => setEditingScopeId(null)}>
+                                                            <X size={16} />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <h3 className="font-bold text-accent-greyDark">{scope.name}</h3>
+                                                )}
+                                                {isCompleted && (
+                                                    <span className="text-xs font-bold text-status-success bg-white/60 px-2 py-0.5 rounded-md border border-status-success/20">
+                                                        Completed on {scope.completedDate ? new Date(scope.completedDate).toLocaleDateString() : 'Unknown Database State'}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-gray-400">
-                                            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                        <div className="flex items-center gap-2">
+                                            {editingScopeId !== scope.id && (
+                                                <>
+                                                    <button 
+                                                        className="p-1.5 text-gray-400 hover:text-brand-teal hover:bg-white rounded transition-colors"
+                                                        onClick={() => {
+                                                            setEditingScopeId(scope.id);
+                                                            setEditScopeName(scope.name);
+                                                        }}
+                                                    >
+                                                        <Pencil size={14} />
+                                                    </button>
+                                                    <button 
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                                        onClick={() => {
+                                                            if (window.confirm(`Are you sure you want to delete the scope "${scope.name}" and all its activities?`)) {
+                                                                deleteProjectScope(currentProject.id, scope.id);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </>
+                                            )}
+                                            <div className="text-gray-400 ml-2" onClick={() => toggleScope(scope.id)}>
+                                                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -170,21 +262,99 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                             ) : (
                                                 <div className="space-y-2 mb-4">
                                                     {scope.activities.map(act => (
-                                                        <div key={act.id} className="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100 hover:border-brand-teal/30 transition-colors">
-                                                            <div className="flex items-center gap-3">
+                                                        <div key={act.id} className="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100 hover:border-brand-teal/30 transition-colors group">
+                                                            <div className="flex items-center gap-3 flex-1">
                                                                 {act.status === 'Completed' || act.progress === 100 ? (
                                                                     <CheckCircle2 size={16} className="text-status-success shrink-0" />
                                                                 ) : (
                                                                     <Circle size={16} className="text-gray-300 shrink-0" />
                                                                 )}
-                                                                <span className={`text-sm ${(act.status === 'Completed' || act.progress === 100) ? 'text-gray-500 line-through' : 'font-medium text-accent-greyDark'}`}>
-                                                                    {act.title}
-                                                                </span>
+                                                                
+                                                                {editingActivityId === act.id ? (
+                                                                    <div className="flex flex-col gap-2 flex-1 pt-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Input 
+                                                                                value={editActivityTitle}
+                                                                                onChange={e => setEditActivityTitle(e.target.value)}
+                                                                                className="h-8 py-0 text-sm font-bold focus-visible:ring-brand-teal"
+                                                                                autoFocus
+                                                                                placeholder="Activity Title"
+                                                                            />
+                                                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-status-success shrink-0" onClick={() => handleUpdateActivityTitle(scope.id, act.id)}>
+                                                                                <Check size={16} />
+                                                                            </Button>
+                                                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-status-error shrink-0" onClick={() => setEditingActivityId(null)}>
+                                                                                <X size={16} />
+                                                                            </Button>
+                                                                        </div>
+                                                                        
+                                                                        <div className="space-y-1.5 pl-2">
+                                                                            <Label className="text-[10px] font-bold text-gray-400 uppercase">Checklist Steps</Label>
+                                                                            <div className="space-y-1">
+                                                                                {editActivitySteps.map((step, idx) => (
+                                                                                    <div key={idx} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-xs border border-gray-100">
+                                                                                        <span>{step}</span>
+                                                                                        <button onClick={() => removeStepFromEdit(idx)} className="text-gray-400 hover:text-red-500">
+                                                                                            <Trash2 size={12} />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ))}
+                                                                                <div className="flex gap-1">
+                                                                                    <Input 
+                                                                                        value={newStepText}
+                                                                                        onChange={e => setNewStepText(e.target.value)}
+                                                                                        placeholder="New step..."
+                                                                                        className="h-7 text-[11px] py-0"
+                                                                                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addStepToEdit())}
+                                                                                    />
+                                                                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-brand-teal" onClick={addStepToEdit}>
+                                                                                        <Plus size={12} />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex flex-col">
+                                                                        <span className={`text-sm ${(act.status === 'Completed' || act.progress === 100) ? 'text-gray-500 line-through' : 'font-medium text-accent-greyDark'}`}>
+                                                                            {act.title}
+                                                                        </span>
+                                                                        {act.steps.length > 0 && (
+                                                                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                                                <ListChecks size={10} /> {act.steps.filter(s => s.completed).length}/{act.steps.length} steps completed
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="flex items-center gap-3 shrink-0">
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                {editingActivityId !== act.id && (
+                                                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+                                                                        <button 
+                                                                            className="p-1 text-gray-400 hover:text-brand-teal rounded"
+                                                                            onClick={() => {
+                                                                                setEditingActivityId(act.id);
+                                                                                setEditActivityTitle(act.title);
+                                                                                setEditActivitySteps(act.steps.map(s => s.name));
+                                                                            }}
+                                                                        >
+                                                                            <Pencil size={12} />
+                                                                        </button>
+                                                                        <button 
+                                                                            className="p-1 text-gray-400 hover:text-red-500 rounded"
+                                                                            onClick={() => {
+                                                                                if (window.confirm(`Delete activity "${act.title}"?`)) {
+                                                                                    deleteProjectActivity(currentProject.id, scope.id, act.id);
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <Trash2 size={12} />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                                 <span className="text-xs text-brand-teal font-bold">{act.progress}%</span>
                                                                 <span className="text-xs text-gray-400 border border-gray-200 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block">
-                                                                    {(act.status === 'Completed' || act.progress === 100) ? 'Completed' : act.status}
+                                                                    {act.expectedDays ? `${act.expectedDays}d • ` : ''}{(act.status === 'Completed' || act.progress === 100) ? 'Completed' : act.status}
                                                                 </span>
                                                             </div>
                                                         </div>

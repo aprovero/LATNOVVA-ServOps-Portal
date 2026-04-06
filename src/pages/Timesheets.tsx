@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore, TimesheetEntry } from '../store/useStore';
-import { Clock, Plus, Calendar as CalendarIcon, User, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { SignatureCanvasBox } from '../components/report/MultisignaturePad';
 import {
@@ -44,6 +44,15 @@ export default function Timesheets() {
     const [signatureBlob, setSignatureBlob] = useState<string>('');
     const [signatureName, setSignatureName] = useState<string>('');
     const [expandedPunchId, setExpandedPunchId] = useState<string | null>(null);
+
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+    const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
+    const [batchAction, setBatchAction] = useState<'Check-in' | 'Check-out'>('Check-in');
+    const [batchSignatures, setBatchSignatures] = useState<Record<string, string>>({});
+    const [batchProject, setBatchProject] = useState('');
+    const [batchDate, setBatchDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [batchTime, setBatchTime] = useState(format(new Date(), 'HH:mm'));
+    const [signingPersonnelId, setSigningPersonnelId] = useState<string | null>(null);
 
     // Form state
     const [newEntry, setNewEntry] = useState<Partial<TimesheetEntry>>({
@@ -153,6 +162,59 @@ export default function Timesheets() {
         setIsAddModalOpen(false);
     };
 
+    const handleBatchSubmit = () => {
+        if (!batchProject) {
+            alert("Please select a project for the batch check-in.");
+            return;
+        }
+
+        selectedPersonnel.forEach(pId => {
+            const sig = batchSignatures[pId];
+            if (!sig) return;
+
+            if (batchAction === 'Check-in') {
+                addTimesheet({
+                    id: `TS-BATCH-${Date.now()}-${pId}`,
+                    personnelId: pId,
+                    date: batchDate,
+                    timeIn: batchTime,
+                    hours: 0,
+                    type: 'On Site',
+                    classification: 'Regular',
+                    projectId: batchProject,
+                    status: 'Pending',
+                    signature: {
+                        name: personnel.find(p => p.id === pId)?.name || 'Worker',
+                        timestamp: new Date().toISOString(),
+                        blob: sig
+                    }
+                });
+            } else {
+                // Check-out
+                const existing = timesheets.find(t => t.personnelId === pId && t.date === batchDate && !t.timeOut);
+                if (existing) {
+                    const hours = calculateHours(existing.timeIn || '08:00', batchTime);
+                    updateTimesheet(existing.id, {
+                        timeOut: batchTime,
+                        hours,
+                        status: 'Pending',
+                        signature: {
+                            name: personnel.find(p => p.id === pId)?.name || 'Worker',
+                            timestamp: new Date().toISOString(),
+                            blob: sig
+                        }
+                    });
+                }
+            }
+        });
+
+        setIsBatchModalOpen(false);
+        setSigningPersonnelId(null);
+        setBatchSignatures({});
+        setSelectedPersonnel([]);
+        alert(`Successfully processed ${selectedPersonnel.length} team members.`);
+    };
+
     const handleExportCSV = () => {
         const headers = ['Name', 'Date', 'Time In', 'Time Out', 'Hours', 'Location/Type', 'Classification', 'Project', 'Status', 'Notes'];
         const rows = filteredTimesheets.map(t => [
@@ -208,9 +270,14 @@ export default function Timesheets() {
                     </div>
 
                     {['Manager', 'Supervisor'].includes(userRole) && (
-                        <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-gray-200 hover:bg-gray-50 text-gray-700">
-                            <Download size={18} /> Export CSV
-                        </Button>
+                        <>
+                            <Button variant="outline" onClick={() => setIsBatchModalOpen(true)} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
+                                <Users size={18} /> Team Check-in
+                            </Button>
+                            <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-gray-200 hover:bg-gray-50 text-gray-700">
+                                <Download size={18} /> Export CSV
+                            </Button>
+                        </>
                     )}
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -416,6 +483,7 @@ export default function Timesheets() {
                                 <th className="p-4 whitespace-nowrap">Hours</th>
                                 <th className="p-4 min-w-[150px]">Project</th>
                                 <th className="p-4 whitespace-nowrap">GPS</th>
+                                <th className="p-4 whitespace-nowrap">Status</th>
                                 <th className="p-4 rounded-tr-xl text-right">Actions</th>
                             </tr>
                         </thead>
@@ -478,12 +546,40 @@ export default function Timesheets() {
                                                     <span className="text-[11px] px-2 py-1 bg-gray-100 text-gray-400 rounded-full font-semibold border border-gray-200">⚠ Manual</span>
                                                 )}
                                             </td>
+                                            <td className="p-4">
+                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider ${
+                                                    entry.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                    entry.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                                    'bg-amber-100 text-amber-700'
+                                                }`}>
+                                                    {entry.status || 'Pending'}
+                                                </span>
+                                            </td>
                                             <td className="p-4 text-right">
                                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {/* Only Supervisors, Managers, or the Tech who owns the entry can edit/delete */}
-                                                    {['Supervisor', 'Manager'].includes(userRole) || (
-                                                        userRole === 'Tech' && entry.personnelId === newEntry.personnelId /* using newEntry.personnelId as mock current user */
-                                                    ) ? (
+                                                    {['Manager', 'Supervisor'].includes(userRole) && entry.status !== 'Approved' && (
+                                                        <button
+                                                            onClick={() => updateTimesheet(entry.id, { status: 'Approved', approvedBy: 'Manager' })}
+                                                            className="text-status-success hover:text-green-700 hover:bg-green-50 p-2 rounded-lg transition-colors"
+                                                            title="Approve Timesheet (Lock)"
+                                                        >
+                                                            <CheckCircle size={16} />
+                                                        </button>
+                                                    )}
+                                                    {['Manager', 'Supervisor'].includes(userRole) && entry.status === 'Approved' && (
+                                                        <button
+                                                            onClick={() => updateTimesheet(entry.id, { status: 'Pending' })}
+                                                            className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 p-2 rounded-lg transition-colors"
+                                                            title="Unlock Timesheet"
+                                                        >
+                                                            <Clock size={16} />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Only Supervisors, Managers, or the Tech who owns the entry can edit/delete, AND it must not be approved */}
+                                                    {(['Supervisor', 'Manager'].includes(userRole) || (
+                                                        userRole === 'Tech' && entry.personnelId === newEntry.personnelId /* mock current user */
+                                                    )) && entry.status !== 'Approved' ? (
                                                         <>
                                                             <button
                                                                 onClick={() => openEditModal(entry)}
@@ -507,7 +603,7 @@ export default function Timesheets() {
                                         {/* GPS Punch Audit Trail */}
                                         {expandedPunchId === entry.id && entry.punches && (
                                             <tr key={`${entry.id}-punches`}>
-                                                <td colSpan={7} className="px-6 pb-4 pt-0 bg-gray-50/60">
+                                                <td colSpan={8} className="px-6 pb-4 pt-0 bg-gray-50/60">
                                                     <div className="border border-gray-100 rounded-xl p-4 bg-white shadow-sm">
                                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                                             <MapPin size={12} /> GPS Punch Audit Trail
@@ -556,6 +652,172 @@ export default function Timesheets() {
                     </table>
                 </div>
             </div>
+
+            <Dialog open={isBatchModalOpen} onOpenChange={setIsBatchModalOpen}>
+                <DialogContent className="sm:max-w-[550px] rounded-2xl p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
+                            <Users size={20} className="text-brand-teal" /> 
+                            Group Operations Manager
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="flex gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100 mb-4">
+                            <button 
+                                className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-in' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
+                                onClick={() => { setBatchAction('Check-in'); setSelectedPersonnel([]); setBatchSignatures({}); }}
+                            >
+                                Check-in Group
+                            </button>
+                            <button 
+                                className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-out' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
+                                onClick={() => { setBatchAction('Check-out'); setSelectedPersonnel([]); setBatchSignatures({}); }}
+                            >
+                                Check-out Group
+                            </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-accent-greyDark">Project Site</label>
+                                <select 
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                    value={batchProject}
+                                    onChange={e => setBatchProject(e.target.value)}
+                                >
+                                    <option value="">Select Project...</option>
+                                    {projects.map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-accent-greyDark">{batchAction} Time</label>
+                                <Input
+                                    type="time"
+                                    value={batchTime}
+                                    onChange={e => setBatchTime(e.target.value)}
+                                    className="rounded-xl"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-accent-greyDark">
+                                Select Personnel & Obtain Signatures
+                            </label>
+                            <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto p-1 pr-2 thin-scrollbar">
+                                {personnel.filter(p => {
+                                    if (p.status === 'Inactive') return false;
+                                    if (batchAction === 'Check-out') {
+                                        return timesheets.some(t => t.personnelId === p.id && t.date === batchDate && !t.timeOut);
+                                    }
+                                    return true;
+                                }).map(p => {
+                                    const isSelected = selectedPersonnel.includes(p.id);
+                                    const hasSigned = !!batchSignatures[p.id];
+                                    
+                                    return (
+                                        <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isSelected ? 'bg-brand-teal/5 border-brand-teal/30 shadow-sm' : 'bg-gray-50 border-gray-100'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
+                                                    checked={isSelected}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedPersonnel([...selectedPersonnel, p.id]);
+                                                        else {
+                                                            setSelectedPersonnel(selectedPersonnel.filter(id => id !== p.id));
+                                                            const newSigs = { ...batchSignatures };
+                                                            delete newSigs[p.id];
+                                                            setBatchSignatures(newSigs);
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-brand-teal/10 flex items-center justify-center text-xs font-bold text-brand-teal overflow-hidden">
+                                                        {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : p.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-accent-greyDark leading-none">{p.name}</p>
+                                                        <p className="text-[10px] text-gray-500 font-medium uppercase mt-1">{p.position}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {isSelected && (
+                                                <div className="flex items-center">
+                                                    {hasSigned ? (
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-status-success bg-green-50 px-2 py-1 rounded-lg border border-green-100">
+                                                            <CheckCircle size={12} /> SIGNED
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const newSigs = { ...batchSignatures };
+                                                                    delete newSigs[p.id];
+                                                                    setBatchSignatures(newSigs);
+                                                                }}
+                                                                className="ml-1 text-red-400 hover:text-red-500"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => setSigningPersonnelId(p.id)}
+                                                            className="flex items-center gap-1.5 text-[10px] font-bold text-brand-teal bg-white hover:bg-brand-teal hover:text-white px-3 py-1.5 rounded-lg border border-brand-teal/20 shadow-sm transition-all"
+                                                        >
+                                                            <PenTool size={12} /> SIGN NOW
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <Button 
+                            className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold shadow-teal"
+                            disabled={selectedPersonnel.length === 0 || !batchProject || selectedPersonnel.some(id => !batchSignatures[id])}
+                            onClick={handleBatchSubmit}
+                        >
+                            Complete Group {batchAction} ({selectedPersonnel.length} members)
+                        </Button>
+                        {selectedPersonnel.some(id => !batchSignatures[id]) && selectedPersonnel.length > 0 && (
+                            <p className="text-[10px] text-center text-status-warning font-bold mt-2 animate-pulse uppercase tracking-widest">
+                                ⚠ Waiting for all selected members to sign
+                            </p>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Sub-modal for Individual Signature */}
+            <Dialog open={!!signingPersonnelId} onOpenChange={() => setSigningPersonnelId(null)}>
+                <DialogContent className="sm:max-w-[400px] rounded-2xl p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-accent-greyDark flex items-center gap-2">
+                             <PenTool size={18} className="text-brand-teal" /> 
+                             {personnel.find(p => p.id === signingPersonnelId)?.name}'s Signature
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                            By signing below, I confirm my {batchAction === 'Check-in' ? 'attendance and arrival' : 'departure and hours'} for {batchDate} at {batchTime}.
+                        </p>
+                        <div className="h-48 bg-white border-2 border-dashed border-gray-200 rounded-2xl relative overflow-hidden group">
+                            <SignatureCanvasBox onSign={(blob) => {
+                                setBatchSignatures({ ...batchSignatures, [signingPersonnelId!]: blob });
+                                setSigningPersonnelId(null);
+                            }} />
+                            <div className="absolute inset-x-0 bottom-4 pointer-events-none text-center opacity-20">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Worker Signature</span>
+                            </div>
+                        </div>
+                        <Button variant="outline" className="w-full rounded-xl" onClick={() => setSigningPersonnelId(null)}>Cancel</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

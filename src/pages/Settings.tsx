@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useStore, Client } from '../store/useStore';
-import { Settings as SettingsIcon, Users, Building2, PenTool, HardHat, Pencil, Camera, Trash2, Shield, Plus } from 'lucide-react';
+import { useStore, Client, Personnel } from '../store/useStore';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -8,7 +8,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
-    const { userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel } = useStore();
+    const { userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -22,7 +22,8 @@ export default function Settings() {
             name: inviteEmail.split('@')[0],
             email: inviteEmail,
             position: inviteRole === 'Customer' ? 'Customer Contact' : 'Invited User',
-            employeeNumber: `EMP-${Math.floor(Math.random() * 1000)}`,
+             employeeNumber: `EMP-${Math.floor(Math.random() * 1000)}`,
+            status: 'Active',
             certifications: [],
             appRole: inviteRole
         });
@@ -34,6 +35,11 @@ export default function Settings() {
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [editClientName, setEditClientName] = useState('');
     const [editClientLogo, setEditClientLogo] = useState('');
+
+    const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
+    const [editPersonnelName, setEditPersonnelName] = useState('');
+    const [editPersonnelEmail, setEditPersonnelEmail] = useState('');
+    const [editPersonnelRole, setEditPersonnelRole] = useState('Tech');
 
     const handleEditClientSubmit = () => {
         if (!editingClient || !editClientName.trim()) return;
@@ -47,8 +53,7 @@ export default function Settings() {
     const configTabs = [
         { id: 'companies', name: 'Companies', description: 'Manage clients and contractors', icon: Building2 },
         { id: 'users', name: 'Users', description: 'Access control and roles', icon: Users },
-        { id: 'labor', name: 'Labor Types', description: 'Define workforce categories (e.g. Electrician, Mason)', icon: HardHat },
-        { id: 'checklists', name: 'Checklists', description: 'Quality control lists', icon: PenTool },
+        { id: 'wbs', name: 'WBS Templates', description: 'Standard activities and steps', icon: ListChecks },
     ];
 
     const tab = activeTab ? configTabs.find(t => t.id === activeTab) : null;
@@ -174,6 +179,14 @@ export default function Settings() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
+                                                    <button onClick={() => {
+                                                        setEditingPersonnel(user);
+                                                        setEditPersonnelName(user.name);
+                                                        setEditPersonnelEmail(user.email || '');
+                                                        setEditPersonnelRole(user.appRole || 'Tech');
+                                                    }} className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors mr-2">
+                                                        <Pencil size={16} />
+                                                    </button>
                                                     <button onClick={() => deletePersonnel(user.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                                                         <Trash2 size={16} />
                                                     </button>
@@ -189,6 +202,8 @@ export default function Settings() {
                                 </table>
                             </div>
                         </div>
+                    ) : activeTab === 'wbs' ? (
+                         <WBSTemplateManager />
                     ) : (
                         <>
                             <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400">
@@ -318,6 +333,279 @@ export default function Settings() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Edit User Modal */}
+            <Dialog open={!!editingPersonnel} onOpenChange={(open) => !open && setEditingPersonnel(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Edit User: {editingPersonnel?.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="editUserName">Full Name</Label>
+                            <Input
+                                id="editUserName"
+                                value={editPersonnelName}
+                                onChange={(e) => setEditPersonnelName(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="editUserEmail">Email Address</Label>
+                            <Input
+                                id="editUserEmail"
+                                type="email"
+                                value={editPersonnelEmail}
+                                onChange={(e) => setEditPersonnelEmail(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="editUserRole">App Role</Label>
+                            <select
+                                id="editUserRole"
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
+                                value={editPersonnelRole}
+                                onChange={(e) => setEditPersonnelRole(e.target.value as any)}
+                            >
+                                <option value="Tech">Tech</option>
+                                <option value="Supervisor">Supervisor</option>
+                                <option value="Manager">Manager</option>
+                                <option value="Customer">Customer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingPersonnel(null)}>Cancel</Button>
+                        <Button className="bg-brand-teal text-white" onClick={() => {
+                            if (editingPersonnel) {
+                                updatePersonnel(editingPersonnel.id, {
+                                    name: editPersonnelName,
+                                    email: editPersonnelEmail,
+                                    appRole: editPersonnelRole as any
+                                });
+                                setEditingPersonnel(null);
+                            }
+                        }}>Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
+
+function WBSTemplateManager() {
+    const { scopeTemplates, addScopeTemplate, updateScopeTemplate, deleteScopeTemplate } = useStore();
+    const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newTemplateName, setNewTemplateName] = useState('');
+
+    const handleCreate = () => {
+        if (!newTemplateName.trim()) return;
+        addScopeTemplate({
+            id: `STPL-${Date.now()}`,
+            name: newTemplateName,
+            activities: []
+        });
+        setNewTemplateName('');
+        setIsAddModalOpen(false);
+    };
+
+    const handleUpdate = () => {
+        if (!editingTemplate) return;
+        updateScopeTemplate(editingTemplate.id, editingTemplate);
+        setEditingTemplate(null);
+    };
+
+    const addActivity = () => {
+        if (!editingTemplate) return;
+        const newAct = {
+            id: `act-${Date.now()}`,
+            title: 'New Activity',
+            steps: [],
+            expectedDays: 1
+        };
+        setEditingTemplate({
+            ...editingTemplate,
+            activities: [...editingTemplate.activities, newAct]
+        });
+    };
+
+    const updateActivity = (actId: string, updates: any) => {
+        if (!editingTemplate) return;
+        setEditingTemplate({
+            ...editingTemplate,
+            activities: editingTemplate.activities.map((a: any) => a.id === actId ? { ...a, ...updates } : a)
+        });
+    };
+
+    const removeActivity = (actId: string) => {
+        if (!editingTemplate) return;
+        setEditingTemplate({
+            ...editingTemplate,
+            activities: editingTemplate.activities.filter((a: any) => a.id !== actId)
+        });
+    };
+
+    const addStep = (actId: string) => {
+        if (!editingTemplate) return;
+        setEditingTemplate({
+            ...editingTemplate,
+            activities: editingTemplate.activities.map((a: any) => 
+                a.id === actId ? { ...a, steps: [...a.steps, ''] } : a
+            )
+        });
+    };
+
+    const updateStep = (actId: string, stepIdx: number, val: string) => {
+        if (!editingTemplate) return;
+        setEditingTemplate({
+            ...editingTemplate,
+            activities: editingTemplate.activities.map((a: any) => {
+                if (a.id === actId) {
+                    const newSteps = [...a.steps];
+                    newSteps[stepIdx] = val;
+                    return { ...a, steps: newSteps };
+                }
+                return a;
+            })
+        });
+    };
+
+    const removeStep = (actId: string, stepIdx: number) => {
+        if (!editingTemplate) return;
+        setEditingTemplate({
+            ...editingTemplate,
+            activities: editingTemplate.activities.map((a: any) => {
+                if (a.id === actId) {
+                    return { ...a, steps: a.steps.filter((_: any, i: number) => i !== stepIdx) };
+                }
+                return a;
+            })
+        });
+    };
+
+    return (
+        <div className="bg-white border flex flex-col border-gray-100 rounded-2xl shadow-sm overflow-hidden text-left">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <div>
+                    <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2"><ListChecks className="text-brand-teal" size={24}/> WBS Template Management</h2>
+                    <p className="text-sm text-gray-500 mt-1">Define standard activities and steps for project scopes.</p>
+                </div>
+                <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-semibold shadow-sm" onClick={() => setIsAddModalOpen(true)}>
+                    <Plus size={16} /> New Template
+                </Button>
+            </div>
+            
+            <div className="divide-y divide-gray-100">
+                {scopeTemplates.map(tpl => (
+                    <div key={tpl.id} className="p-6 hover:bg-gray-50 transition-colors flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-brand-teal/10 flex items-center justify-center text-brand-teal shrink-0">
+                                <ListChecks size={20} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-accent-greyDark">{tpl.name}</h3>
+                                <p className="text-xs text-gray-400">{tpl.activities.length} Activities • {tpl.activities.reduce((acc, a) => acc + a.steps.length, 0)} Total Steps</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-brand-teal" onClick={() => setEditingTemplate({...tpl})}>
+                                <Pencil size={18} />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500" onClick={() => {
+                                if (window.confirm('Delete this template?')) deleteScopeTemplate(tpl.id);
+                            }}>
+                                <Trash2 size={18} />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Add Template Modal */}
+            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Create WBS Template</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label>Template Name</Label>
+                            <Input placeholder="e.g. Electrical Installation" value={newTemplateName} onChange={e => setNewTemplateName(e.target.value)} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                        <Button className="bg-brand-teal text-white" onClick={handleCreate}>Create</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Template Modal */}
+            <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && setEditingTemplate(null)}>
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Edit Template: {editingTemplate?.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-6">
+                        <div className="space-y-2">
+                            <Label>Template Name</Label>
+                            <Input value={editingTemplate?.name || ''} onChange={e => setEditingTemplate({...editingTemplate, name: e.target.value})} />
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-lg font-bold">Activities</Label>
+                                <Button variant="outline" size="sm" onClick={addActivity} className="gap-1 rounded-lg">
+                                    <Plus size={14} /> Add Activity
+                                </Button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {editingTemplate?.activities.map((act: any) => (
+                                    <div key={act.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group">
+                                        <button onClick={() => removeActivity(act.id)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500">
+                                            <Trash2 size={14} />
+                                        </button>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div className="space-y-1">
+                                                <Label className="text-xs uppercase font-bold text-gray-400">Activity Title</Label>
+                                                <Input value={act.title} onChange={e => updateActivity(act.id, { title: e.target.value })} className="h-9" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs uppercase font-bold text-gray-400">Expected Days</Label>
+                                                <Input type="number" value={act.expectedDays} onChange={e => updateActivity(act.id, { expectedDays: parseInt(e.target.value) || 1 })} className="h-9" />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs uppercase font-bold text-gray-400 flex justify-between items-center">
+                                                Steps / Verification Points
+                                                <button onClick={() => addStep(act.id)} className="text-brand-teal hover:underline">+ Add Step</button>
+                                            </Label>
+                                            <div className="space-y-2">
+                                                {act.steps.map((step: string, idx: number) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <Input value={step} onChange={e => updateStep(act.id, idx, e.target.value)} className="h-8 text-sm" placeholder={`Step ${idx + 1}`} />
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-300 hover:text-red-500" onClick={() => removeStep(act.id, idx)}>
+                                                            <X size={14} />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                {act.steps.length === 0 && <p className="text-[10px] text-gray-400 italic">No steps added yet.</p>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingTemplate(null)}>Cancel</Button>
+                        <Button className="bg-brand-teal text-white" onClick={handleUpdate}>Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+

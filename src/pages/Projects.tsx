@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, ExternalLink, Map, Camera, AlertCircle } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, AlertCircle, Search, Check, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -51,14 +51,24 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 };
 
 export default function Projects() {
-    const { projects, reports, clients, userRole, clientId, timesheets, updateClient } = useStore();
+    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject } = useStore();
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
 
+    const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+    const [newProject, setNewProject] = useState<Partial<Project>>({
+        name: '',
+        status: 'Active',
+        type: 'Complete',
+        progress: 0,
+        scopes: [],
+        assignedPersonnel: []
+    });
+    const [isVaidatingNewMap, setIsValidatingNewMap] = useState(false);
+
     const [filterStatus, setFilterStatus] = useState<string>('All');
     const [filterCustomer, setFilterCustomer] = useState<string>('All');
-    const [mapProject, setMapProject] = useState<Project | null>(null);
     
     // Edit Customer State
     const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -138,6 +148,11 @@ export default function Projects() {
                     <h1 className="text-3xl font-bold text-accent-greyDark mb-1">{userRole === 'Customer' ? 'Customer Portal' : 'Global Operations'}</h1>
                     <p className="text-gray-500 font-medium">Real-time tracking and operational intelligence.</p>
                 </div>
+                {['Manager', 'Supervisor'].includes(userRole) && (
+                    <Button onClick={() => setIsAddProjectOpen(true)} className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
+                        <Plus size={18} /> New Project
+                    </Button>
+                )}
             </div>
 
             {['Manager', 'Supervisor'].includes(userRole) && <KPIRow />}
@@ -178,6 +193,12 @@ export default function Projects() {
                                     <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
                                 </>
                             )}
+                            <Link to="/live-map">
+                                <Button variant="outline" size="sm" className="h-8 text-xs gap-2 border-brand-teal/20 text-brand-teal hover:border-brand-teal hover:bg-brand-teal/5 rounded-xl">
+                                    <Map size={14} />
+                                    <span className="hidden sm:inline">Live Map View</span>
+                                </Button>
+                            </Link>
                         </div>
                     </div>
 
@@ -212,8 +233,8 @@ export default function Projects() {
                                                         {proj.id} • {proj.type}
                                                     </span>
                                                     {proj.location && (
-                                                        <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-teal bg-brand-teal/5 border border-brand-teal/10 px-2 py-1 rounded w-fit cursor-pointer hover:bg-brand-teal/10 transition-colors" onClick={() => setMapProject(proj)}>
-                                                            <MapPin size={12} />
+                                                        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
+                                                            <MapPin size={10} />
                                                             <span className="truncate max-w-[150px]">{proj.location}</span>
                                                         </div>
                                                     )}
@@ -253,12 +274,12 @@ export default function Projects() {
                                                             return Math.round(totalProgress / allActs.length);
                                                         })()} />
                                                         <div className="hidden md:block">
-                                                            <p className="text-[11px] font-bold text-gray-700">
+                                                            <p className="text-sm font-bold text-accent-greyDark leading-none">
                                                                 {(() => {
                                                                     const allActs = proj.scopes?.flatMap(s => s.activities) || [];
-                                                                    const completed = allActs.filter(a => a.status === 'Completed').length;
-                                                                    return `${completed}/${allActs.length}`;
-                                                                })()} Acts
+                                                                    const totalProgress = allActs.reduce((sum, act) => sum + act.progress, 0);
+                                                                    return allActs.length > 0 ? Math.round(totalProgress / allActs.length) : proj.progress || 0;
+                                                                })()}%
                                                             </p>
                                                             <p className="text-[10px] text-gray-400 font-medium">Accomplished</p>
                                                         </div>
@@ -367,49 +388,6 @@ export default function Projects() {
                 )}
             </div>
 
-            <Dialog open={!!mapProject} onOpenChange={(open) => !open && setMapProject(null)}>
-                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl border-none">
-                    <div className="bg-brand-teal p-4 text-white flex items-center justify-between">
-                        <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-                            <Map className="w-5 h-5" />
-                            Location - {mapProject?.name}
-                        </DialogTitle>
-                    </div>
-                    <div className="p-4 bg-white space-y-4">
-                        <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                            <MapPin className="text-brand-teal shrink-0 mt-0.5" size={18} />
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Stated Address / Coordinates</p>
-                                <p className="text-accent-greyDark font-medium text-sm">{mapProject?.location}</p>
-                            </div>
-                        </div>
-
-                        {mapProject && mapProject.location && (
-                            <div className="w-full h-[300px] rounded-xl overflow-hidden border border-gray-200 shadow-inner">
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    frameBorder="0"
-                                    style={{ border: 0 }}
-                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(mapProject.location || '')}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-                                    allowFullScreen
-                                />
-                            </div>
-                        )}
-                        
-                        <div className="flex justify-end gap-3 pt-2">
-                            <Button variant="outline" onClick={() => setMapProject(null)}>Close</Button>
-                            <Button 
-                                className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2"
-                                onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(mapProject?.location || '')}`, '_blank')}
-                            >
-                                <ExternalLink size={16} /> Open in Maps Apps
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
             {/* Edit Customer Modal */}
             <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
                 <DialogContent className="sm:max-w-[425px]">
@@ -460,6 +438,143 @@ export default function Projects() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            {/* New Project Modal */}
+            <Dialog open={isAddProjectOpen} onOpenChange={setIsAddProjectOpen}>
+                <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto rounded-3xl p-0 border-none shadow-2xl">
+                    <div className="bg-brand-teal p-6 text-white">
+                        <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                            <FolderGit2 size={24} /> Create New Project
+                        </DialogTitle>
+                        <p className="text-white/70 text-sm mt-1">Initialize a new operations tracking environment.</p>
+                    </div>
+                    <div className="p-6 space-y-5">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="sm:col-span-2 space-y-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Project Name</Label>
+                                <Input placeholder="e.g. Solar Site Alpha" value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} className="h-11 rounded-xl" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Client / Customer</Label>
+                                <select 
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 h-11 text-sm outline-none focus:ring-2 focus:ring-brand-teal transition-all"
+                                    value={newProject.clientId || ''}
+                                    onChange={e => setNewProject({...newProject, clientId: e.target.value})}
+                                >
+                                    <option value="" disabled>Select Client...</option>
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Location / Coordinates</Label>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        placeholder="Address or lat,lng" 
+                                        value={newProject.location || ''} 
+                                        onChange={e => setNewProject({...newProject, location: e.target.value})} 
+                                        className="h-11 rounded-xl flex-1"
+                                    />
+                                    <Button 
+                                        variant="outline" 
+                                        size="icon" 
+                                        className={`h-11 w-11 shrink-0 rounded-xl ${newProject.location ? 'border-brand-teal text-brand-teal bg-brand-teal/5' : ''}`}
+                                        disabled={!newProject.location}
+                                        onClick={() => setIsValidatingNewMap(true)}
+                                    >
+                                        <Map size={18} />
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Code Name</Label>
+                                <Input placeholder="e.g. SN-001" value={newProject.codeName || ''} onChange={e => setNewProject({...newProject, codeName: e.target.value})} className="h-11 rounded-xl" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">System Type</Label>
+                                <select 
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 h-11 text-sm outline-none focus:ring-2 focus:ring-brand-teal transition-all"
+                                    value={newProject.systemType || 'Solar'}
+                                    onChange={e => setNewProject({...newProject, systemType: e.target.value})}
+                                >
+                                    <option value="Solar">Solar</option>
+                                    <option value="BESS">BESS</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                       </div>
+                    </div>
+                    <DialogFooter className="p-6 bg-gray-50 flex gap-3">
+                        <Button variant="ghost" onClick={() => setIsAddProjectOpen(false)} className="rounded-xl h-11">Cancel</Button>
+                        <Button 
+                            className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-11 px-8 rounded-xl flex-1"
+                            disabled={!newProject.name || !newProject.clientId}
+                            onClick={() => {
+                                addProject({
+                                    ...newProject as Project,
+                                    id: `PROJ-${Date.now()}`,
+                                    progress: 0,
+                                    scopes: []
+                                });
+                                setIsAddProjectOpen(false);
+                            }}
+                        >
+                            Create Project
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Interactive Map Validation for New Project */}
+            <Dialog open={isVaidatingNewMap} onOpenChange={setIsValidatingNewMap}>
+                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+                    <div className="bg-brand-teal p-5 text-white flex items-center justify-between">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <MapPin className="w-6 h-6" /> Confirm Pin on Map
+                        </DialogTitle>
+                    </div>
+                    <div className="p-6 bg-white space-y-5">
+                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal shrink-0">
+                                <Search size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Target Location</p>
+                                <p className="text-accent-greyDark font-bold text-base">{newProject.location}</p>
+                            </div>
+                        </div>
+
+                        <div className="w-full h-[350px] rounded-2xl overflow-hidden border border-gray-100 shadow-soft relative group">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                style={{ border: 0 }}
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(newProject.location || '')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                allowFullScreen
+                            />
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                 <div className="w-10 h-10 bg-brand-teal/20 rounded-full flex items-center justify-center animate-ping" />
+                                 <MapPin size={32} className="text-brand-teal drop-shadow-lg absolute" style={{ marginTop: '-32px' }} />
+                            </div>
+                        </div>
+                        
+                        <p className="text-xs text-gray-400 text-center italic bg-gray-50 py-2 rounded-lg border border-dashed border-gray-200">
+                             Visualizing location based on provided address/coordinates. Confirm current pin position is correct.
+                        </p>
+
+                        <div className="flex gap-4">
+                            <Button variant="outline" onClick={() => setIsValidatingNewMap(false)} className="flex-1 h-12 rounded-xl text-gray-500 font-bold">Adjust Location</Button>
+                            <Button 
+                                className="flex-1 h-12 rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold gap-2 shadow-soft"
+                                onClick={() => setIsValidatingNewMap(false)}
+                            >
+                                <Check size={18} /> Confirm Pin Placement
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+

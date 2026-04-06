@@ -26,19 +26,19 @@ export default function ChecklistSection({ checklists, onChange, readOnly }: Che
                         <span className="text-sm font-medium text-accent-greyDark flex-1 leading-snug">{chk.item}</span>
 
                         <div className="flex items-center gap-2 shrink-0 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
-                            {['Matches', 'Does not match', 'N/A'].map((opt) => (
+                            {['Pass', 'Fail', 'N/A'].map((opt) => (
                                 <button
                                     key={opt}
                                     disabled={readOnly}
-                                    onClick={() => handleStatusChange(chk.id, opt as ReportChecklist['status'])}
+                                    onClick={() => handleStatusChange(chk.id, opt as any)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
                                         ${chk.status === opt
-                                            ? (opt === 'Matches' ? 'bg-status-success text-white shadow-md'
-                                                : opt === 'Does not match' ? 'bg-status-error text-white shadow-md'
+                                            ? (opt === 'Pass' ? 'bg-status-success text-white shadow-md'
+                                                : opt === 'Fail' ? 'bg-status-error text-white shadow-md'
                                                     : 'bg-gray-400 text-white shadow-md')
                                             : 'bg-transparent text-gray-400 hover:bg-gray-50'}`}
                                 >
-                                    {opt === 'Does not match' ? 'Fail' : opt === 'Matches' ? 'Pass' : 'N/A'}
+                                    {opt}
                                 </button>
                             ))}
                         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore, Personnel as PersonnelType } from '../store/useStore';
-import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search } from 'lucide-react';
+import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -15,6 +15,10 @@ export default function Personnel() {
         return params.get('q') || '';
     });
 
+    const [filterCertification, setFilterCertification] = useState('');
+    const [filterRole, setFilterRole] = useState('All');
+    const [filterStatus, setFilterStatus] = useState('All');
+
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const q = params.get('q');
@@ -22,6 +26,16 @@ export default function Personnel() {
             setSearchTerm(q);
         }
     }, [location.search]);
+    
+    // Icon mapping for roles
+    const RoleIcon = ({ role, size = 14 }: { role?: string, size?: number }) => {
+        switch (role) {
+            case 'Manager': return <Shield size={size} className="text-purple-500" />;
+            case 'Supervisor': return <Shield size={size} className="text-brand-teal" />;
+            case 'Customer': return <Shield size={size} className="text-orange-500" />;
+            default: return <Shield size={size} className="text-blue-500" />;
+        }
+    };
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -36,6 +50,11 @@ export default function Personnel() {
             name: currentPerson.name,
             position: currentPerson.position,
             employeeNumber: currentPerson.employeeNumber || `EMP-${Math.floor(Math.random() * 1000)}`,
+            phoneNumber: currentPerson.phoneNumber,
+            email: currentPerson.email,
+            image: currentPerson.image,
+            status: currentPerson.status || 'Active',
+            sharedFolderLink: currentPerson.sharedFolderLink,
             certifications: currentPerson.certifications || [],
             appRole: currentPerson.appRole || 'Tech'
         });
@@ -110,31 +129,6 @@ export default function Personnel() {
                             />
                         </div>
                      </div>
-                     <div className="flex flex-col gap-2 mt-2 border-t border-gray-100 pt-2">
-                         <label className="text-xs flex items-center gap-2 cursor-pointer w-fit">
-                             <input 
-                                type="file" 
-                                accept="application/pdf,image/*"
-                                onChange={e => {
-                                    if (e.target.files && e.target.files.length > 0) {
-                                        handleUpdateCert(index, 'hasAttachment', true);
-                                        handleUpdateCert(index, 'attachmentName', e.target.files[0].name);
-                                    }
-                                }}
-                                className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-teal/10 file:text-brand-teal hover:file:bg-brand-teal/20"
-                             />
-                         </label>
-                         {cert.hasAttachment && cert.attachmentName && (
-                             <span className="text-xs text-brand-teal flex items-center gap-1 font-medium bg-brand-teal/5 px-2 py-1 rounded w-fit mt-1 border border-brand-teal/20">
-                                 <FilePlus size={12} /> {cert.attachmentName}
-                             </span>
-                         )}
-                         {cert.hasAttachment && !cert.attachmentName && (
-                             <span className="text-xs text-brand-teal flex items-center gap-1 font-medium bg-brand-teal/5 px-2 py-1 rounded w-fit mt-1 border border-brand-teal/20">
-                                 <FilePlus size={12} /> Digital Certificate Attached
-                             </span>
-                         )}
-                     </div>
                 </div>
             ))}
             {(!currentPerson?.certifications || currentPerson.certifications.length === 0) && (
@@ -142,8 +136,6 @@ export default function Personnel() {
             )}
         </div>
     );
-
-    const [filterCertification, setFilterCertification] = useState('');
 
     const allCertifications = Array.from(new Set(
         personnel
@@ -156,9 +148,12 @@ export default function Personnel() {
     const filteredPersonnel = personnel
         .filter(p => p.appRole !== 'Customer')
         .filter(p => filterCertification ? p.certifications?.some(c => c.name.toLowerCase() === filterCertification.toLowerCase()) : true)
+        .filter(p => filterRole === 'All' ? true : p.appRole === filterRole)
+        .filter(p => filterStatus === 'All' ? true : p.status === filterStatus)
         .filter(p => 
             p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            p.position.toLowerCase().includes(searchTerm.toLowerCase())
+            p.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.email && p.email.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
     return (
@@ -188,11 +183,34 @@ export default function Personnel() {
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <Input
-                            placeholder="Find by name or position..."
-                            className="pl-10 w-full md:w-72 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
+                            placeholder="Find by name, role or email..."
+                            className="pl-10 w-full md:w-64 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-white border border-gray-100 p-1 rounded-xl shadow-sm overflow-x-auto hidden-scrollbar">
+                        <select
+                            className="bg-transparent border-none outline-none text-xs font-bold text-gray-500 px-2 h-8 cursor-pointer"
+                            value={filterRole}
+                            onChange={(e) => setFilterRole(e.target.value)}
+                        >
+                            <option value="All">All Roles</option>
+                            <option value="Tech">Techs</option>
+                            <option value="Supervisor">Supervisors</option>
+                            <option value="Manager">Managers</option>
+                        </select>
+                        <div className="w-px h-4 bg-gray-200"></div>
+                        <select
+                            className="bg-transparent border-none outline-none text-xs font-bold text-gray-500 px-2 h-8 cursor-pointer"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="All">All Status</option>
+                            <option value="Active">Active Only</option>
+                            <option value="Inactive">Inactive Only</option>
+                        </select>
                     </div>
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -214,19 +232,40 @@ export default function Personnel() {
                                     onChange={e => setCurrentPerson({ ...currentPerson, name: e.target.value })}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-accent-greyDark">Job Title / Position</label>
-                                <Input
-                                    placeholder="e.g. Lead Electrician"
-                                    value={currentPerson?.position || ''}
-                                    onChange={e => setCurrentPerson({ ...currentPerson, position: e.target.value })}
-                                />
-                            </div>
-
-                            {isManager && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark">Job Title / Position</label>
+                                    <Input
+                                        placeholder="e.g. Lead Electrician"
+                                        value={currentPerson?.position || ''}
+                                        onChange={e => setCurrentPerson({ ...currentPerson, position: e.target.value })}
+                                    />
+                                </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
-                                        <Shield size={14} className="text-brand-teal" /> App Access Role
+                                        <FolderGit2 size={14} className="text-brand-teal" /> Employee ID
+                                    </label>
+                                    <Input
+                                        placeholder="e.g. EMP-1234"
+                                        value={currentPerson?.employeeNumber || ''}
+                                        onChange={e => setCurrentPerson({ ...currentPerson, employeeNumber: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark">Email Address</label>
+                                    <Input
+                                        type="email"
+                                        placeholder="john.doe@latnovva.com"
+                                        value={currentPerson?.email || ''}
+                                        onChange={e => setCurrentPerson({ ...currentPerson, email: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                        <Shield size={14} className="text-brand-teal" /> App Role
                                     </label>
                                     <select
                                         className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
@@ -236,10 +275,89 @@ export default function Personnel() {
                                         <option value="Tech">Tech</option>
                                         <option value="Supervisor">Supervisor</option>
                                         <option value="Manager">Manager</option>
-                                        <option value="Customer">Customer</option>
                                     </select>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark">Phone Number</label>
+                                    <Input
+                                        placeholder="e.g. 956-280-8290"
+                                        value={currentPerson?.phoneNumber || ''}
+                                        onChange={e => setCurrentPerson({ ...currentPerson, phoneNumber: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            {isManager && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                            <Shield size={14} className="text-brand-teal" /> App Role
+                                        </label>
+                                        <select
+                                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                            value={currentPerson?.appRole || 'Tech'}
+                                            onChange={e => setCurrentPerson({ ...currentPerson, appRole: e.target.value as any })}
+                                        >
+                                            <option value="Tech">Tech</option>
+                                            <option value="Supervisor">Supervisor</option>
+                                            <option value="Manager">Manager</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                            <Activity size={14} className="text-brand-teal" /> Status
+                                        </label>
+                                        <select
+                                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                            value={currentPerson?.status || 'Active'}
+                                            onChange={e => setCurrentPerson({ ...currentPerson, status: e.target.value as any })}
+                                        >
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
                             )}
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                    <ExternalLink size={14} className="text-brand-teal" /> Certs Folder Link
+                                </label>
+                                <Input
+                                    placeholder="e.g. OneDrive or Google Drive URL"
+                                    value={currentPerson?.sharedFolderLink || ''}
+                                    onChange={e => setCurrentPerson({ ...currentPerson, sharedFolderLink: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Profile Photo</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-full bg-brand-teal/10 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center text-brand-teal">
+                                        {currentPerson?.image ? (
+                                            <img src={currentPerson.image} alt="Preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Camera size={24} />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 space-y-1">
+                                        <Input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            className="h-9 text-xs cursor-pointer"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => setCurrentPerson({ ...currentPerson, image: reader.result as string });
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                        <p className="text-[10px] text-gray-400">JPG, PNG allowed. Max 2MB.</p>
+                                    </div>
+                                </div>
+                            </div>
 
                             {renderCertifications()}
 
@@ -253,14 +371,25 @@ export default function Personnel() {
         </div>
 
         {/* Personnel List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredPersonnel.map(person => (
-                    <div key={person.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft relative group">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPersonnel.map(person => {
+                const assignedProject = projects.find(p => p.assignedPersonnel?.includes(person.id));
+                
+                return (
+                    <div key={person.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft relative group flex flex-col">
                         <div className="flex justify-between items-start mb-4">
-                            <div className="w-12 h-12 bg-brand-teal/10 text-brand-teal rounded-full flex items-center justify-center font-bold text-lg">
-                                {person.name.charAt(0)}
+                            <div className="relative">
+                                <div className={`w-14 h-14 rounded-full overflow-hidden border-2 shadow-sm flex items-center justify-center font-bold text-lg ${person.status === 'Active' ? 'border-brand-teal/20 bg-brand-teal/10' : 'border-gray-200 bg-gray-100 gray-400'}`}>
+                                    {person.image ? (
+                                        <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className={person.status === 'Active' ? 'text-brand-teal' : 'text-gray-400'}>{person.name.charAt(0)}</span>
+                                    )}
+                                </div>
+                                <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white shadow-sm ${person.status === 'Active' ? 'bg-status-success' : 'bg-gray-300'}`} />
                             </div>
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-2">
+                                <RoleIcon role={person.appRole} />
                                 <button onClick={() => openEdit(person)} className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors">
                                     <Edit2 size={16} />
                                 </button>
@@ -272,8 +401,42 @@ export default function Personnel() {
                             </div>
                         </div>
 
-                        <h3 className="text-lg font-bold text-accent-greyDark mb-1">{person.name}</h3>
-                        <p className="text-sm text-gray-500 mb-4">{person.position}</p>
+                        <h3 className="text-lg font-bold text-accent-greyDark mb-0.5 truncate">{person.name}</h3>
+                        <p className="text-xs font-bold text-brand-teal mb-3">{person.position}</p>
+                        
+                        <div className="space-y-2 mb-5">
+                            <p className="text-xs text-gray-500 flex items-center gap-2">
+                                <Shield size={12} className="text-gray-300" />
+                                <span className="font-semibold">{person.appRole || 'Tech'}</span>
+                            </p>
+                            {person.email && (
+                                <p className="text-xs text-gray-500 flex items-center gap-2 truncate">
+                                    <FilePlus size={12} className="text-gray-300" />
+                                    {person.email}
+                                </p>
+                            )}
+                            {person.phoneNumber && person.phoneNumber !== '-' && (
+                                <p className="text-xs text-gray-500 flex items-center gap-2 truncate">
+                                    <Activity size={12} className="text-gray-300" />
+                                    {person.phoneNumber}
+                                </p>
+                            )}
+                        </div>
+
+                        {assignedProject ? (
+                            <div className="p-3 bg-brand-teal/5 rounded-xl border border-brand-teal/10 mb-4">
+                                <p className="text-[10px] font-bold text-brand-teal uppercase mb-1 flex items-center gap-1">
+                                    <FolderGit2 size={10} /> Currently Assigned
+                                </p>
+                                <p className="text-xs font-bold text-accent-greyDark truncate">{assignedProject.name}</p>
+                            </div>
+                        ) : (
+                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 mb-4 border-dashed">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                                    <Plus size={10} /> Unassigned
+                                </p>
+                            </div>
+                        )}
 
                         <div className="flex flex-col gap-2 mt-auto">
                             {person.certifications && person.certifications.length > 0 && (
@@ -294,28 +457,13 @@ export default function Personnel() {
                                     </div>
                                 </div>
                             )}
-                            <div className="flex flex-wrap gap-2">
-                                <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${
-                                    person.appRole === 'Customer' ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-blue-50 text-blue-700 border border-blue-100'
-                                }`}>
-                                    {person.appRole === 'Customer' ? 'CUSTOMER' : 'INTERNAL STAFF'}
-                                </span>
-                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold font-mono border border-gray-200">
-                                    ID: {person.employeeNumber}
-                                </span>
-                                <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${
-                                    person.appRole === 'Manager' ? 'bg-purple-100 text-purple-700' :
-                                    person.appRole === 'Supervisor' ? 'bg-brand-teal/10 text-brand-teal' :
-                                    person.appRole === 'Customer' ? 'bg-orange-100 text-orange-700' :
-                                    'bg-blue-100 text-blue-700'
-                                }`}>
-                                    <Shield size={10} />
-                                    {person.appRole || 'Tech'}
-                                </span>
-                            </div>
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold font-mono border border-gray-200 w-fit">
+                                #{person.employeeNumber}
+                            </span>
                         </div>
                     </div>
-                ))}
+                );
+            })}
 
                 {filteredPersonnel.length === 0 && (
                     <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-2xl border border-gray-100 border-dashed">
@@ -340,31 +488,116 @@ export default function Personnel() {
                                 onChange={e => setCurrentPerson({ ...currentPerson, name: e.target.value })}
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-accent-greyDark">Job Title / Position</label>
-                            <Input
-                                value={currentPerson?.position || ''}
-                                onChange={e => setCurrentPerson({ ...currentPerson, position: e.target.value })}
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-accent-greyDark">Job Title / Position</label>
+                                <Input
+                                    value={currentPerson?.position || ''}
+                                    onChange={e => setCurrentPerson({ ...currentPerson, position: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                    <FolderGit2 size={14} className="text-brand-teal" /> Employee ID
+                                </label>
+                                <Input
+                                    value={currentPerson?.employeeNumber || ''}
+                                    onChange={e => setCurrentPerson({ ...currentPerson, employeeNumber: e.target.value })}
+                                />
+                            </div>
                         </div>
 
                         {isManager && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
-                                    <Shield size={14} className="text-brand-teal" /> App Access Role
-                                </label>
-                                <select
-                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
-                                    value={currentPerson?.appRole || 'Tech'}
-                                    onChange={e => setCurrentPerson({ ...currentPerson, appRole: e.target.value as any })}
-                                >
-                                    <option value="Tech">Tech</option>
-                                    <option value="Supervisor">Supervisor</option>
-                                    <option value="Manager">Manager</option>
-                                    <option value="Customer">Customer</option>
-                                </select>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                        <Shield size={14} className="text-brand-teal" /> App Role
+                                    </label>
+                                    <select
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                        value={currentPerson?.appRole || 'Tech'}
+                                        onChange={e => setCurrentPerson({ ...currentPerson, appRole: e.target.value as any })}
+                                    >
+                                        <option value="Tech">Tech</option>
+                                        <option value="Supervisor">Supervisor</option>
+                                        <option value="Manager">Manager</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                        <Activity size={14} className="text-brand-teal" /> Status
+                                    </label>
+                                    <select
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                        value={currentPerson?.status || 'Active'}
+                                        onChange={e => setCurrentPerson({ ...currentPerson, status: e.target.value as any })}
+                                    >
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
                             </div>
                         )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-accent-greyDark">Email Address</label>
+                                <Input
+                                    type="email"
+                                    placeholder="john.doe@latnovva.com"
+                                    value={currentPerson?.email || ''}
+                                    onChange={e => setCurrentPerson({ ...currentPerson, email: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-accent-greyDark">Phone Number</label>
+                                <Input
+                                    placeholder="e.g. 956-280-8290"
+                                    value={currentPerson?.phoneNumber || ''}
+                                    onChange={e => setCurrentPerson({ ...currentPerson, phoneNumber: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
+                                <ExternalLink size={14} className="text-brand-teal" /> Certs Folder Link
+                            </label>
+                            <Input
+                                placeholder="e.g. OneDrive or Google Drive URL"
+                                value={currentPerson?.sharedFolderLink || ''}
+                                onChange={e => setCurrentPerson({ ...currentPerson, sharedFolderLink: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Profile Photo</label>
+                             <div className="flex items-center gap-4">
+                                 <div className="w-16 h-16 rounded-full bg-brand-teal/10 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center text-brand-teal">
+                                     {currentPerson?.image ? (
+                                         <img src={currentPerson.image} alt="Preview" className="w-full h-full object-cover" />
+                                     ) : (
+                                         <Camera size={24} />
+                                     )}
+                                 </div>
+                                 <div className="flex-1 space-y-1">
+                                     <Input 
+                                         type="file" 
+                                         accept="image/*" 
+                                         className="h-9 text-xs cursor-pointer"
+                                         onChange={e => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const reader = new FileReader();
+                                                 reader.onloadend = () => setCurrentPerson({ ...currentPerson, image: reader.result as string });
+                                                 reader.readAsDataURL(file);
+                                             }
+                                         }}
+                                     />
+                                     <p className="text-[10px] text-gray-400">Change profile picture.</p>
+                                 </div>
+                             </div>
+                         </div>
 
                         {renderCertifications()}
 

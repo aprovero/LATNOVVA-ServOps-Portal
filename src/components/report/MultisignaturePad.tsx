@@ -31,7 +31,12 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
                     return (
                         <div key={role} className={`border rounded-2xl p-4 flex flex-col ${existing ? 'bg-gray-50 border-status-success/30' : 'bg-surface border-gray-200'}`}>
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-accent-greyDark text-sm uppercase tracking-wide">{role}</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-accent-greyDark text-xs uppercase tracking-widest">{role}</h3>
+                                    {existing && role === 'Management' && (
+                                        <span className="text-[9px] font-bold text-white bg-brand-teal px-1.5 py-0.5 rounded-sm animate-pulse">Approved</span>
+                                    )}
+                                </div>
                                 {existing && <Lock size={14} className="text-status-success shrink-0" />}
                             </div>
 

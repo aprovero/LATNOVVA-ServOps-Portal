@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { useStore, ScheduledEvent } from '../store/useStore';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { User, Wrench, Folder, AlertCircle, FileText } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
 export default function Calendar() {
-    const { events, addEvent, deleteEvent, projects, personnel, tools } = useStore();
+    const { events, addEvent, deleteEvent, projects, personnel, tools, reports } = useStore();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     // Form state
     const [newEvent, setNewEvent] = useState<Partial<ScheduledEvent>>({
-        title: '', date: format(new Date(), 'yyyy-MM-dd'), type: 'Project'
+        title: '', 
+        startDate: format(new Date(), 'yyyy-MM-dd'), 
+        endDate: format(new Date(), 'yyyy-MM-dd'),
+        type: 'Project'
     });
 
     const monthStart = startOfMonth(currentDate);
@@ -24,19 +28,52 @@ export default function Calendar() {
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
     const handleAddEvent = () => {
-        if (!newEvent.title || !newEvent.date) return;
+        if (!newEvent.title || !newEvent.startDate) return;
         addEvent({
             id: `EVT-${Date.now()}`,
             title: newEvent.title,
-            date: newEvent.date,
+            startDate: newEvent.startDate,
+            endDate: newEvent.endDate || newEvent.startDate,
             type: newEvent.type as any,
             projectId: newEvent.projectId,
             personnelId: newEvent.personnelId,
             toolId: newEvent.toolId,
         });
         setIsAddModalOpen(false);
-        setNewEvent({ title: '', date: format(currentDate, 'yyyy-MM-dd'), type: 'Project' });
+        setNewEvent({ 
+            title: '', 
+            startDate: format(currentDate, 'yyyy-MM-dd'), 
+            endDate: format(currentDate, 'yyyy-MM-dd'),
+            type: 'Project' 
+        });
     };
+
+    const checkConflicts = (event: Partial<ScheduledEvent>) => {
+        if (!event.startDate || !event.endDate) return [];
+        const start = parseISO(event.startDate);
+        const end = parseISO(event.endDate);
+        const conflicts: string[] = [];
+
+        events.forEach(e => {
+            const eStart = parseISO(e.startDate);
+            const eEnd = parseISO(e.endDate);
+            const isOverlap = isWithinInterval(eStart, { start, end }) || 
+                              isWithinInterval(eEnd, { start, end }) ||
+                              (eStart <= start && eEnd >= end);
+
+            if (isOverlap) {
+                if (event.personnelId && e.personnelId === event.personnelId) {
+                    conflicts.push(`Personnel conflict with "${e.title}"`);
+                }
+                if (event.toolId && e.toolId === event.toolId) {
+                    conflicts.push(`Tool conflict with "${e.title}"`);
+                }
+            }
+        });
+        return [...new Set(conflicts)];
+    };
+
+    const currentConflicts = checkConflicts(newEvent);
 
     return (
         <div className="space-y-6">
@@ -82,14 +119,25 @@ export default function Calendar() {
                                         className="rounded-xl"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark block">Date</label>
-                                    <Input
-                                        type="date"
-                                        value={newEvent.date}
-                                        onChange={e => setNewEvent({ ...newEvent, date: e.target.value })}
-                                        className="rounded-xl"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark block">Start Date</label>
+                                        <Input
+                                            type="date"
+                                            value={newEvent.startDate}
+                                            onChange={e => setNewEvent({ ...newEvent, startDate: e.target.value })}
+                                            className="rounded-xl"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark block">End Date</label>
+                                        <Input
+                                            type="date"
+                                            value={newEvent.endDate}
+                                            onChange={e => setNewEvent({ ...newEvent, endDate: e.target.value })}
+                                            className="rounded-xl"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-accent-greyDark block">Type</label>
@@ -136,8 +184,20 @@ export default function Calendar() {
                                         {tools.map(t => <option key={t.id} value={t.id}>{t.name} (SN: {t.serialNumber})</option>)}
                                     </select>
                                 </div>
+                                {currentConflicts.length > 0 && (
+                                    <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
+                                        <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                                        <div className="space-y-1">
+                                            <p className="text-[11px] font-bold text-amber-700 uppercase tracking-widest">Scheduling Conflict Detected</p>
+                                            {currentConflicts.map((c, i) => (
+                                                <p key={i} className="text-xs text-amber-600">{c}</p>
+                                            ))}
+                                            <p className="text-[10px] text-amber-500 italic mt-1 font-medium">This is a soft warning. You can still save the event.</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddEvent}>
-                                    Save Event
+                                    Schedule Event
                                 </Button>
                             </div>
                         </DialogContent>
@@ -155,27 +215,78 @@ export default function Calendar() {
                 </div>
                 <div className="grid grid-cols-7 auto-rows-[120px]">
                     {days.map((day, idx) => {
-                        const dayEvents = events.filter(e => e.date === format(day, 'yyyy-MM-dd'));
+                        const dayStr = format(day, 'yyyy-MM-dd');
+                        const dayEvents = events.filter(e => {
+                            const start = e.startDate;
+                            const end = e.endDate || e.startDate;
+                            return dayStr >= start && dayStr <= end;
+                        });
+                        const dayReports = reports.filter(r => r.date === dayStr && r.activityLogs && r.activityLogs.length > 0);
                         const isCurrentMonth = isSameMonth(day, currentDate);
                         const isToday = isSameDay(day, new Date());
 
                         return (
-                            <div key={idx} className={`border-b border-r border-gray-100 p-2 relative transition-colors hover:bg-gray-50/50 ${!isCurrentMonth ? 'bg-gray-50/30' : ''}`}>
-                                <div className={`text-xs font-bold mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-brand-teal text-white' : isCurrentMonth ? 'text-gray-700' : 'text-gray-400'}`}>
+                            <div key={idx} className={`border-b border-r border-gray-100 p-1 relative transition-colors hover:bg-gray-50/50 flex flex-col ${!isCurrentMonth ? 'bg-gray-50/10' : ''}`}>
+                                <div className={`text-[10px] font-bold mb-1 w-5 h-5 flex items-center justify-center rounded-full ${isToday ? 'bg-brand-teal text-white shadow-soft' : isCurrentMonth ? 'text-gray-700' : 'text-gray-300'}`}>
                                     {format(day, 'd')}
                                 </div>
-                                <div className="space-y-1 overflow-y-auto max-h-[80px] hide-scrollbar">
-                                    {dayEvents.map(evt => (
-                                        <div key={evt.id} className={`text-[10px] px-2 py-1 rounded-md truncate font-semibold cursor-default group relative ${evt.type === 'Project' ? 'bg-blue-50 text-blue-700 border border-blue-100' : evt.type === 'Maintenance' ? 'bg-orange-50 text-orange-700 border border-orange-100' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
-                                            {evt.title}
-                                            <button
-                                                onClick={() => deleteEvent(evt.id)}
-                                                className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ))}
+                                <div className="space-y-0.5 overflow-y-auto flex-1 hide-scrollbar pb-1 flex flex-col gap-0.5">
+                                    {dayEvents.map(evt => {
+                                        const isEventStart = dayStr === evt.startDate;
+                                        const isEventEnd = dayStr === (evt.endDate || evt.startDate);
+                                        const projectData = projects.find(p => p.id === evt.projectId);
+                                        const personnelData = personnel.find(p => p.id === evt.personnelId);
+
+                                        let styleClasses = '';
+                                        if (evt.type === 'Project') {
+                                            styleClasses = 'bg-blue-50/80 text-blue-800 border-blue-400';
+                                        } else if (evt.type === 'Maintenance') {
+                                            styleClasses = 'bg-amber-50/80 text-amber-800 border-amber-400';
+                                        } else {
+                                            styleClasses = 'bg-gray-100 text-gray-700 border-gray-300';
+                                        }
+
+                                        const roundedLeft = isEventStart ? 'rounded-l-md border-l-2 ml-0 pl-1.5' : '-ml-1 pl-2 border-l-0 rounded-l-none';
+                                        const roundedRight = isEventEnd ? 'rounded-r-md mr-0' : '-mr-1 rounded-r-none';
+
+                                        return (
+                                            <div key={evt.id} className={`text-[9px] py-0.5 truncate font-bold cursor-default group relative ${styleClasses} ${roundedLeft} ${roundedRight}`}>
+                                                <span className="flex items-center gap-1">
+                                                    {isEventStart && (evt.type === 'Project' ? <Folder size={8} className="shrink-0" /> : evt.type === 'Maintenance' ? <Wrench size={8} className="shrink-0" /> : null)}
+                                                    {isEventStart ? evt.title : <span className="opacity-0">.</span>}
+                                                </span>
+                                                {isEventStart && (
+                                                    <div className="flex flex-col gap-0.5 mt-0.5 border-t border-black/5 pt-0.5">
+                                                        {projectData && <span className="text-[7px] text-gray-500 uppercase tracking-tighter opacity-80 italic">{projectData.name}</span>}
+                                                        {personnelData && <span className="text-[7px] text-blue-700 flex items-center gap-0.5 uppercase tracking-tighter font-bold"><User size={6} className="shrink-0" /> {personnelData.name.split(' ')[0]}</span>}
+                                                    </div>
+                                                )}
+                                                {isEventStart && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); deleteEvent(evt.id); }}
+                                                        className="absolute right-0 top-0 bottom-0 px-1 opacity-0 group-hover:opacity-100 bg-red-500/20 text-red-600 hover:bg-red-500 hover:text-white transition-all text-xs"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    
+                                    {dayReports.map(rep => {
+                                        const projectData = projects.find(p => p.id === rep.projectId);
+                                        return (
+                                            <div key={`rep-${rep.id}`} className="text-[9px] px-1.5 py-0.5 rounded-md truncate font-bold cursor-default group relative border-l-2 bg-emerald-50/80 text-emerald-800 border-emerald-400 mt-0.5">
+                                                <span className="flex items-center gap-1">
+                                                    <FileText size={8} className="shrink-0" />
+                                                    Report {rep.id.slice(-4)}
+                                                </span>
+                                                <div className="flex flex-col gap-0.5 mt-0.5 border-t border-black/5 pt-0.5">
+                                                    {projectData && <span className="text-[7px] text-emerald-600 uppercase tracking-tighter opacity-80 italic">{projectData.name}</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )

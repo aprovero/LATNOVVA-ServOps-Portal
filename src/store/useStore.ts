@@ -43,7 +43,10 @@ export interface ReportOccurrence {
 export interface ReportChecklist {
     id: string;
     item: string;
-    status: 'Matches' | 'Does not match' | 'N/A' | 'Unchecked';
+    status: 'Pass' | 'Fail' | 'Yes' | 'No' | 'N/A' | 'Unchecked';
+    responseType?: 'Pass/Fail' | 'Yes/No';
+    attachmentUrl?: string; // For external/paper checklist proof
+    notes?: string;
 }
 
 export interface ChecklistGroup {
@@ -51,6 +54,7 @@ export interface ChecklistGroup {
     title: string;
     locked: boolean;
     items: ReportChecklist[];
+    attachmentUrl?: string; // For paper checklist scan or group evidence
 }
 
 export interface ReportSignature {
@@ -89,11 +93,12 @@ export interface Report {
     }[];
     customSections: CustomSection[];
     comments: ReportComment[];
-    labor?: { id: string; personnelId?: string; role: string; qty: number; timeIn?: string; timeOut?: string; hours: number; type?: 'On Site' | 'Travel' | 'Other'; isOutsourced?: boolean }[];
+    labor?: { id: string; personnelId?: string; outsourcedName?: string; role: string; qty: number; timeIn?: string; timeOut?: string; hours: number; type?: 'On Site' | 'Travel' | 'Other'; isOutsourced?: boolean }[];
     media?: { id: string; url: string; caption: string }[];
     occurrences?: ReportOccurrence[];
     checklists?: ChecklistGroup[];
     subReportIds?: string[];
+    attachments?: { id: string; url: string; name: string }[];
     notes: string;
     signatures?: ReportSignature[];
     usedTools?: string[]; // IDs of tools used in this report
@@ -131,10 +136,14 @@ export interface Personnel {
     position: string;
     employeeNumber: string;
     email?: string;
+    image?: string; // Profile picture URL or base64
+    status: 'Active' | 'Inactive';
+    sharedFolderLink?: string; // Link to certifications folder
     certifications: Certification[];
     appRole?: 'Tech' | 'Supervisor' | 'Manager' | 'Customer';
     supervisorId?: string;
     managerId?: string;
+    phoneNumber?: string;
 }
 
 export interface ChecklistTemplate {
@@ -143,10 +152,17 @@ export interface ChecklistTemplate {
     items: string[];
 }
 
+export interface ScopeTemplateActivity {
+    id: string;
+    title: string;
+    steps: string[];
+    expectedDays: number;
+}
+
 export interface ScopeTemplate {
     id: string;
     name: string;
-    activities: string[];
+    activities: ScopeTemplateActivity[];
 }
 
 export type SubReportFieldType = 'text' | 'number' | 'checkbox' | 'picture';
@@ -179,7 +195,8 @@ export interface SubReportInstance {
 export interface ScheduledEvent {
     id: string;
     title: string;
-    date: string; // ISO yyyy-mm-dd format
+    startDate: string; // ISO yyyy-mm-dd format
+    endDate: string;   // ISO yyyy-mm-dd format
     type: 'Project' | 'Maintenance' | 'Other';
     personnelId?: string;
     projectId?: string;
@@ -226,6 +243,9 @@ export interface ProjectActivity {
     status: 'Pending' | 'In Progress' | 'Completed';
     progress: number; // 0-100%
     expectedHours?: number;
+    startDate?: string; // ISO yyyy-mm-dd
+    expectedDays?: number;
+    steps: { name: string; completed: boolean }[];
 }
 
 export interface ProjectScope {
@@ -245,6 +265,7 @@ export interface Project {
     scopes: ProjectScope[];
     assignedPersonnel?: string[];
     location?: string;
+    locationValidated?: boolean;
     projectSize?: string;
     systemType?: 'Solar' | 'BESS' | 'Hybrid' | 'Other' | string;
     codeName?: string;
@@ -308,7 +329,10 @@ interface AppState {
     clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean) => void;
     assignSupervisor: (personnelId: string, supervisorId?: string, managerId?: string) => void;
     addScopeToProject: (projectId: string, scope: ProjectScope) => void;
+    updateProjectScope: (projectId: string, scopeId: string, updates: Partial<ProjectScope>) => void;
+    deleteProjectScope: (projectId: string, scopeId: string) => void;
     addActivityToScope: (projectId: string, scopeId: string, activity: ProjectActivity) => void;
+    deleteProjectActivity: (projectId: string, scopeId: string, activityId: string) => void;
     updateActivityProgress: (projectId: string, scopeId: string, activityId: string, updates: Partial<ProjectActivity>) => void;
 }
 
@@ -334,12 +358,18 @@ export const useStore = create<AppState>()(
                 {
                     id: 'STPL-001',
                     name: 'Civil Works Default',
-                    activities: ['Site Preparation', 'Trenching', 'Mounting Structures', 'Fencing']
+                    activities: [
+                        { id: 'act-1', title: 'Site Preparation', steps: ['Clearing', 'Leveling'], expectedDays: 5 },
+                        { id: 'act-2', title: 'Trenching', steps: ['Marking', 'Digging'], expectedDays: 10 }
+                    ]
                 },
                 {
                     id: 'STPL-002',
                     name: 'Commissioning Standard',
-                    activities: ['Cold Commissioning', 'Hot Commissioning', 'Performance Testing', 'Handover']
+                    activities: [
+                        { id: 'act-3', title: 'Cold Commissioning', steps: ['Visual Check', 'Continuity'], expectedDays: 3 },
+                        { id: 'act-4', title: 'Hot Commissioning', steps: ['Power on', 'Functional'], expectedDays: 7 }
+                    ]
                 }
             ],
             subReportTemplates: [
@@ -359,7 +389,8 @@ export const useStore = create<AppState>()(
                 {
                     id: 'EVT-001',
                     title: 'Beta Commissioning',
-                    date: new Date().toISOString().split('T')[0],
+                    startDate: new Date().toISOString().split('T')[0],
+                    endDate: new Date().toISOString().split('T')[0],
                     type: 'Project',
                     projectId: 'PROJ-BETA'
                 }
@@ -596,6 +627,36 @@ export const useStore = create<AppState>()(
                         }
                         return p;
                     })
+                })),
+            updateProjectScope: (projectId, scopeId, updates) =>
+                set((state) => ({
+                    projects: state.projects.map((p) => 
+                        p.id === projectId ? {
+                            ...p,
+                            scopes: p.scopes.map(s => s.id === scopeId ? { ...s, ...updates } : s)
+                        } : p
+                    )
+                })),
+            deleteProjectScope: (projectId, scopeId) =>
+                set((state) => ({
+                    projects: state.projects.map((p) => 
+                        p.id === projectId ? {
+                            ...p,
+                            scopes: p.scopes.filter(s => s.id !== scopeId)
+                        } : p
+                    )
+                })),
+            deleteProjectActivity: (projectId, scopeId, activityId) =>
+                set((state) => ({
+                    projects: state.projects.map((p) => 
+                        p.id === projectId ? {
+                            ...p,
+                            scopes: p.scopes.map(s => s.id === scopeId ? {
+                                ...s,
+                                activities: s.activities.filter(a => a.id !== activityId)
+                            } : s)
+                        } : p
+                    )
                 })),
             updateActivityProgress: (projectId, scopeId, activityId, updates) =>
                 set((state) => ({

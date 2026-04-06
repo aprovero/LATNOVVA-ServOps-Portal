@@ -47,6 +47,7 @@ export default function Layout() {
     const [newProjectSize, setNewProjectSize] = useState('');
     const [newProjectSystemType, setNewProjectSystemType] = useState('Solar');
     const [newlyCreatedProject, setNewlyCreatedProject] = useState<Project | null>(null);
+    const [isPreviewMapOpen, setIsPreviewMapOpen] = useState(false);
     const [newReportProject, setNewReportProject] = useState('');
     const [newReportDate, setNewReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [newReportCompany, setNewReportCompany] = useState('');
@@ -602,7 +603,19 @@ export default function Layout() {
                                     className="flex-1"
                                 />
                                 <Button type="button" variant="outline" onClick={handleGetGPS} className="px-3" title="Get Current GPS Location">
-                                    <MapPin size={18} className="text-brand-teal" />
+                                    <Fingerprint size={18} className="text-emerald-500" />
+                                </Button>
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    onClick={() => {
+                                        if (newProjectLocation.trim()) setIsPreviewMapOpen(true);
+                                    }} 
+                                    className={`px-3 ${newProjectLocation.trim() ? 'border-brand-teal text-brand-teal bg-brand-teal/5' : ''}`}
+                                    title="Validate on Map"
+                                    disabled={!newProjectLocation.trim()}
+                                >
+                                    <MapIcon size={18} />
                                 </Button>
                             </div>
                             {locationError && <p className="text-xs text-red-500 font-medium">{locationError}</p>}
@@ -699,6 +712,46 @@ export default function Layout() {
                     project={newlyCreatedProject} 
                 />
             )}
+
+            <Dialog open={isPreviewMapOpen} onOpenChange={setIsPreviewMapOpen}>
+                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl border-none">
+                    <div className="bg-brand-teal p-4 text-white flex items-center justify-between">
+                        <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+                            <MapIcon className="w-5 h-5" />
+                            Location Validation
+                        </DialogTitle>
+                    </div>
+                    <div className="p-4 bg-white space-y-4">
+                        <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <MapPin className="text-brand-teal shrink-0 mt-0.5" size={18} />
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">Previewing Location</p>
+                                <p className="accent-greyDark font-medium text-sm">{newProjectLocation}</p>
+                            </div>
+                        </div>
+
+                        <div className="w-full h-[350px] rounded-xl overflow-hidden border border-gray-200 shadow-inner bg-gray-50">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                style={{ border: 0 }}
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(newProjectLocation)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                allowFullScreen
+                            />
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-2">
+                            <p className="text-[10px] text-gray-400 italic font-medium max-w-[250px]">
+                                Confirm the pin matches your equipment's site location.
+                            </p>
+                            <div className="flex gap-3">
+                                <Button variant="outline" onClick={() => setIsPreviewMapOpen(false)}>Close Preview</Button>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

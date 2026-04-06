@@ -115,7 +115,8 @@ export default function ReportEditor() {
             subReportIds,
             signatures,
             usedTools,
-            activityLogs
+            activityLogs,
+            externalAttachments: (report as any).externalAttachments || []
         });
 
         // Update project activity progress based on the logged activities
@@ -315,6 +316,79 @@ export default function ReportEditor() {
                 <MediaGrid media={media} onChange={setMedia} readOnly={!canEditFields} />
             </div>
 
+            {/* External / Managed Attachments */}
+            {(isManager || isSupervisor || (report as any).externalAttachments?.length > 0) && (
+                <div className="editor-fade card-container">
+                    <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2 mb-6">
+                        <FilePlus size={24} className="text-brand-teal" /> Supporting Documents
+                    </h2>
+                    <div className="space-y-3">
+                        {((report as any).externalAttachments || []).map((att: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white rounded-lg border border-gray-100 shadow-sm">
+                                        <FileText size={20} className="text-brand-teal" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-accent-greyDark text-sm">{att.name}</p>
+                                        <p className="text-[10px] text-gray-400 font-mono uppercase tracking-widest">{att.type} • {att.size}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <a href={att.url} target="_blank" rel="noreferrer" className="btn-secondary h-9 px-3 text-xs bg-white">View</a>
+                                    {(isManager || isSupervisor) && report.state !== 'Closed' && (
+                                        <button 
+                                            onClick={() => {
+                                                const newAtts = (report as any).externalAttachments.filter((_: any, i: number) => i !== idx);
+                                                updateReport(report.id, { externalAttachments: newAtts } as any);
+                                            }}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {(isManager || isSupervisor) && report.state !== 'Closed' && (
+                            <div className="flex items-center gap-4 p-4 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                                <FilePlus size={32} className="text-gray-300" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-accent-greyDark">Upload Reference File</p>
+                                    <p className="text-xs text-gray-400">Attach PDFs, site photos, or client check-ins.</p>
+                                </div>
+                                <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    id="ext-att-upload" 
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                const newAtt = {
+                                                    name: file.name,
+                                                    type: file.type,
+                                                    size: `${(file.size / 1024).toFixed(1)} KB`,
+                                                    url: reader.result as string
+                                                };
+                                                const currentAtts = (report as any).externalAttachments || [];
+                                                updateReport(report.id, { externalAttachments: [...currentAtts, newAtt] } as any);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                />
+                                <label htmlFor="ext-att-upload" className="btn-primary h-10 px-6 text-sm cursor-pointer whitespace-nowrap">Choose File</label>
+                            </div>
+                        )}
+                        {(!(report as any).externalAttachments?.length && !isManager && !isSupervisor) && (
+                            <p className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-xl">No supporting documents attached.</p>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Dynamic Report Builder */}
             <div className="editor-fade card-container">
                 <div className="flex items-center justify-between mb-6">
@@ -465,8 +539,8 @@ export default function ReportEditor() {
                                 <Ban size={18} /> Reject & Return to Draft
                             </button>
                             <button onClick={() => {
-                                if (!signatures.some(s => s.role === 'Supervisor') || !signatures.some(s => s.role === 'Management')) {
-                                    alert('Both Tech/Supervisor and Management signatures are required before sending to the Customer.');
+                                if (!signatures.some(s => s.role === 'Supervisor')) {
+                                    alert('A Tech or Supervisor signature is required before sending to the Customer.');
                                     return;
                                 }
                                 handleChangeState('Pending Customer Review');
@@ -523,3 +597,6 @@ export default function ReportEditor() {
         </div>
     );
 }
+
+import { FilePlus } from 'lucide-react';
+import { Input } from '../components/ui/input';

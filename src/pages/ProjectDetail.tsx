@@ -3,12 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import {
     MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText,
-    BarChart2, Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2
+    BarChart2, Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2, Map
 } from 'lucide-react';
 import { ManageScopesModal } from '../components/project/ManageScopesModal';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog';
 
 export default function ProjectDetail() {
     const { id } = useParams<{ id: string }>();
@@ -17,7 +18,7 @@ export default function ProjectDetail() {
 
     const project = projects.find(p => p.id === id);
     const client = clients.find(c => c.id === project?.clientId);
-    const projectReports = reports.filter(r => r.projectId === id).sort((a, b) => b.date.localeCompare(a.date));
+    const allProjectReports = reports.filter(r => r.projectId === id).sort((a, b) => b.date.localeCompare(a.date));
     const projectHours = timesheets.filter(t => t.projectId === id).reduce((sum, t) => sum + t.hours, 0);
 
     // Edit mode
@@ -33,10 +34,16 @@ export default function ProjectDetail() {
     const [editOandM, setEditOandM] = useState('');
     const [editPointOfContact, setEditPointOfContact] = useState('');
     const [editNotes, setEditNotes] = useState('');
+    const [isPreviewMapOpen, setIsPreviewMapOpen] = useState(false);
+    const [locationError, setLocationError] = useState('');
 
     // Personnel picklist
     const [personnelSearch, setPersonnelSearch] = useState('');
     const [isAddingPersonnel, setIsAddingPersonnel] = useState(false);
+
+    // Reports filter
+    const [filterReportState, setFilterReportState] = useState<string>('All');
+    const projectReports = allProjectReports.filter(r => filterReportState === 'All' || r.state === filterReportState);
 
     // Modals
     const [manageScopesProject, setManageScopesProject] = useState<any>(null);
@@ -87,6 +94,7 @@ export default function ProjectDetail() {
             name: editName,
             codeName: editCodeName || undefined,
             location: editLocation || undefined,
+            locationValidated: project.location === editLocation ? project.locationValidated : false,
             projectSize: editSize || undefined,
             systemType: editSystemType || undefined,
             status: editStatus,
@@ -97,6 +105,12 @@ export default function ProjectDetail() {
             notes: editNotes || undefined,
         });
         setIsEditing(false);
+    };
+
+    const confirmLocation = () => {
+        if (!project) return;
+        updateProject(project.id, { locationValidated: true });
+        setIsPreviewMapOpen(false);
     };
 
     const togglePersonnel = (persId: string) => {
@@ -164,19 +178,39 @@ export default function ProjectDetail() {
                                 )}
                                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500 font-medium">
                                     {project.location && (
-                                        <span className="flex items-center gap-1.5">
-                                            <MapPin size={14} className="text-brand-teal" /> {project.location}
-                                            <a href={`https://maps.google.com/?q=${encodeURIComponent(project.location)}`} target="_blank" rel="noreferrer" className="text-brand-teal hover:underline ml-1"><ExternalLink size={12} /></a>
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="flex items-center gap-1.5">
+                                                <MapPin size={14} className={project.locationValidated ? "text-brand-teal" : "text-amber-500"} /> 
+                                                <span className={project.locationValidated ? "" : "text-amber-600 font-bold"}>
+                                                    {project.location}
+                                                </span>
+                                                <button 
+                                                    onClick={() => setIsPreviewMapOpen(true)}
+                                                    className="text-brand-teal hover:underline ml-1 flex items-center gap-1"
+                                                >
+                                                    <ExternalLink size={12} />
+                                                    <span className="text-[10px] font-bold uppercase">{project.locationValidated ? 'Map' : 'Verify'}</span>
+                                                </button>
+                                            </span>
+                                            {project.locationValidated ? (
+                                                <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
+                                                    <Check size={10} /> VALIDATED
+                                                </span>
+                                            ) : (
+                                                <span className="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-100 flex items-center gap-1">
+                                                    <AlertCircle size={10} /> NEEDS VALIDATION
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
                                     {project.projectSize && <span>📐 {project.projectSize}</span>}
                                     {project.systemType && <span>⚡ {project.systemType}</span>}
                                     <span className="font-mono text-gray-400">{project.id}</span>
                                 </div>
                                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm mt-3 pt-3 border-t border-gray-100/60">
-                                    {project.epc && <span className="text-gray-600"><span className="text-gray-400">EPC:</span> font-semibold {project.epc}</span>}
-                                    {project.oAndM && <span className="text-gray-600"><span className="text-gray-400">O&M:</span> font-semibold {project.oAndM}</span>}
-                                    {project.pointOfContact && <span className="text-gray-600"><span className="text-gray-400">PoC:</span> font-semibold {project.pointOfContact}</span>}
+                                    {project.epc && <span className="text-gray-600"><span className="text-gray-400">EPC:</span> <span className="font-semibold">{project.epc}</span></span>}
+                                    {project.oAndM && <span className="text-gray-600"><span className="text-gray-400">O&M:</span> <span className="font-semibold">{project.oAndM}</span></span>}
+                                    {project.pointOfContact && <span className="text-gray-600"><span className="text-gray-400">PoC:</span> <span className="font-semibold">{project.pointOfContact}</span></span>}
                                 </div>
                                 {project.notes && (
                                     <p className="mt-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
@@ -217,7 +251,32 @@ export default function ProjectDetail() {
                                 </div>
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="dp-location">Coordinates / Address</Label>
-                                    <Input id="dp-location" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="lat,lng or address" />
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            id="dp-location" 
+                                            value={editLocation} 
+                                            onChange={e => {
+                                                setEditLocation(e.target.value);
+                                                setLocationError('');
+                                            }} 
+                                            placeholder="lat,lng or address" 
+                                            className="flex-1"
+                                        />
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => {
+                                                if (editLocation.trim()) setIsPreviewMapOpen(true);
+                                            }}
+                                            className={`px-3 ${editLocation.trim() ? 'border-brand-teal text-brand-teal bg-brand-teal/5' : ''}`}
+                                            disabled={!editLocation.trim()}
+                                            title="Validate on Map"
+                                        >
+                                            <Map size={16} />
+                                        </Button>
+                                    </div>
+                                    {locationError && <p className="text-[10px] text-red-500 font-medium">{locationError}</p>}
                                 </div>
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="dp-status">Status</Label>
@@ -439,11 +498,25 @@ export default function ProjectDetail() {
                         <FileText size={18} className="text-brand-teal" /> Reports
                         <span className="text-xs bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-full">{projectReports.length}</span>
                     </h2>
-                    <Link to="/reports">
-                        <Button size="sm" className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
-                            <Plus size={14} /> New Report
-                        </Button>
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        <select
+                            className="bg-gray-50 border border-gray-100 text-sm font-medium text-gray-600 rounded-xl px-3 py-1.5 outline-none focus:border-brand-teal/50"
+                            value={filterReportState}
+                            onChange={e => setFilterReportState(e.target.value)}
+                        >
+                            <option value="All">All States</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Pending Manager Review">Pending Manager Review</option>
+                            <option value="Available for Customer Review">Available for Customer Review</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                        <Link to="/reports">
+                            <Button size="sm" className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
+                                <Plus size={14} /> New Report
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {projectReports.length === 0 ? (
@@ -508,6 +581,56 @@ export default function ProjectDetail() {
                     project={manageScopesProject}
                 />
             )}
+
+            <Dialog open={isPreviewMapOpen} onOpenChange={setIsPreviewMapOpen}>
+                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+                    <div className="bg-brand-teal p-5 text-white flex items-center justify-between">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+                            <MapPin className="w-6 h-6" /> Confirm Pin Placement
+                        </DialogTitle>
+                    </div>
+                    <div className="p-6 bg-white space-y-5">
+                        <div className="flex items-start gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                             <div className="w-10 h-10 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal shrink-0">
+                                <Search size={20} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Target Address / Coordinates</p>
+                                <p className="text-accent-greyDark font-bold text-base">{editLocation}</p>
+                            </div>
+                        </div>
+
+                        <div className="w-full h-[350px] rounded-2xl overflow-hidden border border-gray-200 shadow-soft relative group">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                style={{ border: 0 }}
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(editLocation)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                allowFullScreen
+                            />
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                 <div className="w-10 h-10 bg-brand-teal/20 rounded-full flex items-center justify-center animate-ping" />
+                                 <MapPin size={32} className="text-brand-teal drop-shadow-lg absolute" style={{ marginTop: '-32px' }} />
+                            </div>
+                        </div>
+                        
+                        <p className="text-xs text-gray-400 text-center italic bg-gray-50 py-2 rounded-lg border border-dashed border-gray-200">
+                             Confirm that the red pin accurately represents the project's physical location.
+                        </p>
+
+                        <div className="flex gap-4">
+                            <Button variant="outline" onClick={() => setIsPreviewMapOpen(false)} className="flex-1 h-12 rounded-xl text-gray-500 font-bold">Adjust Location</Button>
+                            <Button 
+                                className="flex-1 h-12 rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold gap-2 shadow-soft"
+                                onClick={confirmLocation}
+                            >
+                                <Check size={18} /> Confirm Location Correct
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

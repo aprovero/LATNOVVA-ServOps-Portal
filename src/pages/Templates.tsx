@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Search, CheckSquare, Trash2, ListChecks, FolderGit2, FileText } from 'lucide-react';
-import { useStore, ChecklistTemplate, ScopeTemplate, SubReportTemplate, SubReportFieldType } from '../store/useStore';
+import { Plus, Search, CheckSquare, Trash2, ListChecks, FolderGit2, FileText, Pencil, X, Clock } from 'lucide-react';
+import { useStore, ChecklistTemplate, ScopeTemplate, SubReportTemplate, SubReportFieldType, ScopeTemplateActivity } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import {
@@ -18,6 +18,7 @@ export default function Templates() {
     
     // Checklist State
     const [isAddChecklistOpen, setIsAddChecklistOpen] = useState(false);
+    const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
     const [newChecklist, setNewChecklist] = useState<{ name: string; items: string[] }>({
         name: '',
         items: [''],
@@ -25,55 +26,125 @@ export default function Templates() {
 
     // Scope Template State
     const [isAddScopeOpen, setIsAddScopeOpen] = useState(false);
-    const [newScopeTemplate, setNewScopeTemplate] = useState<{ name: string; activities: string[] }>({
+    const [editingScopeId, setEditingScopeId] = useState<string | null>(null);
+    const [newScopeTemplate, setNewScopeTemplate] = useState<{ name: string; activities: Partial<ScopeTemplateActivity>[] }>({
         name: '',
-        activities: [''],
+        activities: [{ title: '', steps: [''], expectedDays: 1 }],
     });
 
     // Sub-Report Template State
     const [isAddSubReportOpen, setIsAddSubReportOpen] = useState(false);
+    const [editingSubReportId, setEditingSubReportId] = useState<string | null>(null);
     const [newSubReportTemplate, setNewSubReportTemplate] = useState<{ name: string; fields: { name: string; type: SubReportFieldType }[] }>({
         name: '',
         fields: [{ name: '', type: 'text' }],
     });
 
     // --- Checklists Logic ---
+    const { updateTemplate, updateScopeTemplate, updateSubReportTemplate } = useStore();
+
     const handleAddChecklist = () => {
         if (!newChecklist.name.trim() || newChecklist.items.every(i => !i.trim())) return;
-        const template: ChecklistTemplate = {
-            id: `TPL-${Date.now()}`,
-            name: newChecklist.name,
-            items: newChecklist.items.filter(i => i.trim() !== ''),
-        };
-        addTemplate(template);
+        
+        if (editingChecklistId) {
+            updateTemplate(editingChecklistId, {
+                name: newChecklist.name,
+                items: newChecklist.items.filter(i => i.trim() !== '')
+            });
+            setEditingChecklistId(null);
+        } else {
+            const template: ChecklistTemplate = {
+                id: `TPL-${Date.now()}`,
+                name: newChecklist.name,
+                items: newChecklist.items.filter(i => i.trim() !== ''),
+            };
+            addTemplate(template);
+        }
+        
         setNewChecklist({ name: '', items: [''] });
         setIsAddChecklistOpen(false);
     };
 
+    const startEditingChecklist = (template: ChecklistTemplate) => {
+        setEditingChecklistId(template.id);
+        setNewChecklist({ name: template.name, items: [...template.items] });
+        setIsAddChecklistOpen(true);
+    };
+
     // --- Scopes Logic ---
     const handleAddScopeTemplate = () => {
-        if (!newScopeTemplate.name.trim() || newScopeTemplate.activities.every(a => !a.trim())) return;
-        const template: ScopeTemplate = {
-            id: `STPL-${Date.now()}`,
-            name: newScopeTemplate.name,
-            activities: newScopeTemplate.activities.filter(a => a.trim() !== ''),
-        };
-        addScopeTemplate(template);
-        setNewScopeTemplate({ name: '', activities: [''] });
+        if (!newScopeTemplate.name.trim() || newScopeTemplate.activities.every(a => !a.title?.trim())) return;
+        
+        const cleanActivities: ScopeTemplateActivity[] = newScopeTemplate.activities
+            .filter(a => a.title?.trim())
+            .map((a, idx) => ({
+                id: a.id || `S-ACT-${Date.now()}-${idx}`,
+                title: a.title || '',
+                steps: (a.steps || []).filter(s => s.trim() !== ''),
+                expectedDays: a.expectedDays || 1
+            }));
+
+        if (editingScopeId) {
+            updateScopeTemplate(editingScopeId, {
+                name: newScopeTemplate.name,
+                activities: cleanActivities
+            });
+            setEditingScopeId(null);
+        } else {
+            const template: ScopeTemplate = {
+                id: `STPL-${Date.now()}`,
+                name: newScopeTemplate.name,
+                activities: cleanActivities,
+            };
+            addScopeTemplate(template);
+        }
+        
+        setNewScopeTemplate({ name: '', activities: [{ title: '', steps: [''], expectedDays: 1 }] });
         setIsAddScopeOpen(false);
+    };
+
+    const startEditingScope = (template: ScopeTemplate) => {
+        setEditingScopeId(template.id);
+        setNewScopeTemplate({ 
+            name: template.name, 
+            activities: template.activities.map(a => ({ ...a, steps: [...a.steps] })) 
+        });
+        setIsAddScopeOpen(true);
     };
 
     // --- Sub-Reports Logic ---
     const handleAddSubReportTemplate = () => {
         if (!newSubReportTemplate.name.trim() || newSubReportTemplate.fields.length === 0) return;
-        const template: SubReportTemplate = {
-            id: `SRT-${Date.now()}`,
-            name: newSubReportTemplate.name,
-            fields: newSubReportTemplate.fields.map((f, i) => ({ id: `f${i}`, name: f.name || `Field ${i+1}`, type: f.type }))
-        };
-        addSubReportTemplate(template);
+        
+        const cleanFields = newSubReportTemplate.fields.map((f, i) => ({ 
+            id: (f as any).id || `f${i}`, 
+            name: f.name || `Field ${i+1}`, 
+            type: f.type 
+        }));
+
+        if (editingSubReportId) {
+            updateSubReportTemplate(editingSubReportId, {
+                name: newSubReportTemplate.name,
+                fields: cleanFields
+            });
+            setEditingSubReportId(null);
+        } else {
+            const template: SubReportTemplate = {
+                id: `SRT-${Date.now()}`,
+                name: newSubReportTemplate.name,
+                fields: cleanFields
+            };
+            addSubReportTemplate(template);
+        }
+        
         setNewSubReportTemplate({ name: '', fields: [{ name: '', type: 'text' }] });
         setIsAddSubReportOpen(false);
+    };
+
+    const startEditingSubReport = (template: SubReportTemplate) => {
+        setEditingSubReportId(template.id);
+        setNewSubReportTemplate({ name: template.name, fields: [...template.fields] });
+        setIsAddSubReportOpen(true);
     };
 
     // Derived filtering
@@ -136,16 +207,26 @@ export default function Templates() {
             {activeTab === 'scopes' && (
                 <div className="space-y-6">
                     <div className="flex justify-end">
-                        <Dialog open={isAddScopeOpen} onOpenChange={setIsAddScopeOpen}>
-                            <DialogTrigger asChild>
-                                <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
-                                    <Plus size={18} /> Add Scope Template
-                                </Button>
-                            </DialogTrigger>
+                <Dialog open={isAddScopeOpen} onOpenChange={(open) => {
+                    if (!open) {
+                        setIsAddScopeOpen(false);
+                        setEditingScopeId(null);
+                        setNewScopeTemplate({ name: '', activities: [{ title: '', steps: [''], expectedDays: 1 }] });
+                    } else {
+                        setIsAddScopeOpen(true);
+                    }
+                }}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
+                            <Plus size={18} /> Add Scope Template
+                        </Button>
+                    </DialogTrigger>
                             <DialogContent className="sm:max-w-[500px] rounded-2xl p-6">
-                                <DialogHeader>
-                                    <DialogTitle className="text-xl font-bold text-accent-greyDark">Create Scope Template</DialogTitle>
-                                </DialogHeader>
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-bold text-accent-greyDark">
+                                {editingScopeId ? 'Edit Scope Template' : 'Create Scope Template'}
+                            </DialogTitle>
+                        </DialogHeader>
                                 <div className="space-y-6 py-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-accent-greyDark text-left block">Template Name</label>
@@ -156,43 +237,115 @@ export default function Templates() {
                                             className="rounded-xl border-gray-200"
                                         />
                                     </div>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-sm font-semibold text-accent-greyDark text-left block">
-                                                Standard Activities
-                                            </label>
-                                            <Button variant="outline" size="sm" onClick={() => setNewScopeTemplate({ ...newScopeTemplate, activities: [...newScopeTemplate.activities, ''] })} className="h-7 text-xs px-2">
-                                                <Plus size={14} className="mr-1" /> Add Activity
-                                            </Button>
-                                        </div>
-                                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                                            {newScopeTemplate.activities.map((act, index) => (
-                                                <div key={index} className="flex items-center gap-2">
-                                                    <Input
-                                                        placeholder={`Activity ${index + 1}`}
-                                                        value={act}
-                                                        onChange={(e) => {
-                                                            const newActs = [...newScopeTemplate.activities];
-                                                            newActs[index] = e.target.value;
-                                                            setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
-                                                        }}
-                                                        className="rounded-xl border-gray-200"
-                                                    />
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-semibold text-accent-greyDark text-left block">
+                                            Standard Activities & Tasks
+                                        </label>
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => setNewScopeTemplate({ 
+                                                ...newScopeTemplate, 
+                                                activities: [...newScopeTemplate.activities, { title: '', steps: [''], expectedDays: 1 }] 
+                                            })} 
+                                            className="h-7 text-xs px-2"
+                                        >
+                                            <Plus size={14} className="mr-1" /> Add Activity
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                                        {newScopeTemplate.activities.map((act, index) => (
+                                            <div key={index} className="space-y-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group/act">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Activity Title</label>
+                                                        <Input
+                                                            placeholder={`e.g. Electrical Installation`}
+                                                            value={act.title}
+                                                            onChange={(e) => {
+                                                                const newActs = [...newScopeTemplate.activities];
+                                                                newActs[index].title = e.target.value;
+                                                                setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
+                                                            }}
+                                                            className="rounded-xl border-gray-200 h-9"
+                                                        />
+                                                    </div>
+                                                    <div className="w-24 space-y-1">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Days</label>
+                                                        <div className="flex items-center gap-1">
+                                                            <Input
+                                                                type="number"
+                                                                value={act.expectedDays}
+                                                                onChange={(e) => {
+                                                                    const newActs = [...newScopeTemplate.activities];
+                                                                    newActs[index].expectedDays = parseInt(e.target.value) || 1;
+                                                                    setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
+                                                                }}
+                                                                className="rounded-xl border-gray-200 h-9"
+                                                            />
+                                                            <Clock size={14} className="text-gray-400" />
+                                                        </div>
+                                                    </div>
                                                     <button
                                                         onClick={() => {
                                                             const newActs = newScopeTemplate.activities.filter((_, i) => i !== index);
-                                                            setNewScopeTemplate({ ...newScopeTemplate, activities: newActs.length ? newActs : [''] });
+                                                            setNewScopeTemplate({ ...newScopeTemplate, activities: newActs.length ? newActs : [{ title: '', steps: [''], expectedDays: 1 }] });
                                                         }}
-                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        className="mt-5 p-2 text-red-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
-                                            ))}
-                                        </div>
+
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                                                            <ListChecks size={10} /> Sub-steps / Tasks
+                                                        </label>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const newActs = [...newScopeTemplate.activities];
+                                                                newActs[index].steps = [...(newActs[index].steps || []), ''];
+                                                                setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
+                                                            }}
+                                                            className="text-[10px] font-bold text-brand-teal hover:underline"
+                                                        >
+                                                            + Add Step
+                                                        </button>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        {(act.steps || []).map((step, sIdx) => (
+                                                            <div key={sIdx} className="relative group/step">
+                                                                <Input 
+                                                                    placeholder={`Step ${sIdx + 1}`}
+                                                                    value={step}
+                                                                    onChange={(e) => {
+                                                                        const newActs = [...newScopeTemplate.activities];
+                                                                        newActs[index].steps![sIdx] = e.target.value;
+                                                                        setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
+                                                                    }}
+                                                                    className="rounded-lg border-gray-100 h-8 text-xs pr-8"
+                                                                />
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const newActs = [...newScopeTemplate.activities];
+                                                                        newActs[index].steps = newActs[index].steps!.filter((_, i) => i !== sIdx);
+                                                                        setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
+                                                                    }}
+                                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-red-400 opacity-0 group-hover/step:opacity-100 transition-opacity"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                     </div>
                                     <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddScopeTemplate}>
-                                        Save Template
+                                        {editingScopeId ? 'Update Template' : 'Save Template'}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -212,16 +365,28 @@ export default function Templates() {
                                             <p className="text-sm text-gray-400">{template.activities.length} activities</p>
                                         </div>
                                     </div>
-                                    <button className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" onClick={() => deleteScopeTemplate(template.id)}>
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded-lg transition-colors" onClick={() => startEditingScope(template)}>
+                                            <Pencil size={16} />
+                                        </button>
+                                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={() => deleteScopeTemplate(template.id)}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2 flex-1 mt-2">
                                     {template.activities.slice(0, 4).map((item, idx) => (
-                                        <div key={idx} className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                            <div className="mt-0.5 w-3 h-3 border border-gray-300 rounded flex-shrink-0 bg-white"></div>
-                                            <span className="leading-tight">{item}</span>
+                                        <div key={idx} className="flex flex-col gap-1 text-sm bg-gray-50/50 p-2 rounded-xl border border-gray-100">
+                                            <div className="flex items-center gap-2 font-bold text-accent-greyDark">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-brand-teal shrink-0"></div>
+                                                {item.title}
+                                            </div>
+                                            {item.steps.length > 0 && (
+                                                <div className="pl-4 text-[10px] text-gray-400 font-medium">
+                                                    {item.steps.length} steps defined
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                     {template.activities.length > 4 && (
@@ -247,7 +412,15 @@ export default function Templates() {
             {activeTab === 'checklists' && (
                 <div className="space-y-6">
                     <div className="flex justify-end">
-                        <Dialog open={isAddChecklistOpen} onOpenChange={setIsAddChecklistOpen}>
+                        <Dialog open={isAddChecklistOpen} onOpenChange={(open) => {
+                            if (!open) {
+                                setIsAddChecklistOpen(false);
+                                setEditingChecklistId(null);
+                                setNewChecklist({ name: '', items: [''] });
+                            } else {
+                                setIsAddChecklistOpen(true);
+                            }
+                        }}>
                             <DialogTrigger asChild>
                                 <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
                                     <Plus size={18} /> Add Checklist Template
@@ -255,7 +428,9 @@ export default function Templates() {
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[500px] rounded-2xl p-6">
                                 <DialogHeader>
-                                    <DialogTitle className="text-xl font-bold text-accent-greyDark">Create Checklist Template</DialogTitle>
+                                    <DialogTitle className="text-xl font-bold text-accent-greyDark">
+                                        {editingChecklistId ? 'Edit Checklist Template' : 'Create Checklist Template'}
+                                    </DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-6 py-4">
                                     <div className="space-y-2">
@@ -303,7 +478,7 @@ export default function Templates() {
                                         </div>
                                     </div>
                                     <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddChecklist}>
-                                        Save Template
+                                        {editingChecklistId ? 'Update Template' : 'Save Template'}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -323,9 +498,14 @@ export default function Templates() {
                                             <p className="text-sm text-gray-400">{template.items.length} items</p>
                                         </div>
                                     </div>
-                                    <button className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" onClick={() => deleteTemplate(template.id)}>
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded-lg transition-colors" onClick={() => startEditingChecklist(template)}>
+                                            <Pencil size={16} />
+                                        </button>
+                                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={() => deleteTemplate(template.id)}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2 flex-1 mt-2">
@@ -357,7 +537,15 @@ export default function Templates() {
             {activeTab === 'subreports' && (
                 <div className="space-y-6">
                     <div className="flex justify-end">
-                        <Dialog open={isAddSubReportOpen} onOpenChange={setIsAddSubReportOpen}>
+                        <Dialog open={isAddSubReportOpen} onOpenChange={(open) => {
+                            if (!open) {
+                                setIsAddSubReportOpen(false);
+                                setEditingSubReportId(null);
+                                setNewSubReportTemplate({ name: '', fields: [{ name: '', type: 'text' }] });
+                            } else {
+                                setIsAddSubReportOpen(true);
+                            }
+                        }}>
                             <DialogTrigger asChild>
                                 <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
                                     <Plus size={18} /> Add Form Template
@@ -365,7 +553,9 @@ export default function Templates() {
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[600px] rounded-2xl p-6">
                                 <DialogHeader>
-                                    <DialogTitle className="text-xl font-bold text-accent-greyDark">Create Form / Sub-Report Template</DialogTitle>
+                                    <DialogTitle className="text-xl font-bold text-accent-greyDark">
+                                        {editingSubReportId ? 'Edit Form Template' : 'Create Form / Sub-Report Template'}
+                                    </DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-6 py-4">
                                     <div className="space-y-2">
@@ -427,7 +617,7 @@ export default function Templates() {
                                         </div>
                                     </div>
                                     <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddSubReportTemplate}>
-                                        Save Template
+                                        {editingSubReportId ? 'Update Template' : 'Save Template'}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -447,9 +637,14 @@ export default function Templates() {
                                             <p className="text-sm text-gray-400">{template.fields.length} predefined fields</p>
                                         </div>
                                     </div>
-                                    <button className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" onClick={() => deleteSubReportTemplate(template.id)}>
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 rounded-lg transition-colors" onClick={() => startEditingSubReport(template)}>
+                                            <Pencil size={16} />
+                                        </button>
+                                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={() => deleteSubReportTemplate(template.id)}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2 flex-1 mt-2">
