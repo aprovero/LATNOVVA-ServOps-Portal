@@ -54,7 +54,7 @@ export default function Calendar() {
         const end = parseISO(event.endDate);
         const conflicts: string[] = [];
 
-        events.forEach(e => {
+        (events || []).forEach(e => {
             const eStart = parseISO(e.startDate);
             const eEnd = parseISO(e.endDate);
             const isOverlap = isWithinInterval(eStart, { start, end }) || 
@@ -159,7 +159,7 @@ export default function Calendar() {
                                         onChange={e => setNewEvent({ ...newEvent, projectId: e.target.value })}
                                     >
                                         <option value="">None</option>
-                                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -170,7 +170,7 @@ export default function Calendar() {
                                         onChange={e => setNewEvent({ ...newEvent, personnelId: e.target.value })}
                                     >
                                         <option value="">None</option>
-                                        {personnel.map(p => <option key={p.id} value={p.id}>{p.name} ({p.position})</option>)}
+                                        {(personnel || []).map(p => <option key={p.id} value={p.id}>{p.name} ({p.position})</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -181,7 +181,7 @@ export default function Calendar() {
                                         onChange={e => setNewEvent({ ...newEvent, toolId: e.target.value })}
                                     >
                                         <option value="">None</option>
-                                        {tools.map(t => <option key={t.id} value={t.id}>{t.name} (SN: {t.serialNumber})</option>)}
+                                        {(tools || []).map(t => <option key={t.id} value={t.id}>{t.name} (SN: {t.serialNumber})</option>)}
                                     </select>
                                 </div>
                                 {currentConflicts.length > 0 && (
@@ -216,12 +216,12 @@ export default function Calendar() {
                 <div className="grid grid-cols-7 auto-rows-[120px]">
                     {days.map((day, idx) => {
                         const dayStr = format(day, 'yyyy-MM-dd');
-                        const dayEvents = events.filter(e => {
+                        const dayEvents = (events || []).filter(e => {
                             const start = e.startDate;
                             const end = e.endDate || e.startDate;
                             return dayStr >= start && dayStr <= end;
                         });
-                        const dayReports = reports.filter(r => r.date === dayStr && r.activityLogs && r.activityLogs.length > 0);
+                        const dayReports = (reports || []).filter(r => r.date === dayStr && r.activityLogs && r.activityLogs.length > 0);
                         const isCurrentMonth = isSameMonth(day, currentDate);
                         const isToday = isSameDay(day, new Date());
 
@@ -234,8 +234,8 @@ export default function Calendar() {
                                     {dayEvents.map(evt => {
                                         const isEventStart = dayStr === evt.startDate;
                                         const isEventEnd = dayStr === (evt.endDate || evt.startDate);
-                                        const projectData = projects.find(p => p.id === evt.projectId);
-                                        const personnelData = personnel.find(p => p.id === evt.personnelId);
+                                        const projectData = (projects || []).find(p => p.id === evt.projectId);
+                                        const personnelData = (personnel || []).find(p => p.id === evt.personnelId);
 
                                         let styleClasses = '';
                                         if (evt.type === 'Project') {

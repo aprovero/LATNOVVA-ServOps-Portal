@@ -124,7 +124,25 @@ export default function OrgChart() {
                                     <div className="p-4 flex-1">
                                         <div className="flex items-center justify-between mb-3">
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assigned Team</p>
-                                            <span className="text-xs font-bold text-accent-greyDark">{team.length}</span>
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    className="appearance-none bg-brand-teal/10 text-brand-teal hover:bg-brand-teal/20 transition-colors border border-transparent text-[10px] font-bold rounded-lg px-2 py-1 pr-6 outline-none cursor-pointer uppercase tracking-widest bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%230d9488%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[right_4px_center]"
+                                                    value=""
+                                                    onChange={(e) => {
+                                                        if (e.target.value) handleAssignToProject(e.target.value, project.id);
+                                                    }}
+                                                >
+                                                    <option value="" disabled>+ Add Staff</option>
+                                                    {benchedPersonnel.length > 0 ? (
+                                                        benchedPersonnel.map(member => (
+                                                            <option key={member.id} value={member.id}>{member.name}</option>
+                                                        ))
+                                                    ) : (
+                                                        <option value="" disabled>Bench Empty</option>
+                                                    )}
+                                                </select>
+                                                <span className="text-xs font-bold text-accent-greyDark bg-gray-100 px-2 py-0.5 rounded-md min-w-[24px] text-center">{team.length}</span>
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             {team.length > 0 ? (

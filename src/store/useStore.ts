@@ -686,7 +686,7 @@ export const useStore = create<AppState>()(
                 })),
         }),
         {
-            name: 'latnovva-storage',
+            name: 'latnovva-storage-v2',
         }
     )
 );

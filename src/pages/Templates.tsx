@@ -148,7 +148,7 @@ export default function Templates() {
     };
 
     // Derived filtering
-    const filteredChecklists = templates.filter(t =>
+    const filteredChecklists = (templates || []).filter(t =>
         t.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     const filteredScopes = (scopeTemplates || []).filter(t =>
