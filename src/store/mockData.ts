@@ -49,6 +49,9 @@ export const mockPersonnel: Personnel[] = [
     { id: 'PERS-MR1', name: 'JUAN MANUEL RUBIO', position: 'PROJECT MANAGER', employeeNumber: 'EMP-MR01', appRole: 'Manager', status: 'Active', certifications: [] },
     { id: 'PERS-DOE', name: 'JOHN DOE', position: 'FIELD SUPPORT', employeeNumber: 'EMP-999', appRole: 'Tech', status: 'Active', certifications: [] },
     { id: 'PERS-RG1', name: 'ROSARIO GONZALEZ', position: 'INSPECTOR', employeeNumber: 'EMP-RG01', appRole: 'Tech', status: 'Active', certifications: [] },
+    { id: 'PERS-NEW1', name: 'FERNANDO ASENSIO', position: 'TECHNICIAN', employeeNumber: 'EMP-NEW01', appRole: 'Tech', status: 'Active', certifications: [], email: 'fasensio@latnovva.com' },
+    { id: 'PERS-NEW2', name: 'JESUS REINA', position: 'TECHNICIAN', employeeNumber: 'EMP-NEW02', appRole: 'Tech', status: 'Active', certifications: [], email: 'jreina@latnovva.com' },
+    { id: 'PERS-NEW3', name: 'JUAN MARIA DIAZ', position: 'TECHNICIAN', employeeNumber: 'EMP-NEW03', appRole: 'Tech', status: 'Active', certifications: [], email: 'jmdiaz@latnovva.com' },
 ];
 
 export const mockProjects: Project[] = [

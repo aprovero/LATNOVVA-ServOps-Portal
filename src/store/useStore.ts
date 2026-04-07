@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { mockClients, mockProjects, mockReports, mockPersonnel, mockTools, mockTimesheets } from './mockData';
+import { supabase } from '../lib/supabase';
 
 export type ReportState = 'Draft' | 'Pending Manager Review' | 'Pending Customer Review' | 'Approved' | 'Closed';
 
@@ -283,6 +284,7 @@ export interface Project {
 interface AppState {
     userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer';
     userId: string;
+    userEmail?: string;
     clientId: string;
     clients: Client[];
     reports: Report[];
@@ -295,8 +297,9 @@ interface AppState {
     subReportInstances: SubReportInstance[];
     events: ScheduledEvent[];
     timesheets: TimesheetEntry[];
-    initDb: () => void;
+    initDb: () => Promise<void>;
     resetDb: () => void;
+    setAuthData: (id: string, email: string) => void;
     setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer') => void;
     addClient: (client: Client) => void;
     updateClient: (id: string, updates: Partial<Client>) => void;
@@ -402,35 +405,59 @@ export const useStore = create<AppState>()(
                 }
             ],
             timesheets: [],
-            initDb: () => {
-                set((state) => {
-                    if (state.reports.length === 0) {
-                        // Fresh install - load all mock data
-                        return {
-                            clients: mockClients,
-                            projects: mockProjects,
+            initDb: async () => {
+                try {
+                    // Fetch real data from supabase
+                    const [{ data: clientsDB }, { data: projectsDB }, { data: personnelDB }] = await Promise.all([
+                        supabase.from('clients').select('*'),
+                        supabase.from('projects').select('*'),
+                        supabase.from('personnel').select('*')
+                    ]);
+
+                    set((state) => ({
+                        ...state,
+                        clients: clientsDB?.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=2563EB&color=fff`
+                        })) || state.clients,
+                        projects: projectsDB?.map(p => ({
+                            id: p.id,
+                            clientId: p.client_id,
+                            name: p.name,
+                            type: p.type,
+                            status: p.status,
+                            progress: p.progress,
+                            location: p.location,
+                            projectSize: p.project_size,
+                            systemType: p.system_type,
+                            codeName: p.code_name,
+                            assignedPersonnel: p.assigned_personnel || [],
+                            hasNoDefinedScope: p.has_no_defined_scope || false,
+                            disciplines: p.disciplines || [],
+                            scopes: p.scopes || []
+                        })) || state.projects,
+                        personnel: personnelDB?.map(p => ({
+                             id: p.id,
+                             name: p.name,
+                             position: p.position,
+                             appRole: p.app_role,
+                             employeeNumber: p.employee_number,
+                             status: p.status,
+                             email: p.email,
+                             phoneNumber: p.phone_number,
+                             certifications: p.certifications || []
+                        })) || state.personnel,
+                        // If it's a fresh install or data wipe, bootstrap reports/timesheets too from memory until we migrate them
+                        ...(state.reports.length === 0 ? {
                             reports: mockReports,
-                            personnel: mockPersonnel,
                             tools: mockTools,
                             timesheets: mockTimesheets,
-                        };
-                    }
-                    // Already have data - merge location/metadata from mockData into existing projects
-                    // This ensures updated coordinates in mockData are reflected without clearing storage
-                    const mergedProjects = state.projects.map(p => {
-                        const mock = mockProjects.find(m => m.id === p.id);
-                        if (!mock) return p;
-                        return {
-                            ...p,
-                            // Always sync location/metadata from mockData so coordinate updates propagate
-                            location: mock.location ?? p.location,
-                            codeName: p.codeName ?? mock.codeName,
-                            projectSize: p.projectSize ?? mock.projectSize,
-                            systemType: p.systemType ?? mock.systemType,
-                        };
-                    });
-                    return { projects: mergedProjects };
-                });
+                        } : {})
+                    }));
+                } catch (error) {
+                    console.error('Failed to init DB from Supabase', error);
+                }
             },
             resetDb: () => {
                 set(() => ({
@@ -442,6 +469,7 @@ export const useStore = create<AppState>()(
                     timesheets: mockTimesheets,
                 }));
             },
+            setAuthData: (id, email) => set({ userId: id, userEmail: email }), // We can expand this to fetch their actual profile from the personnel table later
             setUserRole: (role) => set({ userRole: role }),
             addClient: (client) => set((state) => ({ clients: [...state.clients, client] })),
             updateClient: (id, updates) => set((state) => ({ clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c) })),

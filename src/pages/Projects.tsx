@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from '
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { KPIRow } from '../components/dashboard/KPIRow';
+import { getRegionName } from '../lib/locationMapper';
 
 // Circular Progress Component
 const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 'sm' | 'md' }) => {
@@ -235,7 +236,7 @@ export default function Projects() {
                                                     {proj.location && (
                                                         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
                                                             <MapPin size={10} />
-                                                            <span className="truncate max-w-[150px]">{proj.location}</span>
+                                                            <span className="truncate max-w-[150px]">{getRegionName(proj.location)}</span>
                                                         </div>
                                                     )}
                                                 </td>

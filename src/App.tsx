@@ -14,6 +14,8 @@ import SubReportEditor from './pages/SubReportEditor';
 import Templates from './pages/Templates';
 import Calendar from './pages/Calendar';
 import Layout from './components/layout/Layout';
+import { AuthRoute } from './components/auth/AuthRoute';
+import { Login } from './components/auth/Login';
 
 import Personnel from './pages/Personnel';
 import Timesheets from './pages/Timesheets';
@@ -36,9 +38,12 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<Layout />}>
-                    <Route index element={<Navigate to="/projects" replace />} />
-                    <Route path="projects" element={<Projects />} />
+                <Route path="/login" element={<Login />} />
+                
+                <Route element={<AuthRoute />}>
+                    <Route path="/" element={<Layout />}>
+                        <Route index element={<Navigate to="/projects" replace />} />
+                        <Route path="projects" element={<Projects />} />
                     <Route path="projects/:id" element={<ProjectDetail />} />
                     <Route path="live-map" element={<LiveMap />} />
                     <Route path="reports" element={<ReportList />} />
@@ -53,6 +58,7 @@ function App() {
                     <Route path="org-chart" element={<OrgChart />} />
                     <Route path="timesheets" element={<Timesheets />} />
                     <Route path="clock-in" element={<ClockIn />} />
+                </Route>
                 </Route>
             </Routes>
         </Router>

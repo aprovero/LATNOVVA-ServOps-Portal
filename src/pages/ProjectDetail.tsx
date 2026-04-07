@@ -9,7 +9,6 @@ import { ManageScopesModal } from '../components/project/ManageScopesModal';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog';
 
 export default function ProjectDetail() {
     const { id } = useParams<{ id: string }>();
@@ -36,7 +35,7 @@ export default function ProjectDetail() {
     const [editNotes, setEditNotes] = useState('');
     const [editHasNoDefinedScope, setEditHasNoDefinedScope] = useState(false);
     const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
-    const [isPreviewMapOpen, setIsPreviewMapOpen] = useState(false);
+
     const [locationError, setLocationError] = useState('');
 
     // Personnel picklist
@@ -98,7 +97,6 @@ export default function ProjectDetail() {
             name: editName,
             codeName: editCodeName || undefined,
             location: editLocation || undefined,
-            locationValidated: project.location === editLocation ? project.locationValidated : false,
             projectSize: editSize || undefined,
             systemType: editSystemType || undefined,
             status: editStatus,
@@ -113,11 +111,7 @@ export default function ProjectDetail() {
         setIsEditing(false);
     };
 
-    const confirmLocation = () => {
-        if (!project) return;
-        updateProject(project.id, { locationValidated: true });
-        setIsPreviewMapOpen(false);
-    };
+
 
     const togglePersonnel = (persId: string) => {
         if (!project) return;
@@ -192,27 +186,36 @@ export default function ProjectDetail() {
                                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500 font-medium">
                                     {project.location && (
                                         <div className="flex items-center gap-2">
-                                            <span className="flex items-center gap-1.5">
-                                                <MapPin size={14} className={project.locationValidated ? "text-brand-teal" : "text-amber-500"} /> 
-                                                <span className={project.locationValidated ? "" : "text-amber-600 font-bold"}>
-                                                    {project.location}
-                                                </span>
-                                                <button 
-                                                    onClick={() => setIsPreviewMapOpen(true)}
-                                                    className="text-brand-teal hover:underline ml-1 flex items-center gap-1"
+                                            <a 
+                                                href={`https://www.google.com/maps?q=${project.location}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 text-brand-teal hover:underline font-bold"
+                                            >
+                                                <MapPin size={14} />
+                                                <span>{project.location}</span>
+                                                <ExternalLink size={12} />
+                                            </a>
+                                            
+                                            {canEdit && (
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    className="h-6 text-[10px] uppercase font-bold border-brand-teal/30 text-brand-teal hover:bg-brand-teal/10 px-2 group flex items-center gap-1 ml-2"
+                                                    onClick={() => {
+                                                        if (navigator.geolocation) {
+                                                            navigator.geolocation.getCurrentPosition((pos) => {
+                                                                updateProject(project.id, { location: `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}` });
+                                                            }, () => {
+                                                                alert('Unable to retrieve location. Please allow location permissions in your browser.');
+                                                            });
+                                                        } else {
+                                                            alert('Geolocation is not supported by your browser.');
+                                                        }
+                                                    }}
                                                 >
-                                                    <ExternalLink size={12} />
-                                                    <span className="text-[10px] font-bold uppercase">{project.locationValidated ? 'Map' : 'Verify'}</span>
-                                                </button>
-                                            </span>
-                                            {project.locationValidated ? (
-                                                <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
-                                                    <Check size={10} /> VALIDATED
-                                                </span>
-                                            ) : (
-                                                <span className="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-100 flex items-center gap-1">
-                                                    <AlertCircle size={10} /> NEEDS VALIDATION
-                                                </span>
+                                                    <MapPin size={10} className="group-hover:animate-ping" /> Update via GPS
+                                                </Button>
                                             )}
                                         </div>
                                     )}
@@ -280,7 +283,7 @@ export default function ProjectDetail() {
                                             variant="outline" 
                                             size="sm"
                                             onClick={() => {
-                                                if (editLocation.trim()) setIsPreviewMapOpen(true);
+                                                if (editLocation.trim()) window.open(`https://maps.google.com/maps?q=${editLocation}`, '_blank');
                                             }}
                                             className={`px-3 ${editLocation.trim() ? 'border-brand-teal text-brand-teal bg-brand-teal/5' : ''}`}
                                             disabled={!editLocation.trim()}
@@ -624,55 +627,7 @@ export default function ProjectDetail() {
                 />
             )}
 
-            <Dialog open={isPreviewMapOpen} onOpenChange={setIsPreviewMapOpen}>
-                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
-                    <div className="bg-brand-teal p-5 text-white flex items-center justify-between">
-                        <DialogTitle className="flex items-center gap-3 text-xl font-bold">
-                            <MapPin className="w-6 h-6" /> Confirm Pin Placement
-                        </DialogTitle>
-                    </div>
-                    <div className="p-6 bg-white space-y-5">
-                        <div className="flex items-start gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                             <div className="w-10 h-10 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal shrink-0">
-                                <Search size={20} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Target Address / Coordinates</p>
-                                <p className="text-accent-greyDark font-bold text-base">{editLocation}</p>
-                            </div>
-                        </div>
 
-                        <div className="w-full h-[350px] rounded-2xl overflow-hidden border border-gray-200 shadow-soft relative group">
-                            <iframe
-                                width="100%"
-                                height="100%"
-                                frameBorder="0"
-                                style={{ border: 0 }}
-                                src={`https://maps.google.com/maps?q=${encodeURIComponent(editLocation)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                                allowFullScreen
-                            />
-                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                 <div className="w-10 h-10 bg-brand-teal/20 rounded-full flex items-center justify-center animate-ping" />
-                                 <MapPin size={32} className="text-brand-teal drop-shadow-lg absolute" style={{ marginTop: '-32px' }} />
-                            </div>
-                        </div>
-                        
-                        <p className="text-xs text-gray-400 text-center italic bg-gray-50 py-2 rounded-lg border border-dashed border-gray-200">
-                             Confirm that the red pin accurately represents the project's physical location.
-                        </p>
-
-                        <div className="flex gap-4">
-                            <Button variant="outline" onClick={() => setIsPreviewMapOpen(false)} className="flex-1 h-12 rounded-xl text-gray-500 font-bold">Adjust Location</Button>
-                            <Button 
-                                className="flex-1 h-12 rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold gap-2 shadow-soft"
-                                onClick={confirmLocation}
-                            >
-                                <Check size={18} /> Confirm Location Correct
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
