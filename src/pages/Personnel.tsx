@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore, Personnel as PersonnelType } from '../store/useStore';
-import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2 } from 'lucide-react';
+import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2, Network, List } from 'lucide-react';
+import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -10,6 +11,8 @@ export default function Personnel() {
     const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects } = useStore();
     const location = useLocation();
     
+    const [viewMode, setViewMode] = useState<'list' | 'org'>('list');
+
     const [searchTerm, setSearchTerm] = useState(() => {
         const params = new URLSearchParams(location.search);
         return params.get('q') || '';
@@ -167,8 +170,24 @@ export default function Personnel() {
                     <p className="text-gray-500 mt-1">Manage field staff and internal employees.</p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative">
+                <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner ml-auto mr-4 md:ml-0 md:mr-0 self-center">
+                    <button 
+                        onClick={() => setViewMode('list')} 
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-teal' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <List size={14} /> Directory
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('org')} 
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${viewMode === 'org' ? 'bg-white shadow-sm text-brand-teal' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Network size={14} /> Org Chart
+                    </button>
+                </div>
+
+                {viewMode === 'list' && (
+                <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                    <div className="relative shrink-0">
                         <Award className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <select
                             className="pl-10 w-full md:w-56 bg-white border border-gray-200 outline-none focus:ring-2 focus:ring-brand-teal h-11 rounded-xl text-sm text-accent-grey appearance-none"
@@ -367,11 +386,14 @@ export default function Personnel() {
                         </div>
                     </DialogContent>
                 </Dialog>
+                </div>
+                )}
             </div>
-        </div>
 
-        {/* Personnel List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {viewMode === 'org' ? (
+                <OrgChartView />
+            ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPersonnel.map(person => {
                 const assignedProject = projects.find(p => p.assignedPersonnel?.includes(person.id));
                 
@@ -473,6 +495,7 @@ export default function Personnel() {
                     </div>
                 )}
             </div>
+            )}
 
             {/* Edit Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

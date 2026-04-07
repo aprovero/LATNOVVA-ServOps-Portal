@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useStore, Personnel } from '../store/useStore';
-import { Network, User, Briefcase, Filter, ChevronDown, Check, UserMinus } from 'lucide-react';
+import { useStore, Personnel } from '../../store/useStore';
+import { User, Briefcase, Filter, ChevronDown, Check, UserMinus } from 'lucide-react';
 
-export default function OrgChart() {
+export default function OrgChartView() {
     const { personnel, projects, updateProject } = useStore();
     const [showInactive, setShowInactive] = useState(false);
 
-    // Initial Filter
-    const activePersonnel = personnel.filter(p => showInactive ? true : p.status !== 'Inactive');
+    // Initial Filter: Exclude Managers from field deployments and the bench
+    const activePersonnel = personnel.filter(p => (showInactive ? true : p.status !== 'Inactive') && p.appRole !== 'Manager');
 
     const assignedPersonnelIds = new Set(projects.flatMap(p => p.assignedPersonnel || []));
     const benchedPersonnel = activePersonnel.filter(p => !assignedPersonnelIds.has(p.id));
@@ -54,7 +54,7 @@ export default function OrgChart() {
                     value={currentProjectId || 'bench'}
                     onChange={(e) => handleAssignToProject(member.id, e.target.value === 'bench' ? null : e.target.value)}
                 >
-                    <option value="bench">Move to Bench</option>
+                    <option value="bench">Move to Unassigned</option>
                     <optgroup label="Active Projects">
                         {activeProjects.map(p => (
                             <option key={p.id} value={p.id}>{p.codeName || p.name}</option>
@@ -68,16 +68,8 @@ export default function OrgChart() {
 
     return (
         <div className="space-y-6">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
-                        <Network className="text-brand-teal" size={32} />
-                        Global Deployment View
-                    </h1>
-                    <p className="text-gray-500 mt-1">Manage project assignments and personnel deployment status.</p>
-                </div>
-                
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200 shadow-sm h-10 w-fit">
+            <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200 shadow-sm h-10 w-fit ml-auto">
                     <Filter size={14} className="text-gray-400" />
                     <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 cursor-pointer">
                         <input 
@@ -89,7 +81,7 @@ export default function OrgChart() {
                         Show Inactive Ops
                     </label>
                 </div>
-            </header>
+            </div>
 
             <div className="flex flex-col gap-6">
                 {/* Active Deployments (Projects) */}
@@ -138,7 +130,7 @@ export default function OrgChart() {
                                                             <option key={member.id} value={member.id}>{member.name}</option>
                                                         ))
                                                     ) : (
-                                                        <option value="" disabled>Bench Empty</option>
+                                                        <option value="" disabled>No Unassigned Staff</option>
                                                     )}
                                                 </select>
                                                 <span className="text-xs font-bold text-accent-greyDark bg-gray-100 px-2 py-0.5 rounded-md min-w-[24px] text-center">{team.length}</span>
@@ -161,7 +153,7 @@ export default function OrgChart() {
                     </div>
                 </div>
 
-                {/* The Bench */}
+                {/* Unassigned */}
                 <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-soft relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-400"></div>
                     <div className="flex items-center gap-3 mb-6">
@@ -169,7 +161,7 @@ export default function OrgChart() {
                             <User size={20} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-accent-greyDark">The Bench & HQ</h2>
+                            <h2 className="text-xl font-bold text-accent-greyDark">Unassigned</h2>
                             <p className="text-xs text-gray-500 font-medium mt-1">Available personnel currently unassigned to active field operations.</p>
                         </div>
                         <span className="ml-auto bg-amber-50 text-amber-700 px-3 py-1 rounded-lg text-sm font-bold border border-amber-200">
@@ -183,7 +175,7 @@ export default function OrgChart() {
                         ) : (
                             <div className="col-span-full py-12 flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
                                 <Check size={32} className="mb-2 text-emerald-400" />
-                                <p className="text-sm font-bold text-accent-greyDark">No Benched Personnel</p>
+                                <p className="text-sm font-bold text-accent-greyDark">No Unassigned Personnel</p>
                                 <p className="text-xs mt-1">Everyone is currently deployed to active projects.</p>
                             </div>
                         )}

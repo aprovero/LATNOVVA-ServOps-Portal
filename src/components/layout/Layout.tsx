@@ -132,6 +132,7 @@ export default function Layout() {
             name: 'RESOURCES',
             links: [
                 { name: 'Personnel', path: '/personnel', icon: User, roles: ['Supervisor', 'Manager'] },
+                { name: 'Org Chart', path: '/org-chart', icon: User, roles: ['Manager'] },
                 { name: 'Tools', path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager'] },
             ]
         },
@@ -147,7 +148,6 @@ export default function Layout() {
             links: [
                 { name: 'Templates', path: '/templates', icon: CheckSquare, roles: ['Supervisor', 'Manager'] },
                 { name: 'Settings', path: '/settings', icon: Settings, roles: ['Supervisor', 'Manager'] },
-                { name: 'Org Chart', path: '/org-chart', icon: User, roles: ['Manager'] },
             ]
         }
     ];
@@ -333,6 +333,17 @@ export default function Layout() {
                         <option value="Manager">Manager</option>
                         <option value="Customer">Company</option>
                     </select>
+
+                    <div className="mt-8 pt-4 border-t border-gray-100/60 flex flex-col items-center">
+                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[22px] mb-3 opacity-80 mix-blend-multiply hover:opacity-100 transition-all cursor-pointer" />
+                        <p className="text-[9px] text-gray-400 text-center leading-relaxed">
+                            &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.
+                            <br />
+                            All Rights Reserved.
+                            <br />
+                            <span className="font-medium">Powered by aprovero</span>
+                        </p>
+                    </div>
                 </div>
             </aside>
 
@@ -458,8 +469,16 @@ export default function Layout() {
                     </div>
                 </header>
 
-                <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
+                <div className="p-4 md:p-8 pb-28 md:pb-8 max-w-7xl mx-auto w-full flex-1 flex flex-col">
                     <Outlet />
+                    
+                    {/* Mobile Footer */}
+                    <div className="md:hidden mt-auto pt-16 pb-4 border-t border-transparent flex flex-col items-center gap-3">
+                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[18px] opacity-70 mix-blend-multiply" />
+                        <p className="text-[9px] text-gray-400 text-center leading-relaxed px-4">
+                            &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.<br/>All Rights Reserved.<br/><span className="italic">Powered by aprovero</span>
+                        </p>
+                    </div>
                 </div>
             </main>
 

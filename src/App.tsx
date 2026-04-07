@@ -19,7 +19,6 @@ import { Login } from './components/auth/Login';
 
 import Personnel from './pages/Personnel';
 import Timesheets from './pages/Timesheets';
-import OrgChart from './pages/OrgChart';
 import LiveMap from './pages/LiveMap';
 import ProjectDetail from './pages/ProjectDetail';
 import ClockIn from './pages/ClockIn';
@@ -55,7 +54,6 @@ function App() {
                     <Route path="calendar" element={<Calendar />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="personnel" element={<Personnel />} />
-                    <Route path="org-chart" element={<OrgChart />} />
                     <Route path="timesheets" element={<Timesheets />} />
                     <Route path="clock-in" element={<ClockIn />} />
                 </Route>

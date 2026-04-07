@@ -41,51 +41,51 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden">
             {/* Ambient Background Lights */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-brand-teal/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-brand-yellow/10 rounded-full blur-[120px] pointer-events-none" />
 
-            <div ref={containerRef} className="w-full max-w-md">
-                <div className="bg-zinc-900 border border-zinc-800/50 p-8 rounded-2xl shadow-2xl backdrop-blur-sm relative z-10 relative overflow-hidden">
-                    {/* Top glass reflection */}
-                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <div ref={containerRef} className="w-full max-w-md z-10">
+                <div className="bg-white border border-gray-200 p-8 rounded-3xl shadow-xl relative overflow-hidden">
                     
                     <div className="text-center mb-10">
-                        {/* Logo placeholder - replace src with your actual logo */}
-                        <div className="bg-zinc-800/50 p-3 rounded-xl inline-flex items-center justify-center border border-zinc-700/50 shadow-inner mb-6">
-                            <Mail className="h-8 w-8 text-blue-400" />
+                        {/* Official Joint Logos */}
+                        <div className="flex items-center justify-center gap-5 mb-8">
+                            <img src="/cor-logo.png" alt="COR Solutions Logo" className="h-14 object-contain drop-shadow-sm" />
+                            <div className="h-10 w-px bg-gray-200"></div>
+                            <img src="/latnovva-logo.png" alt="LATNOVVA Logo" className="h-8 object-contain drop-shadow-sm" />
                         </div>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-                            LATNOVVA ServiceTool
+                        <h1 className="text-xl font-black text-accent-greyDark tracking-tight">
+                            LATNOVVA Service Operations Portal
                         </h1>
-                        <p className="text-zinc-400 mt-2 text-sm">
-                            Sign in via Magic Link
+                        <p className="text-gray-500 font-medium mt-2 text-sm">
+                            Sign in to your secure account
                         </p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-2">
+                            <label htmlFor="email" className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                                 Email Address
                             </label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                                 <input
                                     id="email"
                                     type="email"
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="johndoe@latnovva.com"
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-zinc-600"
+                                    placeholder="Employee Email"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 pl-12 pr-4 text-accent-greyDark font-bold focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal transition-all placeholder:text-gray-400 placeholder:font-medium"
                                 />
                             </div>
                         </div>
 
                         {message && (
-                            <div className={`p-4 rounded-lg flex items-start space-x-3 text-sm ${
-                                message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            <div className={`p-4 rounded-xl flex items-start space-x-3 text-sm font-bold ${
+                                message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
                             }`}>
                                 {message.type === 'success' ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertCircle className="h-5 w-5 shrink-0" />}
                                 <span>{message.text}</span>
@@ -95,7 +95,7 @@ export const Login: React.FC = () => {
                         <button
                             type="submit"
                             disabled={loading || message?.type === 'success'}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-4 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-blue-900/20 border border-blue-500/50"
+                            className="w-full flex items-center justify-center bg-brand-teal hover:bg-teal-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-brand-teal/20"
                         >
                             {loading ? (
                                 <div className="flex items-center justify-center space-x-2">
@@ -103,13 +103,16 @@ export const Login: React.FC = () => {
                                     <span>Sending Link...</span>
                                 </div>
                             ) : (
-                                "Send Login Link"
+                                "Send Magic Link"
                             )}
                         </button>
                     </form>
                 </div>
                 
-                <p className="text-center text-zinc-600 text-xs mt-6">
+                <div className="flex justify-center mt-6">
+                    <img src="/APROVERO_LOGO.png" alt="Aprovero" className="h-5 opacity-60 mix-blend-multiply" />
+                </div>
+                <p className="text-center text-gray-400 font-bold text-[10px] mt-2">
                     Protected by Supabase Auth
                 </p>
             </div>
