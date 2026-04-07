@@ -38,7 +38,7 @@ const punchDotColor: Record<string, string> = {
 const formatPunchTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
 export default function Timesheets() {
-    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole } = useStore();
+    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId } = useStore();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
     const [signatureBlob, setSignatureBlob] = useState<string>('');
@@ -96,6 +96,25 @@ export default function Timesheets() {
             projectId: ''
         });
         setIsAddModalOpen(true);
+    };
+
+    const openBatchModal = () => {
+        setBatchAction('Check-in');
+        setBatchSignatures({});
+        
+        const assignedProj = projects.find(p => p.assignedPersonnel?.includes(userId));
+        if (assignedProj) {
+            setBatchProject(assignedProj.id);
+            const teamIds = (assignedProj.assignedPersonnel || []).filter(id => {
+                const p = personnel.find(person => person.id === id);
+                return p && p.status !== 'Inactive';
+            });
+            setSelectedPersonnel(teamIds);
+        } else {
+            setBatchProject('');
+            setSelectedPersonnel([]);
+        }
+        setIsBatchModalOpen(true);
     };
 
     const openEditModal = (entry: TimesheetEntry) => {
@@ -271,7 +290,7 @@ export default function Timesheets() {
 
                     {['Manager', 'Supervisor'].includes(userRole) && (
                         <>
-                            <Button variant="outline" onClick={() => setIsBatchModalOpen(true)} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
+                            <Button variant="outline" onClick={openBatchModal} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
                                 <Users size={18} /> Team Check-in
                             </Button>
                             <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-gray-200 hover:bg-gray-50 text-gray-700">
@@ -684,7 +703,21 @@ export default function Timesheets() {
                                 <select 
                                     className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
                                     value={batchProject}
-                                    onChange={e => setBatchProject(e.target.value)}
+                                    onChange={e => {
+                                        const newProjectId = e.target.value;
+                                        setBatchProject(newProjectId);
+                                        const proj = projects.find(p => p.id === newProjectId);
+                                        if (proj && proj.assignedPersonnel) {
+                                            const teamIds = proj.assignedPersonnel.filter(id => {
+                                                const p = personnel.find(person => person.id === id);
+                                                return p && p.status !== 'Inactive';
+                                            });
+                                            setSelectedPersonnel(teamIds);
+                                        } else {
+                                            setSelectedPersonnel([]);
+                                        }
+                                        setBatchSignatures({}); // Clear signatures since team changed
+                                    }}
                                 >
                                     <option value="">Select Project...</option>
                                     {projects.map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore, Personnel as PersonnelType } from '../store/useStore';
-import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2 } from 'lucide-react';
+import { User, Plus, Edit2, Trash2, Shield, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2, Network, List } from 'lucide-react';
+import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -16,10 +17,9 @@ export default function Personnel() {
         const params = new URLSearchParams(location.search);
         return params.get('q') || '';
     });
-
-    const [filterCertification, setFilterCertification] = useState('');
     const [filterRole, setFilterRole] = useState('All');
     const [filterStatus, setFilterStatus] = useState('All');
+    const [viewMode, setViewMode] = useState<'list' | 'org'>('list');
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -130,17 +130,8 @@ export default function Personnel() {
         </div>
     );
 
-    const allCertifications = Array.from(new Set(
-        personnel
-            .filter(p => p.appRole !== 'Customer')
-            .flatMap(p => p.certifications || [])
-            .map(c => c.name)
-            .filter(Boolean)
-    )).sort();
-
     const filteredPersonnel = personnel
         .filter(p => p.appRole !== 'Customer' && p.appRole !== 'Manager')
-        .filter(p => filterCertification ? p.certifications?.some(c => c.name.toLowerCase() === filterCertification.toLowerCase()) : true)
         .filter(p => filterRole === 'All' ? true : p.appRole === filterRole)
         .filter(p => filterStatus === 'All' ? true : p.status === filterStatus)
         .filter(p => 
@@ -161,18 +152,6 @@ export default function Personnel() {
                 </div>
 
                 <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                    <div className="relative shrink-0">
-                        <Award className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <select
-                            className="pl-10 w-full md:w-56 bg-white border border-gray-200 outline-none focus:ring-2 focus:ring-brand-teal h-11 rounded-xl text-sm text-accent-grey appearance-none"
-                            value={filterCertification}
-                            onChange={(e) => setFilterCertification(e.target.value)}
-                        >
-                            <option value="">All Certifications</option>
-                            {allCertifications.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                    </div>
-
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <Input
@@ -204,6 +183,21 @@ export default function Personnel() {
                             <option value="Active">Active Only</option>
                             <option value="Inactive">Inactive Only</option>
                         </select>
+                    </div>
+
+                    <div className="flex bg-gray-100 p-1 rounded-xl items-center">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'list' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <List size={16} /> List
+                        </button>
+                        <button
+                            onClick={() => setViewMode('org')}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'org' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <Network size={16} /> Org Chart
+                        </button>
                     </div>
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -363,7 +357,8 @@ export default function Personnel() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {viewMode === 'list' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredPersonnel.map(person => {
                 const assignedProject = projects.find(p => p.assignedPersonnel?.includes(person.id));
                 
@@ -463,6 +458,11 @@ export default function Personnel() {
                     </div>
                 )}
             </div>
+            ) : (
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 min-h-[600px] w-full max-w-full">
+                    <OrgChartView />
+                </div>
+            )}
 
             {/* Edit Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

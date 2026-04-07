@@ -366,27 +366,46 @@ export default function ProjectDetail() {
                 {/* Stats */}
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
                     <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2"><BarChart2 size={18} className="text-brand-teal" /> Project Stats</h2>
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
-                            <p className="text-2xl font-bold text-brand-teal">{overallProgress}%</p>
-                            <p className="text-xs text-gray-500 font-medium mt-0.5">Progress</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
-                            <p className="text-2xl font-bold text-accent-greyDark">{completedActs}/{allActs.length}</p>
-                            <p className="text-xs text-gray-500 font-medium mt-0.5">Activities</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
-                            <p className="text-2xl font-bold text-accent-greyDark">{projectHours}</p>
-                            <p className="text-xs text-gray-500 font-medium mt-0.5">Hours</p>
-                        </div>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2.5">
-                        <div
-                            className="bg-brand-teal h-2.5 rounded-full transition-all duration-700"
-                            style={{ width: `${overallProgress}%` }}
-                        />
-                    </div>
-                    <p className="text-xs text-gray-400 text-center">{projectReports.length} report{projectReports.length !== 1 ? 's' : ''} on file</p>
+                    
+                    {project.hasNoDefinedScope ? (
+                        <>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
+                                    <p className="text-2xl font-bold text-brand-teal">{projectReports.length}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Reports</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
+                                    <p className="text-2xl font-bold text-accent-greyDark">{projectHours}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Hours Logged</p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-400 text-center mt-auto pt-2">Detailed metrics disabled for Labor-Only</p>
+                        </>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
+                                    <p className="text-2xl font-bold text-brand-teal">{overallProgress}%</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Progress</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
+                                    <p className="text-2xl font-bold text-accent-greyDark">{completedActs}/{allActs.length}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Activities</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
+                                    <p className="text-2xl font-bold text-accent-greyDark">{projectHours}</p>
+                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Hours</p>
+                                </div>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                <div
+                                    className="bg-brand-teal h-2.5 rounded-full transition-all duration-700"
+                                    style={{ width: `${overallProgress}%` }}
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 text-center">{projectReports.length} report{projectReports.length !== 1 ? 's' : ''} on file</p>
+                        </>
+                    )}
                 </div>
 
                 {/* Personnel Picklist */}

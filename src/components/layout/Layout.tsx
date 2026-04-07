@@ -464,7 +464,7 @@ export default function Layout() {
                     
                     {/* Global Footer (Desktop & Mobile) */}
                     <div className="mt-auto pt-16 pb-6 border-t border-transparent flex flex-col items-center gap-4 w-full">
-                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[28px] opacity-80" />
+                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[64px] object-contain opacity-80" />
                         <p className="text-[10px] text-gray-400 text-center leading-relaxed px-4 font-bold border-t border-gray-200 pt-4 pb-12 w-full max-w-sm">
                             &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.<br/>All Rights Reserved.<br/><span className="italic font-normal">Powered by aprovero</span>
                         </p>
