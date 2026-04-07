@@ -144,6 +144,7 @@ export interface Personnel {
     sharedFolderLink?: string; // Link to certifications folder
     certifications: Certification[];
     appRole?: 'Tech' | 'Supervisor' | 'Manager' | 'Customer';
+    clientId?: string; // For assigned customers to limit scopes
     supervisorId?: string;
     managerId?: string;
     phoneNumber?: string;

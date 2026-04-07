@@ -109,8 +109,8 @@ export const Login: React.FC = () => {
                     </form>
                 </div>
                 
-                <div className="flex justify-center mt-6">
-                    <img src="/APROVERO_LOGO.png" alt="Aprovero" className="h-5 opacity-60 mix-blend-multiply" />
+                <div className="flex justify-center mt-8">
+                    <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-12 opacity-60 mix-blend-multiply hover:opacity-80 transition-opacity" />
                 </div>
                 <p className="text-center text-gray-400 font-bold text-[10px] mt-2">
                     Protected by Supabase Auth

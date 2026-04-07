@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore, Personnel as PersonnelType } from '../store/useStore';
 import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2, Network, List } from 'lucide-react';
-import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -11,7 +10,7 @@ export default function Personnel() {
     const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects } = useStore();
     const location = useLocation();
     
-    const [viewMode, setViewMode] = useState<'list' | 'org'>('list');
+
 
     const [searchTerm, setSearchTerm] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -30,15 +29,6 @@ export default function Personnel() {
         }
     }, [location.search]);
     
-    // Icon mapping for roles
-    const RoleIcon = ({ role, size = 14 }: { role?: string, size?: number }) => {
-        switch (role) {
-            case 'Manager': return <Shield size={size} className="text-purple-500" />;
-            case 'Supervisor': return <Shield size={size} className="text-brand-teal" />;
-            case 'Customer': return <Shield size={size} className="text-orange-500" />;
-            default: return <Shield size={size} className="text-blue-500" />;
-        }
-    };
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -149,7 +139,7 @@ export default function Personnel() {
     )).sort();
 
     const filteredPersonnel = personnel
-        .filter(p => p.appRole !== 'Customer')
+        .filter(p => p.appRole !== 'Customer' && p.appRole !== 'Manager')
         .filter(p => filterCertification ? p.certifications?.some(c => c.name.toLowerCase() === filterCertification.toLowerCase()) : true)
         .filter(p => filterRole === 'All' ? true : p.appRole === filterRole)
         .filter(p => filterStatus === 'All' ? true : p.status === filterStatus)
@@ -170,22 +160,6 @@ export default function Personnel() {
                     <p className="text-gray-500 mt-1">Manage field staff and internal employees.</p>
                 </div>
 
-                <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner ml-auto mr-4 md:ml-0 md:mr-0 self-center">
-                    <button 
-                        onClick={() => setViewMode('list')} 
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-teal' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <List size={14} /> Directory
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('org')} 
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${viewMode === 'org' ? 'bg-white shadow-sm text-brand-teal' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <Network size={14} /> Org Chart
-                    </button>
-                </div>
-
-                {viewMode === 'list' && (
                 <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
                     <div className="relative shrink-0">
                         <Award className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -387,12 +361,8 @@ export default function Personnel() {
                     </DialogContent>
                 </Dialog>
                 </div>
-                )}
             </div>
 
-            {viewMode === 'org' ? (
-                <OrgChartView />
-            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPersonnel.map(person => {
                 const assignedProject = projects.find(p => p.assignedPersonnel?.includes(person.id));
@@ -411,7 +381,6 @@ export default function Personnel() {
                                 <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white shadow-sm ${person.status === 'Active' ? 'bg-status-success' : 'bg-gray-300'}`} />
                             </div>
                             <div className="flex gap-2">
-                                <RoleIcon role={person.appRole} />
                                 <button onClick={() => openEdit(person)} className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors">
                                     <Edit2 size={16} />
                                 </button>
@@ -428,8 +397,7 @@ export default function Personnel() {
                         
                         <div className="space-y-2 mb-5">
                             <p className="text-xs text-gray-500 flex items-center gap-2">
-                                <Shield size={12} className="text-gray-300" />
-                                <span className="font-semibold">{person.appRole || 'Tech'}</span>
+                                <span className="font-bold uppercase tracking-wider text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{person.appRole || 'Tech'}</span>
                             </p>
                             {person.email && (
                                 <p className="text-xs text-gray-500 flex items-center gap-2 truncate">
@@ -495,7 +463,6 @@ export default function Personnel() {
                     </div>
                 )}
             </div>
-            )}
 
             {/* Edit Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

@@ -14,9 +14,15 @@ export default function Settings() {
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState<'Tech' | 'Supervisor' | 'Manager' | 'Customer'>('Tech');
+    const [inviteCompany, setInviteCompany] = useState('');
 
     const handleInviteUser = () => {
         if (!inviteEmail) return;
+        if (inviteRole === 'Customer' && !inviteCompany) {
+            alert('Please select an assigned company for this customer.');
+            return;
+        }
+        
         addPersonnel({
             id: `usr-${Date.now()}`,
             name: inviteEmail.split('@')[0],
@@ -25,11 +31,13 @@ export default function Settings() {
              employeeNumber: `EMP-${Math.floor(Math.random() * 1000)}`,
             status: 'Active',
             certifications: [],
-            appRole: inviteRole
+            appRole: inviteRole,
+            clientId: inviteRole === 'Customer' ? inviteCompany : undefined
         });
         setIsInviteModalOpen(false);
         setInviteEmail('');
         setInviteRole('Tech');
+        setInviteCompany('');
     };
 
     const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -40,6 +48,7 @@ export default function Settings() {
     const [editPersonnelName, setEditPersonnelName] = useState('');
     const [editPersonnelEmail, setEditPersonnelEmail] = useState('');
     const [editPersonnelRole, setEditPersonnelRole] = useState('Tech');
+    const [editPersonnelCompany, setEditPersonnelCompany] = useState('');
 
     const handleEditClientSubmit = () => {
         if (!editingClient || !editClientName.trim()) return;
@@ -185,6 +194,7 @@ export default function Settings() {
                                                         setEditPersonnelName(user.name);
                                                         setEditPersonnelEmail(user.email || '');
                                                         setEditPersonnelRole(user.appRole || 'Tech');
+                                                        setEditPersonnelCompany(user.clientId || '');
                                                     }} className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors mr-2">
                                                         <Pencil size={16} />
                                                     </button>
@@ -351,6 +361,21 @@ export default function Settings() {
                                 <option value="Customer">Customer</option>
                             </select>
                         </div>
+                        {inviteRole === 'Customer' && (
+                            <div className="grid gap-2">
+                                <Label>Assigned Company</Label>
+                                <select
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                    value={inviteCompany}
+                                    onChange={e => setInviteCompany(e.target.value)}
+                                >
+                                    <option value="" disabled>Select a company</option>
+                                    {clients.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsInviteModalOpen(false)}>Cancel</Button>
@@ -397,6 +422,21 @@ export default function Settings() {
                                 <option value="Customer">Customer</option>
                             </select>
                         </div>
+                        {editPersonnelRole === 'Customer' && (
+                            <div className="grid gap-2">
+                                <Label>Assigned Company</Label>
+                                <select
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
+                                    value={editPersonnelCompany}
+                                    onChange={e => setEditPersonnelCompany(e.target.value)}
+                                >
+                                    <option value="" disabled>Select a company</option>
+                                    {clients.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setEditingPersonnel(null)}>Cancel</Button>
@@ -405,7 +445,8 @@ export default function Settings() {
                                 updatePersonnel(editingPersonnel.id, {
                                     name: editPersonnelName,
                                     email: editPersonnelEmail,
-                                    appRole: editPersonnelRole as any
+                                    appRole: editPersonnelRole as any,
+                                    clientId: editPersonnelRole === 'Customer' ? editPersonnelCompany : undefined
                                 });
                                 setEditingPersonnel(null);
                             }
