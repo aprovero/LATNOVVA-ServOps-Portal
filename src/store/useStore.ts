@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { mockClients, mockProjects, mockReports, mockPersonnel, mockTools, mockTimesheets } from './mockData';
 import { supabase } from '../lib/supabase';
 
 export type ReportState = 'Draft' | 'Pending Manager Review' | 'Pending Customer Review' | 'Approved' | 'Closed';
@@ -409,10 +408,12 @@ export const useStore = create<AppState>()(
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
-                    const [{ data: clientsDB }, { data: projectsDB }, { data: personnelDB }] = await Promise.all([
+                    const [{ data: clientsDB }, { data: projectsDB }, { data: personnelDB }, { data: reportsDB }, { data: timesheetsDB }] = await Promise.all([
                         supabase.from('clients').select('*'),
                         supabase.from('projects').select('*'),
-                        supabase.from('personnel').select('*')
+                        supabase.from('personnel').select('*'),
+                        supabase.from('reports').select('*'),
+                        supabase.from('timesheets').select('*')
                     ]);
 
                     set((state) => ({
@@ -447,14 +448,58 @@ export const useStore = create<AppState>()(
                              status: p.status,
                              email: p.email,
                              phoneNumber: p.phone_number,
-                             certifications: p.certifications || []
+                             certifications: p.certifications || [],
+                             clientId: p.client_id
                         })) || state.personnel,
-                        // If it's a fresh install or data wipe, bootstrap reports/timesheets too from memory until we migrate them
-                        ...(state.reports.length === 0 ? {
-                            reports: mockReports,
-                            tools: mockTools,
-                            timesheets: mockTimesheets,
-                        } : {})
+                        reports: reportsDB?.map(r => ({
+                            id: r.id,
+                            projectId: r.project_id,
+                            projectName: '', // Will be mapped correctly in UI components
+                            clientId: r.client_id,
+                            date: r.date,
+                            state: r.state,
+                            schedule: r.schedule,
+                            weather: r.weather,
+                            location: r.location,
+                            equipment: r.equipment || [],
+                            customSections: r.custom_sections || [],
+                            comments: r.comments || [],
+                            labor: r.labor || [],
+                            media: r.media || [],
+                            occurrences: r.occurrences || [],
+                            checklists: r.checklists || [],
+                            subReportIds: r.sub_report_ids || [],
+                            attachments: r.attachments || [],
+                            externalAttachments: r.external_attachments || [],
+                            notes: r.notes || '',
+                            signatures: r.signatures || [],
+                            usedTools: r.used_tools || [],
+                            health: r.health,
+                            activityLogs: r.activity_logs || [],
+                            createdAt: r.created_at,
+                            createdBy: r.created_by,
+                            updatedAt: r.updated_at,
+                            updatedBy: r.updated_by,
+                            discipline: r.discipline
+                        })) || state.reports,
+                        timesheets: timesheetsDB?.map(t => ({
+                            id: t.id,
+                            personnelId: t.personnel_id,
+                            projectId: t.project_id,
+                            date: t.date,
+                            timeIn: t.time_in,
+                            timeOut: t.time_out,
+                            hours: t.hours,
+                            type: t.type,
+                            classification: t.classification,
+                            notes: t.notes,
+                            status: t.status,
+                            approvedBy: t.approved_by,
+                            signature: t.signature,
+                            punches: t.punches || [],
+                            gpsVerified: t.gps_verified,
+                            lunchSkipped: t.lunch_skipped
+                        })) || state.timesheets
                     }));
                 } catch (error) {
                     console.error('Failed to init DB from Supabase', error);
@@ -462,32 +507,149 @@ export const useStore = create<AppState>()(
             },
             resetDb: () => {
                 set(() => ({
-                    clients: mockClients,
-                    projects: mockProjects,
-                    reports: mockReports,
-                    personnel: mockPersonnel,
-                    tools: mockTools,
-                    timesheets: mockTimesheets,
+                    clients: [],
+                    projects: [],
+                    reports: [],
+                    personnel: [],
+                    tools: [],
+                    timesheets: [],
                 }));
             },
             setAuthData: (id, email) => set({ userId: id, userEmail: email }), // We can expand this to fetch their actual profile from the personnel table later
             setUserRole: (role) => set({ userRole: role }),
-            addClient: (client) => set((state) => ({ clients: [...state.clients, client] })),
-            updateClient: (id, updates) => set((state) => ({ clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c) })),
-            deleteClient: (id) => set((state) => ({ clients: state.clients.filter(c => c.id !== id) })),
-            addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
-            updateProject: (id, updates) => set((state) => ({ projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p) })),
-            addReport: (report) => set((state) => ({ 
-                reports: [...state.reports, { 
+            addClient: async (client) => {
+                set((state) => ({ clients: [...state.clients, client] }));
+                await supabase.from('clients').insert({
+                    id: client.id,
+                    name: client.name,
+                    logo: client.logo
+                });
+            },
+            updateClient: async (id, updates) => {
+                set((state) => ({ clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c) }));
+                await supabase.from('clients').update({
+                    name: updates.name,
+                    logo: updates.logo
+                }).eq('id', id);
+            },
+            deleteClient: async (id) => {
+                set((state) => ({ clients: state.clients.filter(c => c.id !== id) }));
+                await supabase.from('clients').delete().eq('id', id);
+            },
+            addProject: async (project) => {
+                set((state) => ({ projects: [...state.projects, project] }));
+                const dbPayload = {
+                    id: project.id,
+                    client_id: project.clientId,
+                    name: project.name,
+                    type: project.type,
+                    status: project.status,
+                    progress: project.progress,
+                    project_size: project.projectSize,
+                    system_type: project.systemType,
+                    location: project.location,
+                    code_name: project.codeName,
+                    scopes: project.scopes || [],
+                    assigned_personnel: project.assignedPersonnel || [],
+                    has_no_defined_scope: project.hasNoDefinedScope || false,
+                    disciplines: project.disciplines || []
+                };
+                await supabase.from('projects').insert(dbPayload);
+            },
+            updateProject: async (id, updates) => {
+                set((state) => ({ projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p) }));
+                const dbPayload: any = {};
+                if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
+                if (updates.name !== undefined) dbPayload.name = updates.name;
+                if (updates.type !== undefined) dbPayload.type = updates.type;
+                if (updates.status !== undefined) dbPayload.status = updates.status;
+                if (updates.progress !== undefined) dbPayload.progress = updates.progress;
+                if (updates.projectSize !== undefined) dbPayload.project_size = updates.projectSize;
+                if (updates.systemType !== undefined) dbPayload.system_type = updates.systemType;
+                if (updates.location !== undefined) dbPayload.location = updates.location;
+                if (updates.codeName !== undefined) dbPayload.code_name = updates.codeName;
+                if (updates.scopes !== undefined) dbPayload.scopes = updates.scopes;
+                if (updates.assignedPersonnel !== undefined) dbPayload.assigned_personnel = updates.assignedPersonnel;
+                if (updates.hasNoDefinedScope !== undefined) dbPayload.has_no_defined_scope = updates.hasNoDefinedScope;
+                if (updates.disciplines !== undefined) dbPayload.disciplines = updates.disciplines;
+                if (Object.keys(dbPayload).length > 0) {
+                    await supabase.from('projects').update(dbPayload).eq('id', id);
+                }
+            },
+            addReport: async (report) => {
+                const reportToSave = { 
                     ...report, 
                     createdAt: report.createdAt || new Date().toISOString(), 
-                    createdBy: report.createdBy || state.userId 
-                }] 
-            })),
-            updateReport: (id, updates) =>
+                    createdBy: report.createdBy || get().userId 
+                };
+                set((state) => ({ reports: [...state.reports, reportToSave] }));
+                
+                const dbPayload = {
+                    id: reportToSave.id,
+                    project_id: reportToSave.projectId,
+                    client_id: reportToSave.clientId,
+                    date: reportToSave.date,
+                    state: reportToSave.state,
+                    schedule: reportToSave.schedule,
+                    weather: reportToSave.weather,
+                    location: reportToSave.location,
+                    equipment: reportToSave.equipment,
+                    custom_sections: reportToSave.customSections,
+                    comments: reportToSave.comments,
+                    labor: reportToSave.labor,
+                    media: reportToSave.media,
+                    occurrences: reportToSave.occurrences,
+                    checklists: reportToSave.checklists,
+                    sub_report_ids: reportToSave.subReportIds,
+                    attachments: reportToSave.attachments,
+                    external_attachments: reportToSave.externalAttachments,
+                    notes: reportToSave.notes,
+                    signatures: reportToSave.signatures,
+                    used_tools: reportToSave.usedTools,
+                    health: reportToSave.health,
+                    activity_logs: reportToSave.activityLogs,
+                    created_at: reportToSave.createdAt,
+                    created_by: reportToSave.createdBy,
+                    discipline: reportToSave.discipline
+                };
+                await supabase.from('reports').insert(dbPayload);
+            },
+            updateReport: async (id, updates) => {
                 set((state) => ({
-                    reports: state.reports.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString(), updatedBy: state.userId } : r)),
-                })),
+                    reports: state.reports.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString(), updatedBy: get().userId } : r)),
+                }));
+
+                const dbPayload: any = {};
+                if (updates.projectId !== undefined) dbPayload.project_id = updates.projectId;
+                if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
+                if (updates.date !== undefined) dbPayload.date = updates.date;
+                if (updates.state !== undefined) dbPayload.state = updates.state;
+                if (updates.schedule !== undefined) dbPayload.schedule = updates.schedule;
+                if (updates.weather !== undefined) dbPayload.weather = updates.weather;
+                if (updates.location !== undefined) dbPayload.location = updates.location;
+                if (updates.equipment !== undefined) dbPayload.equipment = updates.equipment;
+                if (updates.customSections !== undefined) dbPayload.custom_sections = updates.customSections;
+                if (updates.comments !== undefined) dbPayload.comments = updates.comments;
+                if (updates.labor !== undefined) dbPayload.labor = updates.labor;
+                if (updates.media !== undefined) dbPayload.media = updates.media;
+                if (updates.occurrences !== undefined) dbPayload.occurrences = updates.occurrences;
+                if (updates.checklists !== undefined) dbPayload.checklists = updates.checklists;
+                if (updates.subReportIds !== undefined) dbPayload.sub_report_ids = updates.subReportIds;
+                if (updates.attachments !== undefined) dbPayload.attachments = updates.attachments;
+                if (updates.externalAttachments !== undefined) dbPayload.external_attachments = updates.externalAttachments;
+                if (updates.notes !== undefined) dbPayload.notes = updates.notes;
+                if (updates.signatures !== undefined) dbPayload.signatures = updates.signatures;
+                if (updates.usedTools !== undefined) dbPayload.used_tools = updates.usedTools;
+                if (updates.health !== undefined) dbPayload.health = updates.health;
+                if (updates.activityLogs !== undefined) dbPayload.activity_logs = updates.activityLogs;
+                if (updates.discipline !== undefined) dbPayload.discipline = updates.discipline;
+                dbPayload.updated_at = new Date().toISOString();
+                dbPayload.updated_by = get().userId;
+
+                if (Object.keys(dbPayload).length > 0) {
+                    await supabase.from('reports').update(dbPayload).eq('id', id);
+                }
+            },
             addComment: (reportId, text) => {
                 const { userRole, userId } = get();
                 set((state) => ({
@@ -515,15 +677,44 @@ export const useStore = create<AppState>()(
                 set((state) => ({
                     tools: state.tools.filter((t) => t.id !== id),
                 })),
-            addPersonnel: (person) => set((state) => ({ personnel: [...state.personnel, person] })),
-            updatePersonnel: (id, updates) =>
+            addPersonnel: async (person) => {
+                set((state) => ({ personnel: [...state.personnel, person] }));
+                const dbPayload = {
+                    id: person.id,
+                    name: person.name,
+                    position: person.position,
+                    employee_number: person.employeeNumber,
+                    app_role: person.appRole,
+                    status: person.status,
+                    certifications: person.certifications,
+                    email: person.email,
+                    client_id: person.clientId
+                };
+                await supabase.from('personnel').insert(dbPayload);
+            },
+            updatePersonnel: async (id, updates) => {
                 set((state) => ({
                     personnel: state.personnel.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-                })),
-            deletePersonnel: (id) =>
+                }));
+                const dbPayload: any = {};
+                if (updates.name !== undefined) dbPayload.name = updates.name;
+                if (updates.position !== undefined) dbPayload.position = updates.position;
+                if (updates.employeeNumber !== undefined) dbPayload.employee_number = updates.employeeNumber;
+                if (updates.appRole !== undefined) dbPayload.app_role = updates.appRole;
+                if (updates.status !== undefined) dbPayload.status = updates.status;
+                if (updates.certifications !== undefined) dbPayload.certifications = updates.certifications;
+                if (updates.email !== undefined) dbPayload.email = updates.email;
+                if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
+                if (Object.keys(dbPayload).length > 0) {
+                    await supabase.from('personnel').update(dbPayload).eq('id', id);
+                }
+            },
+            deletePersonnel: async (id) => {
                 set((state) => ({
                     personnel: state.personnel.filter((p) => p.id !== id),
-                })),
+                }));
+                await supabase.from('personnel').delete().eq('id', id);
+            },
             addTemplate: (template) => set((state) => ({ templates: [...state.templates, template] })),
             updateTemplate: (id, updates) =>
                 set((state) => ({
@@ -569,15 +760,58 @@ export const useStore = create<AppState>()(
                 set((state) => ({
                     events: state.events.filter((e) => e.id !== id),
                 })),
-            addTimesheet: (timesheet) => set((state) => ({ timesheets: [...state.timesheets, timesheet] })),
-            updateTimesheet: (id, updates) =>
+            addTimesheet: async (timesheet) => {
+                set((state) => ({ timesheets: [...state.timesheets, timesheet] }));
+                const dbPayload = {
+                    id: timesheet.id,
+                    personnel_id: timesheet.personnelId,
+                    project_id: timesheet.projectId,
+                    date: timesheet.date,
+                    time_in: timesheet.timeIn,
+                    time_out: timesheet.timeOut,
+                    hours: timesheet.hours,
+                    type: timesheet.type,
+                    classification: timesheet.classification,
+                    notes: timesheet.notes,
+                    status: timesheet.status,
+                    approved_by: timesheet.approvedBy,
+                    signature: timesheet.signature,
+                    punches: timesheet.punches,
+                    gps_verified: timesheet.gpsVerified,
+                    lunch_skipped: timesheet.lunchSkipped
+                };
+                await supabase.from('timesheets').insert(dbPayload);
+            },
+            updateTimesheet: async (id, updates) => {
                 set((state) => ({
                     timesheets: state.timesheets.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-                })),
-            deleteTimesheet: (id) =>
+                }));
+                const dbPayload: any = {};
+                if (updates.personnelId !== undefined) dbPayload.personnel_id = updates.personnelId;
+                if (updates.projectId !== undefined) dbPayload.project_id = updates.projectId;
+                if (updates.date !== undefined) dbPayload.date = updates.date;
+                if (updates.timeIn !== undefined) dbPayload.time_in = updates.timeIn;
+                if (updates.timeOut !== undefined) dbPayload.time_out = updates.timeOut;
+                if (updates.hours !== undefined) dbPayload.hours = updates.hours;
+                if (updates.type !== undefined) dbPayload.type = updates.type;
+                if (updates.classification !== undefined) dbPayload.classification = updates.classification;
+                if (updates.notes !== undefined) dbPayload.notes = updates.notes;
+                if (updates.status !== undefined) dbPayload.status = updates.status;
+                if (updates.approvedBy !== undefined) dbPayload.approved_by = updates.approvedBy;
+                if (updates.signature !== undefined) dbPayload.signature = updates.signature;
+                if (updates.punches !== undefined) dbPayload.punches = updates.punches;
+                if (updates.gpsVerified !== undefined) dbPayload.gps_verified = updates.gpsVerified;
+                if (updates.lunchSkipped !== undefined) dbPayload.lunch_skipped = updates.lunchSkipped;
+                if (Object.keys(dbPayload).length > 0) {
+                    await supabase.from('timesheets').update(dbPayload).eq('id', id);
+                }
+            },
+            deleteTimesheet: async (id) => {
                 set((state) => ({
                     timesheets: state.timesheets.filter((t) => t.id !== id),
-                })),
+                }));
+                await supabase.from('timesheets').delete().eq('id', id);
+            },
             approveTimesheet: (id, approverId) => 
                 set((state) => ({
                     timesheets: state.timesheets.map((t) => 
