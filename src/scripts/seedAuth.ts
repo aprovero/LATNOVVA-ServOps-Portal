@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { mockPersonnel } from '../store/mockData';
+import { mockPersonnel } from '../store/mockDataBackup';
 import * as dotenv from 'dotenv';
 // Load variables from .env file in the current working directory
 dotenv.config();

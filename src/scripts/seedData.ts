@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { mockClients, mockPersonnel, mockProjects } from '../store/mockData';
+import { mockClients, mockPersonnel, mockProjects } from '../store/mockDataBackup';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -115,12 +115,12 @@ async function seed() {
     // 3. PROJECTS INSERTION
     // ==========================================
     console.log(`📋 Inserting ${mockProjects.length} Projects...`);
-    const formattedProjects = mockProjects.map(proj => {
+    const formattedProjects = mockProjects.map((proj: any) => {
         // Map old client ID to new UUID. If 'Unknown' or not found, we leave it undefined.
         let cId = clientMap.get(proj.clientId) || undefined;
 
         // Map assigned personnel arrays from old string IDs to new UUIDs
-        const mappedTeam = (proj.assignedPersonnel || []).map(oldId => personnelMap.get(oldId) || oldId);
+        const mappedTeam = (proj.assignedPersonnel || []).map((oldId: string) => personnelMap.get(oldId) || oldId);
 
         return {
             client_id: cId,

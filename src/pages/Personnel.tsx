@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore, Personnel as PersonnelType } from '../store/useStore';
-import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2, Network, List } from 'lucide-react';
+import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
