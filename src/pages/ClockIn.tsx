@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { ReactNode } from 'react';
 import {
     MapPin, Clock, CheckCircle, AlertTriangle, Wifi, WifiOff,
     Coffee, LogIn, LogOut, ChevronDown, X, Edit2, Zap,
-    Camera, Users, ArrowRight, RotateCcw, UserCheck,
+    Users, UserCheck, PenLine, UserPlus, Check, Trash2,
 } from 'lucide-react';
 import { useStore, ClockPunch, Personnel } from '../store/useStore';
 
@@ -11,7 +10,13 @@ import { useStore, ClockPunch, Personnel } from '../store/useStore';
 
 type PunchStep = 'idle' | 'clocked-in' | 'lunch-out' | 'clocked-out';
 type ViewMode = 'individual' | 'batch';
-type BatchScreen = 'grid' | 'punch' | 'success';
+type BatchScreen = 'list' | 'success';
+
+interface OutsourcedEntry {
+    tempId: string;
+    name: string;
+    role: string;
+}
 
 interface GpsState {
     lat: number | null;
@@ -102,88 +107,261 @@ function GpsBadge({ gps }: { gps: GpsState }) {
     );
 }
 
-// ─── CameraCapture ────────────────────────────────────────────────────────────
+// ─── SignaturePad ─────────────────────────────────────────────────────────────
 
-function CameraCapture({ onCapture, onSkip }: { onCapture: (blob: string) => void; onSkip: () => void }) {
-    const videoRef = useRef<HTMLVideoElement>(null);
+function SignaturePad({ onSign, onClear }: { onSign: (blob: string) => void; onClear: () => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const [photo, setPhoto] = useState<string | null>(null);
-    const [camError, setCamError] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const drawing = useRef(false);
+    const [hasSig, setHasSig] = useState(false);
 
-    useEffect(() => {
-        navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-            .then(stream => {
-                streamRef.current = stream;
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                    videoRef.current.onloadedmetadata = () => setLoading(false);
-                }
-            })
-            .catch(() => { setCamError(true); setLoading(false); });
-        return () => streamRef.current?.getTracks().forEach(t => t.stop());
-    }, []);
-
-    const capture = () => {
+    const getPos = (e: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current!;
-        const video = videoRef.current!;
-        canvas.width = 320; canvas.height = 240;
-        const ctx = canvas.getContext('2d')!;
-        ctx.save(); ctx.scale(-1, 1);
-        ctx.drawImage(video, -320, 0, 320, 240);
-        ctx.restore();
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
-        setPhoto(dataUrl);
-        streamRef.current?.getTracks().forEach(t => t.stop());
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        if ('touches' in e) {
+            return {
+                x: (e.touches[0].clientX - rect.left) * scaleX,
+                y: (e.touches[0].clientY - rect.top) * scaleY,
+            };
+        }
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY,
+        };
     };
 
-    if (camError) return (
-        <div className="flex flex-col items-center py-5 gap-3">
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                <Camera size={20} className="text-gray-400" />
-            </div>
-            <p className="text-sm text-gray-500 text-center">Camera not available</p>
-            <button onClick={onSkip} className="text-teal-600 text-sm font-semibold underline">Continue without photo</button>
-        </div>
-    );
+    const start = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        drawing.current = true;
+        const ctx = canvasRef.current!.getContext('2d')!;
+        const p = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    };
 
-    if (photo) return (
-        <div className="space-y-3">
-            <div className="rounded-2xl overflow-hidden border-4 border-teal-400 shadow">
-                <img src={photo} alt="Selfie" className="w-full max-h-44 object-cover" />
-            </div>
-            <div className="flex gap-2">
-                <button onClick={() => { setPhoto(null); }} className="flex-1 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600 flex items-center justify-center gap-2">
-                    <RotateCcw size={14} /> Retake
-                </button>
-                <button onClick={() => onCapture(photo)} className="flex-1 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-bold">
-                    ✓ Use Photo
-                </button>
-            </div>
-        </div>
-    );
+    const move = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        if (!drawing.current) return;
+        const ctx = canvasRef.current!.getContext('2d')!;
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        const p = getPos(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    };
+
+    const end = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        if (!drawing.current) return;
+        drawing.current = false;
+        setHasSig(true);
+        const blob = canvasRef.current!.toDataURL('image/png');
+        onSign(blob);
+    };
+
+    const clear = () => {
+        const canvas = canvasRef.current!;
+        const ctx = canvas.getContext('2d')!;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        setHasSig(false);
+        onClear();
+    };
 
     return (
-        <div className="space-y-3">
-            <div className="relative rounded-2xl overflow-hidden bg-black aspect-[4/3]">
-                <video ref={videoRef} autoPlay playsInline muted
-                    className="w-full h-full object-cover [transform:scaleX(-1)]" />
-                <canvas ref={canvasRef} className="hidden" />
-                {loading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <div className="w-8 h-8 border-4 border-teal-400 border-t-transparent rounded-full animate-spin" />
-                    </div>
+        <div className="space-y-2">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                    <PenLine size={12} /> Supervisor Signature
+                </span>
+                {hasSig && (
+                    <button onClick={clear} className="text-xs text-red-500 font-semibold flex items-center gap-1">
+                        <Trash2 size={11} /> Clear
+                    </button>
                 )}
             </div>
-            <div className="flex gap-2">
-                <button onClick={onSkip} className="flex-1 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600">
-                    Skip Photo
-                </button>
-                <button onClick={capture} disabled={loading}
-                    className="flex-1 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50">
-                    <Camera size={16} /> Take Photo
-                </button>
+            <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 overflow-hidden" style={{ touchAction: 'none' }}>
+                <canvas
+                    ref={canvasRef}
+                    width={600}
+                    height={160}
+                    className="w-full h-28 cursor-crosshair block"
+                    onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
+                    onTouchStart={start} onTouchMove={move} onTouchEnd={end}
+                />
+                {!hasSig && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <p className="text-gray-300 text-sm font-medium">Sign here</p>
+                    </div>
+                )}
+                <div className="absolute bottom-2 left-4 right-4 border-b border-gray-300" />
+            </div>
+        </div>
+    );
+}
+
+// ─── AddOutsourcedModal ───────────────────────────────────────────────────────
+
+function AddOutsourcedModal({ onAdd, onCancel }: {
+    onAdd: (entry: OutsourcedEntry) => void;
+    onCancel: () => void;
+}) {
+    const [name, setName] = useState('');
+    const [role, setRole] = useState('Technician');
+    const roles = ['Technician', 'Assembler', 'Team Leader', 'Foreman', 'Operator', 'Other'];
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <UserPlus size={18} className="text-purple-500" /> Add Outsourced Person
+                    </h3>
+                    <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+                </div>
+                <p className="text-sm text-gray-500">Person not in the system — will be punched as outsourced.</p>
+                <div className="space-y-3">
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Full Name</label>
+                        <input
+                            autoFocus
+                            type="text"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            placeholder="e.g. Carlos Perez"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-400 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Role / Position</label>
+                        <select
+                            value={role}
+                            onChange={e => setRole(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-400 outline-none appearance-none bg-white"
+                        >
+                            {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                    </div>
+                </div>
+                <div className="flex gap-3 pt-1">
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button
+                        onClick={() => {
+                            if (!name.trim()) return;
+                            onAdd({ tempId: `OUT-${Date.now()}`, name: name.trim(), role });
+                        }}
+                        disabled={!name.trim()}
+                        className="flex-1 py-3 rounded-xl bg-purple-500 text-white text-sm font-bold disabled:opacity-40"
+                    >
+                        Add to List
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── BatchConfirmModal ────────────────────────────────────────────────────────
+
+interface BatchEntry {
+    id: string;
+    name: string;
+    role: string;
+    action: ClockPunch['type'];
+    isOutsourced?: boolean;
+}
+
+function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
+    entries: BatchEntry[];
+    gps: GpsState;
+    onConfirm: (sigBlob: string) => void;
+    onCancel: () => void;
+}) {
+    const [sigBlob, setSigBlob] = useState<string | null>(null);
+    const gpsReady = gps.status === 'locked' || gps.status === 'poor';
+
+    const actionLabel: Record<ClockPunch['type'], { label: string; color: string }> = {
+        clockIn:  { label: 'Clock In',        color: 'text-teal-700 bg-teal-50' },
+        lunchOut: { label: 'Lunch Out',        color: 'text-amber-700 bg-amber-50' },
+        lunchIn:  { label: 'Back from Lunch',  color: 'text-amber-700 bg-amber-50' },
+        clockOut: { label: 'Clock Out',        color: 'text-red-700 bg-red-50' },
+    };
+
+    // Group by action type for the header
+    const primaryAction = entries[0]?.action ?? 'clockIn';
+    const actionMeta = actionLabel[primaryAction];
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[92vh]">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100">
+                    <h3 className="text-lg font-bold text-gray-800">Confirm Batch Punch</h3>
+                    <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+                </div>
+
+                {/* Scrollable person list */}
+                <div className="overflow-y-auto flex-1">
+                    <div className="px-6 pt-4 pb-2">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                            {entries.length} {entries.length === 1 ? 'person' : 'people'} — confirm each action
+                        </p>
+                        <div className="space-y-1.5">
+                            {entries.map(e => (
+                                <div key={e.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
+                                            {e.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm text-gray-800 truncate">{e.name}</p>
+                                            <p className="text-[10px] text-gray-400">{e.role}{e.isOutsourced ? ' · OUTSOURCED' : ''}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ml-2 ${actionLabel[e.action].color}`}>
+                                        {actionLabel[e.action].label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* GPS */}
+                    <div className="px-6 pt-3 pb-2">
+                        <div className="flex justify-center">
+                            <GpsBadge gps={gps} />
+                        </div>
+                        {!gpsReady && (
+                            <p className="text-center text-xs text-amber-600 mt-1">Waiting for GPS to punch…</p>
+                        )}
+                    </div>
+
+                    {/* Signature pad */}
+                    <div className="px-6 pb-5">
+                        <SignaturePad
+                            onSign={b => setSigBlob(b)}
+                            onClear={() => setSigBlob(null)}
+                        />
+                    </div>
+                </div>
+
+                {/* Footer actions */}
+                <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button
+                        onClick={() => sigBlob && onConfirm(sigBlob)}
+                        disabled={!sigBlob || !gpsReady}
+                        className={`flex-1 py-3 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                            primaryAction === 'clockOut' ? 'bg-red-500' :
+                            primaryAction === 'clockIn' ? 'bg-teal-500' : 'bg-amber-500'
+                        }`}
+                    >
+                        <Check size={16} />
+                        {!sigBlob ? 'Sign to confirm' : `${actionMeta.label} ${entries.length} ${entries.length === 1 ? 'person' : 'people'}`}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -232,203 +410,197 @@ function ManualAdjustModal({ punchType, onConfirm, onCancel }: {
     );
 }
 
-// ─── BatchPunchScreen ─────────────────────────────────────────────────────────
-
-function BatchPunchScreen({ person, step, gps, projectId, onDone, onBack, doPunch }: {
-    person: Personnel;
-    step: PunchStep;
-    gps: GpsState;
-    projectId: string;
-    onDone: (type: ClockPunch['type'], time: string) => void;
-    onBack: () => void;
-    doPunch: (personnelId: string, punch: ClockPunch, projectId?: string) => void;
-}) {
-    const [photo, setPhoto] = useState<string | null>(null);
-    const [showCam, setShowCam] = useState(false);
-    const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
-    const gpsReady = gps.status === 'locked' || gps.status === 'poor';
-
-    const executePunch = useCallback((type: ClockPunch['type'], overrideTime?: string, note?: string) => {
-        const best = getBestTimestampISO(gps);
-        let timestamp = best.iso;
-        if (overrideTime) {
-            const [h, m] = overrideTime.split(':');
-            const d = getBestDate(gps);
-            d.setHours(parseInt(h), parseInt(m), 0, 0);
-            timestamp = d.toISOString();
-        }
-        const punch: ClockPunch = {
-            timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
-            accuracy: gps.accuracy ?? 9999, type,
-            timeSource: overrideTime ? 'device' : best.source,
-            selfieBlob: photo ?? undefined,
-            ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
-        };
-        doPunch(person.id, punch, projectId || undefined);
-        onDone(type, formatShort(timestamp));
-    }, [gps, photo, person.id, projectId, doPunch, onDone]);
-
-    const actions: { type: ClockPunch['type']; label: string; cls: string; icon: ReactNode }[] = [];
-    if (step === 'idle')
-        actions.push({ type: 'clockIn', label: 'CLOCK IN', cls: 'from-teal-500 to-teal-600', icon: <LogIn size={22} /> });
-    if (step === 'clocked-in') {
-        actions.push({ type: 'lunchOut', label: 'LUNCH OUT', cls: 'from-amber-400 to-amber-500', icon: <Coffee size={22} /> });
-        actions.push({ type: 'clockOut', label: 'CLOCK OUT', cls: 'from-red-500 to-red-600', icon: <LogOut size={22} /> });
-    }
-    if (step === 'lunch-out')
-        actions.push({ type: 'lunchIn', label: 'BACK FROM LUNCH', cls: 'from-amber-400 to-amber-500', icon: <Coffee size={22} /> });
-
-    return (
-        <div className="space-y-4">
-            {/* Person header */}
-            <div className="flex items-center gap-3">
-                <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                    <ChevronDown size={18} className="rotate-90 text-gray-500" />
-                </button>
-                <div className="flex-1">
-                    <p className="font-bold text-gray-800 text-lg leading-tight">{person.name}</p>
-                    <p className="text-xs text-gray-400">{person.position}</p>
-                </div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stepMeta[step].bg} ${stepMeta[step].text}`}>
-                    {stepMeta[step].dot} {stepMeta[step].label}
-                </span>
-            </div>
-
-            {/* Selfie section */}
-            {!photo && !showCam && (
-                <button onClick={() => setShowCam(true)}
-                    className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-sm font-semibold text-gray-400 flex items-center justify-center gap-2 hover:border-teal-300 hover:text-teal-600 transition-colors">
-                    <Camera size={16} /> Add Verification Photo (Optional)
-                </button>
-            )}
-            {showCam && !photo && (
-                <CameraCapture onCapture={b => { setPhoto(b); setShowCam(false); }} onSkip={() => setShowCam(false)} />
-            )}
-            {photo && (
-                <div className="relative rounded-2xl overflow-hidden border-2 border-teal-300">
-                    <img src={photo} alt="Selfie" className="w-full max-h-36 object-cover" />
-                    <button onClick={() => setPhoto(null)} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1">
-                        <X size={14} />
-                    </button>
-                    <div className="absolute bottom-0 inset-x-0 bg-teal-500/80 text-white text-xs font-bold py-1 text-center">
-                        ✓ Photo captured
-                    </div>
-                </div>
-            )}
-
-            {/* GPS */}
-            <div className="flex justify-center"><GpsBadge gps={gps} /></div>
-
-            {/* Action buttons */}
-            {step === 'clocked-out' ? (
-                <div className="py-6 text-center space-y-3">
-                    <CheckCircle size={40} className="text-green-500 mx-auto" />
-                    <p className="font-bold text-gray-700">Already done for the day</p>
-                    <button onClick={onBack} className="text-sm text-teal-600 font-semibold underline">← Back to team</button>
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {actions.map(a => (
-                        <button key={a.type} onClick={() => executePunch(a.type)} disabled={!gpsReady}
-                            className={`w-full py-4 rounded-2xl bg-gradient-to-r ${a.cls} text-white font-bold text-lg shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]`}>
-                            {a.icon} {a.label}
-                        </button>
-                    ))}
-                    {step === 'lunch-out' && (
-                        <button onClick={() => setManualModal('lunchIn')}
-                            className="w-full py-3 rounded-2xl border-2 border-amber-200 text-amber-600 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-amber-50">
-                            <Edit2 size={14} /> Forgot to punch? Enter manually
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {manualModal && (
-                <ManualAdjustModal punchType={manualModal}
-                    onConfirm={(t, n) => { executePunch(manualModal, t, n); setManualModal(null); }}
-                    onCancel={() => setManualModal(null)} />
-            )}
-        </div>
-    );
-}
+// (BatchPunchScreen removed — replaced by multi-select list + BatchConfirmModal)
 
 // ─── BatchModeView ────────────────────────────────────────────────────────────
 
-function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPunch }: {
+function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPunch, supervisorId }: {
     gps: GpsState;
     projects: any[];
     personnel: Personnel[];
     timesheets: any[];
     clockPunch: (...args: any[]) => void;
+    supervisorId: string;
 }) {
     const [selectedProject, setSelectedProject] = useState('');
-    const [screen, setScreen] = useState<BatchScreen>('grid');
-    const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null);
-    const [lastResult, setLastResult] = useState<{ name: string; action: string; time: string } | null>(null);
-    const [countdown, setCountdown] = useState(5);
+    const [screen, setScreen] = useState<BatchScreen>('list');
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [outsourcedList, setOutsourcedList] = useState<OutsourcedEntry[]>([]);
+    const [showAddOutsourced, setShowAddOutsourced] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [lastBatch, setLastBatch] = useState<{ names: string[]; action: string; time: string } | null>(null);
+    const [countdown, setCountdown] = useState(4);
 
     const activeProjects = projects.filter(p => p.status === 'Active');
-    const visiblePersonnel = personnel.filter(p => ['Tech', 'Supervisor'].includes(p.appRole ?? ''));
 
+    // Build sorted personnel list: assigned to project first, then rest — both groups alpha-sorted
+    const sortedPersonnel = useCallback(() => {
+        const eligible = personnel.filter(p =>
+            ['Tech', 'Supervisor'].includes(p.appRole ?? '') && p.status === 'Active'
+        );
+        if (!selectedProject) return [...eligible].sort((a, b) => a.name.localeCompare(b.name));
+        const project = projects.find(p => p.id === selectedProject);
+        const assignedIds: string[] = project?.assignedPersonnel ?? [];
+        const assigned = eligible.filter(p => assignedIds.includes(p.id)).sort((a, b) => a.name.localeCompare(b.name));
+        const rest = eligible.filter(p => !assignedIds.includes(p.id)).sort((a, b) => a.name.localeCompare(b.name));
+        return [...assigned, ...rest];
+    }, [personnel, projects, selectedProject]);
+
+    // When project changes: pre-select all assigned personnel + supervisor themselves
+    // Only pre-select people whose current state is 'idle' (avoids auto-selecting someone already on site)
+    useEffect(() => {
+        if (!selectedProject) {
+            setSelectedIds(new Set([supervisorId]));
+            return;
+        }
+        const project = projects.find(p => p.id === selectedProject);
+        const assignedIds: string[] = project?.assignedPersonnel ?? [];
+        const validIds = personnel
+            .filter(p =>
+                assignedIds.includes(p.id) &&
+                ['Tech', 'Supervisor'].includes(p.appRole ?? '') &&
+                getPunchStep(timesheets, p.id) === 'idle' // only pre-check people not yet clocked in
+            )
+            .map(p => p.id);
+        // Always include supervisor (regardless of their state — they may be self-clocked in)
+        const initial = new Set([...validIds, supervisorId]);
+        setSelectedIds(initial);
+    }, [selectedProject, projects, personnel, supervisorId]);
+
+    // Success countdown
     useEffect(() => {
         if (screen !== 'success') return;
-        if (countdown <= 0) { setScreen('grid'); setSelectedPerson(null); return; }
+        if (countdown <= 0) { setScreen('list'); return; }
         const id = setTimeout(() => setCountdown(c => c - 1), 1000);
         return () => clearTimeout(id);
     }, [screen, countdown]);
 
-    const handleDone = (person: Personnel, type: ClockPunch['type'], time: string) => {
-        setLastResult({ name: person.name, action: punchLabel[type], time });
-        setScreen('success');
-        setCountdown(5);
+    const toggleId = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
     };
 
-    if (screen === 'punch' && selectedPerson) {
-        return (
-            <BatchPunchScreen
-                person={selectedPerson}
-                step={getPunchStep(timesheets, selectedPerson.id)}
-                gps={gps}
-                projectId={selectedProject}
-                onDone={(type, time) => handleDone(selectedPerson, type, time)}
-                onBack={() => { setScreen('grid'); setSelectedPerson(null); }}
-                doPunch={doPunch}
-            />
-        );
-    }
+    // Determine what punch action to perform for a given person
+    const getNextAction = (id: string): ClockPunch['type'] => {
+        const step = getPunchStep(timesheets, id);
+        if (step === 'idle') return 'clockIn';
+        if (step === 'clocked-in') return 'clockOut'; // simplified: batch out
+        if (step === 'lunch-out') return 'lunchIn';
+        return 'clockIn'; // clocked-out — shouldn't normally be selected
+    };
 
-    if (screen === 'success' && lastResult) {
+    // Determine dominant action for selected people (majority vote)
+    const dominantAction = useCallback((): ClockPunch['type'] => {
+        const list = [...selectedIds];
+        const counts: Record<string, number> = { clockIn: 0, clockOut: 0, lunchIn: 0, lunchOut: 0 };
+        list.forEach(id => { const a = getNextAction(id); counts[a] = (counts[a] || 0) + 1; });
+        outsourcedList.filter(o => selectedIds.has(o.tempId)).forEach(() => { counts['clockIn']++; });
+        return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'clockIn') as ClockPunch['type'];
+    }, [selectedIds, timesheets, outsourcedList]);
+
+    // Build entries for the confirm modal
+    const buildEntries = (): BatchEntry[] => {
+        const action = dominantAction();
+        const result: BatchEntry[] = [];
+        sortedPersonnel().forEach(p => {
+            if (!selectedIds.has(p.id)) return;
+            result.push({ id: p.id, name: p.name, role: p.position, action: getNextAction(p.id) });
+        });
+        outsourcedList.forEach(o => {
+            if (!selectedIds.has(o.tempId)) return;
+            result.push({ id: o.tempId, name: o.name, role: o.role, action, isOutsourced: true });
+        });
+        return result;
+    };
+
+    const commitBatch = useCallback((sigBlob: string) => {
+        const entries = buildEntries();
+        const best = getBestTimestampISO(gps);
+        const timestamp = best.iso;
+        const names: string[] = [];
+        entries.forEach(entry => {
+            const punch: ClockPunch = {
+                timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
+                accuracy: gps.accuracy ?? 9999,
+                type: entry.action,
+                timeSource: best.source,
+                supervisorSignatureBlob: sigBlob,
+                ...(entry.isOutsourced ? { isOutsourced: true, outsourcedName: entry.name } : {}),
+            };
+            doPunch(entry.isOutsourced ? `OUT-${entry.id.replace('OUT-', '')}` : entry.id, punch, selectedProject || undefined);
+            names.push(entry.name);
+        });
+        const action = entries[0]?.action ?? 'clockIn';
+        setLastBatch({ names, action: punchLabel[action], time: formatShort(timestamp) });
+        setShowConfirm(false);
+        setSelectedIds(new Set());
+        setScreen('success');
+        setCountdown(4);
+    }, [gps, selectedIds, timesheets, outsourcedList, selectedProject, doPunch]);
+
+    // ── Success screen
+    if (screen === 'success' && lastBatch) {
         return (
-            <div className="flex flex-col items-center py-10 gap-6 text-center">
+            <div className="flex flex-col items-center py-8 gap-5 text-center">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
                     <CheckCircle size={44} className="text-green-500" />
                 </div>
                 <div>
-                    <p className="text-2xl font-bold text-gray-800">✓ {lastResult.action}</p>
-                    <p className="text-lg font-semibold text-gray-600 mt-1">{lastResult.name}</p>
-                    <p className="text-sm text-gray-400 mt-1">at {lastResult.time}</p>
+                    <p className="text-2xl font-bold text-gray-800">✓ {lastBatch.action}</p>
+                    <p className="text-sm text-gray-400 mt-1">at {lastBatch.time}</p>
                 </div>
-                <div className="w-full max-w-xs bg-teal-50 border border-teal-200 rounded-2xl p-4">
-                    <p className="text-teal-700 font-semibold text-sm">👋 Pass the device to the next person</p>
-                    <p className="text-teal-400 text-xs mt-1">Returning to team in {countdown}s…</p>
+                <div className="w-full bg-teal-50 border border-teal-200 rounded-2xl p-4 text-left space-y-1">
+                    {lastBatch.names.map((n, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm font-semibold text-teal-700">
+                            <Check size={14} className="shrink-0" /> {n}
+                        </div>
+                    ))}
                 </div>
-                <button onClick={() => { setScreen('grid'); setSelectedPerson(null); }}
-                    className="w-full max-w-xs py-3 bg-teal-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2">
-                    <Users size={16} /> Back to Team <ArrowRight size={16} />
+                <div className="text-xs text-gray-400">Returning to list in {countdown}s…</div>
+                <button
+                    onClick={() => { setScreen('list'); }}
+                    className="w-full py-3 bg-teal-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2"
+                >
+                    <Users size={16} /> Back to Team
                 </button>
             </div>
         );
     }
 
-    // Grid view
+    // ── Main list view
+    const sorted = sortedPersonnel();
+    const project = projects.find(p => p.id === selectedProject);
+    const assignedIds: string[] = project?.assignedPersonnel ?? [];
+    const selCount = selectedIds.size;
+
+    // Count how many selected people need clock-in vs clock-out for the warning banner
+    const actionCounts = (() => {
+        const counts: Record<string, number> = { clockIn: 0, clockOut: 0, lunchIn: 0, lunchOut: 0 };
+        [...selectedIds].forEach(id => {
+            if (outsourcedList.some(o => o.tempId === id)) { counts.clockIn++; return; }
+            const a = getNextAction(id);
+            counts[a] = (counts[a] || 0) + 1;
+        });
+        return counts;
+    })();
+    const uniqueActions = Object.entries(actionCounts).filter(([, v]) => v > 0).length;
+    const hasMixedActions = uniqueActions > 1;
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-24">
+            {/* Project selector */}
             <div className="relative">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Filter by Project</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Select Project</label>
                 <div className="relative">
-                    <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
-                        className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10">
-                        <option value="">— All Personnel —</option>
+                    <select
+                        value={selectedProject}
+                        onChange={e => setSelectedProject(e.target.value)}
+                        className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10"
+                    >
+                        <option value="">— Select a project —</option>
                         {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -437,44 +609,198 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
             <div className="flex justify-center"><GpsBadge gps={gps} /></div>
 
+            {/* Team list */}
             <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Team · {visiblePersonnel.length} members</p>
-                {visiblePersonnel.length === 0 ? (
-                    <div className="text-center py-10 text-gray-400">
-                        <Users size={36} className="mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">No personnel with Tech/Supervisor role found</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                        {visiblePersonnel.map(person => {
-                            const step = getPunchStep(timesheets, person.id);
-                            const meta = stepMeta[step];
-                            const isJustPunched = lastResult?.name === person.name;
-                            return (
-                                <button key={person.id}
-                                    onClick={() => { setSelectedPerson(person); setScreen('punch'); }}
-                                    className={`p-4 rounded-2xl border-2 text-left transition-all hover:shadow-md active:scale-[0.97] ${isJustPunched ? 'border-teal-300 bg-teal-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold text-sm shrink-0">
-                                            {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                                        </div>
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.bg} ${meta.text}`}>
-                                            {meta.dot} {meta.label}
-                                        </span>
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Team · {sorted.length + outsourcedList.length} {sorted.length + outsourcedList.length === 1 ? 'person' : 'people'}
+                    </p>
+                    <button
+                        onClick={() => setShowAddOutsourced(true)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-purple-600 hover:text-purple-700 transition-colors"
+                    >
+                        <UserPlus size={13} /> Add Outsourced
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    {/* Registered personnel */}
+                    {sorted.length === 0 && outsourcedList.length === 0 && (
+                        <div className="text-center py-10 text-gray-400">
+                            <Users size={36} className="mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">No active Tech/Supervisor personnel found</p>
+                        </div>
+                    )}
+                    {sorted.map((person, idx) => {
+                        const step = getPunchStep(timesheets, person.id);
+                        const meta = stepMeta[step];
+                        const isChecked = selectedIds.has(person.id);
+                        const isAssigned = assignedIds.includes(person.id);
+                        const isSelf = person.id === supervisorId;
+                        const doneFoDay = step === 'clocked-out';
+                        return (
+                            <div
+                                key={person.id}
+                                onClick={() => !doneFoDay && toggleId(person.id)}
+                                className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                                    idx > 0 ? 'border-t border-gray-50' : ''
+                                } ${
+                                    doneFoDay ? 'opacity-50 cursor-not-allowed' :
+                                    isChecked ? 'bg-teal-50/60 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'
+                                }`}
+                            >
+                                {/* Checkbox */}
+                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                                    isChecked ? 'bg-teal-500 border-teal-500' : 'border-gray-300 bg-white'
+                                }`}>
+                                    {isChecked && <Check size={12} className="text-white" strokeWidth={3} />}
+                                </div>
+
+                                {/* Avatar initials */}
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                    isSelf ? 'bg-purple-100 text-purple-700' :
+                                    isAssigned ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                    {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+
+                                {/* Name + role */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-semibold text-sm text-gray-800 leading-tight">{person.name}</span>
+                                        {isSelf && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">YOU</span>
+                                        )}
+                                        {isAssigned && !isSelf && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">ASSIGNED</span>
+                                        )}
                                     </div>
-                                    <p className="font-bold text-gray-800 text-sm leading-tight">{person.name}</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">{person.position}</p>
-                                    {step !== 'clocked-out' && (
-                                        <p className="text-[10px] text-teal-600 mt-1.5 font-semibold flex items-center gap-1">
-                                            <ArrowRight size={10} /> Tap to punch
-                                        </p>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[11px] text-gray-400 mt-0.5">{person.position}</p>
+                                        {/* Show what will happen if this person is checked in a mixed batch */}
+                                        {isChecked && hasMixedActions && (() => {
+                                            const nextA = getNextAction(person.id);
+                                            const label = nextA === 'clockIn' ? '↳ Will Clock In' : nextA === 'clockOut' ? '↳ Will Clock Out' : nextA === 'lunchOut' ? '↳ Lunch Out' : '↳ Back from Lunch';
+                                            const color = nextA === 'clockIn' ? 'text-teal-500' : nextA === 'clockOut' ? 'text-red-400' : 'text-amber-500';
+                                            return <span className={`text-[10px] font-semibold mt-0.5 ${color}`}>{label}</span>;
+                                        })()}
+                                        {/* Warn if already clocked-in but selected in a check-in batch */}
+                                        {step === 'clocked-in' && !isChecked && (
+                                            <span className="text-[10px] text-amber-500 font-medium mt-0.5">Already on site</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Status badge */}
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${meta.bg} ${meta.text}`}>
+                                    {meta.dot} {meta.label}
+                                </span>
+                            </div>
+                        );
+                    })}
+
+                    {/* Outsourced entries */}
+                    {outsourcedList.map((o, idx) => {
+                        const isChecked = selectedIds.has(o.tempId);
+                        const baseIdx = sorted.length + idx;
+                        return (
+                            <div
+                                key={o.tempId}
+                                className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                                    baseIdx > 0 ? 'border-t border-gray-50' : ''
+                                } ${
+                                    isChecked ? 'bg-purple-50/60 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'
+                                }`}
+                            >
+                                {/* Checkbox */}
+                                <div
+                                    onClick={() => toggleId(o.tempId)}
+                                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                                        isChecked ? 'bg-purple-500 border-purple-500' : 'border-gray-300 bg-white'
+                                    }`}
+                                >
+                                    {isChecked && <Check size={12} className="text-white" strokeWidth={3} />}
+                                </div>
+
+                                {/* Avatar */}
+                                <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">
+                                    {o.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+
+                                {/* Name + role */}
+                                <div className="flex-1 min-w-0" onClick={() => toggleId(o.tempId)}>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-semibold text-sm text-gray-800">{o.name}</span>
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">OUTSOURCED</span>
+                                    </div>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">{o.role}</p>
+                                </div>
+
+                                {/* Remove */}
+                                <button
+                                    onClick={() => {
+                                        setOutsourcedList(prev => prev.filter(x => x.tempId !== o.tempId));
+                                        setSelectedIds(prev => { const n = new Set(prev); n.delete(o.tempId); return n; });
+                                    }}
+                                    className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
+                                >
+                                    <Trash2 size={14} />
                                 </button>
-                            );
-                        })}
-                    </div>
-                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
+
+            {/* Floating action bar */}
+            {selCount > 0 && (
+                <div className="fixed bottom-20 md:bottom-6 left-4 right-4 max-w-lg mx-auto z-30">
+                    <div className="bg-gray-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-bold text-sm">{selCount} selected</p>
+                            {hasMixedActions ? (
+                                <p className="text-amber-400 text-xs font-semibold">
+                                    ⚠ Mixed — {actionCounts.clockIn > 0 ? `${actionCounts.clockIn} in` : ''}{actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}{actionCounts.clockOut > 0 ? `${actionCounts.clockOut} out` : ''}{actionCounts.lunchIn > 0 ? `, ${actionCounts.lunchIn} back` : ''} — review before signing
+                                </p>
+                            ) : (
+                                <p className="text-gray-400 text-xs">Tap to deselect · tap action to proceed</p>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowConfirm(true)}
+                            className={`flex items-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold text-sm transition-colors ${
+                                hasMixedActions ? 'bg-amber-500 hover:bg-amber-400' : 'bg-teal-500 hover:bg-teal-400'
+                            }`}
+                        >
+                            <LogIn size={15} />
+                            {(() => {
+                                const a = dominantAction();
+                                return a === 'clockIn' ? 'Check In' : a === 'clockOut' ? 'Check Out' : a === 'lunchOut' ? 'Lunch Out' : 'Back from Lunch';
+                            })()} {selCount}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modals */}
+            {showAddOutsourced && (
+                <AddOutsourcedModal
+                    onAdd={entry => {
+                        setOutsourcedList(prev => [...prev, entry]);
+                        setSelectedIds(prev => new Set([...prev, entry.tempId]));
+                        setShowAddOutsourced(false);
+                    }}
+                    onCancel={() => setShowAddOutsourced(false)}
+                />
+            )}
+            {showConfirm && (
+                <BatchConfirmModal
+                    entries={buildEntries()}
+                    gps={gps}
+                    onConfirm={commitBatch}
+                    onCancel={() => setShowConfirm(false)}
+                />
+            )}
         </div>
     );
 }
@@ -861,6 +1187,7 @@ export default function ClockIn() {
                         personnel={personnel}
                         timesheets={timesheets}
                         clockPunch={clockPunch}
+                        supervisorId={userId}
                     />
                 )}
             </div>

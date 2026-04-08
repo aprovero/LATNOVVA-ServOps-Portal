@@ -243,6 +243,9 @@ export interface ClockPunch {
     manualAdjustment?: boolean; // true if time was entered retroactively
     adjustmentNote?: string;
     selfieBlob?: string; // base64 JPEG thumbnail for identity verification
+    supervisorSignatureBlob?: string; // base64 PNG — supervisor's drawn signature for batch punches
+    isOutsourced?: boolean; // true for non-registered / contract personnel
+    outsourcedName?: string; // display name when isOutsourced is true
 }
 
 export interface TimesheetEntry {

@@ -11,7 +11,7 @@ import { useStore } from '../../store/useStore';
 export const GOD_MODE_PERSONAS = {
     Manager:    { userId: 'GM-ANDRES', userEmail: 'andres.provero@latnovva.com',  displayName: 'Andres Provero' },
     Supervisor: { userId: 'GM-MARIN',  userEmail: 'marin.ledezma@latnovva.com',   displayName: 'Marin Ledezma' },
-    Tech:       { userId: 'GM-CARLOS', userEmail: 'carlos.mendoza@latnovva.com',  displayName: 'Carlos Mendoza' },
+    Tech:       { userId: 'GM-JOSHUA', userEmail: 'joshua.sanchez@latnovva.com',  displayName: 'Joshua Sanchez' },
     Customer:   { userId: 'GM-CUST',   userEmail: 'customer@greensol.com',        displayName: 'Greensol' },
 } as const;
 
