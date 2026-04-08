@@ -30,7 +30,7 @@ import { Label } from '../ui/label';
 export default function Layout() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setUserRole, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
+    const { userRole, setUserRole, userEmail, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
 
     // Dialog States
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -54,7 +54,6 @@ export default function Layout() {
     const [isPreviewMapOpen, setIsPreviewMapOpen] = useState(false);
     const [newReportProject, setNewReportProject] = useState('');
     const [newReportDate, setNewReportDate] = useState(new Date().toISOString().split('T')[0]);
-    const [newReportCompany, setNewReportCompany] = useState('');
     const [locationError, setLocationError] = useState('');
     // Compute Notifications
     const notifications: { id: string; title: string; message: string; type: 'warning' | 'error', link?: string }[] = [];
@@ -326,7 +325,7 @@ export default function Layout() {
                             </div>
                         </div>
                     </div>
-                    {useStore.getState().personnel.find(p => p.id === useStore.getState().userId)?.email === 'aprovero@latnovva.com' && (
+                    {userEmail === 'aprovero@latnovva.com' && (
                         <select
                             value={userRole}
                             onChange={(e) => setUserRole(e.target.value as any)}
@@ -472,14 +471,16 @@ export default function Layout() {
 
                 <div className="p-4 md:p-8 pb-28 md:pb-8 max-w-7xl mx-auto w-full flex-1 flex flex-col">
                     <Outlet />
-                    
-                    {/* Global Footer (Desktop & Mobile) */}
-                    <div className="mt-auto pt-16 pb-6 border-t border-transparent flex flex-col items-center gap-4 w-full">
-                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[48px] object-contain opacity-80" />
-                        <p className="text-[10px] text-gray-400 text-center leading-relaxed px-4 font-bold border-t border-gray-200 pt-4 pb-12 w-full max-w-sm">
-                            &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.<br/>All Rights Reserved.<br/><span className="italic font-normal">Powered by aprovero</span>
-                        </p>
-                    </div>
+                </div>
+                
+                {/* Global Footer (Desktop & Mobile) */}
+                <div className="mt-auto pt-8 pb-8 md:pb-6 flex flex-col items-center justify-center gap-1 w-full opacity-60 hover:opacity-100 transition-opacity bg-white/50 border-t border-gray-100 mix-blend-multiply">
+                    <p className="text-[10px] text-accent-grey/50 text-center leading-relaxed font-bold w-full uppercase tracking-wider">
+                        &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.<br/>
+                        All Rights Reserved.<br/>
+                        <span className="italic text-accent-grey/60 normal-case tracking-normal">Powered by aprovero</span>
+                    </p>
+                    <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[24px] object-contain mix-blend-multiply mt-1" />
                 </div>
             </main>
 
@@ -677,33 +678,26 @@ export default function Layout() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label>Select Company</Label>
-                            <select
-                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
-                                value={newReportCompany}
-                                onChange={(e) => {
-                                    setNewReportCompany(e.target.value);
-                                    setNewReportProject('');
-                                }}
-                            >
-                                <option value="" disabled>Select a company</option>
-                                {clients.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="grid gap-2">
                             <Label>Select Project</Label>
                             <select
-                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none"
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none max-h-60"
                                 value={newReportProject}
-                                onChange={(e) => setNewReportProject(e.target.value)}
-                                disabled={!newReportCompany}
+                                onChange={(e) => {
+                                    setNewReportProject(e.target.value);
+                                }}
                             >
-                                <option value="" disabled>Select a project</option>
-                                {projects.filter(p => p.status === 'Active' && p.clientId === newReportCompany).map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
+                                <option value="" disabled>Select an active project...</option>
+                                {clients.map(client => {
+                                    const clientProjects = projects.filter(p => p.clientId === client.id && p.status === 'Active');
+                                    if (clientProjects.length === 0) return null;
+                                    return (
+                                        <optgroup key={client.id} label={client.name}>
+                                            {clientProjects.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </optgroup>
+                                    );
+                                })}
                             </select>
                         </div>
                         <div className="grid gap-2">

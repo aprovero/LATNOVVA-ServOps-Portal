@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore, TimesheetEntry } from '../store/useStore';
 import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -71,6 +71,27 @@ export default function Timesheets() {
     const [filterPersonnel, setFilterPersonnel] = useState('');
     const [filterStartDate, setFilterStartDate] = useState('');
     const [filterEndDate, setFilterEndDate] = useState('');
+
+    const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+    const [projectSearchDropdown, setProjectSearchDropdown] = useState('');
+    const projectDropdownRef = useRef<HTMLDivElement>(null);
+
+    const [isPersonnelDropdownOpen, setIsPersonnelDropdownOpen] = useState(false);
+    const [personnelSearchDropdown, setPersonnelSearchDropdown] = useState('');
+    const personnelDropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+                setIsProjectDropdownOpen(false);
+            }
+            if (personnelDropdownRef.current && !personnelDropdownRef.current.contains(event.target as Node)) {
+                setIsPersonnelDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         // Auto-update hours when time in/out changes
@@ -441,28 +462,96 @@ export default function Timesheets() {
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end">
-                <div className="space-y-1.5 flex-1 min-w-[200px]">
+                <div className="space-y-1.5 flex-1 min-w-[200px] relative z-20" ref={projectDropdownRef}>
                     <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Filter Project</label>
-                    <select
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
-                        value={filterProject}
-                        onChange={e => setFilterProject(e.target.value)}
+                    <div 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus-within:ring-2 focus-within:ring-brand-teal flex items-center justify-between cursor-pointer"
+                        onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
                     >
-                        <option value="">All Projects</option>
-                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                        <span className="truncate">{filterProject ? projects.find(p => p.id === filterProject)?.codeName || projects.find(p => p.id === filterProject)?.name : 'All Projects'}</span>
+                        <ChevronDown className={`text-gray-400 transition-transform ${isProjectDropdownOpen ? 'rotate-180': ''}`} size={16} />
+                    </div>
+                    {isProjectDropdownOpen && (
+                        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                                <input
+                                    type="text"
+                                    placeholder="Search projects..."
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-brand-teal/50"
+                                    value={projectSearchDropdown}
+                                    onChange={(e) => setProjectSearchDropdown(e.target.value)}
+                                    onClick={e => e.stopPropagation()}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="max-h-[240px] overflow-y-auto custom-scrollbar p-1">
+                                <div 
+                                    className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${!filterProject ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                    onClick={() => { setFilterProject(''); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}
+                                >
+                                    All Projects
+                                </div>
+                                {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).map(p => (
+                                    <div 
+                                        key={p.id}
+                                        className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${filterProject === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                        onClick={() => { setFilterProject(p.id); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}
+                                    >
+                                        {p.codeName || p.name}
+                                    </div>
+                                ))}
+                                {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).length === 0 && (
+                                    <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No matching projects found</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
                 {userRole !== 'Tech' && (
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
+                    <div className="space-y-1.5 flex-1 min-w-[200px] relative z-10" ref={personnelDropdownRef}>
                         <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><User size={12} /> Filter Personnel</label>
-                        <select
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
-                            value={filterPersonnel}
-                            onChange={e => setFilterPersonnel(e.target.value)}
+                        <div 
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus-within:ring-2 focus-within:ring-brand-teal flex items-center justify-between cursor-pointer"
+                            onClick={() => setIsPersonnelDropdownOpen(!isPersonnelDropdownOpen)}
                         >
-                            <option value="">All Personnel</option>
-                            {personnel.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                            <span className="truncate">{filterPersonnel ? personnel.find(p => p.id === filterPersonnel)?.name : 'All Personnel'}</span>
+                            <ChevronDown className={`text-gray-400 transition-transform ${isPersonnelDropdownOpen ? 'rotate-180': ''}`} size={16} />
+                        </div>
+                        {isPersonnelDropdownOpen && (
+                            <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                                    <input
+                                        type="text"
+                                        placeholder="Search personnel..."
+                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-brand-teal/50"
+                                        value={personnelSearchDropdown}
+                                        onChange={(e) => setPersonnelSearchDropdown(e.target.value)}
+                                        onClick={e => e.stopPropagation()}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="max-h-[240px] overflow-y-auto custom-scrollbar p-1">
+                                    <div 
+                                        className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${!filterPersonnel ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                        onClick={() => { setFilterPersonnel(''); setIsPersonnelDropdownOpen(false); setPersonnelSearchDropdown(''); }}
+                                    >
+                                        All Personnel
+                                    </div>
+                                    {personnel.filter(p => !personnelSearchDropdown || (p.name || '').toLowerCase().includes(personnelSearchDropdown.toLowerCase())).map(p => (
+                                        <div 
+                                            key={p.id}
+                                            className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${filterPersonnel === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                            onClick={() => { setFilterPersonnel(p.id); setIsPersonnelDropdownOpen(false); setPersonnelSearchDropdown(''); }}
+                                        >
+                                            {p.name}
+                                        </div>
+                                    ))}
+                                    {personnel.filter(p => !personnelSearchDropdown || (p.name || '').toLowerCase().includes(personnelSearchDropdown.toLowerCase())).length === 0 && (
+                                        <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No matching personnel found</div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
                 <div className="space-y-1.5 flex-1 min-w-[150px]">
@@ -509,7 +598,7 @@ export default function Timesheets() {
                         <tbody className="divide-y divide-gray-100">
                             {filteredTimesheets.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                                    <td colSpan={8} className="p-8 text-center text-gray-500">
                                         <Clock className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                                         <p className="text-lg font-semibold text-accent-greyDark flex items-center justify-center gap-2">No timesheets found.</p>
                                         <p className="text-sm">Log hours above to get started.</p>
@@ -720,7 +809,7 @@ export default function Timesheets() {
                                     }}
                                 >
                                     <option value="">Select Project...</option>
-                                    {projects.map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
+                                    {projects.filter(p => p.status === 'Active').map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">

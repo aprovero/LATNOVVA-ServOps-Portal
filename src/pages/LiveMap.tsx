@@ -202,13 +202,26 @@ export default function LiveMap() {
                                             Deployed Resources ({proj.teams?.length || 0})
                                         </div>
                                         {proj.teams && proj.teams.length > 0 ? (
-                                            <div className="space-y-1.5">
-                                                {proj.teams.map((t: any) => (
-                                                    <div key={t.id} className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-accent-greyDark truncate mr-2">{t.name}</span>
-                                                        <span className="text-gray-400">{t.position}</span>
-                                                    </div>
-                                                ))}
+                                            <div className="space-y-2">
+                                                {[...proj.teams].sort((a: any, b: any) => {
+                                                    const aIsLead = proj.siteLeadIds?.includes(a.id) ? 1 : 0;
+                                                    const bIsLead = proj.siteLeadIds?.includes(b.id) ? 1 : 0;
+                                                    return bIsLead - aIsLead;
+                                                }).map((t: any) => {
+                                                    const isLead = proj.siteLeadIds?.includes(t.id);
+                                                    return (
+                                                        <div key={t.id} className="flex justify-between items-center text-xs">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`font-bold truncate ${isLead ? 'text-status-success' : 'text-accent-greyDark'}`}>{t.name}</span>
+                                                                {isLead && (
+                                                                    <div className="w-4 h-4 rounded-full bg-status-success text-white flex items-center justify-center text-[10px] font-black shrink-0" title="Site Lead">
+                                                                        L
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         ) : (
                                             <p className="text-xs text-gray-400 italic">No assigned personnel</p>

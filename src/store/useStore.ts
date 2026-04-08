@@ -264,6 +264,8 @@ export interface ProjectScope {
     id: string;
     name: string;
     discipline?: 'Mechanical' | 'Commissioning' | 'Civil' | 'Electrical' | 'Other';
+    startDate?: string;
+    expectedDuration?: string;
     activities: ProjectActivity[];
     completedDate?: string;
 }
@@ -289,6 +291,8 @@ export interface Project {
     pointOfContact?: string;
     notes?: string;
     siteLeadIds?: string[]; // Multiple leads per project
+    startDate?: string; // ISO yyyy-mm-dd
+    expectedDuration?: string; // e.g., '12 Months', '4 Weeks'
 }
 
 interface AppState {

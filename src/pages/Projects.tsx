@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, AlertCircle, Search, Check, Plus, Target } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, Building2, ChevronDown, Filter, Search, Check, Plus, Target } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -70,7 +70,8 @@ export default function Projects() {
     const [personnelSearch, setPersonnelSearch] = useState('');
     const [isVaidatingNewMap, setIsValidatingNewMap] = useState(false);
 
-    const [filterStatus, setFilterStatus] = useState<string>('All');
+    const [searchParams] = useSearchParams();
+    const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || 'All');
     const [filterCustomer, setFilterCustomer] = useState<string>('All');
     
     // Edit Customer State
@@ -163,47 +164,62 @@ export default function Projects() {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 flex-1">
                 {/* Left Column: Projects or Clients */}
                 <div className="xl:col-span-2 space-y-4 flex flex-col h-[calc(100vh-250px)]">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3 sm:px-4 rounded-2xl border border-gray-100 shadow-sm shrink-0 gap-4">
-                        <div className="flex items-center gap-3">
-                            <FolderGit2 className="text-brand-teal" size={20} />
-                            <h2 className="text-lg font-bold text-accent-greyDark shrink-0">Projects Directory</h2>
-                            <span className="text-sm font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md ml-1">{visibleProjects.length}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 overflow-x-auto hidden-scrollbar pb-1 sm:pb-0">
+                        {/* Filters */}
+                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end mb-4">
+                            <div className="flex items-center gap-3 w-full sm:w-auto sm:mr-auto shrink-0 mb-2 sm:mb-0">
+                                <h2 className="text-lg font-bold text-accent-greyDark flex items-center gap-2">
+                                    <FolderGit2 className="text-brand-teal" size={20} />
+                                    Projects Directory
+                                    <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{visibleProjects.length}</span>
+                                </h2>
+                            </div>
+                            
                             {['Manager', 'Supervisor'].includes(userRole) && (
-                                <>
-                                    <select 
-                                        className="bg-gray-50 border border-gray-100 text-sm font-medium text-gray-600 rounded-xl px-3 py-1.5 outline-none focus:border-brand-teal/50 shrink-0"
-                                        value={filterCustomer}
-                                        onChange={(e) => setFilterCustomer(e.target.value)}
-                                    >
-                                        <option value="All">All Customers</option>
-                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                    <select 
-                                        className="bg-gray-50 border border-gray-100 text-sm font-medium text-gray-600 rounded-xl px-3 py-1.5 outline-none focus:border-brand-teal/50 shrink-0"
-                                        value={filterStatus}
-                                        onChange={(e) => setFilterStatus(e.target.value)}
-                                    >
-                                        <option value="All">All Status</option>
-                                        <option value="Active">Active</option>
-                                        <option value="On Hold">On Hold</option>
-                                        <option value="Completed">Completed</option>
-                                        <option value="Critical">Critical Issues</option>
-                                    </select>
-                                    
-                                    <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
-                                </>
+                                <div className="space-y-1.5 flex-[0.8] min-w-[200px]">
+                                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Building2 size={12} /> Filter Customer</label>
+                                    <div className="relative">
+                                        <select 
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer"
+                                            value={filterCustomer}
+                                            onChange={(e) => setFilterCustomer(e.target.value)}
+                                        >
+                                            <option value="All">All Customers</option>
+                                            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                    </div>
+                                </div>
                             )}
-                            <Link to="/live-map">
-                                <Button variant="outline" size="sm" className="h-8 text-xs gap-2 border-brand-teal/20 text-brand-teal hover:border-brand-teal hover:bg-brand-teal/5 rounded-xl">
-                                    <Map size={14} />
-                                    <span className="hidden sm:inline">Live Map View</span>
-                                </Button>
-                            </Link>
+
+                            {['Manager', 'Supervisor'].includes(userRole) && (
+                                <div className="space-y-1.5 flex-[0.8] min-w-[150px]">
+                                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Status</label>
+                                    <div className="relative">
+                                        <select 
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer"
+                                            value={filterStatus}
+                                            onChange={(e) => setFilterStatus(e.target.value)}
+                                        >
+                                            <option value="All">All Status</option>
+                                            <option value="Active">Active</option>
+                                            <option value="On Hold">On Hold</option>
+                                            <option value="Completed">Completed</option>
+                                            <option value="Critical">Critical Issues</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="flex-[0.5] min-w-[140px]">
+                                <Link to="/live-map" className="block w-full">
+                                    <Button variant="outline" className="w-full h-[42px] text-sm font-bold gap-2 border-brand-teal/20 text-brand-teal hover:border-brand-teal hover:bg-brand-teal/5 bg-brand-teal/5 rounded-xl">
+                                        <Map size={16} />
+                                        Live Map View
+                                    </Button>
+                                </Link>
+                            </div>
                         </div>
-                    </div>
 
                     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">
                         <div className="overflow-x-auto flex-1">
@@ -214,7 +230,7 @@ export default function Projects() {
                                         <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">Customer</th>
                                         <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Status</th>
                                         <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Progress</th>
-                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden lg:table-cell">Team / Time</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden lg:table-cell">Reported Time</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -233,7 +249,7 @@ export default function Projects() {
                                                     <span className="text-xs text-gray-500 font-mono mt-0.5 block">
                                                         {proj.codeName ? <span className="text-brand-teal font-bold">{proj.codeName}</span> : null} 
                                                         {proj.codeName ? ' • ' : ''}
-                                                        {proj.id} • {proj.type}
+                                                        {proj.id} • {proj.type === 'Complete' ? 'Turnkey' : proj.type}
                                                     </span>
                                                     {proj.location && (
                                                         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
@@ -289,21 +305,6 @@ export default function Projects() {
                                                     </div>
                                                 </td>
                                                 <td className="p-4 align-middle hidden lg:table-cell">
-                                                    <div className="flex -space-x-1.5 mb-1.5">
-                                                        {(proj.assignedPersonnel || []).slice(0, 3).map((id, i) => (
-                                                            <div key={i} className="w-6 h-6 rounded-full bg-brand-teal/10 border-2 border-white flex items-center justify-center text-[10px] font-bold text-brand-teal">
-                                                                {id.charAt(0).toUpperCase()}
-                                                            </div>
-                                                        ))}
-                                                        {(proj.assignedPersonnel || []).length > 3 && (
-                                                            <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-500">
-                                                                +{(proj.assignedPersonnel || []).length - 3}
-                                                            </div>
-                                                        )}
-                                                        {(!proj.assignedPersonnel || proj.assignedPersonnel.length === 0) && (
-                                                            <span className="text-xs text-gray-400">-</span>
-                                                        )}
-                                                    </div>
                                                     <div className="flex items-center gap-1.5">
                                                         <Clock size={12} className="text-gray-400" />
                                                         <span className="text-xs font-bold text-gray-600">
@@ -336,16 +337,7 @@ export default function Projects() {
                                 Intelligence Feed
                         </h2>
 
-                        {/* Alerts Summary */}
-                        <div className="flex flex-col gap-3">
-                            <div className="bg-status-error/10 border border-status-error/20 p-4 rounded-2xl flex items-start gap-3">
-                                <AlertCircle size={20} className="text-status-error shrink-0 mt-0.5" />
-                                <div>
-                                    <h4 className="font-bold text-status-error text-sm mb-0.5">Attention Required</h4>
-                                    <p className="text-xs text-status-error/80">3 projects reported critical issues today.</p>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Removed Redundant Alerts Summary */}
 
                         <Card className="flex-1 rounded-3xl border-gray-100 shadow-sm overflow-hidden flex flex-col">
                             <CardHeader className="bg-gray-50 border-b border-gray-100 pb-4">

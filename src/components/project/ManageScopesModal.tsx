@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Plus, CheckCircle2, Circle, ChevronDown, ChevronUp, ListChecks, Trash2, Pencil, X, Check } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, ChevronDown, ChevronUp, ListChecks, Trash2, Pencil, X, Check, Calendar, Clock } from 'lucide-react';
 
 interface ManageScopesModalProps {
     open: boolean;
@@ -13,7 +13,7 @@ interface ManageScopesModalProps {
 }
 
 export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesModalProps) {
-    const { addScopeToProject, addActivityToScope, projects, scopeTemplates } = useStore();
+    const { addScopeToProject, addActivityToScope, projects, scopeTemplates, updateProject } = useStore();
     const currentProject = projects.find(p => p.id === project.id) || project;
 
     const [selectedTemplateId, setSelectedTemplateId] = useState<string>('custom');
@@ -30,6 +30,8 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
     const [newStepText, setNewStepText] = useState('');
     const [newScopeDiscipline, setNewScopeDiscipline] = useState<'Mechanical' | 'Commissioning' | 'Civil' | 'Electrical' | 'Other'>('Other');
     const [editScopeDiscipline, setEditScopeDiscipline] = useState<'Mechanical' | 'Commissioning' | 'Civil' | 'Electrical' | 'Other' | undefined>();
+    const [editScopeStartDate, setEditScopeStartDate] = useState('');
+    const [editScopeExpectedDuration, setEditScopeExpectedDuration] = useState('');
 
     const DISCIPLINE_OPTIONS = ['Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
 
@@ -61,6 +63,9 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
             activities: initialActivities
         };
         addScopeToProject(currentProject.id, newScope);
+        if (currentProject.status !== 'Active') {
+            updateProject(currentProject.id, { status: 'Active' });
+        }
         setNewScopeName('');
         setNewScopeDiscipline('Other');
         setSelectedTemplateId('custom');
@@ -89,7 +94,9 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
         if (!editScopeName.trim()) return;
         updateProjectScope(currentProject.id, scopeId, { 
             name: editScopeName,
-            discipline: editScopeDiscipline
+            discipline: editScopeDiscipline,
+            startDate: editScopeStartDate || undefined,
+            expectedDuration: editScopeExpectedDuration || undefined
         });
         setEditingScopeId(null);
     };
@@ -225,36 +232,62 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                         <div className="flex items-center gap-3 flex-1" onClick={() => toggleScope(scope.id)}>
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                                 {editingScopeId === scope.id ? (
-                                                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                                        <Input 
-                                                            value={editScopeName}
-                                                            onChange={e => setEditScopeName(e.target.value)}
-                                                            className="h-8 py-0 focus-visible:ring-brand-teal"
-                                                            autoFocus
-                                                        />
-                                                        <select
-                                                            className="h-8 bg-white border border-gray-200 rounded-lg px-2 text-[10px] font-bold focus:ring-1 focus:ring-brand-teal outline-none border-gray-200"
-                                                            value={editScopeDiscipline}
-                                                            onChange={(e) => setEditScopeDiscipline(e.target.value as any)}
-                                                        >
-                                                            {DISCIPLINE_OPTIONS.map(d => (
-                                                                <option key={d} value={d}>{d}</option>
-                                                            ))}
-                                                        </select>
-                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-status-success" onClick={() => handleUpdateScopeName(scope.id)}>
-                                                            <Check size={16} />
-                                                        </Button>
-                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-status-error" onClick={() => setEditingScopeId(null)}>
-                                                            <X size={16} />
-                                                        </Button>
+                                                    <div className="flex flex-col gap-2 w-full" onClick={e => e.stopPropagation()}>
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <Input 
+                                                                value={editScopeName}
+                                                                onChange={e => setEditScopeName(e.target.value)}
+                                                                className="h-8 py-0 focus-visible:ring-brand-teal w-[180px]"
+                                                                autoFocus
+                                                                placeholder="Scope Name"
+                                                            />
+                                                            <select
+                                                                className="h-8 bg-white border border-gray-200 rounded-lg px-2 text-[10px] font-bold focus:ring-1 focus:ring-brand-teal outline-none"
+                                                                value={editScopeDiscipline}
+                                                                onChange={(e) => setEditScopeDiscipline(e.target.value as any)}
+                                                            >
+                                                                {DISCIPLINE_OPTIONS.map(d => (
+                                                                    <option key={d} value={d}>{d}</option>
+                                                                ))}
+                                                            </select>
+                                                            <Input
+                                                                type="date"
+                                                                value={editScopeStartDate}
+                                                                onChange={e => setEditScopeStartDate(e.target.value)}
+                                                                className="h-8 py-0 w-[130px]"
+                                                                title="Start Date"
+                                                            />
+                                                            <Input
+                                                                placeholder="Duration (e.g. 4 Weeks)"
+                                                                value={editScopeExpectedDuration}
+                                                                onChange={e => setEditScopeExpectedDuration(e.target.value)}
+                                                                className="h-8 py-0 w-[150px]"
+                                                            />
+                                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-status-success bg-status-success/10 hover:bg-status-success/20" onClick={() => handleUpdateScopeName(scope.id)}>
+                                                                <Check size={16} />
+                                                            </Button>
+                                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-status-error bg-status-error/10 hover:bg-status-error/20" onClick={() => setEditingScopeId(null)}>
+                                                                <X size={16} />
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col">
-                                                        <h3 className="font-bold text-accent-greyDark flex items-center gap-2">
+                                                        <h3 className="font-bold text-accent-greyDark flex flex-wrap items-center gap-2">
                                                             {scope.name}
                                                             {scope.discipline && (
                                                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-teal/10 text-brand-teal border border-brand-teal/20 uppercase tracking-tighter">
                                                                     {scope.discipline}
+                                                                </span>
+                                                            )}
+                                                            {scope.startDate && (
+                                                                <span className="text-[10px] text-gray-500 flex items-center gap-1 font-medium bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                                                                    <Calendar size={10} /> {scope.startDate}
+                                                                </span>
+                                                            )}
+                                                            {scope.expectedDuration && (
+                                                                <span className="text-[10px] text-gray-500 flex items-center gap-1 font-medium bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                                                                    <Clock size={10} /> {scope.expectedDuration}
                                                                 </span>
                                                             )}
                                                         </h3>
@@ -276,6 +309,8 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                             setEditingScopeId(scope.id);
                                                             setEditScopeName(scope.name);
                                                             setEditScopeDiscipline(scope.discipline || 'Other');
+                                                            setEditScopeStartDate(scope.startDate || '');
+                                                            setEditScopeExpectedDuration(scope.expectedDuration || '');
                                                         }}
                                                     >
                                                         <Pencil size={14} />

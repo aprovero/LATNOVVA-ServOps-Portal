@@ -1,11 +1,14 @@
-import { useEffect, useState, useMemo } from 'react';
-import { FileText, Search, FileSpreadsheet } from 'lucide-react';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { FileText, Search, FileSpreadsheet, Filter, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import gsap from 'gsap';
 import { useStore } from '../store/useStore';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../components/ui/dialog';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 
 export default function ReportList() {
-    const { reports, subReportInstances, projects, userRole, clientId } = useStore();
+    const { reports, subReportInstances, projects, userRole, clientId, addReport, clients } = useStore();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const projectIdFilter = searchParams.get('project');
@@ -13,6 +16,50 @@ export default function ReportList() {
     const [typeFilter, setTypeFilter] = useState<'All' | 'Daily' | 'Form'>('All');
     const [projectFilter, setProjectFilter] = useState<string>(projectIdFilter || 'All');
     const [search, setSearch] = useState('');
+
+    const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+    const [projectSearchDropdown, setProjectSearchDropdown] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
+    const [newReportProject, setNewReportProject] = useState('');
+    const [newReportDate, setNewReportDate] = useState(new Date().toISOString().split('T')[0]);
+
+    const handleCreateReport = () => {
+        if (!newReportProject) return;
+        const selectedProj = projects.find(p => p.id === newReportProject);
+        if (!selectedProj) return;
+
+        const reportId = `REP-${(reports.length + 1).toString().padStart(3, '0')}`;
+        const newRep = {
+            id: reportId,
+            projectId: selectedProj.id,
+            projectName: selectedProj.name,
+            clientId: selectedProj.clientId,
+            date: newReportDate || new Date().toISOString().split('T')[0],
+            state: 'Draft' as const,
+            weather: { temp: 0, condition: 'Unknown' },
+            equipment: [],
+            customSections: [],
+            comments: [],
+            notes: '',
+        };
+        addReport(newRep);
+        setIsCreateReportOpen(false);
+        setNewReportProject('');
+        setNewReportDate(new Date().toISOString().split('T')[0]);
+        navigate(`/reports/${reportId}`);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsProjectDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -88,60 +135,165 @@ export default function ReportList() {
                     <h1 className="text-3xl font-bold text-accent-greyDark mb-1 text-glow">Reports Database</h1>
                     <p className="text-gray-500">Manage all site documentation, daily logs, and technical forms.</p>
                 </div>
+                {['Manager', 'Supervisor', 'Tech'].includes(userRole) && (
+                    <Dialog open={isCreateReportOpen} onOpenChange={setIsCreateReportOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
+                                <Plus size={18} /> New Report
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Create Daily Report</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-semibold">Select Project</label>
+                                    <select
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none max-h-60 cursor-pointer"
+                                        value={newReportProject}
+                                        onChange={(e) => setNewReportProject(e.target.value)}
+                                    >
+                                        <option value="" disabled>Select an active project...</option>
+                                        {clients.map(client => {
+                                            const clientProjects = projects.filter(p => p.clientId === client.id && p.status === 'Active');
+                                            if (clientProjects.length === 0) return null;
+                                            return (
+                                                <optgroup key={client.id} label={client.name}>
+                                                    {clientProjects.map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))}
+                                                </optgroup>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-semibold">Report Date</label>
+                                    <Input
+                                        type="date"
+                                        value={newReportDate}
+                                        onChange={(e) => setNewReportDate(e.target.value)}
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsCreateReportOpen(false)}>Cancel</Button>
+                                <Button onClick={handleCreateReport} disabled={!newReportProject}>Create Report</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
 
-            <div className="card-container flex flex-col md:flex-row gap-4 items-center">
-                <div className="flex-1 w-full relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search by ID or Project..."
-                        className="input-field pl-12 h-12"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-                
-                <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar bg-white border border-gray-100 p-1 rounded-2xl shadow-sm">
-                    {['All', 'Daily', 'Form'].map((t) => (
-                        <button
-                            key={t}
-                            onClick={() => setTypeFilter(t as any)}
-                            className={`px-4 py-2 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap transition-all ${typeFilter === t
-                                ? 'bg-accent-greyDark text-white shadow-soft'
-                                : 'text-gray-400 hover:text-accent-greyDark'
-                                }`}
-                        >
-                            {t === 'Form' ? 'Forms' : t === 'Daily' ? 'Daily Reports' : 'All Types'}
-                        </button>
-                    ))}
+            {/* Filters */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end">
+                <div className="space-y-1.5 flex-1 min-w-[200px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> Search Reports</label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search by ID or Project..."
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar bg-white border border-gray-100 p-1 rounded-2xl shadow-sm">
-                    {['All', 'Draft', 'Pending Manager Review', 'Pending Customer Review', 'Approved', 'Closed', 'Overdue'].map((f) => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f as any)}
-                            className={`px-4 py-2 rounded-xl font-bold text-[11px] uppercase tracking-wider whitespace-nowrap transition-all ${filter === f
-                                ? (f === 'Overdue' ? 'bg-status-error text-white shadow-soft animate-pulse' : 'bg-brand-teal text-white shadow-soft')
-                                : 'text-gray-400 hover:text-brand-teal'
-                                }`}
+                <div className="space-y-1.5 flex-[0.8] min-w-[150px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><FileText size={12} /> Report Type</label>
+                    <div className="relative">
+                        <select
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none"
+                            value={typeFilter}
+                            onChange={e => setTypeFilter(e.target.value as any)}
                         >
-                            {f === 'Overdue' ? 'Overdue' : (f.replace('Pending ', '').replace(' Review', '') || 'All')}
-                        </button>
-                    ))}
+                            <option value="All">All Types</option>
+                            <option value="Daily">Daily Reports</option>
+                            <option value="Form">Forms</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                    </div>
                 </div>
 
-                <div className="w-full md:w-48 relative">
-                    <select
-                        className="w-full h-12 bg-white border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none"
-                        value={projectFilter}
-                        onChange={(e) => setProjectFilter(e.target.value)}
+                <div className="space-y-1.5 flex-[0.8] min-w-[170px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Status</label>
+                    <div className="relative">
+                        <select
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none"
+                            value={filter}
+                            onChange={e => setFilter(e.target.value as any)}
+                        >
+                            <option value="All">All Statuses</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Pending Manager Review">Manager Review</option>
+                            <option value="Pending Customer Review">Customer Review</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Overdue">Overdue</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                    </div>
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-[200px] relative z-20" ref={dropdownRef}>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Briefcase size={12} /> Filter Project</label>
+                    <div 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-brand-teal transition-all"
+                        onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
                     >
-                        <option value="All">All Projects</option>
-                        {projects.map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                        <span className="truncate">
+                            {projectFilter === 'All' ? 'All Projects' : (projects.find(p => p.id === projectFilter)?.codeName || projects.find(p => p.id === projectFilter)?.name || 'All Projects')}
+                        </span>
+                        <ChevronDown className={`text-gray-400 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} size={16} />
+                    </div>
+                    {isProjectDropdownOpen && (
+                        <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden will-change-transform animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                                <input
+                                    type="text"
+                                    placeholder="Search projects..."
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-brand-teal/50"
+                                    value={projectSearchDropdown}
+                                    onChange={(e) => setProjectSearchDropdown(e.target.value)}
+                                    onClick={e => e.stopPropagation()}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="max-h-[240px] overflow-y-auto custom-scrollbar p-1">
+                                <div 
+                                    className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${projectFilter === 'All' ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                    onClick={() => {
+                                        setProjectFilter('All');
+                                        setIsProjectDropdownOpen(false);
+                                        setProjectSearchDropdown('');
+                                    }}
+                                >
+                                    All Projects
+                                </div>
+                                {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).map(p => (
+                                    <div 
+                                        key={p.id}
+                                        className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${projectFilter === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                        onClick={() => {
+                                            setProjectFilter(p.id);
+                                            setIsProjectDropdownOpen(false);
+                                            setProjectSearchDropdown('');
+                                        }}
+                                    >
+                                        {p.codeName || p.name}
+                                    </div>
+                                ))}
+                                {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).length === 0 && (
+                                    <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No matching projects found</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -199,5 +351,3 @@ export default function ReportList() {
         </div>
     );
 }
-
-import { ChevronDown } from 'lucide-react';

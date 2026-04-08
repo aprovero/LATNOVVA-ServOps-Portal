@@ -109,12 +109,14 @@ export const Login: React.FC = () => {
                     </form>
                 </div>
                 
-                <div className="flex justify-center mt-8">
-                    <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[48px] object-contain opacity-60 mix-blend-multiply hover:opacity-80 transition-opacity" />
+                <div className="flex flex-col items-center justify-center mt-8 gap-1 text-center">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-relaxed">
+                        &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.<br/>
+                        All Rights Reserved.<br/>
+                        <span className="italic text-gray-400 normal-case tracking-normal">Powered by aprovero</span>
+                    </p>
+                    <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[24px] object-contain opacity-60 mix-blend-multiply transition-opacity mt-1" />
                 </div>
-                <p className="text-center text-gray-400 font-bold text-[10px] mt-2">
-                    Protected by Supabase Auth
-                </p>
             </div>
         </div>
     );

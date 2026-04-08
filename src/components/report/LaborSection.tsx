@@ -213,7 +213,11 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                     )}
                     {!readOnly && (
                         <div className="flex gap-2">
-                            <button onClick={() => setIsBatchAddOpen(true)} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-brand-teal/5 text-brand-teal border-brand-teal/20">
+                            <button onClick={() => {
+                                const initialSelected = (project?.assignedPersonnel || []).filter(pid => !labor.some(l => l.personnelId === pid));
+                                setSelectedTeamIds(initialSelected);
+                                setIsBatchAddOpen(true);
+                            }} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-brand-teal/5 text-brand-teal border-brand-teal/20">
                                 <UserCheck size={16} /> Batch Add Team
                             </button>
                             <button onClick={() => setIsAddQuickPersonOpen(true)} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-gray-50 border-gray-200">

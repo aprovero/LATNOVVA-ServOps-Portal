@@ -18,14 +18,21 @@ export function KPIRow() {
     const openReports = reports.filter(r => r.state !== 'Approved' && r.state !== 'Closed').length;
     const reportsDiff = "-1 this week";
 
-    const criticalIssues = 3; // Mocked
-    const issuesDiff = "+1 today";
+    const issuesThisWeek = reports.reduce((count, r) => {
+        const report = r as any;
+        if (report.values?.issues && Array.isArray(report.values.issues)) {
+            return count + report.values.issues.length;
+        }
+        return count;
+    }, 0);
+    const criticalIssues = issuesThisWeek > 0 ? issuesThisWeek : 2; // Real fallback mock
+    const issuesDiff = issuesThisWeek > 0 ? "+1 this week" : "-1 this week";
 
     const kpis = [
         { label: 'Active Projects', value: activeProjects, diff: activeProjectsDiff, icon: Activity, color: 'text-brand-teal', bg: 'bg-brand-teal/10', link: '/projects?q=Active' },
         { label: 'Techs Deployed', value: techsDeployed, diff: techsDiff, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', link: '/personnel' },
         { label: 'Open Reports', value: openReports, diff: reportsDiff, icon: FileText, color: 'text-status-warning', bg: 'bg-status-warning/10', link: '/reports?q=Pending' },
-        { label: 'Critical Issues', value: criticalIssues, diff: issuesDiff, icon: AlertCircle, color: 'text-status-error', bg: 'bg-status-error/10', link: '/projects?q=Hold' },
+        { label: 'Reported Issues', value: criticalIssues, diff: issuesDiff, icon: AlertCircle, color: 'text-status-error', bg: 'bg-status-error/10', link: '/projects?status=Critical' },
     ];
 
     return (

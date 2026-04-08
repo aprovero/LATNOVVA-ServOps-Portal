@@ -3,7 +3,7 @@ import { useStore, ScheduledEvent } from '../store/useStore';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { User, Wrench, Folder, AlertCircle, FileText } from 'lucide-react';
+import { User, Wrench, Folder, AlertCircle, FileText, Award } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
@@ -26,6 +26,23 @@ export default function Calendar() {
     const endDate = endOfWeek(monthEnd);
 
     const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+    const certReminders = (personnel || []).flatMap(p => 
+        (p.certifications || []).filter(c => c.expirationDate).map(c => ({
+            id: `cert-${p.id}-${c.name}`,
+            type: 'certification',
+            title: `${c.name} Exp...`,
+            personName: p.name,
+            date: c.expirationDate!
+        }))
+    );
+
+    const toolReminders = (tools || []).filter(t => t.certificationExpiry).map(t => ({
+        id: `tool-${t.id}`,
+        type: 'calibration',
+        title: `${t.name} Calibration`,
+        date: t.certificationExpiry!
+    }));
 
     const handleAddEvent = () => {
         if (!newEvent.title || !newEvent.startDate) return;
@@ -222,6 +239,8 @@ export default function Calendar() {
                             return dayStr >= start && dayStr <= end;
                         });
                         const dayReports = (reports || []).filter(r => r.date === dayStr && r.activityLogs && r.activityLogs.length > 0);
+                        const dayCertReminders = certReminders.filter(c => c.date === dayStr);
+                        const dayToolReminders = toolReminders.filter(t => t.date === dayStr);
                         const isCurrentMonth = isSameMonth(day, currentDate);
                         const isToday = isSameDay(day, new Date());
 
@@ -287,6 +306,27 @@ export default function Calendar() {
                                             </div>
                                         );
                                     })}
+
+                                    {dayCertReminders.map(rem => (
+                                        <div key={rem.id} className="text-[9px] px-1.5 py-0.5 rounded-md truncate font-bold cursor-default group relative border-l-2 bg-red-50/80 text-red-800 border-red-400 mt-0.5" title={`${rem.personName} - ${rem.title}`}>
+                                            <span className="flex items-center gap-1">
+                                                <Award size={8} className="shrink-0 text-red-500" />
+                                                {rem.title}
+                                            </span>
+                                            <div className="flex flex-col gap-0.5 mt-0.5 border-t border-black/5 pt-0.5">
+                                                <span className="text-[7px] text-red-600 font-bold uppercase tracking-tighter opacity-80">{rem.personName.split(' ')[0]}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {dayToolReminders.map(rem => (
+                                        <div key={rem.id} className="text-[9px] px-1.5 py-0.5 rounded-md truncate font-bold cursor-default group relative border-l-2 bg-amber-50/80 text-amber-800 border-amber-400 mt-0.5" title={rem.title}>
+                                            <span className="flex items-center gap-1">
+                                                <Wrench size={8} className="shrink-0 text-amber-600" />
+                                                {rem.title}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )

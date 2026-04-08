@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore, Personnel as PersonnelType } from '../store/useStore';
-import { User, Plus, Edit2, Trash2, Shield, Award, FilePlus, Calendar, AlertTriangle, Search, Camera, ExternalLink, Activity, FolderGit2, Network, List } from 'lucide-react';
+import { User, Plus, Trash2, Shield, Award, Search, Camera, ExternalLink, Activity, FolderGit2, Network, List, ChevronDown, Filter } from 'lucide-react';
 import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
@@ -142,68 +142,19 @@ export default function Personnel() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <User className="text-brand-teal" size={32} />
                         Personnel
                     </h1>
-                    <p className="text-gray-500 mt-1">Manage field staff and internal employees.</p>
+                    <p className="text-gray-500 mt-1 mb-2 md:mb-0">Manage field staff and internal employees.</p>
                 </div>
 
-                <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <Input
-                            placeholder="Find by name, role or email..."
-                            className="pl-10 w-full md:w-64 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-white border border-gray-100 p-1 rounded-xl shadow-sm overflow-x-auto hidden-scrollbar">
-                        <select
-                            className="bg-transparent border-none outline-none text-xs font-bold text-gray-500 px-2 h-8 cursor-pointer"
-                            value={filterRole}
-                            onChange={(e) => setFilterRole(e.target.value)}
-                        >
-                            <option value="All">All Roles</option>
-                            <option value="Tech">Techs</option>
-                            <option value="Supervisor">Supervisors</option>
-                            <option value="Manager">Managers</option>
-                        </select>
-                        <div className="w-px h-4 bg-gray-200"></div>
-                        <select
-                            className="bg-transparent border-none outline-none text-xs font-bold text-gray-500 px-2 h-8 cursor-pointer"
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                        >
-                            <option value="All">All Status</option>
-                            <option value="Active">Active Only</option>
-                            <option value="Inactive">Inactive Only</option>
-                        </select>
-                    </div>
-
-                    <div className="flex bg-gray-100 p-1 rounded-xl items-center">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'list' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            <List size={16} /> List
-                        </button>
-                        <button
-                            onClick={() => setViewMode('org')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'org' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            <Network size={16} /> Org Chart
-                        </button>
-                    </div>
-
-                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
-                            <Plus size={18} /> Add User
+                            <Plus size={18} /> Add Personnel
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[550px] rounded-2xl p-6">
@@ -354,6 +305,69 @@ export default function Personnel() {
                         </div>
                     </DialogContent>
                 </Dialog>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end">
+                <div className="space-y-1.5 flex-[1.5] min-w-[200px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> Search Directory</label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Input
+                            placeholder="Find by name, role or email..."
+                            className="pl-10 w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-teal h-10"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-[150px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Shield size={12} /> Filter Role</label>
+                    <div className="relative">
+                        <select
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer h-10"
+                            value={filterRole}
+                            onChange={(e) => setFilterRole(e.target.value)}
+                        >
+                            <option value="All">All Roles</option>
+                            <option value="Tech">Techs</option>
+                            <option value="Supervisor">Supervisors</option>
+                            <option value="Manager">Managers</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                    </div>
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-[150px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Status</label>
+                    <div className="relative">
+                        <select
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer h-10"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="All">All Status</option>
+                            <option value="Active">Active Only</option>
+                            <option value="Inactive">Inactive Only</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                    </div>
+                </div>
+
+                <div className="flex bg-gray-100 p-1.5 rounded-xl items-center self-end h-10 ml-auto xl:ml-0">
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'list' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <List size={16} /> List
+                    </button>
+                    <button
+                        onClick={() => setViewMode('org')}
+                        className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'org' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Network size={16} /> Deployments
+                    </button>
                 </div>
             </div>
 
@@ -363,88 +377,52 @@ export default function Personnel() {
                 const assignedProject = projects.find(p => p.assignedPersonnel?.includes(person.id));
                 
                 return (
-                    <div key={person.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft relative group flex flex-col">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="relative">
-                                <div className={`w-14 h-14 rounded-full overflow-hidden border-2 shadow-sm flex items-center justify-center font-bold text-lg ${person.status === 'Active' ? 'border-brand-teal/20 bg-brand-teal/10' : 'border-gray-200 bg-gray-100 gray-400'}`}>
+                    <div 
+                        key={person.id} 
+                        className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-teal/30 transition-all flex flex-col group relative"
+                        onClick={() => openEdit(person)}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="relative shrink-0">
+                                <div className={`w-12 h-12 rounded-full overflow-hidden border shadow-sm flex items-center justify-center font-bold text-base ${person.status === 'Active' ? 'border-brand-teal/20 bg-brand-teal/10' : 'border-gray-200 bg-gray-100 gray-400'}`}>
                                     {person.image ? (
                                         <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
                                     ) : (
                                         <span className={person.status === 'Active' ? 'text-brand-teal' : 'text-gray-400'}>{person.name.charAt(0)}</span>
                                     )}
                                 </div>
-                                <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white shadow-sm ${person.status === 'Active' ? 'bg-status-success' : 'bg-gray-300'}`} />
+                                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-sm ${person.status === 'Active' ? 'bg-status-success' : 'bg-gray-300'}`} />
                             </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => openEdit(person)} className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors">
-                                    <Edit2 size={16} />
-                                </button>
-                                {isManager && (
-                                    <button onClick={() => deletePersonnel(person.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-bold text-accent-greyDark truncate mb-0.5">{person.name}</h3>
+                                <p className="text-xs font-bold text-brand-teal truncate">{person.position}</p>
                             </div>
-                        </div>
-
-                        <h3 className="text-lg font-bold text-accent-greyDark mb-0.5 truncate">{person.name}</h3>
-                        <p className="text-xs font-bold text-brand-teal mb-3">{person.position}</p>
-                        
-                        <div className="space-y-2 mb-5">
-                            <p className="text-xs text-gray-500 flex items-center gap-2">
-                                <span className="font-bold uppercase tracking-wider text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{person.appRole || 'Tech'}</span>
-                            </p>
-                            {person.email && (
-                                <p className="text-xs text-gray-500 flex items-center gap-2 truncate">
-                                    <FilePlus size={12} className="text-gray-300" />
-                                    {person.email}
-                                </p>
-                            )}
-                            {person.phoneNumber && person.phoneNumber !== '-' && (
-                                <p className="text-xs text-gray-500 flex items-center gap-2 truncate">
-                                    <Activity size={12} className="text-gray-300" />
-                                    {person.phoneNumber}
-                                </p>
-                            )}
                         </div>
 
                         {assignedProject ? (
-                            <div className="p-3 bg-brand-teal/5 rounded-xl border border-brand-teal/10 mb-4">
-                                <p className="text-[10px] font-bold text-brand-teal uppercase mb-1 flex items-center gap-1">
+                            <div className="mt-3 p-2.5 bg-brand-teal/5 rounded-lg border border-brand-teal/10">
+                                <p className="text-[9px] font-bold text-brand-teal uppercase mb-0.5 flex items-center gap-1">
                                     <FolderGit2 size={10} /> Currently Assigned
                                 </p>
                                 <p className="text-xs font-bold text-accent-greyDark truncate">{assignedProject.name}</p>
                             </div>
                         ) : (
-                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 mb-4 border-dashed">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                            <div className="mt-3 p-2.5 bg-gray-50 rounded-lg border border-gray-100 border-dashed">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1">
                                     <Plus size={10} /> Unassigned
                                 </p>
                             </div>
                         )}
-
-                        <div className="flex flex-col gap-2 mt-auto">
-                            {person.certifications && person.certifications.length > 0 && (
-                                <div className="space-y-1 mb-2">
-                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                        <Award size={10} /> Certifications ({person.certifications.length})
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {person.certifications.map((c, i) => {
-                                            const isExpired = c.expirationDate && new Date(c.expirationDate) < new Date();
-                                            return (
-                                                <div key={i} className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${isExpired ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
-                                                    {isExpired ? <AlertTriangle size={10} /> : <Calendar size={10} />}
-                                                    {c.name} {isExpired && ' (EXPIRED)'}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold font-mono border border-gray-200 w-fit">
+                        
+                        <div className="mt-3 flex justify-between items-center">
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-bold font-mono border border-gray-200">
                                 #{person.employeeNumber}
                             </span>
+                            {isManager && (
+                                <button onClick={(e) => { e.stopPropagation(); deletePersonnel(person.id); }} className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-sm hover:bg-red-50" title="Delete Personnel">
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 );

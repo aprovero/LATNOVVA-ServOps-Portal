@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import {
-    MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText,
+    MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText, Wrench,
     BarChart2, Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2, Map, Hourglass, Target
 } from 'lucide-react';
 import { ManageScopesModal } from '../components/project/ManageScopesModal';
@@ -42,6 +42,33 @@ export default function ProjectDetail() {
     // Personnel picklist
     const [personnelSearch, setPersonnelSearch] = useState('');
     const [isAddingPersonnel, setIsAddingPersonnel] = useState(false);
+
+    // Tools
+    const { tools, addTool } = useStore();
+    const projectTools = tools.filter(t => t.assignedProjectId === id);
+    const [isAddToolModalOpen, setIsAddToolModalOpen] = useState(false);
+    const [newTool, setNewTool] = useState<{name: string, model: string, serialNumber: string, certificationExpiry: string}>({
+        name: '', model: '', serialNumber: '', certificationExpiry: ''
+    });
+
+    const handleQuickAddTool = () => {
+        if (!newTool.name || !newTool.serialNumber) return;
+        addTool({
+            id: `TOOL-${Date.now()}`,
+            name: newTool.name,
+            model: newTool.model,
+            serialNumber: newTool.serialNumber,
+            certificationExpiry: newTool.certificationExpiry,
+            assignedProjectId: id,
+            history: [{
+                date: new Date().toISOString().split('T')[0],
+                description: `Tool registered directly to project: ${project?.name}`,
+                projectId: id
+            }]
+        });
+        setNewTool({ name: '', model: '', serialNumber: '', certificationExpiry: '' });
+        setIsAddToolModalOpen(false);
+    };
 
     // Reports filter
     const [filterReportState, setFilterReportState] = useState<string>('All');
@@ -599,6 +626,84 @@ export default function ProjectDetail() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Assigned Tools ────────────────────────────────────── */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2">
+                        <Wrench size={18} className="text-brand-teal" /> Assigned Tools
+                        <span className="text-xs bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-full">{projectTools.length}</span>
+                    </h2>
+                    {canEdit && (
+                        <Button 
+                            size="sm" 
+                            className="bg-brand-teal/10 hover:bg-brand-teal text-brand-teal hover:text-white transition-colors text-xs font-bold gap-1.5"
+                            onClick={() => setIsAddToolModalOpen(true)}
+                        >
+                            <Plus size={13} /> Quick Add Tool
+                        </Button>
+                    )}
+                </div>
+                
+                {projectTools.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {projectTools.map(tool => (
+                            <div key={tool.id} className="p-3 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-accent-greyDark block truncate">{tool.name}</h3>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest">{tool.model || 'N/A'}</p>
+                                </div>
+                                <div className="mt-3 flex items-center justify-between">
+                                    <span className="text-xs font-mono font-bold text-brand-teal bg-brand-teal/10 px-2 py-0.5 rounded">{tool.serialNumber}</span>
+                                    {tool.certificationExpiry && new Date(tool.certificationExpiry) < new Date() && (
+                                        <span title="Certification Expired"><AlertCircle size={14} className="text-red-500" /></span>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-6 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <Wrench className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-gray-500">No tools assigned to this site.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Quick Add Tool Modal */}
+            {isAddToolModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 mb-4 text-brand-teal">
+                            <Wrench size={24} />
+                            <h2 className="text-xl font-bold text-accent-greyDark flex-1">Register Site Tool</h2>
+                            <button onClick={() => setIsAddToolModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+                        </div>
+                        <div className="space-y-3 mb-6">
+                            <div className="grid gap-1">
+                                <Label>Tool Name *</Label>
+                                <Input value={newTool.name} onChange={e => setNewTool({...newTool, name: e.target.value})} placeholder="e.g. Torque Wrench" />
+                            </div>
+                            <div className="grid gap-1">
+                                <Label>Serial Number *</Label>
+                                <Input value={newTool.serialNumber} onChange={e => setNewTool({...newTool, serialNumber: e.target.value})} placeholder="e.g. SN-12345" />
+                            </div>
+                            <div className="grid gap-1">
+                                <Label>Model (Optional)</Label>
+                                <Input value={newTool.model} onChange={e => setNewTool({...newTool, model: e.target.value})} placeholder="e.g. Fluke 100" />
+                            </div>
+                            <div className="grid gap-1">
+                                <Label>Cert. Expiry (Optional)</Label>
+                                <Input type="date" value={newTool.certificationExpiry} onChange={e => setNewTool({...newTool, certificationExpiry: e.target.value})} />
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button variant="outline" className="flex-1" onClick={() => setIsAddToolModalOpen(false)}>Cancel</Button>
+                            <Button className="flex-1 bg-brand-teal text-white hover:bg-brand-teal/90" onClick={handleQuickAddTool}>Save Tool</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Scopes & WBS ────────────────────────────────────── */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-6">

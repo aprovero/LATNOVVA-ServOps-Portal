@@ -31,7 +31,7 @@ export default function OrgChartView() {
         }
     };
 
-    const renderPersonnelCard = (member: Personnel, currentProjectId: string | null) => (
+    const renderPersonnelCard = (member: Personnel, currentProjectId: string | null, isLead: boolean = false) => (
         <div key={member.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:border-brand-teal/30 group">
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-brand-teal/10 flex items-center justify-center text-xs font-bold text-brand-teal overflow-hidden shrink-0">
@@ -43,26 +43,41 @@ export default function OrgChartView() {
                         <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${member.appRole === 'Manager' ? 'bg-brand-teal text-white' : member.appRole === 'Supervisor' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                             {member.appRole}
                         </span>
+                        {isLead && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-status-success/10 text-status-success border border-status-success/20 uppercase tracking-wider">
+                                L
+                            </span>
+                        )}
                         <p className="text-[10px] text-gray-400 font-semibold uppercase truncate">{member.position}</p>
                     </div>
                 </div>
             </div>
             
-            <div className="relative">
-                <select 
-                    className="appearance-none bg-gray-50 border border-gray-100 text-[10px] font-bold text-gray-600 rounded-lg px-2 py-1 pr-6 focus:ring-2 focus:ring-brand-teal outline-none cursor-pointer hover:bg-gray-100 uppercase tracking-wider max-w-[120px] truncate"
-                    value={currentProjectId || 'bench'}
-                    onChange={(e) => handleAssignToProject(member.id, e.target.value === 'bench' ? null : e.target.value)}
+            {currentProjectId ? (
+                <button 
+                    onClick={() => handleAssignToProject(member.id, null)}
+                    className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Move to Bench"
                 >
-                    <option value="bench">Move to Unassigned</option>
-                    <optgroup label="Active Projects">
-                        {activeProjects.map(p => (
-                            <option key={p.id} value={p.id}>{p.codeName || p.name}</option>
-                        ))}
-                    </optgroup>
-                </select>
-                <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
+                    <UserMinus size={14} />
+                </button>
+            ) : (
+                <div className="relative">
+                    <select 
+                        className="appearance-none bg-gray-50 border border-gray-100 text-[10px] font-bold text-gray-600 rounded-lg px-2 py-1 pr-6 focus:ring-2 focus:ring-brand-teal outline-none cursor-pointer hover:bg-gray-100 uppercase tracking-wider max-w-[120px] truncate"
+                        value="bench"
+                        onChange={(e) => handleAssignToProject(member.id, e.target.value === 'bench' ? null : e.target.value)}
+                    >
+                        <option value="bench">Assign to...</option>
+                        <optgroup label="Active Projects">
+                            {activeProjects.map(p => (
+                                <option key={p.id} value={p.id}>{p.codeName || p.name}</option>
+                            ))}
+                        </optgroup>
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+            )}
         </div>
     );
 
@@ -97,6 +112,18 @@ export default function OrgChartView() {
                         {activeProjects.map(project => {
                             const teamIds = project.assignedPersonnel || [];
                             const team = activePersonnel.filter(p => teamIds.includes(p.id));
+                            
+                            // Sort logic: Leads first, then Supervisors, then Techs
+                            team.sort((a, b) => {
+                                const isLeadA = project.siteLeadIds?.includes(a.id) ? 1 : 0;
+                                const isLeadB = project.siteLeadIds?.includes(b.id) ? 1 : 0;
+                                if (isLeadA !== isLeadB) return isLeadB - isLeadA;
+                                
+                                const roleWeight = { 'Manager': 3, 'Supervisor': 2, 'Tech': 1, 'Customer': 0 };
+                                const weightA = roleWeight[a.appRole || 'Tech'] || 0;
+                                const weightB = roleWeight[b.appRole || 'Tech'] || 0;
+                                return weightB - weightA;
+                            });
                             
                             return (
                                 <div key={project.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full">
@@ -136,9 +163,9 @@ export default function OrgChartView() {
                                                 <span className="text-xs font-bold text-accent-greyDark bg-gray-100 px-2 py-0.5 rounded-md min-w-[24px] text-center">{team.length}</span>
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                                             {team.length > 0 ? (
-                                                team.map(member => renderPersonnelCard(member, project.id))
+                                                team.map(member => renderPersonnelCard(member, project.id, project.siteLeadIds?.includes(member.id)))
                                             ) : (
                                                 <div className="py-6 flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
                                                     <UserMinus size={20} className="mb-2 opacity-50" />

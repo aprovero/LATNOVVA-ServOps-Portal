@@ -289,8 +289,8 @@ export default function Tools() {
                         <div className="space-y-6 py-4">
                             <div className="space-y-4">
                                 <h3 className="font-bold text-accent-greyDark border-b pb-2">Basic Info</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2 min-w-0">
                                         <label className="text-sm font-semibold text-accent-greyDark">Name</label>
                                         <Input
                                             value={currentTool.name}
@@ -298,7 +298,7 @@ export default function Tools() {
                                             className="rounded-xl border-gray-200 h-9"
                                         />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 min-w-0">
                                         <label className="text-sm font-semibold text-accent-greyDark">Model</label>
                                         <Input
                                             value={currentTool.model}
@@ -306,7 +306,7 @@ export default function Tools() {
                                             className="rounded-xl border-gray-200 h-9"
                                         />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 min-w-0">
                                         <label className="text-sm font-semibold text-accent-greyDark">Serial Number</label>
                                         <Input
                                             value={currentTool.serialNumber}
@@ -314,7 +314,7 @@ export default function Tools() {
                                             className="rounded-xl border-gray-200 h-9"
                                         />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 min-w-0">
                                         <label className="text-sm font-semibold text-accent-greyDark">Certification Expiry</label>
                                         <Input
                                             type="date"
@@ -323,16 +323,16 @@ export default function Tools() {
                                             className="rounded-xl border-gray-200 h-9"
                                         />
                                     </div>
-                                    <div className="space-y-2 col-span-2">
+                                    <div className="space-y-2 sm:col-span-2 min-w-0">
                                         <label className="text-sm font-semibold text-accent-greyDark text-left block">Assign to Project (Optional)</label>
                                         <select
-                                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-2 focus:ring-brand-teal transition-all"
+                                            className="w-full truncate bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-2 focus:ring-brand-teal transition-all"
                                             value={currentTool.assignedProjectId || ''}
                                             onChange={(e) => setCurrentTool({ ...currentTool, assignedProjectId: e.target.value })}
                                         >
                                             <option value="">Unassigned</option>
                                             {projects.filter(p => p.status === 'Active').map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                                <option key={p.id} value={p.id} className="truncate">{p.name}</option>
                                             ))}
                                         </select>
                                     </div>
