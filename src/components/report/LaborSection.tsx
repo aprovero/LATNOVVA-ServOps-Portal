@@ -249,9 +249,38 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                     const expiredCerts = isPersonSelected ? getExpiredCerts(entry.personnelId) : [];
                     const hasWarning = expiredCerts.length > 0;
 
-                    if (userRole === 'Customer' && hasWarning) return null;
+                    if (userRole === 'Customer') {
+                        // Customers see the worker row but never see internal HSE warnings
+                        return (
+                            <div key={entry.id} className="flex flex-col gap-4 p-4 bg-surface-alt rounded-2xl border border-gray-100">
+                                <div className="flex flex-wrap items-start gap-4">
+                                    <div className="flex-[2] min-w-[200px]">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Personnel &amp; Position</label>
+                                        <div className="flex items-center gap-3 mt-1 py-1">
+                                            <div className="w-8 h-8 rounded-xl bg-brand-teal/10 flex items-center justify-center text-xs font-bold text-brand-teal overflow-hidden border border-brand-teal/10 shadow-sm shrink-0">
+                                                {(() => {
+                                                    const p = personnel.find(per => per.id === entry.personnelId);
+                                                    return p?.image ? <img src={p.image} className="w-full h-full object-cover" /> : (p?.name?.charAt(0) ?? '?');
+                                                })()}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-sm text-accent-greyDark">
+                                                    {entry.outsourcedName || personnel.find(p => p.id === entry.personnelId)?.name || '—'}
+                                                </p>
+                                                <p className="text-xs text-gray-400">{entry.role}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4 text-sm">
+                                        <div><p className="text-[10px] text-gray-400 uppercase font-bold">Hours</p><p className="font-bold">{entry.hours}h</p></div>
+                                        <div><p className="text-[10px] text-gray-400 uppercase font-bold">Type</p><p className="font-bold">{entry.type}</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
 
-                    // H-01: Check for pending cert flag (Quick Add personnel)
+                    // H-01: Check for pending cert flag (Quick Add personnel) — internal roles only
                     const isPendingCerts = !!(entry as any).pendingCerts;
 
                     return (

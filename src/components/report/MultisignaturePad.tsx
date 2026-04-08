@@ -70,12 +70,17 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
     );
 }
 
+
 // Sub-component to handle canvas drawing logic per box
 export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [mode, setMode] = useState<'draw' | 'photo'>('draw');
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        if (mode !== 'draw') return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -92,7 +97,7 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
         ctx.lineJoin = 'round';
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#000';
-    }, []);
+    }, [mode]);
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         setIsDrawing(true);
@@ -138,38 +143,103 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-            // Support retina clearing
             ctx.clearRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
         }
     };
 
-    const handleConfirm = () => {
+    const handleConfirmDraw = () => {
         const canvas = canvasRef.current;
         if (canvas) {
             onSign(canvas.toDataURL());
         }
     };
 
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const result = ev.target?.result as string;
+            setPhotoPreview(result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleConfirmPhoto = () => {
+        if (photoPreview) onSign(photoPreview);
+    };
+
     return (
-        <div className="w-full h-full relative group">
-            <canvas
-                ref={canvasRef}
-                onMouseDown={startDrawing}
-                onMouseUp={stopDrawing}
-                onMouseOut={stopDrawing}
-                onMouseMove={draw}
-                onTouchStart={startDrawing}
-                onTouchEnd={stopDrawing}
-                onTouchMove={draw}
-                className="w-full h-full cursor-crosshair touch-none"
-                style={{ width: '100%', height: '100%' }}
-            />
-            <div className="absolute inset-x-0 bottom-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={handleClear} className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold shadow-sm border border-red-100">Clear</button>
-                <button onClick={handleConfirm} className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">Sign</button>
+        <div className="w-full h-full relative group flex flex-col">
+            {/* Tab bar */}
+            <div className="flex border-b border-gray-100 mb-1 px-1">
+                <button
+                    onClick={() => setMode('draw')}
+                    className={`flex-1 text-[10px] font-bold py-1 transition-colors ${mode === 'draw' ? 'text-brand-teal border-b-2 border-brand-teal' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                    ✏️ Draw
+                </button>
+                <button
+                    onClick={() => setMode('photo')}
+                    className={`flex-1 text-[10px] font-bold py-1 transition-colors ${mode === 'photo' ? 'text-brand-teal border-b-2 border-brand-teal' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                    📷 Upload Photo
+                </button>
             </div>
-            {/* Guide line */}
-            <div className="absolute bottom-6 left-4 right-4 border-b border-gray-200 pointer-events-none opacity-50"></div>
+
+            {mode === 'draw' ? (
+                <div className="flex-1 relative">
+                    <canvas
+                        ref={canvasRef}
+                        onMouseDown={startDrawing}
+                        onMouseUp={stopDrawing}
+                        onMouseOut={stopDrawing}
+                        onMouseMove={draw}
+                        onTouchStart={startDrawing}
+                        onTouchEnd={stopDrawing}
+                        onTouchMove={draw}
+                        className="w-full h-full cursor-crosshair touch-none"
+                        style={{ width: '100%', height: '100%' }}
+                    />
+                    <div className="absolute inset-x-0 bottom-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={handleClear} className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold shadow-sm border border-red-100">Clear</button>
+                        <button onClick={handleConfirmDraw} className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">Sign</button>
+                    </div>
+                    {/* Guide line */}
+                    <div className="absolute bottom-6 left-4 right-4 border-b border-gray-200 pointer-events-none opacity-50"></div>
+                </div>
+            ) : (
+                <div className="flex-1 flex flex-col items-center justify-center gap-2 p-2">
+                    {photoPreview ? (
+                        <>
+                            <img src={photoPreview} alt="Signature preview" className="max-h-16 object-contain rounded border border-gray-200" />
+                            <div className="flex gap-2">
+                                <button onClick={() => { setPhotoPreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                                    className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-100">Retake</button>
+                                <button onClick={handleConfirmPhoto}
+                                    className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold">Use This</button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-[10px] text-gray-400 text-center">Sign on paper, take a photo, or choose an image</p>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handlePhotoUpload}
+                                className="hidden"
+                                id="sig-photo-upload"
+                            />
+                            <label htmlFor="sig-photo-upload"
+                                className="cursor-pointer bg-brand-teal/10 hover:bg-brand-teal/20 text-brand-teal px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors border border-brand-teal/20">
+                                📷 Camera / File
+                            </label>
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
