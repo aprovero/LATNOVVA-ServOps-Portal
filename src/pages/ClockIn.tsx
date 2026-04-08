@@ -497,6 +497,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
     const activeProjects = projects.filter((p: any) => p.status === 'Active');
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';
+    const gpsDenied = gps.status === 'denied';
 
     const executePunch = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
         const best = getBestTimestampISO(gps);
@@ -562,10 +563,26 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     {!gpsReady && gps.status === 'acquiring' && (
                         <p className="text-center text-sm text-blue-500 animate-pulse">Waiting for GPS…</p>
                     )}
-                    <button onClick={() => executePunch('clockIn')} disabled={!gpsReady}
-                        className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
-                        <LogIn size={26} /> CLOCK IN
-                    </button>
+                    {/* M-01: GPS denied — amber enabled button, opens manual modal automatically */}
+                    {gpsDenied ? (
+                        <>
+                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                                <AlertTriangle size={16} className="shrink-0" />
+                                <span>Location access denied. Manual punch will be flagged for Supervisor approval.</span>
+                            </div>
+                            <button
+                                onClick={() => setManualModal('clockIn')}
+                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                <LogIn size={26} /> CLOCK IN (Manual)
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={() => executePunch('clockIn')} disabled={!gpsReady}
+                            className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
+                            <LogIn size={26} /> CLOCK IN
+                        </button>
+                    )}
                     {gps.status === 'poor' && (
                         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
                             <AlertTriangle size={16} className="shrink-0" />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
-import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -8,7 +8,10 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
-    const { userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb } = useStore();
+    const { 
+        userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb,
+        sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth 
+    } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -63,6 +66,7 @@ export default function Settings() {
         { id: 'companies', name: 'Companies', description: 'Manage clients and contractors', icon: Building2 },
         { id: 'users', name: 'Users', description: 'Access control and roles', icon: Users },
         { id: 'wbs', name: 'WBS Templates', description: 'Standard activities and steps', icon: ListChecks },
+        { id: 'cloud', name: 'Cloud Storage', description: 'SharePoint & Central Storage config', icon: Cloud },
         { id: 'system', name: 'Sync Data', description: 'Force refresh environment data', icon: Shield },
     ];
 
@@ -215,6 +219,117 @@ export default function Settings() {
                         </div>
                     ) : activeTab === 'wbs' ? (
                          <WBSTemplateManager />
+                    ) : activeTab === 'cloud' ? (
+                        <div className="max-w-2xl mx-auto space-y-8 py-6 text-left">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-accent-greyDark flex items-center gap-2">
+                                        <Cloud className="text-brand-teal" size={28} />
+                                        SharePoint Integration
+                                    </h2>
+                                    <p className="text-gray-500 mt-1">Configure central storage for high-resolution attachments.</p>
+                                </div>
+                                {microsoftAuth.isAuthenticated ? (
+                                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none px-3 py-1 gap-1.5 font-bold uppercase tracking-wider text-[10px]">
+                                        <CheckCircle2 size={12} /> Connected
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline" className="text-gray-400 border-gray-200 px-3 py-1 gap-1.5 font-bold uppercase tracking-wider text-[10px]">
+                                        Disconnected
+                                    </Badge>
+                                )}
+                            </div>
+
+                            {/* Connection Status */}
+                            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center justify-between gap-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400">
+                                        {microsoftAuth.isAuthenticated ? <CheckCircle2 size={24} className="text-emerald-500" /> : <LogIn size={24} />}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-accent-greyDark">{microsoftAuth.isAuthenticated ? microsoftAuth.userEmail : 'No Microsoft Account Linked'}</p>
+                                        <p className="text-xs text-gray-400">{microsoftAuth.isAuthenticated ? 'Accessing Latnovva Tenant' : 'Central storage is currently disabled.'}</p>
+                                    </div>
+                                </div>
+                                {microsoftAuth.isAuthenticated ? (
+                                    <Button variant="outline" className="text-red-500 border-red-100 hover:bg-red-50 hover:text-red-600 gap-2 h-10 px-4 font-bold" onClick={() => setMicrosoftAuth({ isAuthenticated: false, userEmail: undefined })}>
+                                        <LogOut size={16} /> Disconnect
+                                    </Button>
+                                ) : (
+                                    <Button className="bg-brand-teal text-white hover:bg-brand-teal/90 gap-2 h-10 px-6 font-bold shadow-sm" onClick={() => setMicrosoftAuth({ isAuthenticated: true, userEmail: 'admin@latnovva.com' /* placeholder logic */ })}>
+                                        <LogIn size={16} /> Link Account
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* SharePoint Config */}
+                            <div className="space-y-6 pt-2">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <Globe size={18} className="text-brand-teal" />
+                                        <h3 className="font-bold text-accent-greyDark uppercase tracking-widest text-xs">Site Configuration</h3>
+                                    </div>
+                                    
+                                    <div className="grid gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-gray-500">SHAREPOINT SITE URL</Label>
+                                            <div className="flex gap-2">
+                                                <Input 
+                                                    className="h-11 font-mono text-sm border-gray-200"
+                                                    value={sharepointConfig.siteUrl || ''} 
+                                                    onChange={e => setSharepointConfig({ siteUrl: e.target.value })}
+                                                    placeholder="https://latnovva.sharepoint.com/sites/FieldOps" 
+                                                />
+                                                <Button variant="secondary" className="h-11 px-6 font-bold gap-2">
+                                                    <Link2 size={16} /> Discover
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold text-gray-500">SITE ID</Label>
+                                                <Input 
+                                                    readOnly 
+                                                    className="h-11 bg-gray-50 border-gray-100 text-gray-400 font-mono text-[10px]" 
+                                                    value={sharepointConfig.siteId || 'Not Discovered'} 
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold text-gray-500">DRIVE (DOC LIBRARY) ID</Label>
+                                                <Input 
+                                                    readOnly 
+                                                    className="h-11 bg-gray-50 border-gray-100 text-gray-400 font-mono text-[10px]" 
+                                                    value={sharepointConfig.driveId || 'Not Discovered'} 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-gray-500">ROOT FOLDER PATH</Label>
+                                            <Input 
+                                                className="h-11 border-gray-200"
+                                                value={sharepointConfig.folderPath || 'Report_Attachments'} 
+                                                onChange={e => setSharepointConfig({ folderPath: e.target.value })}
+                                                placeholder="e.g. Field_Reports/Photos" 
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-brand-teal/5 border border-brand-teal/10 rounded-xl text-brand-teal text-xs leading-relaxed">
+                                    <p className="font-bold mb-1 uppercase tracking-wider">How this works:</p>
+                                    Technicians capturing images will have them semantically named and uploaded to the path: 
+                                    <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-brand-teal/20 ml-1">
+                                        {sharepointConfig.folderPath || 'Report_Attachments'}/[ProjectName]/[Date]/
+                                    </span>
+                                </div>
+
+                                <Button className="w-full h-12 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg mt-4" disabled={!microsoftAuth.isAuthenticated}>
+                                    Validate & Save Configuration
+                                </Button>
+                            </div>
+                        </div>
                     ) : activeTab === 'system' ? (
                         <div className="max-w-md mx-auto text-center space-y-6 py-12">
                             <div className="w-20 h-20 bg-brand-teal/10 rounded-full flex items-center justify-center mx-auto text-brand-teal">

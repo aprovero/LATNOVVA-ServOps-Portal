@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase } from './supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Database } from './database.types';
+import { useStore } from '../store/useStore';
 
 type PersonnelRow = Database['public']['Tables']['personnel']['Row'];
 
@@ -31,7 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             if (sessionError) throw sessionError;
 
             // If session exists, fetch profile from personnel table
-            let profile = null;
+            let profile: PersonnelRow | null = null;
             if (session?.user) {
                 const { data, error: profileError } = await supabase
                     .from('personnel')
@@ -43,7 +44,17 @@ export const useAuthStore = create<AuthState>((set) => ({
                     // Ignore not found error for now while mocking setup
                     console.error('Error fetching profile:', profileError);
                 } else {
-                    profile = data;
+                    profile = data as PersonnelRow | null;
+                }
+            }
+
+            // C-01: Bridge Supabase auth identity into main useStore
+            if (session?.user) {
+                useStore.getState().setAuthData(session.user.id, session.user.email ?? '');
+                // Set role from profile if available
+                const appRole = (profile as PersonnelRow | null)?.app_role;
+                if (appRole) {
+                    useStore.getState().setUserRole(appRole as any);
                 }
             }
 
@@ -51,14 +62,23 @@ export const useAuthStore = create<AuthState>((set) => ({
 
             // Listen for auth changes
             supabase.auth.onAuthStateChange(async (_event, newSession) => {
-                let newProfile = null;
+                let newProfile: PersonnelRow | null = null;
                 if (newSession?.user) {
                     const { data } = await supabase
                         .from('personnel')
                         .select('*')
                         .eq('id', newSession.user.id)
                         .single();
-                    newProfile = data;
+                    newProfile = (data as PersonnelRow | null) ?? null;
+                    // C-01: Keep main store identity in sync
+                    useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
+                    const newRole = (data as PersonnelRow | null)?.app_role;
+                    if (newRole) {
+                        useStore.getState().setUserRole(newRole as any);
+                    }
+                } else {
+                    // Signed out — reset to default
+                    useStore.getState().setAuthData('', '');
                 }
                 set({ session: newSession, user: newSession?.user || null, profile: newProfile });
             });

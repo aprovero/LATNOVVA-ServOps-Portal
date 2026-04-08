@@ -202,20 +202,6 @@ export default function Personnel() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
-                                        <Shield size={14} className="text-brand-teal" /> App Role
-                                    </label>
-                                    <select
-                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
-                                        value={currentPerson?.appRole || 'Tech'}
-                                        onChange={e => setCurrentPerson({ ...currentPerson, appRole: e.target.value as any })}
-                                    >
-                                        <option value="Tech">Tech</option>
-                                        <option value="Supervisor">Supervisor</option>
-                                        <option value="Manager">Manager</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
                                     <label className="text-sm font-semibold text-accent-greyDark">Phone Number</label>
                                     <Input
                                         placeholder="e.g. 956-280-8290"

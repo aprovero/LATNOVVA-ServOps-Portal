@@ -62,6 +62,12 @@ async function seed() {
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
             email: email,
             email_confirm: true, // Confirm immediately so magic links work
+            // app_metadata is read by RLS policies via auth.jwt() -> 'app_metadata'
+            app_metadata: {
+                role: person.appRole,
+                personnel_id: person.id,
+            },
+            // user_metadata is for display purposes only (not trusted by RLS)
             user_metadata: {
                 full_name: person.name,
                 role: person.appRole,

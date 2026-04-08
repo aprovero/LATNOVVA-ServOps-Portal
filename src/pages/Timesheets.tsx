@@ -38,7 +38,7 @@ const punchDotColor: Record<string, string> = {
 const formatPunchTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
 export default function Timesheets() {
-    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId } = useStore();
+    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName } = useStore();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
     const [signatureBlob, setSignatureBlob] = useState<string>('');
@@ -64,7 +64,8 @@ export default function Timesheets() {
         classification: 'Regular',
         personnelId: personnel[0]?.id || '',
         status: 'Pending',
-        notes: ''
+        notes: '',
+        manualReason: '', // H-04: required justification for manual entries
     });
 
     const [filterProject, setFilterProject] = useState('');
@@ -114,6 +115,7 @@ export default function Timesheets() {
             personnelId: userRole === 'Tech' ? newEntry.personnelId : (personnel[0]?.id || ''),
             status: 'Pending',
             notes: '',
+            manualReason: '',
             projectId: ''
         });
         setIsAddModalOpen(true);
@@ -154,19 +156,33 @@ export default function Timesheets() {
             return;
         }
 
-        // Overlap validation
+        // H-04: Require justification for all manually-entered timesheets
+        if (!editingEntryId && !newEntry.manualReason?.trim()) {
+            alert("Please enter a reason / justification for this manual time entry.");
+            return;
+        }
+
+        // M-06 FIX: Proper overnight overlap detection using minutes-since-midnight
+        const toMinutes = (t: string) => {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        };
+
         const overlap = timesheets.some(t => {
             if (t.id === editingEntryId) return false;
             if (t.personnelId !== newEntry.personnelId) return false;
             if (t.date !== newEntry.date) return false;
             if (!t.timeIn || !t.timeOut || !newEntry.timeIn || !newEntry.timeOut) return false;
 
-            const tIn = t.timeIn;
-            const tOut = t.timeOut < t.timeIn ? '24:00' : t.timeOut;
-            const nIn = newEntry.timeIn;
-            const nOut = newEntry.timeOut < newEntry.timeIn ? '24:00' : newEntry.timeOut;
+            let tInM = toMinutes(t.timeIn);
+            let tOutM = toMinutes(t.timeOut);
+            if (tOutM <= tInM) tOutM += 1440; // crosses midnight
 
-            return tIn < nOut && nIn < tOut;
+            let nInM = toMinutes(newEntry.timeIn!);
+            let nOutM = toMinutes(newEntry.timeOut!);
+            if (nOutM <= nInM) nOutM += 1440; // crosses midnight
+
+            return tInM < nOutM && nInM < tOutM;
         });
 
         if (overlap) {
@@ -185,6 +201,8 @@ export default function Timesheets() {
             classification: newEntry.classification as any,
             projectId: newEntry.projectId,
             notes: newEntry.notes || '',
+            manualReason: newEntry.manualReason || '',  // H-04
+            source: 'manual' as const,                 // H-04: explicit source field
             status: newEntry.status || 'Pending',
             signature: signatureBlob ? {
                 name: signatureName || 'Customer',
@@ -208,42 +226,62 @@ export default function Timesheets() {
             return;
         }
 
+        let reused = 0;
+        let created = 0;
+
         selectedPersonnel.forEach(pId => {
             const sig = batchSignatures[pId];
             if (!sig) return;
 
+            const personName = personnel.find(p => p.id === pId)?.name || 'Worker';
+            const sigPayload = { name: personName, timestamp: new Date().toISOString(), blob: sig };
+
             if (batchAction === 'Check-in') {
-                addTimesheet({
-                    id: `TS-BATCH-${Date.now()}-${pId}`,
-                    personnelId: pId,
-                    date: batchDate,
-                    timeIn: batchTime,
-                    hours: 0,
-                    type: 'On Site',
-                    classification: 'Regular',
-                    projectId: batchProject,
-                    status: 'Pending',
-                    signature: {
-                        name: personnel.find(p => p.id === pId)?.name || 'Worker',
-                        timestamp: new Date().toISOString(),
-                        blob: sig
-                    }
-                });
+                // H-02: Check if a GPS clock-in already exists for this person today
+                const existingGpsEntry = timesheets.find(t =>
+                    t.personnelId === pId && t.date === batchDate && t.timeIn
+                );
+                if (existingGpsEntry) {
+                    // Reuse existing GPS record — just append signature and update project
+                    updateTimesheet(existingGpsEntry.id, {
+                        projectId: batchProject,
+                        status: 'Pending',
+                        signature: sigPayload,
+                    } as any);
+                    reused++;
+                } else {
+                    // No GPS record — create a manual entry, flagged for audit
+                    addTimesheet({
+                        id: `TS-BATCH-${Date.now()}-${pId}`,
+                        personnelId: pId,
+                        date: batchDate,
+                        timeIn: batchTime,
+                        hours: 0,
+                        type: 'On Site',
+                        classification: 'Regular',
+                        projectId: batchProject,
+                        status: 'Pending',
+                        gpsVerified: false,
+                        source: 'manual',
+                        manualReason: `Batch check-in by supervisor at ${batchTime} (no GPS record found)`,
+                        signature: sigPayload,
+                    } as any);
+                    created++;
+                }
             } else {
-                // Check-out
-                const existing = timesheets.find(t => t.personnelId === pId && t.date === batchDate && !t.timeOut);
+                // Check-out: find open entry (no timeOut) and close it
+                const existing = timesheets.find(t =>
+                    t.personnelId === pId && t.date === batchDate && !t.timeOut
+                );
                 if (existing) {
                     const hours = calculateHours(existing.timeIn || '08:00', batchTime);
                     updateTimesheet(existing.id, {
                         timeOut: batchTime,
                         hours,
                         status: 'Pending',
-                        signature: {
-                            name: personnel.find(p => p.id === pId)?.name || 'Worker',
-                            timestamp: new Date().toISOString(),
-                            blob: sig
-                        }
+                        signature: sigPayload,
                     });
+                    reused++;
                 }
             }
         });
@@ -252,7 +290,10 @@ export default function Timesheets() {
         setSigningPersonnelId(null);
         setBatchSignatures({});
         setSelectedPersonnel([]);
-        alert(`Successfully processed ${selectedPersonnel.length} team members.`);
+        const summary = batchAction === 'Check-in'
+            ? `✅ ${reused} GPS records updated. ⚠ ${created} manual entries created (no GPS data).`
+            : `✅ ${reused} check-outs recorded.`;
+        alert(`Batch ${batchAction} complete.\n${summary}`);
     };
 
     const handleExportCSV = () => {
@@ -422,6 +463,22 @@ export default function Timesheets() {
                                         className="rounded-xl"
                                     />
                                 </div>
+
+                                {!editingEntryId && (
+                                    <div className="space-y-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                        <label className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                                            <AlertTriangle size={14} className="text-amber-600" />
+                                            Reason for Manual Entry <span className="text-red-500">*</span>
+                                        </label>
+                                        <p className="text-xs text-amber-600">Required — GPS clock-in should be used when possible. This note will appear in the audit trail.</p>
+                                        <Input
+                                            placeholder="e.g. GPS unavailable at site / retroactive entry with supervisor approval"
+                                            value={(newEntry as any).manualReason || ''}
+                                            onChange={e => setNewEntry({ ...newEntry, manualReason: e.target.value } as any)}
+                                            className="rounded-xl bg-white border-amber-300 focus:ring-amber-400"
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="space-y-2 mt-6 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
                                     <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
@@ -667,7 +724,7 @@ export default function Timesheets() {
                                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     {['Manager', 'Supervisor'].includes(userRole) && entry.status !== 'Approved' && (
                                                         <button
-                                                            onClick={() => updateTimesheet(entry.id, { status: 'Approved', approvedBy: 'Manager' })}
+                                                            onClick={() => updateTimesheet(entry.id, { status: 'Approved', approvedBy: getCurrentUserName() })}
                                                             className="text-status-success hover:text-green-700 hover:bg-green-50 p-2 rounded-lg transition-colors"
                                                             title="Approve Timesheet (Lock)"
                                                         >
@@ -697,7 +754,11 @@ export default function Timesheets() {
                                                                 <Edit2 size={16} />
                                                             </button>
                                                             <button
-                                                                onClick={() => deleteTimesheet(entry.id)}
+                                                                onClick={() => {
+                                                                    if (confirm(`Delete timesheet entry for ${getPersonnelName(entry.personnelId)} on ${entry.date}? This cannot be undone.`)) {
+                                                                        deleteTimesheet(entry.id);
+                                                                    }
+                                                                }}
                                                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
                                                                 title="Delete Timesheet"
                                                             >

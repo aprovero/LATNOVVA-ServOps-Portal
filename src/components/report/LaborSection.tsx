@@ -84,7 +84,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
             certifications: []
         });
         
-        // Add to labor list
+        // H-01: Mark as pending certs — uncertified quick-add workers need HSE validation
         onChange([...labor, { 
             id: `l-${Date.now()}`, 
             personnelId: newId, 
@@ -93,8 +93,10 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
             timeIn: '08:00', 
             timeOut: '17:00', 
             type: 'On Site', 
-            hours: 9 
-        }]);
+            hours: 9,
+            isOutsourced: true,   // treat as outsourced so cert fields apply
+            pendingCerts: true,   // flag for audit badge
+        } as any]);
         
         setIsAddQuickPersonOpen(false);
         setQuickName('');
@@ -104,15 +106,25 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
     const handleBatchAddTeam = () => {
         const newEntries = selectedTeamIds.map(pid => {
             const p = personnel.find(per => per.id === pid);
+
+            // M-03: Auto-fill times from today's GPS clock-in data if available
+            const todayStr = currentDate || new Date().toISOString().split('T')[0];
+            const todayPunch = timesheets.find(t => t.personnelId === pid && t.date === todayStr);
+            const timeIn = todayPunch?.timeIn || '08:00';
+            const timeOut = todayPunch?.timeOut || '17:00';
+            const hours = todayPunch?.hours || 9;
+            const hasClockIn = !!todayPunch?.timeIn;
+
             return {
                 id: `l-${Date.now()}-${pid}`,
                 personnelId: pid,
                 role: p?.position || '',
                 qty: 1,
-                timeIn: '08:00',
-                timeOut: '17:00',
+                timeIn,
+                timeOut,
                 type: 'On Site' as const,
-                hours: 9
+                hours,
+                _autoFilledFromGPS: hasClockIn, // internal flag for UX hint
             };
         });
         onChange([...labor, ...newEntries]);
@@ -239,8 +251,21 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
 
                     if (userRole === 'Customer' && hasWarning) return null;
 
+                    // H-01: Check for pending cert flag (Quick Add personnel)
+                    const isPendingCerts = !!(entry as any).pendingCerts;
+
                     return (
-                        <div key={entry.id} className={`flex flex-col gap-4 p-4 bg-surface-alt rounded-2xl border ${hasWarning ? 'border-status-error/40 bg-red-50/30' : 'border-gray-100'}`}>
+                        <div key={entry.id} className={`flex flex-col gap-4 p-4 bg-surface-alt rounded-2xl border ${
+                            isPendingCerts ? 'border-amber-300 bg-amber-50/40' :
+                            hasWarning ? 'border-status-error/40 bg-red-50/30' : 'border-gray-100'
+                        }`}>
+                            {/* H-01: Pending Certification Records badge */}
+                            {isPendingCerts && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 border border-amber-300 rounded-xl text-amber-800 text-xs font-bold">
+                                    <AlertTriangle size={13} className="text-amber-600 shrink-0" />
+                                    ⚠ Pending certification records — HSE validation required before this worker can be confirmed on site.
+                                </div>
+                            )}
                             <div className="flex flex-wrap items-start gap-4">
                                         <div className="flex-[2] min-w-[200px]">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Personnel & Position</label>
@@ -280,18 +305,25 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                                     className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 text-sm font-bold text-accent-greyDark"
                                                 />
                                             ) : (
-                                                <select
+                                            <select
                                                     value={entry.personnelId || ''}
                                                     onChange={(e) => {
                                                         const p = personnel.find(per => per.id === e.target.value);
                                                         handleUpdate(entry.id, 'personnelId', e.target.value);
                                                         if (p) handleUpdate(entry.id, 'role', p.position);
+                                                        // M-03: auto-fill from GPS clock-in if available
+                                                        if (currentDate) {
+                                                            const punch = timesheets.find(t => t.personnelId === e.target.value && t.date === currentDate);
+                                                            if (punch?.timeIn) handleUpdate(entry.id, 'timeIn', punch.timeIn);
+                                                            if (punch?.timeOut) handleUpdate(entry.id, 'timeOut', punch.timeOut);
+                                                        }
                                                     }}
                                                     disabled={readOnly}
                                                     className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 disabled:border-none disabled:opacity-100 text-sm font-bold text-accent-greyDark"
                                                 >
                                                     <option value="">-- Select Worker --</option>
-                                                    {personnel.map(p => {
+                                                    {/* M-05: exclude Customer-role accounts from labor */}
+                                                    {personnel.filter(p => p.appRole !== 'Customer').map(p => {
                                                         const isBusy = busyPersonnelIds.has(p.id);
                                                         const expired = getExpiredCerts(p.id).length > 0;
                                                         const isDisabled = isBusy || expired;

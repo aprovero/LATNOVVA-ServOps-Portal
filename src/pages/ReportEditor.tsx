@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, ReportState, ChecklistGroup } from '../store/useStore';
-import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin, FilePlus } from 'lucide-react';
+import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin, FilePlus, CheckCircle, AlertTriangle, Users } from 'lucide-react';
 import gsap from 'gsap';
 
 import WeatherWidget from '../components/weather/WeatherWidget';
@@ -15,11 +15,28 @@ import Checklists from '../components/report/Checklists';
 import SubReportsSection from '../components/report/SubReportsSection';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PrintableReportTemplate } from '../components/reports/PrintableReportTemplate';
+import SectionCommentBubble from '../components/report/SectionCommentBubble';
+
+// In-app notification toast state (M-01)
+let _toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export default function ReportEditor() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { reports, projects, personnel, updateReport, updateActivityProgress, userRole, addComment } = useStore();
+    const { reports, projects, personnel, timesheets, updateReport, updateActivityProgress, userRole, addComment, getCurrentUserName, addTimesheet } = useStore();
+
+    // M-07: Timesheet batch-create state
+    const [showTimesheetCreator, setShowTimesheetCreator] = useState(false);
+    const [batchTsSignature, setBatchTsSignature] = useState('');
+    const [batchTsSignerName, setBatchTsSignerName] = useState('');
+
+    // In-app notification toast (M-01)
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warning' } | null>(null);
+    const showToast = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
+        setToast({ message, type });
+        if (_toastTimeout) clearTimeout(_toastTimeout);
+        _toastTimeout = setTimeout(() => setToast(null), 4500);
+    };
 
     const report = reports.find(r => r.id === id);
     const project = projects.find(p => p.id === report?.projectId);
@@ -29,24 +46,28 @@ export default function ReportEditor() {
     const [locationState, setLocationState] = useState(report?.location || undefined);
     const [newComment, setNewComment] = useState('');
 
-    // Complex state modules
-    const currentSignature = report?.signatures?.find(s => s.role === userRole) || null;
-    // Auto-populate labor from project.assignedPersonnel if labor is empty
+    // M-03: Auto-populate labor from project.assignedPersonnel, using GPS clock-in data if available
     const buildDefaultLabor = () => {
         if (!project?.assignedPersonnel?.length) return [];
-        // Use shift times from report.labor if it already has entries, or derive a default
+        const reportDate = report?.date;
         return project.assignedPersonnel.map((persId, idx) => {
             const person = personnel.find(p => p.id === persId);
+            // Look for a GPS-verified punch for this person on this report date
+            const clockEntry = reportDate
+                ? timesheets.find(t => t.personnelId === persId && t.date === reportDate)
+                : null;
+            const hasClockIn = !!clockEntry?.timeIn;
             return {
                 id: `l-auto-${Date.now()}-${idx}`,
                 personnelId: persId,
                 role: person?.position || 'Technician',
                 qty: 1,
-                timeIn: '08:00',
-                timeOut: '17:00',
+                timeIn: clockEntry?.timeIn || '08:00',
+                timeOut: clockEntry?.timeOut || '17:00',
                 type: 'On Site' as const,
-                hours: 9,
+                hours: clockEntry?.hours || 9,
                 isOutsourced: false,
+                _autoFilledFromGPS: hasClockIn,
             };
         });
     };
@@ -60,6 +81,7 @@ export default function ReportEditor() {
     const [checklists, setChecklists] = useState<ChecklistGroup[]>(report?.checklists || []);
     const [subReportIds, setSubReportIds] = useState<string[]>(report?.subReportIds || []);
     const [occurrences, setOccurrences] = useState(report?.occurrences || []);
+    const currentSignature = report?.signatures?.find(s => s.role === userRole) || null;
     const [signatureBlob, setSignatureBlob] = useState(currentSignature?.blob || '');
     const [signatures, setSignatures] = useState(report?.signatures || []);
     const [usedTools, setUsedTools] = useState<string[]>(report?.usedTools || []);
@@ -162,25 +184,46 @@ export default function ReportEditor() {
         setSections(sections.filter((_, i) => i !== idx));
     };
 
+    // M-06: use real user name + L-04: deduplicate by role
     const handleSignatureSave = (role: 'Supervisor' | 'Management' | 'Customer', blob: string) => {
-        const newSigs = [...signatures, {
-            role,
-            signedBy: (userRole === 'Tech' || userRole === 'Supervisor') ? 'Field Engineer' : userRole,
-            timestamp: new Date().toISOString(),
-            blob
-        }];
+        const newSigs = [
+            ...signatures.filter(s => s.role !== role), // deduplicate
+            {
+                role,
+                signedBy: getCurrentUserName(), // M-06: real name
+                timestamp: new Date().toISOString(),
+                blob
+            }
+        ];
         setSignatures(newSigs);
         updateReport(report.id, { signatures: newSigs });
     };
 
+    // H-03: section-scoped comment submission
     const submitComment = () => {
         if (!newComment.trim()) return;
         addComment(report.id, newComment);
         setNewComment('');
     };
 
+    // H-03: scoped comment from a section bubble
+    const submitSectionComment = (text: string, sectionKey: string) => {
+        if (!text.trim()) return;
+        addComment(report.id, text, sectionKey);
+    };
+
     return (
         <div className="space-y-6 pb-24 md:pb-10 max-w-4xl mx-auto">
+            {/* In-App Notification Toast (M-01) */}
+            {toast && (
+                <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border text-white font-semibold text-sm animate-in slide-in-from-top-4 fade-in duration-300 ${
+                    toast.type === 'success' ? 'bg-emerald-600 border-emerald-500' :
+                    toast.type === 'warning' ? 'bg-amber-500 border-amber-400' : 'bg-brand-teal border-teal-400'
+                }`}>
+                    <CheckCircle size={18} className="shrink-0" />
+                    {toast.message}
+                </div>
+            )}
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-brand-teal font-semibold hover:underline">
                 <ChevronLeft size={20} /> Back to List
             </button>
@@ -236,6 +279,87 @@ export default function ReportEditor() {
                 {weatherState && <WeatherWidget weather={weatherState} reportDate={report.date} projectLocation={project?.location} onChange={setWeatherState} readOnly={!canEditFields} />}
             </div>
 
+            {/* M-07: Timesheet validation banner */}
+            {(() => {
+                if (!project?.assignedPersonnel?.length || !report.date) return null;
+                const missing = project.assignedPersonnel.filter(pid =>
+                    !timesheets.find(t => t.personnelId === pid && t.date === report.date)
+                );
+                if (!missing.length) return null;
+                return (
+                    <div className="editor-fade mx-0">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                            <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-amber-800">
+                                    {missing.length} assigned personnel have no timesheet for {report.date}.
+                                </p>
+                                <p className="text-xs text-amber-600 mt-0.5">
+                                    GPS clock-in records will be used if available. Otherwise manual entries will be created.
+                                </p>
+                            </div>
+                            {(isSupervisor || isManager) && !showTimesheetCreator && (
+                                <button
+                                    onClick={() => setShowTimesheetCreator(true)}
+                                    className="shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-colors"
+                                >
+                                    <Users size={14} /> Batch Create Timesheets
+                                </button>
+                            )}
+                        </div>
+                        {showTimesheetCreator && (
+                            <div className="mt-3 p-4 bg-white border border-amber-200 rounded-2xl space-y-3">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Authorize Timesheet Creation</p>
+                                <p className="text-xs text-gray-500">Your signature confirms these timesheet records are accurate.</p>
+                                <div className="flex gap-3">
+                                    <input
+                                        type="text"
+                                        value={batchTsSignerName}
+                                        onChange={e => setBatchTsSignerName(e.target.value)}
+                                        placeholder="Your name"
+                                        className="input-field flex-1 text-sm"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            if (!batchTsSignerName.trim()) { alert('Please enter your name to authorize.'); return; }
+                                            const today = report.date;
+                                            const userName = batchTsSignerName || getCurrentUserName();
+                                            missing.forEach(pid => {
+                                                const gpsEntry = timesheets.find(t => t.personnelId === pid && t.date === today);
+                                                addTimesheet({
+                                                    id: `TS-RPT-${Date.now()}-${pid}`,
+                                                    personnelId: pid,
+                                                    date: today,
+                                                    timeIn: gpsEntry?.timeIn || labor.find(l => l.personnelId === pid)?.timeIn || '08:00',
+                                                    timeOut: gpsEntry?.timeOut || labor.find(l => l.personnelId === pid)?.timeOut || '17:00',
+                                                    hours: gpsEntry?.hours || labor.find(l => l.personnelId === pid)?.hours || 9,
+                                                    type: 'On Site',
+                                                    classification: 'Regular',
+                                                    projectId: report.projectId,
+                                                    status: 'Pending',
+                                                    gpsVerified: !!gpsEntry,
+                                                    source: gpsEntry ? 'gps' : 'manual',
+                                                    manualReason: gpsEntry ? undefined : `Created from Report ${report.id} by ${userName}`,
+                                                    signature: { name: userName, timestamp: new Date().toISOString(), blob: batchTsSignature }
+                                                } as any);
+                                            });
+                                            setShowTimesheetCreator(false);
+                                            setBatchTsSignature('');
+                                            setBatchTsSignerName('');
+                                            showToast(`${missing.length} timesheets created.`, 'success');
+                                        }}
+                                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl transition-colors"
+                                    >
+                                        Confirm & Create
+                                    </button>
+                                    <button onClick={() => setShowTimesheetCreator(false)} className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
             <div className="editor-fade">
                 <LaborSection 
                     labor={labor} 
@@ -260,10 +384,16 @@ export default function ReportEditor() {
             ) : null}
 
 
-
             <div className="editor-fade card-container">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Field Notes & Observations</h3>
+                        <SectionCommentBubble
+                            sectionKey="notes"
+                            sectionLabel="Field Notes"
+                            comments={report.comments || []}
+                            onAdd={submitSectionComment}
+                            canComment={isManager || isSupervisor || isCustomer}
+                        />
                     </div>
                     <textarea
                         value={notes}
@@ -273,6 +403,7 @@ export default function ReportEditor() {
                         placeholder="Enter daily remarks, incidents, or completion notes..."
                     />
                 </div>
+
 
             <div className="editor-fade card-container">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
@@ -340,7 +471,7 @@ export default function ReportEditor() {
             </div>
 
             <div className="editor-fade">
-                <MediaGrid media={media} onChange={setMedia} readOnly={!canEditFields} />
+                <MediaGrid media={media} onChange={setMedia} readOnly={!canEditFields} report={report} />
             </div>
 
             {/* External / Managed Attachments */}
@@ -471,7 +602,11 @@ export default function ReportEditor() {
                         {report.comments?.map(c => (
                             <div key={c.id} className={`p-4 rounded-2xl ${c.role === 'Customer' ? 'bg-white border border-gray-100 ml-4' : 'bg-blue-100/50 mr-4'}`}>
                                 <div className="flex justify-between items-center mb-1">
-                                    <span className="font-bold text-sm text-accent-greyDark">{c.userId} <span className="text-xs font-normal text-gray-500">({c.role})</span></span>
+                                    {/* L-03: resolve user id to display name */}
+                                    <span className="font-bold text-sm text-accent-greyDark">
+                                        {personnel.find(p => p.id === c.userId)?.name || c.userId}
+                                        <span className="text-xs font-normal text-gray-500 ml-1">({c.role})</span>
+                                    </span>
                                     <span className="text-xs text-gray-400 font-mono">{new Date(c.timestamp).toLocaleTimeString()}</span>
                                 </div>
                                 <p className="text-sm text-accent-grey">{c.text}</p>
@@ -551,28 +686,54 @@ export default function ReportEditor() {
                 <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto justify-end items-center">
                     {canEditFields ? (
                         <button onClick={() => { 
-                            if (!signatures.some(s => s.role === 'Supervisor')) {
-                                alert('A Tech or Supervisor signature is required before submitting the report for review.');
-                                return;
+                            if (isManager) {
+                                // Manager bypass: auto-add 'Approved by Manager' to supervisor slot if needed
+                                if (!signatures.some(s => s.role === 'Supervisor')) {
+                                    const currentUserName = getCurrentUserName();
+                                    const managerSig = {
+                                        role: 'Supervisor' as const,
+                                        signedBy: `Approved by Manager: ${currentUserName}`,
+                                        timestamp: new Date().toISOString(),
+                                        blob: ''
+                                    };
+                                    const updatedSigs = [...signatures, managerSig];
+                                    setSignatures(updatedSigs);
+                                    updateReport(report.id, { signatures: updatedSigs });
+                                }
+                                handleSave();
+                                handleChangeState('Pending Manager Review');
+                            } else {
+                                if (!signatures.some(s => s.role === 'Supervisor')) {
+                                    alert('A Tech or Supervisor signature is required before submitting the report for review.');
+                                    return;
+                                }
+                                handleSave();
+                                handleChangeState('Pending Manager Review');
                             }
-                            handleSave(); 
-                            handleChangeState('Pending Manager Review'); 
                         }} className="w-full md:w-auto btn-primary flex items-center justify-center gap-2 whitespace-nowrap">
                             Submit for Review
                         </button>
                     ) : isManager && report.state === 'Pending Manager Review' ? (
                         <>
-                            <button onClick={() => handleChangeState('Draft')} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
+                            <button onClick={() => { handleChangeState('Draft'); showToast('Report returned to Draft.', 'warning'); }} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
                                 <Ban size={18} /> Reject & Return to Draft
                             </button>
                             <button onClick={() => {
+                                // Manager bypass: if no Supervisor sig, auto-add 'Approved by Manager' comment to sig trail
                                 if (!signatures.some(s => s.role === 'Supervisor')) {
-                                    alert('A Tech or Supervisor signature is required before sending to the Customer.');
-                                    return;
+                                    const currentUserName = getCurrentUserName();
+                                    const managerSig = {
+                                        role: 'Supervisor' as const,
+                                        signedBy: `Approved by Manager: ${currentUserName}`,
+                                        timestamp: new Date().toISOString(),
+                                        blob: ''
+                                    };
+                                    const updatedSigs = [...signatures, managerSig];
+                                    setSignatures(updatedSigs);
+                                    updateReport(report.id, { signatures: updatedSigs });
                                 }
                                 handleChangeState('Pending Customer Review');
-                                // Mock Email Notification
-                                alert("Mock: Email sent via Resend to the Customer to review and approve the report.");
+                                showToast('Report sent to Customer for approval.', 'success');
                             }} className="w-full md:w-auto btn-primary bg-status-success hover:bg-green-700 shadow-status-success/20 flex items-center justify-center gap-2">
                                 <Lock size={18} /> Approve & Send to Customer
                             </button>

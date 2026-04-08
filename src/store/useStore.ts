@@ -26,6 +26,7 @@ export interface ReportComment {
     role: string;
     timestamp: string;
     text: string;
+    sectionKey?: string; // scoped to a section e.g. 'labor', 'checklists', 'occurrences', 'notes'
 }
 
 export interface CustomSection {
@@ -102,12 +103,30 @@ export interface Report {
     customSections: CustomSection[];
     comments: ReportComment[];
     labor?: { id: string; personnelId?: string; outsourcedName?: string; role: string; qty: number; timeIn?: string; timeOut?: string; hours: number; type?: 'On Site' | 'Travel' | 'Other'; isOutsourced?: boolean }[];
-    media?: { id: string; url: string; caption: string }[];
+    media?: { 
+        id: string; 
+        url: string; 
+        caption: string; 
+        storageType?: 'local' | 'sharepoint';
+        sharepointId?: string;
+    }[];
     occurrences?: ReportOccurrence[];
     checklists?: ChecklistGroup[];
     subReportIds?: string[];
-    attachments?: { id: string; url: string; name: string }[];
-    externalAttachments?: { id: string; url: string; name: string }[];
+    attachments?: { 
+        id: string; 
+        url: string; 
+        name: string; 
+        storageType?: 'local' | 'sharepoint';
+        sharepointId?: string;
+    }[];
+    externalAttachments?: { 
+        id: string; 
+        url: string; 
+        name: string; 
+        storageType?: 'local' | 'sharepoint';
+        sharepointId?: string;
+    }[];
     notes: string;
     signatures?: ReportSignature[];
     usedTools?: string[]; // IDs of tools used in this report
@@ -247,6 +266,8 @@ export interface TimesheetEntry {
     punches?: ClockPunch[];     // GPS audit trail from clock-in system
     gpsVerified?: boolean;      // true when all punches have accuracy <= 50m
     lunchSkipped?: boolean;     // true when tech explicitly skipped lunch
+    source?: 'gps' | 'manual'; // H-04: explicit audit flag
+    manualReason?: string;      // H-04: required justification for manual entries
 }
 
 export interface ProjectActivity {
@@ -295,6 +316,15 @@ export interface Project {
     expectedDuration?: string; // e.g., '12 Months', '4 Weeks'
 }
 
+// Allowed report state transitions — prevents workflow bypass (C-03)
+export const ALLOWED_REPORT_TRANSITIONS: Record<ReportState, ReportState[]> = {
+    'Draft': ['Pending Manager Review'],
+    'Pending Manager Review': ['Draft', 'Pending Customer Review'],
+    'Pending Customer Review': ['Pending Manager Review', 'Approved'],
+    'Approved': ['Closed'],
+    'Closed': [],
+};
+
 interface AppState {
     userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer';
     userId: string;
@@ -311,6 +341,8 @@ interface AppState {
     subReportInstances: SubReportInstance[];
     events: ScheduledEvent[];
     timesheets: TimesheetEntry[];
+    /** Returns the display name of the currently logged-in user (L-03). */
+    getCurrentUserName: () => string;
     initDb: () => Promise<void>;
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
@@ -322,7 +354,7 @@ interface AppState {
     updateProject: (id: string, updates: Partial<Project>) => void;
     addReport: (report: Report) => void;
     updateReport: (id: string, updates: Partial<Report>) => void;
-    addComment: (reportId: string, text: string) => void;
+    addComment: (reportId: string, text: string, sectionKey?: string) => void;
     addTool: (tool: Tool) => void;
     updateTool: (id: string, updates: Partial<Tool>) => void;
     deleteTool: (id: string) => void;
@@ -357,6 +389,19 @@ interface AppState {
     addActivityToScope: (projectId: string, scopeId: string, activity: ProjectActivity) => void;
     deleteProjectActivity: (projectId: string, scopeId: string, activityId: string) => void;
     updateActivityProgress: (projectId: string, scopeId: string, activityId: string, updates: Partial<ProjectActivity>) => void;
+    // Cloud Storage & Auth
+    sharepointConfig: {
+        siteId?: string;
+        driveId?: string;
+        siteUrl?: string;
+        folderPath?: string;
+    };
+    microsoftAuth: {
+        isAuthenticated: boolean;
+        userEmail?: string;
+    };
+    setSharepointConfig: (config: Partial<AppState['sharepointConfig']>) => void;
+    setMicrosoftAuth: (auth: Partial<AppState['microsoftAuth']>) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -419,6 +464,14 @@ export const useStore = create<AppState>()(
                 }
             ],
             timesheets: [],
+            sharepointConfig: {
+                siteUrl: import.meta.env.VITE_SHAREPOINT_SITE_URL || ''
+            },
+            microsoftAuth: {
+                isAuthenticated: false
+            },
+            setSharepointConfig: (config) => set((state) => ({ sharepointConfig: { ...state.sharepointConfig, ...config } })),
+            setMicrosoftAuth: (auth) => set((state) => ({ microsoftAuth: { ...state.microsoftAuth, ...auth } })),
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
@@ -515,7 +568,9 @@ export const useStore = create<AppState>()(
                             signature: t.signature,
                             punches: t.punches || [],
                             gpsVerified: t.gps_verified,
-                            lunchSkipped: t.lunch_skipped
+                            lunchSkipped: t.lunch_skipped,
+                            source: (t as any).source || 'manual',        // M-05
+                            manualReason: (t as any).manual_reason,       // M-05
                         })) || state.timesheets
                     }));
                 } catch (error) {
@@ -532,7 +587,15 @@ export const useStore = create<AppState>()(
                     timesheets: [],
                 }));
             },
-            setAuthData: (id, email) => set({ userId: id, userEmail: email }), // We can expand this to fetch their actual profile from the personnel table later
+            /** Returns the display name of the currently logged-in user (L-03). */
+            getCurrentUserName: () => {
+                const { userId, userEmail, personnel } = get();
+                const person = personnel.find(p => p.id === userId);
+                if (person) return person.name;
+                if (userEmail) return userEmail.split('@')[0];
+                return userId;
+            },
+            setAuthData: (id, email) => set({ userId: id, userEmail: email }),
             setUserRole: (role) => set({ userRole: role }),
             addClient: async (client) => {
                 set((state) => ({ clients: [...state.clients, client] }));
@@ -634,6 +697,17 @@ export const useStore = create<AppState>()(
                 await supabase.from('reports').insert(dbPayload);
             },
             updateReport: async (id, updates) => {
+                // C-03: Enforce valid state transitions
+                if (updates.state) {
+                    const currentReport = get().reports.find(r => r.id === id);
+                    const currentState = currentReport?.state;
+                    const allowed = currentState ? ALLOWED_REPORT_TRANSITIONS[currentState] ?? [] : [];
+                    if (currentState && !allowed.includes(updates.state)) {
+                        console.error(`[State Machine] Invalid transition: ${currentState} → ${updates.state}`);
+                        return; // Silently block invalid transitions
+                    }
+                }
+
                 set((state) => ({
                     reports: state.reports.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString(), updatedBy: get().userId } : r)),
                 }));
@@ -669,23 +743,30 @@ export const useStore = create<AppState>()(
                     await supabase.from('reports').update(dbPayload).eq('id', id);
                 }
             },
-            addComment: (reportId, text) => {
+            addComment: async (reportId, text, sectionKey) => {
                 const { userRole, userId } = get();
+                const newComment: ReportComment = {
+                    id: `C-${Date.now()}`,
+                    userId,
+                    role: userRole,
+                    timestamp: new Date().toISOString(),
+                    text,
+                    ...(sectionKey ? { sectionKey } : {}),
+                };
+                let updatedComments: ReportComment[] = [];
                 set((state) => ({
                     reports: state.reports.map((r) => {
                         if (r.id === reportId) {
-                            const newComment = {
-                                id: `C-${Date.now()}`,
-                                userId,
-                                role: userRole,
-                                timestamp: new Date().toISOString(),
-                                text
-                            };
-                            return { ...r, comments: [...r.comments, newComment] };
+                            updatedComments = [...r.comments, newComment];
+                            return { ...r, comments: updatedComments };
                         }
                         return r;
                     })
                 }));
+                // H-03: Persist comments to Supabase immediately
+                if (updatedComments.length > 0) {
+                    await supabase.from('reports').update({ comments: updatedComments }).eq('id', reportId);
+                }
             },
             addTool: (tool) => set((state) => ({ tools: [...state.tools, tool] })),
             updateTool: (id, updates) =>
@@ -827,6 +908,8 @@ export const useStore = create<AppState>()(
                 if (updates.punches !== undefined) dbPayload.punches = updates.punches;
                 if (updates.gpsVerified !== undefined) dbPayload.gps_verified = updates.gpsVerified;
                 if (updates.lunchSkipped !== undefined) dbPayload.lunch_skipped = updates.lunchSkipped;
+                if (updates.source !== undefined) dbPayload.source = updates.source;             // M-04
+                if (updates.manualReason !== undefined) dbPayload.manual_reason = updates.manualReason; // M-04
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('timesheets').update(dbPayload).eq('id', id);
                 }
@@ -837,23 +920,35 @@ export const useStore = create<AppState>()(
                 }));
                 await supabase.from('timesheets').delete().eq('id', id);
             },
-            approveTimesheet: (id, approverId) => 
+            approveTimesheet: async (id, approverId) => {
                 set((state) => ({
                     timesheets: state.timesheets.map((t) => 
                         t.id === id ? { ...t, status: 'Approved', approvedBy: approverId } : t
                     )
-                })),
-            rejectTimesheet: (id, approverId) => 
+                }));
+                // H-03: persist actual approver id
+                await supabase.from('timesheets').update({ status: 'Approved', approved_by: approverId }).eq('id', id);
+            },
+            rejectTimesheet: async (id, approverId) => {
                 set((state) => ({
                     timesheets: state.timesheets.map((t) => 
                         t.id === id ? { ...t, status: 'Rejected', approvedBy: approverId } : t
                     )
-                })),
-            clockPunch: (personnelId, punch, projectId, lunchSkipped) =>
+                }));
+                await supabase.from('timesheets').update({ status: 'Rejected', approved_by: approverId }).eq('id', id);
+            },
+            clockPunch: async (personnelId, punch, projectId, lunchSkipped) => {
+                // C-01: Use LOCAL date so timezone differences don't cause wrong-day lookups
+                const _d = new Date();
+                const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
+
+                // C-01 FIX: Convert ISO timestamp to LOCAL HH:mm (not UTC slice)
+                const toHHMM = (iso: string) => {
+                    const d = new Date(iso);
+                    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+                };
+
                 set((state) => {
-                    // Use LOCAL date (not UTC) so timezone differences don't cause wrong-day lookups
-                    const _d = new Date();
-                    const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
                     const existing = state.timesheets.find(
                         t => t.personnelId === personnelId && t.date === today
                     );
@@ -866,8 +961,6 @@ export const useStore = create<AppState>()(
                     const clockOut = updatedPunches.find(p => p.type === 'clockOut');
                     const lunchOut = updatedPunches.find(p => p.type === 'lunchOut');
                     const lunchIn = updatedPunches.find(p => p.type === 'lunchIn');
-
-                    const toHHMM = (iso: string) => iso.substring(11, 16);
 
                     let computedHours = 0;
                     if (clockIn && clockOut) {
@@ -907,7 +1000,33 @@ export const useStore = create<AppState>()(
                         };
                         return { timesheets: [...state.timesheets, newEntry] };
                     }
-                }),
+                });
+
+                // H-01: Persist GPS punch to Supabase so other devices see live data
+                try {
+                    const updated = get().timesheets.find(
+                        t => t.personnelId === personnelId && t.date === today
+                    );
+                    if (updated) {
+                        await supabase.from('timesheets').upsert({
+                            id: updated.id,
+                            personnel_id: updated.personnelId,
+                            project_id: updated.projectId || projectId || null,
+                            date: updated.date,
+                            time_in: updated.timeIn,
+                            time_out: updated.timeOut,
+                            hours: updated.hours,
+                            type: updated.type,
+                            status: updated.status,
+                            punches: updated.punches,
+                            gps_verified: updated.gpsVerified,
+                            lunch_skipped: updated.lunchSkipped,
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[clockPunch] Supabase upsert failed — punch is saved locally:', e);
+                }
+            },
             assignSupervisor: (personnelId, supervisorId, managerId) =>
                 set((state) => ({
                     personnel: state.personnel.map((p) => 
