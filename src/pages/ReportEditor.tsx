@@ -732,6 +732,8 @@ export default function ReportEditor() {
                                     setSignatures(updatedSigs);
                                     updateReport(report.id, { signatures: updatedSigs });
                                 }
+                                // H-06: Save report content before state change
+                                handleSave();
                                 handleChangeState('Pending Customer Review');
                                 showToast('Report sent to Customer for approval.', 'success');
                             }} className="w-full md:w-auto btn-primary bg-status-success hover:bg-green-700 shadow-status-success/20 flex items-center justify-center gap-2">
@@ -744,13 +746,14 @@ export default function ReportEditor() {
                                 <Ban size={18} /> Reject
                             </button>
                             <button onClick={() => {
-                                // Mocking Digital Signature Apply on Approved
+                                // C-01: use real user identity — not hardcoded string
                                 const currentSigs = report.signatures || [];
+                                const customerName = getCurrentUserName();
                                 updateReport(report.id, {
                                     state: 'Approved',
                                     signatures: [
                                         ...currentSigs.filter(s => s.role !== 'Customer'),
-                                        { role: 'Customer', signedBy: 'Client Representative', timestamp: new Date().toISOString(), blob: signatureBlob }
+                                        { role: 'Customer', signedBy: customerName, timestamp: new Date().toISOString(), blob: signatureBlob }
                                     ]
                                 });
                                 navigate('/reports');
