@@ -1,10 +1,12 @@
-import { AlertCircle, Plus, Trash2, Clock, Hourglass, Activity, Target } from 'lucide-react';
-import { ReportOccurrence } from '../../store/useStore';
+import { AlertCircle, Plus, Trash2, Clock, Hourglass, Activity, Target, PenTool, CheckCircle } from 'lucide-react';
+import { ReportOccurrence, useStore } from '../../store/useStore';
+import { SignatureCanvasBox } from './MultisignaturePad';
 
 interface OccurrenceSectionProps {
     occurrences: ReportOccurrence[];
     onChange: (occurrences: ReportOccurrence[]) => void;
     readOnly: boolean;
+    userRole?: string;
 }
 
 const CATEGORIES = [
@@ -18,7 +20,12 @@ const CATEGORIES = [
     'Other'
 ];
 
-export default function Occurrences({ occurrences, onChange, readOnly }: OccurrenceSectionProps) {
+export default function Occurrences({ occurrences, onChange, readOnly, userRole }: OccurrenceSectionProps) {
+    const { userRole: storeRole } = useStore();
+    const role = userRole ?? storeRole;
+    const isCustomer = role === 'Customer';
+    const isSupervisor = role === 'Supervisor' || role === 'Manager';
+
     const handleAdd = () => {
         onChange([...occurrences, { 
             id: `occ-${Date.now()}`, 
@@ -187,6 +194,48 @@ export default function Occurrences({ occurrences, onChange, readOnly }: Occurre
                                 })}
                             </div>
                         </div>
+
+                        {/* L-05: Supervisor countersign required for Safety occurrences */}
+                        {entry.category === 'Safety' && entry.impact?.safety && (
+                            <div className="pt-3 border-t-2 border-red-200 mt-1">
+                                <p className="text-xs font-bold text-red-600 uppercase flex items-center gap-1.5 mb-2">
+                                    <PenTool size={12} /> Supervisor Countersign Required (Safety)
+                                </p>
+                                {(entry as any).supervisorSignature ? (
+                                    <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                                        <CheckCircle size={14} />
+                                        {!isCustomer && (
+                                            <span>Countersigned by <strong>{(entry as any).supervisorSignature.name}</strong> at {new Date((entry as any).supervisorSignature.timestamp).toLocaleTimeString()}</span>
+                                        )}
+                                        {isCustomer && <span>Countersigned by Supervisor</span>}
+                                    </div>
+                                ) : isSupervisor && !readOnly ? (
+                                    <div className="space-y-2">
+                                        <input
+                                            id={`sup-sig-name-${entry.id}`}
+                                            type="text"
+                                            placeholder="Supervisor full name"
+                                            className="input-field w-full text-sm"
+                                        />
+                                        <div className="h-20 border border-dashed border-red-300 rounded-xl overflow-hidden bg-white">
+                                            <SignatureCanvasBox onSign={(blob) => {
+                                                const nameEl = document.getElementById(`sup-sig-name-${entry.id}`) as HTMLInputElement | null;
+                                                const name = nameEl?.value?.trim();
+                                                if (!name) { alert('Enter your name before signing.'); return; }
+                                                handleUpdate(entry.id, 'supervisorSignature' as any, {
+                                                    name,
+                                                    blob,
+                                                    timestamp: new Date().toISOString()
+                                                });
+                                            }} />
+                                        </div>
+                                        <p className="text-[10px] text-red-400">Draw signature above to countersign this safety occurrence.</p>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-red-500 italic">⚠ Awaiting Supervisor countersign…</p>
+                                )}
+                            </div>
+                        )}
 
                     </div>
                 ))}

@@ -518,6 +518,11 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     };
 
     const handleSkipLunch = () => {
+        // M-05: If GPS is denied, use manual modal fallback for the lunch-out punch
+        if (gpsDenied) {
+            setManualModal('lunchOut');
+            return;
+        }
         const best = getBestTimestampISO(gps);
         const base: ClockPunch = {
             timestamp: best.iso, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
@@ -530,17 +535,39 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
     return (
         <div className="space-y-5">
-            {/* Day complete summary */}
+            {/* Day complete summary — L-02: project name + GPS */}
             {step === 'clocked-out' && todayEntry && (
                 <div className="bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl p-5 shadow-lg text-white">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-1">
                         <CheckCircle size={20} /><span className="font-bold text-lg">Day Complete</span>
                     </div>
+                    {/* Project name */}
+                    {selectedProject && (
+                        <p className="text-teal-200 text-xs mb-4 flex items-center gap-1">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
+                            {projects.find((p: any) => p.id === selectedProject)?.name ?? selectedProject}
+                        </p>
+                    )}
                     <div className="grid grid-cols-3 gap-3 text-sm">
                         <div><p className="text-teal-200 text-xs">Time In</p><p className="font-bold text-lg">{todayEntry.timeIn ?? '—'}</p></div>
                         <div><p className="text-teal-200 text-xs">Time Out</p><p className="font-bold text-lg">{todayEntry.timeOut ?? '—'}</p></div>
                         <div><p className="text-teal-200 text-xs">Hours</p><p className="font-bold text-2xl">{todayEntry.hours.toFixed(2)}</p></div>
                     </div>
+                    {/* GPS coordinates from last clockOut punch */}
+                    {(() => {
+                        const lastOut = (todayEntry.punches ?? []).filter((p: any) => p.type === 'clockOut').slice(-1)[0];
+                        if (!lastOut || lastOut.lat === 0) return null;
+                        return (
+                            <a
+                                href={`https://maps.google.com/?q=${lastOut.lat},${lastOut.lng}`}
+                                target="_blank" rel="noreferrer"
+                                className="mt-3 flex items-center gap-1.5 text-teal-200 hover:text-white text-[10px] font-mono transition-colors"
+                            >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                                {lastOut.lat.toFixed(5)}, {lastOut.lng.toFixed(5)} ±{Math.round(lastOut.accuracy ?? 0)}m
+                            </a>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -563,6 +590,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     {!gpsReady && gps.status === 'acquiring' && (
                         <p className="text-center text-sm text-blue-500 animate-pulse">Waiting for GPS…</p>
                     )}
+                    {/* C-04: Warn if no project selected */}
+                    {!selectedProject && (
+                        <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500">
+                            <AlertTriangle size={15} className="text-gray-400 shrink-0" />
+                            <span>Select a project above before clocking in.</span>
+                        </div>
+                    )}
                     {/* M-01: GPS denied — amber enabled button, opens manual modal automatically */}
                     {gpsDenied ? (
                         <>
@@ -572,13 +606,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </div>
                             <button
                                 onClick={() => setManualModal('clockIn')}
-                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                disabled={!selectedProject}
+                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
                                 <LogIn size={26} /> CLOCK IN (Manual)
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => executePunch('clockIn')} disabled={!gpsReady}
+                        <button onClick={() => executePunch('clockIn')} disabled={!gpsReady || !selectedProject}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogIn size={26} /> CLOCK IN
                         </button>

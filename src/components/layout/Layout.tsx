@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Plus, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
@@ -30,7 +30,7 @@ import { Label } from '../ui/label';
 export default function Layout() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setUserRole, userEmail, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
+    const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
 
     // Dialog States
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -125,16 +125,16 @@ export default function Layout() {
         {
             name: 'OPERATIONS',
             links: [
-                { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
                 { name: 'Live Map', path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
+                { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
                 { name: 'Reports', path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
-                { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
             ]
         },
         {
             name: 'RESOURCES',
             links: [
                 { name: 'Personnel', path: '/personnel', icon: User, roles: ['Supervisor', 'Manager'] },
+                { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
                 { name: 'Tools', path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager'] },
             ]
         },
@@ -252,7 +252,7 @@ export default function Layout() {
     };
 
     return (
-        <div className="flex h-screen w-full bg-surface-alt font-sans">
+        <div className="flex h-screen w-full bg-surface-alt font-sans overflow-hidden">
             {/* Sidebar */}
             <aside className="w-64 bg-surface border-r border-gray-100 flex flex-col justify-between hidden md:flex shadow-soft z-10 relative">
                 <div className="px-6 py-6 pb-2">
@@ -356,33 +356,6 @@ export default function Layout() {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
-                        {['Tech', 'Supervisor', 'Manager'].includes(userRole) && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-sm px-6">
-                                        <Plus size={18} />
-                                        CREATE
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
-                                    {['Supervisor', 'Manager'].includes(userRole) && (
-                                        <>
-                                            <DropdownMenuItem onClick={() => setIsCreateCustomerOpen(true)} className="cursor-pointer">
-                                                New Company
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => setIsCreateProjectOpen(true)} className="cursor-pointer">
-                                                New Project
-                                            </DropdownMenuItem>
-                                        </>
-                                    )}
-                                    <DropdownMenuItem onClick={() => setIsCreateReportOpen(true)} className="cursor-pointer">
-                                        New Report
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
-
-                        {['Tech', 'Supervisor', 'Manager'].includes(userRole) && <div className="w-px h-8 bg-gray-200 mx-2"></div>}
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -426,7 +399,7 @@ export default function Layout() {
                             <DropdownMenuTrigger asChild>
                                 <button className="outline-none flex items-center gap-2">
                                     <Avatar className="h-9 w-9 border-2 border-transparent hover:border-brand-teal transition-all cursor-pointer">
-                                        <AvatarImage src="https://github.com/shadcn.png" alt="@user" />
+                                        <AvatarImage src={userRole === 'Customer' ? (clients.find(c => c.id === clientId)?.logo || "https://github.com/shadcn.png") : (personnel.find(p => p.id === userId)?.image || "https://github.com/shadcn.png")} alt="@user" />
                                         <AvatarFallback className="bg-brand-teal/10 text-brand-teal font-semibold text-sm">US</AvatarFallback>
                                     </Avatar>
                                 </button>
@@ -434,10 +407,10 @@ export default function Layout() {
                             <DropdownMenuContent align="end" className="w-56 rounded-xl border-gray-100 shadow-xl">
                                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer">Profile Settings</DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">Notification Preferences</DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/settings')}>Profile Settings</DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/settings')}>Notification Preferences</DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">Log out</DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => { setAuthData('', ''); navigate('/login'); }}>Log out</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -474,13 +447,14 @@ export default function Layout() {
                 </div>
                 
                 {/* Global Footer (Desktop & Mobile) */}
-                <div className="mt-auto pt-8 pb-8 md:pb-6 flex flex-col items-center justify-center gap-1 w-full opacity-60 hover:opacity-100 transition-opacity bg-white/50 border-t border-gray-100 mix-blend-multiply">
-                    <p className="text-[10px] text-accent-grey/50 text-center leading-relaxed font-bold w-full uppercase tracking-wider">
-                        &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.<br/>
-                        All Rights Reserved.<br/>
-                        <span className="italic text-accent-grey/60 normal-case tracking-normal">Powered by aprovero</span>
-                    </p>
-                    <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[24px] object-contain mix-blend-multiply mt-1" />
+                <div className="mt-auto py-6 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 w-full opacity-60 hover:opacity-100 transition-opacity bg-white/50 border-t border-gray-100 mix-blend-multiply">
+                    <div className="text-[10px] text-accent-grey/50 text-center md:text-left font-bold uppercase tracking-wider">
+                        &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions. All Rights Reserved.
+                    </div>
+                    <div className="flex flex-col md:flex-row items-center gap-2">
+                        <span className="text-[10px] italic text-accent-grey/60">Powered by</span>
+                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[20px] md:h-[24px] object-contain mix-blend-multiply" />
+                    </div>
                 </div>
             </main>
 

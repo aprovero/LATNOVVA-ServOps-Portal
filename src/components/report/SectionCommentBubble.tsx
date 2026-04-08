@@ -92,8 +92,10 @@ export default function SectionCommentBubble({
                             sectionComments.map(c => (
                                 <div key={c.id} className="flex flex-col gap-0.5 text-xs">
                                     <div className="flex items-center gap-1.5">
-                                        <span className="font-bold text-gray-700">{c.userId}</span>
-                                        <span className="text-gray-400 text-[10px]">({c.role})</span>
+                                        <span className="font-bold text-gray-700">
+                                            {c.userId && c.userId.length < 32 ? c.userId : c.role}
+                                        </span>
+                                        {c.role && <span className="text-gray-400 text-[10px]">({c.role})</span>}
                                         <span className="text-gray-300 text-[10px] ml-auto">
                                             {new Date(c.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                         </span>

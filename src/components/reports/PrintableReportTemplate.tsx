@@ -314,6 +314,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
               <Text style={[styles.tableCellBold, { flex: 2 }]}>Personnel</Text>
               <Text style={styles.tableCellBold}>Time In / Out</Text>
               <Text style={styles.tableCellBold}>Hours</Text>
+              <Text style={styles.tableCellBold}>Source</Text>
             </View>
             {validLabor.map((l, i) => (
               <View style={styles.tableRow} key={i}>
@@ -322,6 +323,9 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
                 </Text>
                 <Text style={styles.tableCell}>{l.timeIn || '—'} - {l.timeOut || '—'}</Text>
                 <Text style={styles.tableCell}>{l.hours}</Text>
+                <Text style={[styles.tableCell, { color: (l as any).source === 'manual' ? '#B45309' : '#059669', fontSize: 8 }]}>
+                  {(l as any).source === 'manual' ? `⚠ Manual${(l as any).manualReason ? ` – ${(l as any).manualReason}` : ''}` : '✓ GPS'}
+                </Text>
               </View>
             ))}
           </View>
@@ -524,6 +528,29 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
           ))}
         </View>
       )}
+
+      {/* Audit Trail — L-01 */}
+      <View style={[styles.section, { marginTop: 20 }]}>
+        <Text style={styles.sectionTitle}>Audit Trail</Text>
+        <View style={{ gap: 4 }}>
+          {(report as any).createdAt && (
+            <Text style={{ fontSize: 8, color: '#555' }}>
+              Created: {formatDateTime((report as any).createdAt)} by {getPersonName((report as any).createdBy)}
+            </Text>
+          )}
+          {(report as any).updatedAt && (
+            <Text style={{ fontSize: 8, color: '#555' }}>
+              Last Modified: {formatDateTime((report as any).updatedAt)} by {getPersonName((report as any).updatedBy)}
+            </Text>
+          )}
+          {/* Rejection comments */}
+          {(report.comments || []).filter((c: any) => c.sectionKey === 'rejection').map((c: any, i: number) => (
+            <Text key={i} style={{ fontSize: 8, color: '#B91C1C', marginTop: 2 }}>
+              Rejected ({formatDateTime(c.timestamp)}) by {getPersonName(c.userId)}: {c.text.replace('[REJECTED] ', '')}
+            </Text>
+          ))}
+        </View>
+      </View>
 
       {/* Signatures */}
       <View style={[styles.section, { marginTop: 40 }]}>

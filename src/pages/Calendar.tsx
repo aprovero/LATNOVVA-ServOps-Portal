@@ -115,6 +115,13 @@ export default function Calendar() {
                             <ChevronRight size={20} className="text-gray-600" />
                         </button>
                     </div>
+                    {/* L-04: Today quick-jump */}
+                    <button
+                        onClick={() => setCurrentDate(new Date())}
+                        className="px-4 py-2 text-sm font-bold bg-white border border-gray-200 rounded-xl text-brand-teal hover:bg-teal-50 hover:border-brand-teal/30 transition-all shadow-sm"
+                    >
+                        Today
+                    </button>
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <DialogTrigger asChild>

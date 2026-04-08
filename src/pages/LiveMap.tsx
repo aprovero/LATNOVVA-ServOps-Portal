@@ -165,6 +165,7 @@ export default function LiveMap() {
                             key={proj.id}
                             position={[proj.lat!, proj.lng!]}
                             icon={MARKERS[proj.status as keyof typeof MARKERS] || DefaultIcon}
+                            zIndexOffset={proj.status === 'Active' ? 1000 : proj.status === 'On Hold' ? 500 : 0}
                         >
                             <Popup>
                                 <div className="p-1 min-w-[240px]">

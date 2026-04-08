@@ -70,6 +70,16 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
         setCollapsed(prev => ({ ...prev, [groupId]: !prev[groupId] }));
     };
 
+    const handleMoveGroup = (groupId: string, direction: 'up' | 'down') => {
+        const idx = checklists.findIndex(g => g.id === groupId);
+        if (idx < 0) return;
+        const newList = [...checklists];
+        const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= newList.length) return;
+        [newList[idx], newList[swapIdx]] = [newList[swapIdx], newList[idx]];
+        onChange(newList);
+    };
+
     const handleGroupFileChange = (groupId: string, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -186,6 +196,21 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                     >
                                         {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                                     </button>
+                                    {/* L-03: Reorder buttons */}
+                                    {!readOnly && !isLocked && (
+                                        <div className="flex flex-col gap-0.5 shrink-0">
+                                            <button
+                                                onClick={() => handleMoveGroup(group.id, 'up')}
+                                                className="text-gray-300 hover:text-brand-teal transition-colors leading-none p-0.5"
+                                                title="Move up"
+                                            >&#9650;</button>
+                                            <button
+                                                onClick={() => handleMoveGroup(group.id, 'down')}
+                                                className="text-gray-300 hover:text-brand-teal transition-colors leading-none p-0.5"
+                                                title="Move down"
+                                            >&#9660;</button>
+                                        </div>
+                                    )}
 
                                     <input
                                         type="text"

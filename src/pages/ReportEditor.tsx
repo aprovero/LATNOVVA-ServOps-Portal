@@ -9,7 +9,7 @@ import LaborSection from '../components/report/LaborSection';
 import WBSProgressSection from '../components/report/WBSProgressSection';
 import ToolDropdown from '../components/report/ToolDropdown';
 import MediaGrid from '../components/report/MediaGrid';
-import MultisignaturePad from '../components/report/MultisignaturePad';
+import MultisignaturePad, { SignatureCanvasBox } from '../components/report/MultisignaturePad';
 import Occurrences from '../components/report/Occurrences';
 import Checklists from '../components/report/Checklists';
 import SubReportsSection from '../components/report/SubReportsSection';
@@ -109,6 +109,21 @@ export default function ReportEditor() {
             setSignatureBlob(report.signatures?.find(s => s.role === userRole)?.blob || '');
         }
     }, [report]);
+
+    // M-01: Dirty-state guard — warn on accidental browser close/refresh
+    // Note: canEditFields is derived after the early return, so we re-derive inline here
+    useEffect(() => {
+        const isDraft = report?.state === 'Draft';
+        const isEditable = isDraft && ['Tech', 'Supervisor', 'Manager'].includes(userRole);
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isEditable) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [report?.state, userRole]);
 
     useEffect(() => {
         gsap.fromTo('.editor-fade', { opacity: 0, y: 15 }, { opacity: 1, y: 0, stagger: 0.1, duration: 0.4, ease: 'power2.out' });
@@ -310,18 +325,27 @@ export default function ReportEditor() {
                         {showTimesheetCreator && (
                             <div className="mt-3 p-4 bg-white border border-amber-200 rounded-2xl space-y-3">
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Authorize Timesheet Creation</p>
-                                <p className="text-xs text-gray-500">Your signature confirms these timesheet records are accurate.</p>
-                                <div className="flex gap-3">
-                                    <input
-                                        type="text"
-                                        value={batchTsSignerName}
-                                        onChange={e => setBatchTsSignerName(e.target.value)}
-                                        placeholder="Your name"
-                                        className="input-field flex-1 text-sm"
-                                    />
+                                <p className="text-xs text-gray-500">Sign below to confirm these records are accurate. Both a name and signature are required.</p>
+                                <input
+                                    type="text"
+                                    value={batchTsSignerName}
+                                    onChange={e => setBatchTsSignerName(e.target.value)}
+                                    placeholder="Your full name"
+                                    className="input-field w-full text-sm"
+                                />
+                                {/* C-03: Signature canvas — blob required before confirming */}
+                                <div className="h-28 border border-dashed border-amber-300 rounded-xl overflow-hidden bg-white">
+                                    <SignatureCanvasBox onSign={(blob) => setBatchTsSignature(blob)} />
+                                </div>
+                                {batchTsSignature && (
+                                    <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                                        <CheckCircle size={10} /> Signature captured
+                                    </p>
+                                )}
+                                <div className="flex gap-2">
                                     <button
+                                        disabled={!batchTsSignerName.trim() || !batchTsSignature}
                                         onClick={() => {
-                                            if (!batchTsSignerName.trim()) { alert('Please enter your name to authorize.'); return; }
                                             const today = report.date;
                                             const userName = batchTsSignerName || getCurrentUserName();
                                             missing.forEach(pid => {
@@ -348,11 +372,11 @@ export default function ReportEditor() {
                                             setBatchTsSignerName('');
                                             showToast(`${missing.length} timesheets created.`, 'success');
                                         }}
-                                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl transition-colors"
+                                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors"
                                     >
-                                        Confirm & Create
+                                        Confirm &amp; Create
                                     </button>
-                                    <button onClick={() => setShowTimesheetCreator(false)} className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
+                                    <button onClick={() => { setShowTimesheetCreator(false); setBatchTsSignature(''); }} className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
                                 </div>
                             </div>
                         )}
@@ -408,17 +432,27 @@ export default function ReportEditor() {
             <div className="editor-fade card-container">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                        <Wrench className="text-brand-teal" size={24} /> Equipment & Tools Used
+                        <Wrench className="text-brand-teal" size={24} /> Equipment &amp; Tools Used
                     </h2>
-                    {canEditFields && (
-                        <ToolDropdown
-                            onAdd={(toolId) => setUsedTools([...usedTools, toolId])}
-                            readOnly={!canEditFields}
-                            alreadyAssigned={usedTools}
-                            currentReportId={report.id}
-                            currentDate={report.date}
+                    <div className="flex items-center gap-3">
+                        {/* H-05: Scoped comment bubble on Equipment */}
+                        <SectionCommentBubble
+                            sectionKey="equipment"
+                            sectionLabel="Equipment & Tools"
+                            comments={report.comments || []}
+                            onAdd={submitSectionComment}
+                            canComment={isManager || isSupervisor}
                         />
-                    )}
+                        {canEditFields && (
+                            <ToolDropdown
+                                onAdd={(toolId) => setUsedTools([...usedTools, toolId])}
+                                readOnly={!canEditFields}
+                                alreadyAssigned={usedTools}
+                                currentReportId={report.id}
+                                currentDate={report.date}
+                            />
+                        )}
+                    </div>
                 </div>
 
                 <div className="space-y-3">
@@ -459,10 +493,32 @@ export default function ReportEditor() {
             </div>
 
             <div className="editor-fade">
+                {/* H-05: Scoped comment bubble on Occurrences */}
+                <div className="flex items-center justify-between mb-2">
+                    <span />
+                    <SectionCommentBubble
+                        sectionKey="occurrences"
+                        sectionLabel="Field Issues & Occurrences"
+                        comments={report.comments || []}
+                        onAdd={submitSectionComment}
+                        canComment={isManager || isSupervisor}
+                    />
+                </div>
                 <Occurrences occurrences={occurrences} onChange={setOccurrences} readOnly={!canEditFields} />
             </div>
 
             <div className="editor-fade">
+                {/* H-05: Scoped comment bubble on Checklists */}
+                <div className="flex items-center justify-between mb-2">
+                    <span />
+                    <SectionCommentBubble
+                        sectionKey="checklists"
+                        sectionLabel="Safety Checklists"
+                        comments={report.comments || []}
+                        onAdd={submitSectionComment}
+                        canComment={isManager || isSupervisor}
+                    />
+                </div>
                 <Checklists checklists={checklists} onChange={setChecklists} readOnly={!canEditFields} />
             </div>
 
@@ -715,8 +771,16 @@ export default function ReportEditor() {
                         </button>
                     ) : isManager && report.state === 'Pending Manager Review' ? (
                         <>
-                            <button onClick={() => { handleChangeState('Draft'); showToast('Report returned to Draft.', 'warning'); }} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
-                                <Ban size={18} /> Reject & Return to Draft
+                            <button onClick={() => {
+                                // M-04: Prompt for rejection reason, store as a scoped comment
+                                const reason = prompt('Optional: Enter a reason for returning this report to Draft. This will be visible to the field team.') ?? '';
+                                if (reason.trim()) {
+                                    addComment(report.id, `[REJECTED] ${reason.trim()}`, 'rejection');
+                                }
+                                handleChangeState('Draft');
+                                showToast('Report returned to Draft.', 'warning');
+                            }} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
+                                <Ban size={18} /> Reject &amp; Return to Draft
                             </button>
                             <button onClick={() => {
                                 // Manager bypass: if no Supervisor sig, auto-add 'Approved by Manager' comment to sig trail

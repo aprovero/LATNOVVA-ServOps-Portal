@@ -152,11 +152,20 @@ export default function Projects() {
                     <h1 className="text-3xl font-bold text-accent-greyDark mb-1">{userRole === 'Customer' ? 'Customer Portal' : 'Global Operations'}</h1>
                     <p className="text-gray-500 font-medium">Real-time tracking and operational intelligence.</p>
                 </div>
-                {['Manager', 'Supervisor'].includes(userRole) && (
-                    <Button onClick={() => setIsAddProjectOpen(true)} className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
-                        <Plus size={18} /> New Project
-                    </Button>
-                )}
+                <div className="flex items-center gap-3">
+                    {userRole !== 'Customer' && (
+                        <Link to="/live-map">
+                            <Button variant="outline" className="border-gray-200 text-gray-700 hover:bg-gray-50 gap-2 font-bold shadow-soft h-11 px-4 sm:px-6 rounded-xl">
+                                <Map size={18} /> <span className="hidden sm:inline">Live Map</span>
+                            </Button>
+                        </Link>
+                    )}
+                    {['Manager', 'Supervisor'].includes(userRole) && (
+                        <Button onClick={() => setIsAddProjectOpen(true)} className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
+                            <Plus size={18} /> New Project
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {['Manager', 'Supervisor'].includes(userRole) && <KPIRow />}
@@ -210,15 +219,6 @@ export default function Projects() {
                                     </div>
                                 </div>
                             )}
-                            
-                            <div className="flex-[0.5] min-w-[140px]">
-                                <Link to="/live-map" className="block w-full">
-                                    <Button variant="outline" className="w-full h-[42px] text-sm font-bold gap-2 border-brand-teal/20 text-brand-teal hover:border-brand-teal hover:bg-brand-teal/5 bg-brand-teal/5 rounded-xl">
-                                        <Map size={16} />
-                                        Live Map View
-                                    </Button>
-                                </Link>
-                            </div>
                         </div>
 
                     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">

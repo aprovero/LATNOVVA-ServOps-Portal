@@ -9,7 +9,7 @@ import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
     const { 
-        userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb,
+        userRole, userEmail, setUserRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb,
         sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth 
     } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -392,6 +392,33 @@ export default function Settings() {
                     );
                 })}
             </div>
+                
+                {userEmail === 'aprovero@latnovva.com' && (
+                    <div className="mt-12 bg-purple-50 border border-purple-100 rounded-2xl p-8 max-w-2xl relative overflow-hidden">
+                        <div className="flex items-center gap-3 mb-4 relative z-10">
+                            <Shield className="text-purple-600" size={24} />
+                            <h2 className="text-xl font-bold text-purple-900">Developer Overrides (God Mode)</h2>
+                        </div>
+                        <p className="text-sm text-purple-700 mb-6 relative z-10">Change your global security context to test platform behavior as different roles. Only visible to root administrators.</p>
+                        
+                        <div className="space-y-2 relative z-10">
+                            <Label className="text-purple-800 font-bold text-xs uppercase tracking-wider">Impersonate Role</Label>
+                            <select
+                                value={userRole}
+                                onChange={(e) => setUserRole(e.target.value as any)}
+                                className="w-full bg-white border border-purple-200 rounded-xl px-4 py-3 text-sm text-purple-900 outline-none focus:ring-2 focus:ring-purple-500 font-bold"
+                            >
+                                <option value="Tech">Tech (Field Execution Level)</option>
+                                <option value="Supervisor">Supervisor (Site Management Level)</option>
+                                <option value="Manager">Manager (Global Operations Level)</option>
+                                <option value="Customer">Company / Customer (Restricted Client Level)</option>
+                            </select>
+                        </div>
+                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                            <Globe size={120} />
+                        </div>
+                    </div>
+                )}
                 </div>
             )}
             

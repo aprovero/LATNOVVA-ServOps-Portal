@@ -708,7 +708,12 @@ export default function Timesheets() {
                                                         {expandedPunchId === entry.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                                     </button>
                                                 ) : (
-                                                    <span className="text-[11px] px-2 py-1 bg-gray-100 text-gray-400 rounded-full font-semibold border border-gray-200">⚠ Manual</span>
+                                                    <span
+                                                        className="text-[11px] px-2 py-1 bg-amber-50 text-amber-700 rounded-full font-semibold border border-amber-200 cursor-help"
+                                                        title={entry.manualReason || 'Manually entered — no GPS punch'}
+                                                    >
+                                                        ⚠ Manual{entry.manualReason ? ' ·ℹ' : ''}
+                                                    </span>
                                                 )}
                                             </td>
                                             <td className="p-4">

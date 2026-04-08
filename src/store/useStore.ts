@@ -600,12 +600,25 @@ export const useStore = create<AppState>()(
                     timesheets: [],
                 }));
             },
-            /** Returns the display name of the currently logged-in user (L-03). */
+            /** Returns the display name of the currently logged-in user (H-02). 
+             *  Strategy: (1) match personnel.id = userId (UUID match, works when personnel row uses auth UID)
+             *            (2) match personnel.email = userEmail (fallback for legacy IDs)
+             *            (3) format email as "Firstname L." from userEmail
+             *            (4) raw userId as last resort
+             */
             getCurrentUserName: () => {
                 const { userId, userEmail, personnel } = get();
-                const person = personnel.find(p => p.id === userId);
-                if (person) return person.name;
-                if (userEmail) return userEmail.split('@')[0];
+                // 1. Direct ID match (works when personnel.id === supabase auth uid)
+                const byId = personnel.find(p => p.id === userId);
+                if (byId) return byId.name;
+                // 2. Email match (works when personnel record has email stored)
+                if (userEmail) {
+                    const byEmail = personnel.find(p => p.email?.toLowerCase() === userEmail.toLowerCase());
+                    if (byEmail) return byEmail.name;
+                    // 3. Format email as readable name: "john.smith@co.com" → "John Smith"
+                    const local = userEmail.split('@')[0];
+                    return local.split(/[._-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                }
                 return userId;
             },
             setAuthData: (id, email) => set({ userId: id, userEmail: email }),

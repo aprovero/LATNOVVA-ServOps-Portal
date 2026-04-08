@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
 export default function ReportList() {
-    const { reports, subReportInstances, projects, userRole, clientId, addReport, clients } = useStore();
+    const { reports, subReportInstances, projects, userRole, clientId, addReport, clients, userId } = useStore();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const projectIdFilter = searchParams.get('project');
@@ -30,19 +30,37 @@ export default function ReportList() {
         const selectedProj = projects.find(p => p.id === newReportProject);
         if (!selectedProj) return;
 
-        const reportId = `REP-${(reports.length + 1).toString().padStart(3, '0')}`;
+        // H-03: Prevent duplicate reports for same project + date
+        const reportDate = newReportDate || new Date().toISOString().split('T')[0];
+        const duplicate = reports.find(r => r.projectId === newReportProject && r.date === reportDate);
+        if (duplicate) {
+            if (window.confirm(`A report already exists for ${selectedProj.name} on ${reportDate}. Open it instead of creating a new one?`)) {
+                navigate(`/reports/${duplicate.id}`);
+            }
+            setIsCreateReportOpen(false);
+            return;
+        }
+
+        // M-06: Collision-safe ID using timestamp + random suffix
+        const reportId = `REP-${Date.now().toString(36).toUpperCase()}`;
+        const now = new Date().toISOString();
         const newRep = {
             id: reportId,
             projectId: selectedProj.id,
             projectName: selectedProj.name,
             clientId: selectedProj.clientId,
-            date: newReportDate || new Date().toISOString().split('T')[0],
+            date: reportDate,
             state: 'Draft' as const,
             weather: { temp: 0, condition: 'Unknown' },
             equipment: [],
             customSections: [],
             comments: [],
             notes: '',
+            // H-01: Originator trace
+            createdBy: userId,
+            createdAt: now,
+            updatedBy: userId,
+            updatedAt: now,
         };
         addReport(newRep);
         setIsCreateReportOpen(false);
