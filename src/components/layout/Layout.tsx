@@ -357,16 +357,37 @@ export default function Layout() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
 
-                        {/* Logged-in user display */}
-                        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
-                            <span className="text-xs font-semibold text-accent-greyDark">
-                                {GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole}
-                            </span>
-                            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">
-                                {userRole}
-                            </span>
-                        </div>
+                        {/* God Mode role switcher — click to switch personas */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors outline-none">
+                                    <Zap size={13} className="text-amber-500 shrink-0" />
+                                    <span className="text-xs font-semibold text-amber-900">
+                                        {GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-white bg-amber-500 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                                        {userRole}
+                                    </span>
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52 rounded-xl border-amber-100 shadow-xl">
+                                <DropdownMenuLabel className="flex items-center gap-2 text-amber-700">
+                                    <Zap size={12} className="text-amber-500" /> God Mode — Switch Role
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {(Object.entries(GOD_MODE_PERSONAS) as [keyof typeof GOD_MODE_PERSONAS, typeof GOD_MODE_PERSONAS[keyof typeof GOD_MODE_PERSONAS]][]).map(([role, persona]) => (
+                                    <DropdownMenuItem
+                                        key={role}
+                                        onClick={() => setUserRole(role as any)}
+                                        className={`cursor-pointer flex items-center gap-2 ${userRole === role ? 'bg-amber-50 text-amber-800 font-semibold' : ''}`}
+                                    >
+                                        {userRole === role && <Zap size={11} className="text-amber-500 shrink-0" />}
+                                        <span className={userRole === role ? '' : 'ml-[19px]'}>{persona.displayName}</span>
+                                        <span className="ml-auto text-[9px] text-gray-400 uppercase">{role}</span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
