@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
+import { GOD_MODE_PERSONAS } from '../auth/AuthRoute';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -30,7 +31,7 @@ import { Label } from '../ui/label';
 export default function Layout() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
+    const { userRole, setUserRole, userId, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
 
     // Dialog States
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -314,29 +315,28 @@ export default function Layout() {
                 </div>
 
                 <div className="p-6 border-t border-gray-100">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-100 rounded-lg text-accent-greyDark">
-                                <User size={20} />
-                            </div>
-                            <div className="text-sm">
-                                <p className="font-bold text-accent-greyDark">Role</p>
-                                <p className="text-xs text-gray-500">{userRole}</p>
-                            </div>
+                    {/* God Mode Banner */}
+                    <div className="mb-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2">
+                        <Zap size={13} className="text-amber-500 shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">God Mode</p>
+                            <p className="text-xs font-bold text-amber-800 truncate">
+                                {GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole}
+                            </p>
                         </div>
                     </div>
-                    {userEmail === 'aprovero@latnovva.com' && (
-                        <select
-                            value={userRole}
-                            onChange={(e) => setUserRole(e.target.value as any)}
-                            className="w-full bg-surface-alt border border-gray-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-1 focus:ring-brand-teal mt-4"
-                        >
-                            <option value="Tech">Tech</option>
-                            <option value="Supervisor">Supervisor</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Customer">Company</option>
-                        </select>
-                    )}
+                    {/* Role Switcher — always visible in God Mode */}
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5 px-1">Testing As</label>
+                    <select
+                        value={userRole}
+                        onChange={(e) => setUserRole(e.target.value as any)}
+                        className="w-full bg-surface-alt border border-amber-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-1 focus:ring-amber-400"
+                    >
+                        <option value="Manager">Manager — Andres Provero</option>
+                        <option value="Supervisor">Supervisor — Marin Ledezma</option>
+                        <option value="Tech">Tech — Carlos Mendoza</option>
+                        <option value="Customer">Customer — Client User</option>
+                    </select>
                 </div>
             </aside>
 
