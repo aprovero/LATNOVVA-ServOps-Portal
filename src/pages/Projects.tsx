@@ -147,15 +147,15 @@ export default function Projects() {
 
     return (
         <div className="space-y-8 pb-20 md:pb-0 h-full flex flex-col">
-            <div className="flex justify-between items-end">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-accent-greyDark mb-1">{userRole === 'Customer' ? 'Customer Portal' : 'Global Operations'}</h1>
-                    <p className="text-gray-500 font-medium">Real-time tracking and operational intelligence.</p>
+                    <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">{userRole === 'Customer' ? 'Customer Portal' : 'Global Operations'}</h1>
+                    <p className="text-gray-500 mt-1">Real-time tracking and operational intelligence.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {userRole !== 'Customer' && (
                         <Link to="/live-map">
-                            <Button variant="outline" className="border-gray-200 text-gray-700 hover:bg-gray-50 gap-2 font-bold shadow-soft h-11 px-4 sm:px-6 rounded-xl">
+                            <Button variant="outline" className="border-gray-200 text-gray-700 hover:bg-gray-50 gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
                                 <Map size={18} /> <span className="hidden sm:inline">Live Map</span>
                             </Button>
                         </Link>

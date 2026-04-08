@@ -357,6 +357,17 @@ export default function Layout() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
 
+                        {/* Logged-in user display */}
+                        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl">
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
+                            <span className="text-xs font-semibold text-accent-greyDark">
+                                {GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole}
+                            </span>
+                            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">
+                                {userRole}
+                            </span>
+                        </div>
+
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button className="outline-none relative p-2 text-gray-500 hover:text-brand-teal transition-colors rounded-full hover:bg-gray-100">

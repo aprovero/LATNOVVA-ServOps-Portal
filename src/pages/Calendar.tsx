@@ -97,13 +97,13 @@ export default function Calendar() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
-                        <CalendarIcon className="text-brand-teal" size={32} />
+                        <CalendarIcon className="text-brand-teal" size={28} />
                         Scheduling & Dispatch
                     </h1>
-                    <p className="text-accent-grey mt-1">Manage personnel, tools, and project schedules.</p>
+                    <p className="text-gray-500 mt-1">Manage personnel, tools, and project schedules.</p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <div className="flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                         <button onClick={() => setCurrentDate(subMonths(currentDate, 1))} className="p-2 hover:bg-gray-50 transition-colors">
                             <ChevronLeft size={20} className="text-gray-600" />
@@ -125,7 +125,7 @@ export default function Calendar() {
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <DialogTrigger asChild>
-                            <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
+                            <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
                                 <Plus size={18} /> Schedule Event
                             </Button>
                         </DialogTrigger>

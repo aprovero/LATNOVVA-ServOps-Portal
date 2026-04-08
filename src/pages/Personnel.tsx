@@ -142,18 +142,18 @@ export default function Personnel() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
-                        <User className="text-brand-teal" size={32} />
+                        <User className="text-brand-teal" size={28} />
                         Personnel
                     </h1>
-                    <p className="text-gray-500 mt-1 mb-2 md:mb-0">Manage field staff and internal employees.</p>
+                    <p className="text-gray-500 mt-1">Manage field staff and internal employees.</p>
                 </div>
 
                 <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                     <DialogTrigger asChild>
-                        <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
+                        <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
                             <Plus size={18} /> Add Personnel
                         </Button>
                     </DialogTrigger>

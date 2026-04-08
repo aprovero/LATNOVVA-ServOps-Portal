@@ -100,12 +100,12 @@ export default function Tools() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
-                        <Wrench className="text-brand-teal" size={32} />
+                        <Wrench className="text-brand-teal" size={28} />
                         Tools Management
                     </h1>
-                    <p className="text-accent-grey mt-1">Manage your fleet of tools, certifications, and assignments.</p>
+                    <p className="text-gray-500 mt-1">Manage your fleet of tools, certifications, and assignments.</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <Input
@@ -118,7 +118,7 @@ export default function Tools() {
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <DialogTrigger asChild>
-                            <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6">
+                            <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
                                 <Plus size={18} /> Add Tool
                             </Button>
                         </DialogTrigger>

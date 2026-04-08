@@ -17,15 +17,18 @@ export const GOD_MODE_PERSONAS = {
 export const AuthRoute: React.FC = () => {
     const { setAuthData, setUserRole, userRole } = useStore();
 
-    // On first mount, inject the God Mode default identity (Manager).
-    // Only do this if userId is still the uninitialized default.
+    // God Mode: unconditionally apply the correct persona on every mount.
+    // This prevents stale Zustand persisted state from leaving us in a
+    // partial / unknown identity regardless of what localStorage had.
     useEffect(() => {
-        const currentId = useStore.getState().userId;
-        if (!currentId || currentId === 'USR-Current') {
-            const persona = GOD_MODE_PERSONAS['Manager'];
-            setAuthData(persona.userId, persona.userEmail);
-            setUserRole('Manager');
-        }
+        const currentRole = useStore.getState().userRole;
+        // Default to Manager if no valid God Mode role is persisted
+        const resolvedRole = (currentRole && currentRole in GOD_MODE_PERSONAS)
+            ? currentRole as keyof typeof GOD_MODE_PERSONAS
+            : 'Manager';
+        const persona = GOD_MODE_PERSONAS[resolvedRole];
+        setAuthData(persona.userId, persona.userEmail);
+        setUserRole(resolvedRole);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

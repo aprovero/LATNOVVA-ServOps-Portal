@@ -368,13 +368,15 @@ export default function Settings() {
             ) : (
                 // Main settings dashboard
                 <div className="space-y-8 pb-20 md:pb-0">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                <h1 className="text-3xl font-bold text-accent-greyDark mb-1 flex items-center gap-3">
-                    <SettingsIcon size={32} className="text-brand-teal" />
-                    Global Settings
-                </h1>
-                <p className="text-gray-500">Configure platform rules, users, and templates across all projects.</p>
-            </div>
+                        <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
+                            <SettingsIcon size={28} className="text-brand-teal" />
+                            Global Settings
+                        </h1>
+                        <p className="text-gray-500 mt-1">Configure platform rules, users, and templates across all projects.</p>
+                    </div>
+                </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {configTabs.map((tab) => {

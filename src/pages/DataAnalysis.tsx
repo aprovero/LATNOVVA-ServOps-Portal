@@ -1,8 +1,16 @@
 import { useStore } from '../store/useStore';
-import { Activity, TrendingUp, Users, Clock, AlertTriangle, FolderGit2, PieChart as PieChartIcon, LineChart as LineChartIcon } from 'lucide-react';
+import { Activity, TrendingUp, Users, Clock, AlertTriangle, FolderGit2, PieChart as PieChartIcon, LineChart as LineChartIcon, Timer } from 'lucide-react';
 import { useMemo, useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import gsap from 'gsap';
+
+// Returns true if the date string falls within the current calendar month
+function isThisMonth(dateStr: string): boolean {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
 
 export default function DataAnalysis() {
     const { reports, projects, personnel, userRole } = useStore();
@@ -36,10 +44,10 @@ export default function DataAnalysis() {
         return Math.round(total / relevantProjects.length);
     }, [projects, activeDiscipline]);
 
-    // 2. Labor Hours trend
+    // 2. Labor Hours trend (this month)
     const laborData = useMemo(() => {
         const grouping: Record<string, number> = {};
-        const relevantReports = reports.filter(r => activeDiscipline === 'All' || r.discipline === activeDiscipline);
+        const relevantReports = reports.filter(r => isThisMonth(r.date) && (activeDiscipline === 'All' || r.discipline === activeDiscipline));
         
         relevantReports.forEach(r => {
             const date = r.date;
@@ -53,7 +61,7 @@ export default function DataAnalysis() {
             date,
             name: new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
             hours
-        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-7);
+        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }, [reports, activeDiscipline]);
 
     // 3. Resource Utilization
@@ -112,9 +120,9 @@ export default function DataAnalysis() {
         return result;
     }, [reports, projects, overallProgress, activeDiscipline]);
 
-    // 6. Lost Time by Category
+    // 6. Lost Time by Category (this month)
     const lostTimeData = useMemo(() => {
-        const relevantReports = reports.filter(r => activeDiscipline === 'All' || r.discipline === activeDiscipline);
+        const relevantReports = reports.filter(r => isThisMonth(r.date) && (activeDiscipline === 'All' || r.discipline === activeDiscipline));
         const grouping: Record<string, number> = {};
         
         relevantReports.forEach(r => {
@@ -141,9 +149,32 @@ export default function DataAnalysis() {
             .sort((a, b) => b.value - a.value);
     }, [reports, activeDiscipline]);
 
+    // Monthly totals
+    const now = new Date();
+    const monthLabel = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
     const activeProjects = projects.filter(p => p.status === 'Active').length;
-    const totalReports = reports.length;
-    const totalHoursLog = reports.reduce((acc, r) => acc + (r.labor?.reduce((sum, l) => sum + (l.hours * l.qty), 0) || 0), 0);
+
+    // Monthly reports
+    const monthlyReports = reports.filter(r => isThisMonth(r.date));
+
+    // Monthly reports filtered by discipline
+    const monthlyFilteredReports = monthlyReports.filter(r => activeDiscipline === 'All' || r.discipline === activeDiscipline);
+
+    const totalReports = monthlyFilteredReports.length;
+
+    const totalHoursLog = monthlyFilteredReports.reduce((acc, r) => acc + (r.labor?.reduce((sum, l) => sum + (l.hours * l.qty), 0) || 0), 0);
+
+    // Monthly lost time (in minutes)
+    const totalLostTimeMins = useMemo(() => {
+        return monthlyFilteredReports.reduce((acc, r) => {
+            return acc + (r.occurrences?.reduce((sum, occ) => sum + (occ.durationMinutes || 0), 0) || 0);
+        }, 0);
+    }, [monthlyFilteredReports]);
+
+    const lostTimeDisplay = totalLostTimeMins >= 60
+        ? `${(totalLostTimeMins / 60).toFixed(1)}h`
+        : `${totalLostTimeMins}m`;
 
     return (
         <div className="space-y-6 pb-20 md:pb-6">
@@ -153,7 +184,10 @@ export default function DataAnalysis() {
                         <Activity className="text-brand-teal" size={28} />
                         Intelligence Feed
                     </h1>
-                    <p className="text-gray-500 mt-1">Operational analytics and portfolio trends.</p>
+                    <p className="text-gray-500 mt-1">
+                        Operational analytics and portfolio trends.
+                        <span className="ml-2 text-[11px] font-bold text-brand-teal/70 uppercase tracking-wider bg-brand-teal/5 border border-brand-teal/20 px-2 py-0.5 rounded-lg">{monthLabel}</span>
+                    </p>
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
@@ -169,13 +203,14 @@ export default function DataAnalysis() {
                 </div>
             </div>
 
-            <div className="dash-stagger grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="dash-stagger grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="card-container border-l-4 border-brand-teal p-5">
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Active Projects</p>
                         <FolderGit2 size={20} className="text-brand-teal" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{activeProjects}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">All time</p>
                 </div>
 
                 <div className="card-container border-l-4 border-blue-500 p-5">
@@ -184,6 +219,7 @@ export default function DataAnalysis() {
                         <TrendingUp size={20} className="text-blue-500" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{overallProgress}%</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">Monthly avg</p>
                 </div>
 
                 <div className="card-container border-l-4 border-purple-500 p-5">
@@ -192,6 +228,7 @@ export default function DataAnalysis() {
                         <FileTextIcon size={20} className="text-purple-500" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{totalReports}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">This month</p>
                 </div>
 
                 <div className="card-container border-l-4 border-orange-500 p-5">
@@ -200,6 +237,16 @@ export default function DataAnalysis() {
                         <Clock size={20} className="text-orange-500" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{totalHoursLog.toLocaleString()}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">This month</p>
+                </div>
+
+                <div className="card-container border-l-4 border-red-400 p-5">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Lost Time</p>
+                        <Timer size={20} className="text-red-400" />
+                    </div>
+                    <p className="text-3xl font-black text-accent-greyDark mt-2">{totalLostTimeMins > 0 ? lostTimeDisplay : '—'}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">This month</p>
                 </div>
             </div>
 

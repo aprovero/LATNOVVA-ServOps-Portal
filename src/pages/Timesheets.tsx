@@ -344,13 +344,13 @@ export default function Timesheets() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
-                        <Clock className="text-brand-teal" size={32} />
+                        <Clock className="text-brand-teal" size={28} />
                         Timesheets & Logs
                     </h1>
-                    <p className="text-accent-grey mt-1">Track personnel hours, overtime, and travel.</p>
+                    <p className="text-gray-500 mt-1">Track personnel hours, overtime, and travel.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm px-4 py-2 hidden sm:flex">
                         <span className="text-sm font-semibold text-gray-500">Total Hours Logged:</span>
                         <span className="ml-2 text-sm font-bold text-brand-teal">{totalHours} hrs</span>
@@ -358,17 +358,17 @@ export default function Timesheets() {
 
                     {['Manager', 'Supervisor'].includes(userRole) && (
                         <>
-                            <Button variant="outline" onClick={openBatchModal} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
+                            <Button variant="outline" onClick={openBatchModal} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
                                 <Users size={18} /> Team Check-in
                             </Button>
-                            <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-semibold shadow-sm h-11 px-4 border-gray-200 hover:bg-gray-50 text-gray-700">
+                            <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-gray-200 hover:bg-gray-50 text-gray-700">
                                 <Download size={18} /> Export CSV
                             </Button>
                         </>
                     )}
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                        <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-semibold shadow-soft h-11 px-6" onClick={openAddModal}>
+                        <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6" onClick={openAddModal}>
                             <Plus size={18} /> Log Time
                         </Button>
                         <DialogContent className="sm:max-w-[425px] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">

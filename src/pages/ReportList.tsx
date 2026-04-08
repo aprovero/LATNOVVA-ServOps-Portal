@@ -150,8 +150,8 @@ export default function ReportList() {
         <div className="space-y-6 pb-20 md:pb-0">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-accent-greyDark mb-1 text-glow">Reports Database</h1>
-                    <p className="text-gray-500">Manage all site documentation, daily logs, and technical forms.</p>
+                    <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">Reports Database</h1>
+                    <p className="text-gray-500 mt-1">Manage all site documentation, daily logs, and technical forms.</p>
                 </div>
                 {['Manager', 'Supervisor', 'Tech'].includes(userRole) && (
                     <Dialog open={isCreateReportOpen} onOpenChange={setIsCreateReportOpen}>
