@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/useStore';
 
 export const AuthRoute: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-    const location = useLocation();
+    // const location = useLocation();
     const { setAuthData } = useStore();
 
     useEffect(() => {
