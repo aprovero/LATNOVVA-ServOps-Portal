@@ -288,7 +288,30 @@ export default function ReportEditor() {
                 )}
             </div>
 
-
+            {/* L-07: Rejection reason banner — shown when Draft has rejection comments */}
+            {report.state === 'Draft' && (() => {
+                const rejectionComments = (report.comments || []).filter((c: any) => c.sectionKey === 'rejection');
+                if (!rejectionComments.length) return null;
+                return (
+                    <div className="editor-fade flex flex-col gap-2 p-4 bg-red-50 border-l-4 border-red-500 rounded-2xl shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle size={18} className="text-red-600 shrink-0" />
+                            <span className="text-sm font-bold text-red-800 uppercase tracking-wide">Report Returned — Manager Feedback</span>
+                        </div>
+                        <div className="space-y-2 pl-6">
+                            {rejectionComments.map((c: any, i: number) => (
+                                <div key={i} className="text-sm text-red-700">
+                                    <span className="font-semibold">{c.text.replace('[REJECTED] ', '')}</span>
+                                    <span className="text-red-400 text-xs ml-2">
+                                        &mdash; {new Date(c.timestamp).toLocaleString()}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-[11px] text-red-400 pl-6">Address the feedback above before resubmitting for review.</p>
+                    </div>
+                );
+            })()}
 
             <div className="editor-fade">
                 {weatherState && <WeatherWidget weather={weatherState} reportDate={report.date} projectLocation={project?.location} onChange={setWeatherState} readOnly={!canEditFields} />}

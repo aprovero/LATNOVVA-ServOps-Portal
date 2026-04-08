@@ -149,16 +149,22 @@ export default function Timesheets() {
     };
 
     const handleSaveEntry = () => {
-        if (!newEntry.personnelId || !newEntry.date || !newEntry.hours) return;
+        if (!newEntry.personnelId || !newEntry.date) return;
 
-        if (newEntry.type === 'On Site' && newEntry.projectId && !signatureBlob) {
-            alert("A customer or site supervisor signature is required for On-Site project hours.");
+        // L-06: Explicit positive hours check applies to BOTH creates AND edits
+        if (!newEntry.hours || Number(newEntry.hours) <= 0) {
+            alert('Hours must be greater than 0. Please check the time range.');
             return;
         }
 
-        // H-04: Require justification for all manually-entered timesheets
-        if (!editingEntryId && !newEntry.manualReason?.trim()) {
-            alert("Please enter a reason / justification for this manual time entry.");
+        if (newEntry.type === 'On Site' && newEntry.projectId && !signatureBlob) {
+            alert('A customer or site supervisor signature is required for On-Site project hours.');
+            return;
+        }
+
+        // H-04: Require justification for ALL manually-entered or edited timesheets
+        if (!newEntry.manualReason?.trim()) {
+            alert('Please enter a reason / justification for this manual time entry.');
             return;
         }
 
