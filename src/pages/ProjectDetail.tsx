@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import {
     MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText,
-    BarChart2, Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2, Map
+    BarChart2, Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2, Map, Hourglass, Target
 } from 'lucide-react';
 import { ManageScopesModal } from '../components/project/ManageScopesModal';
 import { Button } from '../components/ui/button';
@@ -13,7 +13,7 @@ import { Label } from '../components/ui/label';
 export default function ProjectDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { projects, clients, personnel, reports, timesheets, updateProject, userRole } = useStore();
+    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole } = useStore();
 
     const project = projects.find(p => p.id === id);
     const client = clients.find(c => c.id === project?.clientId);
@@ -35,6 +35,7 @@ export default function ProjectDetail() {
     const [editNotes, setEditNotes] = useState('');
     const [editHasNoDefinedScope, setEditHasNoDefinedScope] = useState(false);
     const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
+    const [editSiteLeadIds, setEditSiteLeadIds] = useState<string[]>([]);
 
     const [locationError, setLocationError] = useState('');
 
@@ -45,6 +46,19 @@ export default function ProjectDetail() {
     // Reports filter
     const [filterReportState, setFilterReportState] = useState<string>('All');
     const projectReports = allProjectReports.filter(r => filterReportState === 'All' || r.state === filterReportState);
+
+    // Occurrences & Blockers
+    const projectOccurrences = useMemo(() => {
+        return allProjectReports.flatMap(r => 
+            (r.occurrences || []).map(o => ({...o, reportId: r.id, reportDate: r.date}))
+        ).sort((a, b) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime());
+    }, [allProjectReports]);
+
+    const totalLostTimeMinutes = useMemo(() => {
+        return projectOccurrences.reduce((sum, o) => sum + (o.durationMinutes || 0), 0);
+    }, [projectOccurrences]);
+    
+    const totalLostTimeHours = Math.round((totalLostTimeMinutes / 60) * 10) / 10;
 
     // Modals
     const [manageScopesProject, setManageScopesProject] = useState<any>(null);
@@ -88,6 +102,7 @@ export default function ProjectDetail() {
         setEditNotes(project.notes || '');
         setEditHasNoDefinedScope(!!project.hasNoDefinedScope);
         setEditDisciplines(project.disciplines || []);
+        setEditSiteLeadIds(project.siteLeadIds || []);
         setIsEditing(true);
     };
 
@@ -107,19 +122,53 @@ export default function ProjectDetail() {
             notes: editNotes || undefined,
             hasNoDefinedScope: editHasNoDefinedScope,
             disciplines: editDisciplines,
+            siteLeadIds: editSiteLeadIds,
         });
         setIsEditing(false);
     };
 
 
 
-    const togglePersonnel = (persId: string) => {
+    const togglePersonnel = (personId: string) => {
         if (!project) return;
-        const current = project.assignedPersonnel || [];
-        const updated = current.includes(persId)
-            ? current.filter(p => p !== persId)
-            : [...current, persId];
-        updateProject(project.id, { assignedPersonnel: updated });
+        const currentlyAssigned = project.assignedPersonnel || [];
+        if (currentlyAssigned.includes(personId)) {
+            updateProject(project.id, { assignedPersonnel: currentlyAssigned.filter(id => id !== personId) });
+        } else {
+            updateProject(project.id, { assignedPersonnel: [...currentlyAssigned, personId] });
+        }
+    };
+
+    const handleCreateReport = () => {
+        if (!project) return;
+        const newId = `REP-${Date.now().toString().slice(-6)}`;
+        addReport({
+            id: newId,
+            projectId: project.id,
+            clientId: project.clientId || '',
+            projectName: project.name,
+            date: new Date().toISOString().split('T')[0],
+            state: 'Draft',
+            schedule: '',
+            weather: { temp: 0, condition: 'Unknown' },
+            location: project.location,
+            equipment: [],
+            customSections: [],
+            comments: [],
+            labor: [],
+            media: [],
+            occurrences: [],
+            checklists: [],
+            subReportIds: [],
+            attachments: [],
+            externalAttachments: [],
+            notes: '',
+            signatures: [],
+            usedTools: [],
+            health: 'On Track',
+            activityLogs: []
+        } as any);
+        navigate(`/reports/${newId}`);
     };
 
     if (!project) {
@@ -182,6 +231,26 @@ export default function ProjectDetail() {
                                 </h1>
                                 {project.codeName && (
                                     <p className="text-sm font-mono font-bold text-brand-teal mb-3">{project.codeName}</p>
+                                )}
+                                
+                                {project.siteLeadIds && project.siteLeadIds.length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-status-success/10 text-status-success border border-status-success/20 rounded-xl text-xs font-bold shadow-sm">
+                                            <Target size={14} />
+                                            Site Leads:
+                                        </div>
+                                        {project.siteLeadIds.map(leadId => {
+                                            const lead = personnel.find(p => p.id === leadId);
+                                            return lead ? (
+                                                <div key={leadId} className="flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-100 rounded-lg text-xs font-bold text-accent-greyDark shadow-sm">
+                                                    <div className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center text-[8px] font-black text-gray-500 overflow-hidden">
+                                                        {lead.image ? <img src={lead.image} className="w-full h-full object-cover" /> : lead.name.charAt(0)}
+                                                    </div>
+                                                    {lead.name}
+                                                </div>
+                                            ) : null;
+                                        })}
+                                    </div>
                                 )}
                                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500 font-medium">
                                     {project.location && (
@@ -354,6 +423,40 @@ export default function ProjectDetail() {
                                         ))}
                                     </div>
                                 </div>
+                                <div className="sm:col-span-2 grid gap-2">
+                                    <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Site Leads (Accountable for Reports/Logs)</Label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                                        {assignedToThis.map(pid => {
+                                            const person = personnel.find(p => p.id === pid);
+                                            if (!person) return null;
+                                            const isLead = editSiteLeadIds.includes(pid);
+                                            return (
+                                                <button
+                                                    key={pid}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditSiteLeadIds(prev => isLead ? prev.filter(id => id !== pid) : [...prev, pid]);
+                                                    }}
+                                                    className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all ${isLead ? 'border-status-success/30 bg-status-success/5 shadow-sm' : 'border-gray-50 bg-gray-50/50 grayscale opacity-60'}`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 overflow-hidden">
+                                                            {person.image ? <img src={person.image} className="w-full h-full object-cover" /> : person.name.charAt(0)}
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <p className="text-sm font-bold text-accent-greyDark leading-none mb-1">{person.name}</p>
+                                                            <p className="text-[10px] text-gray-400 uppercase font-medium">{person.position}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Target size={16} className={isLead ? 'text-status-success' : 'text-gray-300'} />
+                                                </button>
+                                            );
+                                        })}
+                                        {assignedToThis.length === 0 && (
+                                            <p className="text-xs text-gray-400 italic py-2">No personnel assigned to this project yet. Assign people first to select leads.</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -459,10 +562,17 @@ export default function ProjectDetail() {
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isAssigned ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-600'}`}>
                                             {person.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-accent-greyDark leading-tight">{person.name}</p>
-                                            <p className="text-xs text-gray-500">{person.position}</p>
-                                        </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-sm font-bold text-accent-greyDark truncate">{person.name}</p>
+                                                    {project.siteLeadIds?.includes(person.id) && (
+                                                        <span className="flex items-center gap-1 text-[9px] bg-status-success/10 text-status-success border border-status-success/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                                            <Target size={10} /> Lead
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-400 font-medium">{person.position}</p>
+                                            </div>
                                     </div>
                                     {canEditPersonnel && (
                                         isAddingPersonnel ? (
@@ -555,6 +665,71 @@ export default function ProjectDetail() {
                 )}
             </div>
 
+            {/* ── Field Issues / Blockers ───────────────────────────────────── */}
+            {projectOccurrences.length > 0 && (
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-50 gap-4">
+                        <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2">
+                            <AlertCircle size={18} className="text-orange-500" /> Reported Issues / Blockers
+                            <span className="text-xs bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full">{projectOccurrences.length}</span>
+                        </h2>
+                        <div className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-100">
+                            <Hourglass size={14} className="text-orange-500" />
+                            <span className="text-xs font-bold text-orange-600">Total Lost Time:</span>
+                            <span className="text-sm font-black text-orange-700">{totalLostTimeHours} hr</span>
+                        </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Date</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Category</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Description</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">Impact</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">Lost Time</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {projectOccurrences.map((occ, idx) => (
+                                    <tr key={`${occ.id}-${idx}`} className="hover:bg-orange-50/30 transition-colors group cursor-pointer" onClick={() => navigate(`/reports/${occ.reportId}`)}>
+                                        <td className="p-4 text-sm font-semibold text-gray-500 whitespace-nowrap">
+                                            {new Date(occ.reportDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} <span className="text-gray-400 font-normal">at {occ.time}</span>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 flex items-center gap-1.5 w-max">
+                                                <Target size={12} className="text-gray-400" /> {occ.category || 'Other'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-sm text-accent-greyDark font-medium min-w-[200px]">
+                                            {occ.description || <span className="text-gray-400 italic">No description provided</span>}
+                                        </td>
+                                        <td className="p-4 hidden sm:table-cell">
+                                            <div className="flex gap-1.5 flex-wrap">
+                                                {occ.impact?.schedule && <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded font-bold">Schedule</span>}
+                                                {occ.impact?.productivity && <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded font-bold">Productivity</span>}
+                                                {occ.impact?.safety && <span className="text-[10px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded font-bold">Safety</span>}
+                                                {occ.impact?.clientVisible && <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded font-bold">Visible</span>}
+                                                {!occ.impact?.schedule && !occ.impact?.productivity && !occ.impact?.safety && !occ.impact?.clientVisible && (
+                                                    <span className="text-xs text-gray-300">-</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <Hourglass size={12} className="text-orange-400" />
+                                                <span className="text-sm font-bold text-orange-600">{occ.durationMinutes ? `${(occ.durationMinutes/60).toFixed(1)}h` : '0h'}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             {/* ── Reports Table ───────────────────────────────────── */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between p-6 border-b border-gray-50">
@@ -575,11 +750,9 @@ export default function ProjectDetail() {
                             <option value="Approved">Approved</option>
                             <option value="Closed">Closed</option>
                         </select>
-                        <Link to="/reports">
-                            <Button size="sm" className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
-                                <Plus size={14} /> New Report
-                            </Button>
-                        </Link>
+                        <Button size="sm" onClick={handleCreateReport} className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
+                            <Plus size={14} /> New Report
+                        </Button>
                     </div>
                 </div>
 

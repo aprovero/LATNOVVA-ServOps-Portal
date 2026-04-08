@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { UserPlus, UserCheck, Signature, Check, AlertTriangle, Plus, Users, Send, Trash2 } from 'lucide-react';
+import { UserPlus, UserCheck, Signature, Check, AlertTriangle, Plus, Users, Send, Trash2, Target } from 'lucide-react';
 
 interface LaborEntry {
     id: string;
@@ -202,9 +202,14 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                 </h2>
                 <div className="flex flex-wrap gap-2">
                     {!readOnly && labor.length > 0 && ['Manager', 'Supervisor', 'HR'].includes(userRole) && (
-                        <button onClick={handleBatchLogTimesheets} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-brand-teal/10 text-brand-teal border-brand-teal/20 hover:bg-brand-teal hover:text-white transition-colors">
-                            <Send size={16} /> Batch Log Timesheets
-                        </button>
+                        <div className="flex flex-col items-end gap-1">
+                            <button onClick={handleBatchLogTimesheets} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-brand-teal/10 text-brand-teal border-brand-teal/20 hover:bg-brand-teal hover:text-white transition-colors shadow-sm">
+                                <Send size={16} /> Batch Log Timesheets
+                            </button>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mr-1">
+                                <Target size={12} className="text-status-success" /> Site Lead Responsibility
+                            </p>
+                        </div>
                     )}
                     {!readOnly && (
                         <div className="flex gap-2">

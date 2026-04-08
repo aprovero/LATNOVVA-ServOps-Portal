@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, AlertCircle, Search, Check, Plus } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, AlertCircle, Search, Check, Plus, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -64,8 +64,10 @@ export default function Projects() {
         type: 'Complete',
         progress: 0,
         scopes: [],
-        assignedPersonnel: []
+        assignedPersonnel: [],
+        siteLeadIds: []
     });
+    const [personnelSearch, setPersonnelSearch] = useState('');
     const [isVaidatingNewMap, setIsValidatingNewMap] = useState(false);
 
     const [filterStatus, setFilterStatus] = useState<string>('All');
@@ -503,6 +505,90 @@ export default function Projects() {
                                 </select>
                             </div>
                        </div>
+
+                       <div className="space-y-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Assign Team & Leads</Label>
+                                <div className="relative mb-3">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <Input 
+                                        placeholder="Search personnel..." 
+                                        value={personnelSearch}
+                                        onChange={e => setPersonnelSearch(e.target.value)}
+                                        className="pl-10 h-10 rounded-xl bg-gray-50/50 border-gray-100"
+                                    />
+                                </div>
+                                <div className="max-h-[220px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                                    {useStore.getState().personnel
+                                        .filter(p => !personnelSearch || p.name.toLowerCase().includes(personnelSearch.toLowerCase()) || p.position.toLowerCase().includes(personnelSearch.toLowerCase()))
+                                        .map(person => {
+                                            const isAssigned = newProject.assignedPersonnel?.includes(person.id);
+                                            const isLead = newProject.siteLeadIds?.includes(person.id);
+                                            
+                                            return (
+                                                <div 
+                                                    key={person.id} 
+                                                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                                                        isAssigned ? 'border-brand-teal/30 bg-brand-teal/5' : 'border-gray-50 bg-white'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 overflow-hidden">
+                                                            {person.image ? <img src={person.image} className="w-full h-full object-cover" /> : person.name.charAt(0)}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-accent-greyDark">{person.name}</p>
+                                                            <p className="text-[10px] text-gray-400 uppercase font-medium">{person.position}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                const currentAssigned = newProject.assignedPersonnel || [];
+                                                                const nextAssigned = isAssigned 
+                                                                    ? currentAssigned.filter(id => id !== person.id)
+                                                                    : [...currentAssigned, person.id];
+                                                                
+                                                                let nextLeads = newProject.siteLeadIds || [];
+                                                                if (isAssigned) {
+                                                                    nextLeads = nextLeads.filter(id => id !== person.id);
+                                                                }
+                                                                
+                                                                setNewProject({...newProject, assignedPersonnel: nextAssigned, siteLeadIds: nextLeads});
+                                                            }}
+                                                            className={`h-8 px-3 rounded-lg text-xs font-bold transition-all ${
+                                                                isAssigned ? 'bg-brand-teal text-white shadow-sm' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                                            }`}
+                                                        >
+                                                            {isAssigned ? 'Assigned' : 'Assign'}
+                                                        </button>
+                                                        
+                                                        {isAssigned && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    const currentLeads = newProject.siteLeadIds || [];
+                                                                    const nextLeads = isLead 
+                                                                        ? currentLeads.filter(id => id !== person.id)
+                                                                        : [...currentLeads, person.id];
+                                                                    setNewProject({...newProject, siteLeadIds: nextLeads});
+                                                                }}
+                                                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                                                                    isLead ? 'bg-status-success text-white' : 'bg-gray-100 text-gray-300 hover:bg-gray-200'
+                                                                }`}
+                                                                title="Mark as Site Lead"
+                                                            >
+                                                                <Target size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+                       </div>
                     </div>
                     <DialogFooter className="p-6 bg-gray-50 flex gap-3">
                         <Button variant="ghost" onClick={() => setIsAddProjectOpen(false)} className="rounded-xl h-11">Cancel</Button>
@@ -514,7 +600,9 @@ export default function Projects() {
                                     ...newProject as Project,
                                     id: `PROJ-${Date.now()}`,
                                     progress: 0,
-                                    scopes: []
+                                    scopes: [],
+                                    assignedPersonnel: newProject.assignedPersonnel || [],
+                                    siteLeadIds: newProject.siteLeadIds || []
                                 });
                                 setIsAddProjectOpen(false);
                             }}

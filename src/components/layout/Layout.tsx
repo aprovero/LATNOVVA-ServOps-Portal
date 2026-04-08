@@ -6,6 +6,7 @@ import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { differenceInDays, parseISO } from 'date-fns';
 
+import CommandSearch from '../search/CommandSearch';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -35,6 +36,9 @@ export default function Layout() {
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
     const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
+
+    // Command Search
+    const [mobileSearchTrigger, setMobileSearchTrigger] = useState(false);
 
     // Form States
     const [newCustomerName, setNewCustomerName] = useState('');
@@ -341,15 +345,14 @@ export default function Layout() {
             <main className="flex-1 overflow-y-auto relative flex flex-col bg-[#F8FAFC]">
                 {/* Desktop Top Bar */}
                 <header className="hidden md:flex bg-white h-[64px] min-h-[64px] shrink-0 border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
-                    {/* Search */}
+                    {/* Command Search */}
                     <div className="flex items-center flex-1">
-                        <div className="relative w-full max-w-md hidden lg:block">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <Input
-                                placeholder="Search projects, reports, tasks..."
-                                className="pl-10 bg-gray-50 border-gray-200 focus-visible:ring-brand-teal h-10 rounded-xl w-full"
-                            />
-                        </div>
+                        <CommandSearch
+                            onNewReport={() => setIsCreateReportOpen(true)}
+                            onNewProject={() => setIsCreateProjectOpen(true)}
+                            triggerOpen={mobileSearchTrigger}
+                            onTriggerConsumed={() => setMobileSearchTrigger(false)}
+                        />
                     </div>
 
                     {/* Right Actions */}
@@ -449,12 +452,20 @@ export default function Layout() {
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-4 object-contain" />
                     </div>
                     <div className="flex items-center gap-3">
-                        <button className="p-2 text-gray-500 rounded-full bg-gray-50">
+                        {/* Search — opens command palette */}
+                        <button
+                            onClick={() => setMobileSearchTrigger(true)}
+                            className="p-2 text-gray-500 hover:text-brand-teal rounded-full bg-gray-50 hover:bg-teal-50 transition-colors"
+                            aria-label="Open search"
+                        >
                             <Search size={18} />
                         </button>
+                        {/* Notifications bell — untouched */}
                         <button className="relative p-2 text-gray-500 rounded-full bg-gray-50">
                             <Bell size={18} />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                            {notifications.length > 0 && (
+                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                            )}
                         </button>
                     </div>
                 </header>
@@ -464,7 +475,7 @@ export default function Layout() {
                     
                     {/* Global Footer (Desktop & Mobile) */}
                     <div className="mt-auto pt-16 pb-6 border-t border-transparent flex flex-col items-center gap-4 w-full">
-                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[64px] object-contain opacity-80" />
+                        <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[48px] object-contain opacity-80" />
                         <p className="text-[10px] text-gray-400 text-center leading-relaxed px-4 font-bold border-t border-gray-200 pt-4 pb-12 w-full max-w-sm">
                             &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions.<br/>All Rights Reserved.<br/><span className="italic font-normal">Powered by aprovero</span>
                         </p>

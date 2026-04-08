@@ -112,6 +112,35 @@ export default function DataAnalysis() {
         return result;
     }, [reports, projects, overallProgress, activeDiscipline]);
 
+    // 6. Lost Time by Category
+    const lostTimeData = useMemo(() => {
+        const relevantReports = reports.filter(r => activeDiscipline === 'All' || r.discipline === activeDiscipline);
+        const grouping: Record<string, number> = {};
+        
+        relevantReports.forEach(r => {
+            if (r.occurrences) {
+                r.occurrences.forEach(occ => {
+                    if (occ.durationMinutes && occ.durationMinutes > 0) {
+                        const cat = occ.category || 'Other';
+                        grouping[cat] = (grouping[cat] || 0) + occ.durationMinutes;
+                    }
+                });
+            }
+        });
+
+        const totalLostMins = Object.values(grouping).reduce((sum, val) => sum + val, 0);
+        
+        if (totalLostMins === 0) return [];
+
+        return Object.entries(grouping)
+            .map(([name, value]) => ({
+                name,
+                value,
+                percentage: Math.round((value / totalLostMins) * 100)
+            }))
+            .sort((a, b) => b.value - a.value);
+    }, [reports, activeDiscipline]);
+
     const activeProjects = projects.filter(p => p.status === 'Active').length;
     const totalReports = reports.length;
     const totalHoursLog = reports.reduce((acc, r) => acc + (r.labor?.reduce((sum, l) => sum + (l.hours * l.qty), 0) || 0), 0);
@@ -174,7 +203,7 @@ export default function DataAnalysis() {
                 </div>
             </div>
 
-            <div className="dash-stagger grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="dash-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="card-container">
                     <h2 className="text-lg font-bold text-accent-greyDark mb-6 flex items-center gap-2">
                         <Users className="text-brand-teal" size={20} /> Labor Burn Rate
@@ -219,7 +248,45 @@ export default function DataAnalysis() {
                     </div>
                 </div>
 
-                <div className="card-container lg:col-span-2">
+                <div className="card-container">
+                    <h2 className="text-lg font-bold text-accent-greyDark mb-6 flex items-center gap-2">
+                        <AlertTriangle className="text-orange-500" size={20} /> Lost Time by Category
+                    </h2>
+                    {lostTimeData.length > 0 ? (
+                        <>
+                            <div className="h-72 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie data={lostTimeData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
+                                            {lostTimeData.map((_entry, index) => {
+                                                const colors = ['#F97316', '#EAB308', '#3B82F6', '#8B5CF6', '#EC4899', '#64748B'];
+                                                return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                                            })}
+                                        </Pie>
+                                        <RechartsTooltip formatter={(value) => `${Math.round((value as number)/60*10)/10} hrs`} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-4 mt-2">
+                                {lostTimeData.map((entry, index) => {
+                                    const colors = ['#F97316', '#EAB308', '#3B82F6', '#8B5CF6', '#EC4899', '#64748B'];
+                                    return (
+                                        <div key={entry.name} className="flex items-center gap-2">
+                                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[index % colors.length] }}></span>
+                                            <span className="text-xs font-bold text-gray-600">{entry.name} ({entry.percentage}%)</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="h-72 flex items-center justify-center text-gray-400">
+                            <p className="text-sm font-medium">No lost time reported</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="card-container lg:col-span-3">
                     <h2 className="text-lg font-bold text-accent-greyDark mb-6 flex items-center gap-2">
                         <LineChartIcon className="text-blue-500" size={20} /> Project Velocity (S-Curve)
                     </h2>

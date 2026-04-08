@@ -37,7 +37,15 @@ export interface CustomSection {
 export interface ReportOccurrence {
     id: string;
     time: string;
+    durationMinutes?: number;
+    category?: 'Customer delay' | 'Equipment failure' | 'Material Related' | 'Weather' | 'Access' | 'Crew' | 'Safety' | 'Other' | string;
     description: string;
+    impact?: {
+        schedule: boolean;
+        productivity: boolean;
+        safety: boolean;
+        clientVisible: boolean;
+    };
 }
 
 export interface ReportChecklist {
@@ -215,6 +223,7 @@ export interface ClockPunch {
     timeSource: 'gps' | 'device'; // gps = satellite atomic clock, device = system clock
     manualAdjustment?: boolean; // true if time was entered retroactively
     adjustmentNote?: string;
+    selfieBlob?: string; // base64 JPEG thumbnail for identity verification
 }
 
 export interface TimesheetEntry {
@@ -279,6 +288,7 @@ export interface Project {
     oAndM?: string;
     pointOfContact?: string;
     notes?: string;
+    siteLeadIds?: string[]; // Multiple leads per project
 }
 
 interface AppState {
@@ -435,6 +445,7 @@ export const useStore = create<AppState>()(
                             systemType: p.system_type,
                             codeName: p.code_name,
                             assignedPersonnel: p.assigned_personnel || [],
+                            siteLeadIds: p.site_lead_ids || [],
                             hasNoDefinedScope: p.has_no_defined_scope || false,
                             disciplines: p.disciplines || [],
                             scopes: p.scopes || []
@@ -449,6 +460,8 @@ export const useStore = create<AppState>()(
                              email: p.email,
                              phoneNumber: p.phone_number,
                              certifications: p.certifications || [],
+                             supervisorId: p.supervisor_id,
+                             managerId: p.manager_id,
                              clientId: p.client_id
                         })) || state.personnel,
                         reports: reportsDB?.map(r => ({
@@ -551,6 +564,7 @@ export const useStore = create<AppState>()(
                     code_name: project.codeName,
                     scopes: project.scopes || [],
                     assigned_personnel: project.assignedPersonnel || [],
+                    site_lead_ids: project.siteLeadIds || [],
                     has_no_defined_scope: project.hasNoDefinedScope || false,
                     disciplines: project.disciplines || []
                 };
@@ -570,6 +584,7 @@ export const useStore = create<AppState>()(
                 if (updates.codeName !== undefined) dbPayload.code_name = updates.codeName;
                 if (updates.scopes !== undefined) dbPayload.scopes = updates.scopes;
                 if (updates.assignedPersonnel !== undefined) dbPayload.assigned_personnel = updates.assignedPersonnel;
+                if (updates.siteLeadIds !== undefined) dbPayload.site_lead_ids = updates.siteLeadIds;
                 if (updates.hasNoDefinedScope !== undefined) dbPayload.has_no_defined_scope = updates.hasNoDefinedScope;
                 if (updates.disciplines !== undefined) dbPayload.disciplines = updates.disciplines;
                 if (Object.keys(dbPayload).length > 0) {
@@ -688,6 +703,9 @@ export const useStore = create<AppState>()(
                     status: person.status,
                     certifications: person.certifications,
                     email: person.email,
+                    phone_number: person.phoneNumber,
+                    supervisor_id: person.supervisorId,
+                    manager_id: person.managerId,
                     client_id: person.clientId
                 };
                 await supabase.from('personnel').insert(dbPayload);
@@ -704,6 +722,9 @@ export const useStore = create<AppState>()(
                 if (updates.status !== undefined) dbPayload.status = updates.status;
                 if (updates.certifications !== undefined) dbPayload.certifications = updates.certifications;
                 if (updates.email !== undefined) dbPayload.email = updates.email;
+                if (updates.phoneNumber !== undefined) dbPayload.phone_number = updates.phoneNumber;
+                if (updates.supervisorId !== undefined) dbPayload.supervisor_id = updates.supervisorId;
+                if (updates.managerId !== undefined) dbPayload.manager_id = updates.managerId;
                 if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('personnel').update(dbPayload).eq('id', id);
@@ -826,7 +847,9 @@ export const useStore = create<AppState>()(
                 })),
             clockPunch: (personnelId, punch, projectId, lunchSkipped) =>
                 set((state) => {
-                    const today = new Date().toISOString().split('T')[0];
+                    // Use LOCAL date (not UTC) so timezone differences don't cause wrong-day lookups
+                    const _d = new Date();
+                    const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
                     const existing = state.timesheets.find(
                         t => t.personnelId === personnelId && t.date === today
                     );

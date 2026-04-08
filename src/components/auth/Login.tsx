@@ -110,7 +110,7 @@ export const Login: React.FC = () => {
                 </div>
                 
                 <div className="flex justify-center mt-8">
-                    <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-20 object-contain opacity-60 mix-blend-multiply hover:opacity-80 transition-opacity" />
+                    <img src="/APROVERO_LOGO.png" alt="Aprovero Logo" className="h-[48px] object-contain opacity-60 mix-blend-multiply hover:opacity-80 transition-opacity" />
                 </div>
                 <p className="text-center text-gray-400 font-bold text-[10px] mt-2">
                     Protected by Supabase Auth
