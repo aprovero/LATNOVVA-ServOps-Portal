@@ -483,95 +483,108 @@ export const useStore = create<AppState>()(
                         supabase.from('timesheets').select('*')
                     ]);
 
+                    // Guard: only overwrite store state if Supabase returned actual rows.
+                    // An empty array [] is truthy in JS, so `data || fallback` would wipe
+                    // persisted local state when RLS blocks reads or the DB is empty.
                     set((state) => ({
                         ...state,
-                        clients: clientsDB?.map(c => ({
-                            id: c.id,
-                            name: c.name,
-                            logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=2563EB&color=fff`
-                        })) || state.clients,
-                        projects: projectsDB?.map(p => ({
-                            id: p.id,
-                            clientId: p.client_id,
-                            name: p.name,
-                            type: p.type,
-                            status: p.status,
-                            progress: p.progress,
-                            location: p.location,
-                            projectSize: p.project_size,
-                            systemType: p.system_type,
-                            codeName: p.code_name,
-                            assignedPersonnel: p.assigned_personnel || [],
-                            siteLeadIds: p.site_lead_ids || [],
-                            hasNoDefinedScope: p.has_no_defined_scope || false,
-                            disciplines: p.disciplines || [],
-                            scopes: p.scopes || []
-                        })) || state.projects,
-                        personnel: personnelDB?.map(p => ({
-                             id: p.id,
-                             name: p.name,
-                             position: p.position,
-                             appRole: p.app_role,
-                             employeeNumber: p.employee_number,
-                             status: p.status,
-                             email: p.email,
-                             phoneNumber: p.phone_number,
-                             certifications: p.certifications || [],
-                             supervisorId: p.supervisor_id,
-                             managerId: p.manager_id,
-                             clientId: p.client_id
-                        })) || state.personnel,
-                        reports: reportsDB?.map(r => ({
-                            id: r.id,
-                            projectId: r.project_id,
-                            projectName: '', // Will be mapped correctly in UI components
-                            clientId: r.client_id,
-                            date: r.date,
-                            state: r.state,
-                            schedule: r.schedule,
-                            weather: r.weather,
-                            location: r.location,
-                            equipment: r.equipment || [],
-                            customSections: r.custom_sections || [],
-                            comments: r.comments || [],
-                            labor: r.labor || [],
-                            media: r.media || [],
-                            occurrences: r.occurrences || [],
-                            checklists: r.checklists || [],
-                            subReportIds: r.sub_report_ids || [],
-                            attachments: r.attachments || [],
-                            externalAttachments: r.external_attachments || [],
-                            notes: r.notes || '',
-                            signatures: r.signatures || [],
-                            usedTools: r.used_tools || [],
-                            health: r.health,
-                            activityLogs: r.activity_logs || [],
-                            createdAt: r.created_at,
-                            createdBy: r.created_by,
-                            updatedAt: r.updated_at,
-                            updatedBy: r.updated_by,
-                            discipline: r.discipline
-                        })) || state.reports,
-                        timesheets: timesheetsDB?.map(t => ({
-                            id: t.id,
-                            personnelId: t.personnel_id,
-                            projectId: t.project_id,
-                            date: t.date,
-                            timeIn: t.time_in,
-                            timeOut: t.time_out,
-                            hours: t.hours,
-                            type: t.type,
-                            classification: t.classification,
-                            notes: t.notes,
-                            status: t.status,
-                            approvedBy: t.approved_by,
-                            signature: t.signature,
-                            punches: t.punches || [],
-                            gpsVerified: t.gps_verified,
-                            lunchSkipped: t.lunch_skipped,
-                            source: (t as any).source || 'manual',        // M-05
-                            manualReason: (t as any).manual_reason,       // M-05
-                        })) || state.timesheets
+                        clients: clientsDB?.length
+                            ? clientsDB.map(c => ({
+                                id: c.id,
+                                name: c.name,
+                                logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=2563EB&color=fff`
+                            }))
+                            : state.clients,
+                        projects: projectsDB?.length
+                            ? projectsDB.map(p => ({
+                                id: p.id,
+                                clientId: p.client_id,
+                                name: p.name,
+                                type: p.type,
+                                status: p.status,
+                                progress: p.progress,
+                                location: p.location,
+                                projectSize: p.project_size,
+                                systemType: p.system_type,
+                                codeName: p.code_name,
+                                assignedPersonnel: p.assigned_personnel || [],
+                                siteLeadIds: p.site_lead_ids || [],
+                                hasNoDefinedScope: p.has_no_defined_scope || false,
+                                disciplines: p.disciplines || [],
+                                scopes: p.scopes || []
+                            }))
+                            : state.projects,
+                        personnel: personnelDB?.length
+                            ? personnelDB.map(p => ({
+                                id: p.id,
+                                name: p.name,
+                                position: p.position,
+                                appRole: p.app_role,
+                                employeeNumber: p.employee_number,
+                                status: p.status,
+                                email: p.email,
+                                phoneNumber: p.phone_number,
+                                certifications: p.certifications || [],
+                                supervisorId: p.supervisor_id,
+                                managerId: p.manager_id,
+                                clientId: p.client_id
+                            }))
+                            : state.personnel,
+                        reports: reportsDB?.length
+                            ? reportsDB.map(r => ({
+                                id: r.id,
+                                projectId: r.project_id,
+                                projectName: '',
+                                clientId: r.client_id,
+                                date: r.date,
+                                state: r.state,
+                                schedule: r.schedule,
+                                weather: r.weather,
+                                location: r.location,
+                                equipment: r.equipment || [],
+                                customSections: r.custom_sections || [],
+                                comments: r.comments || [],
+                                labor: r.labor || [],
+                                media: r.media || [],
+                                occurrences: r.occurrences || [],
+                                checklists: r.checklists || [],
+                                subReportIds: r.sub_report_ids || [],
+                                attachments: r.attachments || [],
+                                externalAttachments: r.external_attachments || [],
+                                notes: r.notes || '',
+                                signatures: r.signatures || [],
+                                usedTools: r.used_tools || [],
+                                health: r.health,
+                                activityLogs: r.activity_logs || [],
+                                createdAt: r.created_at,
+                                createdBy: r.created_by,
+                                updatedAt: r.updated_at,
+                                updatedBy: r.updated_by,
+                                discipline: r.discipline
+                            }))
+                            : state.reports,
+                        timesheets: timesheetsDB?.length
+                            ? timesheetsDB.map(t => ({
+                                id: t.id,
+                                personnelId: t.personnel_id,
+                                projectId: t.project_id,
+                                date: t.date,
+                                timeIn: t.time_in,
+                                timeOut: t.time_out,
+                                hours: t.hours,
+                                type: t.type,
+                                classification: t.classification,
+                                notes: t.notes,
+                                status: t.status,
+                                approvedBy: t.approved_by,
+                                signature: t.signature,
+                                punches: t.punches || [],
+                                gpsVerified: t.gps_verified,
+                                lunchSkipped: t.lunch_skipped,
+                                source: (t as any).source || 'manual',
+                                manualReason: (t as any).manual_reason,
+                            }))
+                            : state.timesheets,
                     }));
                 } catch (error) {
                     console.error('Failed to init DB from Supabase', error);

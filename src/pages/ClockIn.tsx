@@ -594,27 +594,63 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
             {step === 'clocked-in' && (
                 <div className="space-y-3">
-                    <button onClick={() => executePunch('lunchOut')} disabled={!gpsReady}
-                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                        <Coffee size={22} /> LUNCH OUT
-                    </button>
+                    {/* C-02: GPS denied fallback for Lunch Out */}
+                    {gpsDenied ? (
+                        <>
+                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                                <AlertTriangle size={16} className="shrink-0" />
+                                <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
+                            </div>
+                            <button onClick={() => setManualModal('lunchOut')}
+                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                <Coffee size={22} /> LUNCH OUT (Manual)
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={() => executePunch('lunchOut')} disabled={!gpsReady}
+                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
+                            <Coffee size={22} /> LUNCH OUT
+                        </button>
+                    )}
                     <button onClick={handleSkipLunch}
                         className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-600 text-sm font-semibold flex items-center justify-center hover:bg-gray-50 transition-colors">
                         Skip Lunch → Go to Clock Out
                     </button>
-                    <button onClick={() => executePunch('clockOut')} disabled={!gpsReady}
-                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                        <LogOut size={22} /> CLOCK OUT
-                    </button>
+                    {/* C-02: GPS denied fallback for Clock Out */}
+                    {gpsDenied ? (
+                        <button onClick={() => setManualModal('clockOut')}
+                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-400 to-red-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                            <LogOut size={22} /> CLOCK OUT (Manual)
+                        </button>
+                    ) : (
+                        <button onClick={() => executePunch('clockOut')} disabled={!gpsReady}
+                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
+                            <LogOut size={22} /> CLOCK OUT
+                        </button>
+                    )}
                 </div>
             )}
 
             {step === 'lunch-out' && (
                 <div className="space-y-3">
-                    <button onClick={() => executePunch('lunchIn')} disabled={!gpsReady}
-                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                        <Coffee size={22} /> BACK FROM LUNCH
-                    </button>
+                    {/* C-02: GPS denied fallback for Back from Lunch */}
+                    {gpsDenied ? (
+                        <>
+                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                                <AlertTriangle size={16} className="shrink-0" />
+                                <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
+                            </div>
+                            <button onClick={() => setManualModal('lunchIn')}
+                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                <Coffee size={22} /> BACK FROM LUNCH (Manual)
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={() => executePunch('lunchIn')} disabled={!gpsReady}
+                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
+                            <Coffee size={22} /> BACK FROM LUNCH
+                        </button>
+                    )}
                     <button onClick={() => setManualModal('lunchIn')}
                         className="w-full py-3 rounded-2xl border-2 border-amber-200 text-amber-600 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-amber-50 transition-colors">
                         <Edit2 size={14} /> Forgot to punch? Enter manually
