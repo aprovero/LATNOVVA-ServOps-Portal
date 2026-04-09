@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
@@ -443,7 +444,7 @@ export default function ProjectDetail() {
                                                 key={d}
                                                 type="button"
                                                 onClick={() => {
-                                                    setEditDisciplines(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+                                                    setEditDisciplines((prev: string[]) => prev.includes(d) ? prev.filter((x: string) => x !== d) : [...prev, d]);
                                                 }}
                                                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${editDisciplines.includes(d) ? 'bg-brand-teal text-white border-brand-teal shadow-md' : 'bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-200'}`}
                                             >
@@ -464,7 +465,7 @@ export default function ProjectDetail() {
                                                     key={pid}
                                                     type="button"
                                                     onClick={() => {
-                                                        setEditSiteLeadIds(prev => isLead ? prev.filter(id => id !== pid) : [...prev, pid]);
+                                                        setEditSiteLeadIds((prev: string[]) => isLead ? prev.filter((id: string) => id !== pid) : [...prev, pid]);
                                                     }}
                                                     className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all ${isLead ? 'border-status-success/30 bg-status-success/5 shadow-sm' : 'border-gray-50 bg-gray-50/50 grayscale opacity-60'}`}
                                                 >
@@ -572,7 +573,7 @@ export default function ProjectDetail() {
                     )}
 
                     <div className="overflow-y-auto max-h-52 space-y-1.5 pr-1">
-                        {(isAddingPersonnel ? availablePersonnel : personnel.filter(p => assignedToThis.includes(p.id))).map(person => {
+                        {(isAddingPersonnel ? availablePersonnel : personnel.filter((p: any) => assignedToThis.includes(p.id))).map((person: any) => {
                             const isAssigned = assignedToThis.includes(person.id);
                             const isConflict = assignedElsewhere.has(person.id) && !isAssigned;
                             return (
@@ -589,7 +590,7 @@ export default function ProjectDetail() {
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isAssigned ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-600'}`}>
-                                            {person.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                            {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                         </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between">
@@ -799,7 +800,7 @@ export default function ProjectDetail() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {projectOccurrences.map((occ, idx) => (
+                                {projectOccurrences.map((occ: any, idx: number) => (
                                     <tr key={`${occ.id}-${idx}`} className="hover:bg-orange-50/30 transition-colors group cursor-pointer" onClick={() => navigate(`/reports/${occ.reportId}`)}>
                                         <td className="p-4 text-sm font-semibold text-gray-500 whitespace-nowrap">
                                             {new Date(occ.reportDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} <span className="text-gray-400 font-normal">{t('common.at', 'at')} {occ.time}</span>

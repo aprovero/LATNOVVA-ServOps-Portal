@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore, TimesheetEntry } from '../store/useStore';
 import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -21,13 +22,6 @@ const calculateHours = (inTime: string, outTime: string) => {
     return Number((diff / 60).toFixed(2));
 };
 
-    const punchLabel: Record<string, string> = {
-        clockIn: t('timesheets.punches.clock_in'),
-        lunchOut: t('timesheets.punches.lunch_out'),
-        lunchIn: t('timesheets.punches.lunch_in'),
-        clockOut: t('timesheets.punches.clock_out'),
-    };
-
 const punchDotColor: Record<string, string> = {
     clockIn: '#00B4A6',
     lunchOut: '#F59E0B',
@@ -40,6 +34,13 @@ const formatPunchTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US
 export default function Timesheets() {
     const { t } = useTranslation();
     const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName } = useStore();
+
+    const punchLabel: Record<string, string> = {
+        clockIn: t('timesheets.punches.clock_in'),
+        lunchOut: t('timesheets.punches.lunch_out'),
+        lunchIn: t('timesheets.punches.lunch_in'),
+        clockOut: t('timesheets.punches.clock_out'),
+    };
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
     const [signatureBlob, setSignatureBlob] = useState<string>('');
@@ -98,7 +99,7 @@ export default function Timesheets() {
     useEffect(() => {
         // Auto-update hours when time in/out changes
         if (newEntry.timeIn && newEntry.timeOut) {
-            setNewEntry(prev => ({ ...prev, hours: calculateHours(prev.timeIn!, prev.timeOut!) }));
+            setNewEntry((prev: Partial<TimesheetEntry>) => ({ ...prev, hours: calculateHours(prev.timeIn!, prev.timeOut!) }));
         }
     }, [newEntry.timeIn, newEntry.timeOut]);
 
@@ -236,7 +237,7 @@ export default function Timesheets() {
         let reused = 0;
         let created = 0;
 
-        selectedPersonnel.forEach(pId => {
+        selectedPersonnel.forEach((pId: string) => {
             const sig = batchSignatures[pId];
             if (!sig) return;
 
@@ -903,13 +904,13 @@ export default function Timesheets() {
                                 {t('timesheets.batch.select_obtain')}
                             </label>
                             <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto p-1 pr-2 thin-scrollbar">
-                                {personnel.filter(p => {
+                                {personnel.filter((p: any) => {
                                     if (p.status === 'Inactive') return false;
                                     if (batchAction === 'Check-out') {
-                                        return timesheets.some(t => t.personnelId === p.id && t.date === batchDate && !t.timeOut);
+                                        return timesheets.some((t: any) => t.personnelId === p.id && t.date === batchDate && !t.timeOut);
                                     }
                                     return true;
-                                }).map(p => {
+                                }).map((p: any) => {
                                     const isSelected = selectedPersonnel.includes(p.id);
                                     const hasSigned = !!batchSignatures[p.id];
                                     
@@ -923,7 +924,7 @@ export default function Timesheets() {
                                                     onChange={(e) => {
                                                         if (e.target.checked) setSelectedPersonnel([...selectedPersonnel, p.id]);
                                                         else {
-                                                            setSelectedPersonnel(selectedPersonnel.filter(id => id !== p.id));
+                                                            setSelectedPersonnel(selectedPersonnel.filter((id: string) => id !== p.id));
                                                             const newSigs = { ...batchSignatures };
                                                             delete newSigs[p.id];
                                                             setBatchSignatures(newSigs);
@@ -975,12 +976,12 @@ export default function Timesheets() {
 
                         <Button 
                             className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold shadow-teal"
-                            disabled={selectedPersonnel.length === 0 || !batchProject || selectedPersonnel.some(id => !batchSignatures[id])}
+                            disabled={selectedPersonnel.length === 0 || !batchProject || selectedPersonnel.some((id: string) => !batchSignatures[id])}
                             onClick={handleBatchSubmit}
                         >
                             {t('timesheets.batch.complete_action', { action: batchAction, count: selectedPersonnel.length })}
                         </Button>
-                        {selectedPersonnel.some(id => !batchSignatures[id]) && selectedPersonnel.length > 0 && (
+                        {selectedPersonnel.some((id: string) => !batchSignatures[id]) && selectedPersonnel.length > 0 && (
                             <p className="text-[10px] text-center text-status-warning font-bold mt-2 animate-pulse uppercase tracking-widest">
                                 ⚠ {t('timesheets.batch.waiting_signatures')}
                             </p>

@@ -42,11 +42,11 @@ export default function Calendar() {
         }))
     );
 
-    const toolReminders = (tools || []).filter(t => t.certificationExpiry).map(t => ({
-        id: `tool-${t.id}`,
+    const toolReminders = (tools || []).filter(tool => tool.certificationExpiry).map(tool => ({
+        id: `tool-${tool.id}`,
         type: 'calibration',
-        title: t('scheduling.reminders.calibration', { name: t.name }),
-        date: t.certificationExpiry!
+        title: t('scheduling.reminders.calibration', { name: tool.name }),
+        date: tool.certificationExpiry!
     }));
 
     const handleAddEvent = () => {

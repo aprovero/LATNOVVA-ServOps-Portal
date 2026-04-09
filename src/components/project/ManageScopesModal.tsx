@@ -146,8 +146,8 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                 <option value="custom">{t('projects.blank_custom', 'Blank Custom Scope')}</option>
                                 {scopeTemplates.length > 0 && (
                                     <optgroup label={t('templates.title', 'Templates')}>
-                                        {scopeTemplates.map(t => (
-                                            <option key={t.id} value={t.id}>{t.name} ({t.activities.length} {t('reports.labor_entries_count', 'entries')})</option>
+                                        {scopeTemplates.map(tmpl => (
+                                            <option key={tmpl.id} value={tmpl.id}>{tmpl.name} ({tmpl.activities.length} {t('reports.labor_entries_count', 'entries')})</option>
                                         ))}
                                     </optgroup>
                                 )}

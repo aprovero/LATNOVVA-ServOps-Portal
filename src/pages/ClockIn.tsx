@@ -285,7 +285,7 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
     onConfirm: (sigBlob: string) => void;
     onCancel: () => void;
 }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [sigBlob, setSigBlob] = useState<string | null>(null);
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';
 
@@ -318,11 +318,11 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                                 : t('attendance.batch.count_label_plural', { count: entries.length })}
                         </p>
                         <div className="space-y-1.5">
-                            {entries.map(e => (
+                            {entries.map((e: BatchEntry) => (
                                 <div key={e.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
                                     <div className="flex items-center gap-2.5 min-w-0">
                                         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
-                                            {e.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                            {e.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                                         </div>
                                         <div className="min-w-0">
                                             <p className="font-semibold text-sm text-gray-800 truncate">{e.name}</p>
@@ -350,7 +350,7 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                     {/* Signature pad */}
                     <div className="px-6 pb-5">
                         <SignaturePad
-                            onSign={b => setSigBlob(b)}
+                            onSign={(b: string) => setSigBlob(b)}
                             onClear={() => setSigBlob(null)}
                         />
                     </div>
@@ -444,7 +444,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const [lastBatch, setLastBatch] = useState<{ names: string[]; action: string; time: string } | null>(null);
     const [countdown, setCountdown] = useState(4);
 
-    const activeProjects = projects.filter(p => p.status === 'Active');
+    const activeProjects = projects.filter((p: any) => p.status === 'Active');
 
     // Build sorted personnel list: assigned to project first, then rest — both groups alpha-sorted
     const sortedPersonnel = useCallback(() => {
@@ -469,7 +469,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         const project = projects.find(p => p.id === selectedProject);
         const assignedIds: string[] = project?.assignedPersonnel ?? [];
         const validIds = personnel
-            .filter(p =>
+            .filter((p: Personnel) =>
                 assignedIds.includes(p.id) &&
                 ['Tech', 'Supervisor'].includes(p.appRole ?? '') &&
                 getPunchStep(timesheets, p.id) === 'idle' // only pre-check people not yet clocked in
@@ -518,7 +518,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const buildEntries = (): BatchEntry[] => {
         const action = dominantAction();
         const result: BatchEntry[] = [];
-        sortedPersonnel().forEach(p => {
+        sortedPersonnel().forEach((p: any) => {
             if (!selectedIds.has(p.id)) return;
             result.push({ id: p.id, name: p.name, role: p.position, action: getNextAction(p.id) });
         });
@@ -534,7 +534,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         const best = getBestTimestampISO(gps);
         const timestamp = best.iso;
         const names: string[] = [];
-        entries.forEach(entry => {
+        entries.forEach((entry: any) => {
             const punch: ClockPunch = {
                 timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
                 accuracy: gps.accuracy ?? 9999,
@@ -614,7 +614,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                         className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10"
                     >
                         <option value="">{t('attendance.project_placeholder')}</option>
-                        {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
@@ -644,7 +644,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                             <p className="text-sm">{t('templates.scopes.empty' /* placeholder or add key */)}</p>
                         </div>
                     )}
-                    {sorted.map((person, idx) => {
+                    {sorted.map((person: any, idx: number) => {
                         const step = getPunchStep(timesheets, person.id);
                         const meta = getStepMeta(t)[step];
                         const isChecked = selectedIds.has(person.id);
@@ -719,7 +719,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                     })}
 
                     {/* Outsourced entries */}
-                    {outsourcedList.map((o, idx) => {
+                    {outsourcedList.map((o: any, idx: number) => {
                         const isChecked = selectedIds.has(o.tempId);
                         const baseIdx = sorted.length + idx;
                         return (
@@ -743,7 +743,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
                                 {/* Avatar */}
                                 <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">
-                                    {o.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    {o.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                                 </div>
 
                                 {/* Name + role */}
@@ -841,6 +841,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     timesheets: any[];
     clockPunch: (...args: any[]) => void;
 }) {
+    const { t, i18n } = useTranslation();
     const today = getLocalDate(getBestDate(gps));
     const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today);
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
@@ -1052,13 +1053,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('attendance.labels.todays_punches')}</p>
                     <div className="relative pl-6">
                         <div className="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-teal-400 via-amber-400 to-red-400 opacity-30" />
-                        {punches.map((p, i) => (
+                        {punches.map((p: any, i: number) => (
                             <div key={i} className="relative mb-3 last:mb-0">
                                 <div className="absolute -left-4 top-1.5 w-3 h-3 rounded-full border-2 border-white shadow"
-                                    style={{ backgroundColor: punchColor[p.type] }} />
+                                    style={{ backgroundColor: punchColor[p.type as keyof typeof punchColor] }} />
                                 <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 ml-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-bold text-gray-800">{getPunchLabel(t)[p.type]}</span>
+                                        <span className="text-sm font-bold text-gray-800">{(getPunchLabel(t) as any)[p.type]}</span>
                                         <div className="flex items-center gap-1.5">
                                             <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp, i18n.language)}</span>
                                             {p.timeSource === 'gps' && (
