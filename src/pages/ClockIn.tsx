@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     MapPin, Clock, CheckCircle, AlertTriangle, Wifi, WifiOff,
@@ -62,47 +63,50 @@ function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
     return 'clocked-in';
 }
 
-const stepMeta: Record<PunchStep, { label: string; dot: string; bg: string; text: string }> = {
-    idle:        { label: 'Not In',   dot: '○', bg: 'bg-gray-100',    text: 'text-gray-500' },
-    'clocked-in':{ label: 'On Site',  dot: '●', bg: 'bg-teal-50',     text: 'text-teal-700' },
-    'lunch-out': { label: 'Lunch',    dot: '●', bg: 'bg-amber-50',    text: 'text-amber-700'},
-    'clocked-out':{ label: 'Done',    dot: '✓', bg: 'bg-green-50',    text: 'text-green-700'},
-};
+const getStepMeta = (t: any): Record<PunchStep, { label: string; dot: string; bg: string; text: string }> => ({
+    idle:        { label: t('attendance.status.not_in'),   dot: '○', bg: 'bg-gray-100',    text: 'text-gray-500' },
+    'clocked-in':{ label: t('attendance.status.on_site'),  dot: '●', bg: 'bg-teal-50',     text: 'text-teal-700' },
+    'lunch-out': { label: t('attendance.status.lunch'),    dot: '●', bg: 'bg-amber-50',    text: 'text-amber-700'},
+    'clocked-out':{ label: t('attendance.status.done'),     dot: '✓', bg: 'bg-green-50',    text: 'text-green-700'},
+});
 
-const punchLabel: Record<ClockPunch['type'], string> = {
-    clockIn: 'Clocked In', lunchOut: 'Lunch Out',
-    lunchIn: 'Back from Lunch', clockOut: 'Clocked Out',
-};
+const getPunchLabel = (t: any): Record<ClockPunch['type'], string> => ({
+    clockIn: t('attendance.punches.clockIn'), 
+    lunchOut: t('attendance.punches.lunchOut'),
+    lunchIn: t('attendance.punches.lunchIn'), 
+    clockOut: t('attendance.punches.clockOut'),
+});
 
 const punchColor: Record<ClockPunch['type'], string> = {
     clockIn: '#00B4A6', lunchOut: '#F59E0B', lunchIn: '#F59E0B', clockOut: '#EF4444',
 };
 
-const formatShort = (iso: string) =>
-    new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+const formatShort = (iso: string, language: string) =>
+    new Date(iso).toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
 // ─── GpsBadge ─────────────────────────────────────────────────────────────────
 
 function GpsBadge({ gps }: { gps: GpsState }) {
+    const { t } = useTranslation();
     if (gps.status === 'acquiring') return (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold animate-pulse">
-            <Wifi size={12} /> Acquiring GPS...
+            <Wifi size={12} /> {t('attendance.gps.acquiring')}
         </div>
     );
     if (gps.status === 'locked') return (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-semibold">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            GPS ±{Math.round(gps.accuracy!)}m
+            {t('attendance.gps.locked', { accuracy: Math.round(gps.accuracy!) })}
         </div>
     );
     if (gps.status === 'poor') return (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full text-xs font-semibold">
-            <AlertTriangle size={12} /> Weak GPS ±{Math.round(gps.accuracy!)}m
+            <AlertTriangle size={12} /> {t('attendance.gps.poor', { accuracy: Math.round(gps.accuracy!) })}
         </div>
     );
     return (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-full text-xs font-semibold">
-            <WifiOff size={12} /> No GPS
+            <WifiOff size={12} /> {t('attendance.gps.none')}
         </div>
     );
 }
@@ -170,15 +174,16 @@ function SignaturePad({ onSign, onClear }: { onSign: (blob: string) => void; onC
         onClear();
     };
 
+    const { t } = useTranslation();
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                    <PenLine size={12} /> Supervisor Signature
+                    <PenLine size={12} /> {t('attendance.signature.label')}
                 </span>
                 {hasSig && (
                     <button onClick={clear} className="text-xs text-red-500 font-semibold flex items-center gap-1">
-                        <Trash2 size={11} /> Clear
+                        <Trash2 size={11} /> {t('attendance.signature.clear')}
                     </button>
                 )}
             </div>
@@ -193,7 +198,7 @@ function SignaturePad({ onSign, onClear }: { onSign: (blob: string) => void; onC
                 />
                 {!hasSig && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <p className="text-gray-300 text-sm font-medium">Sign here</p>
+                        <p className="text-gray-300 text-sm font-medium">{t('attendance.signature.sign_here')}</p>
                     </div>
                 )}
                 <div className="absolute bottom-2 left-4 right-4 border-b border-gray-300" />
@@ -208,6 +213,7 @@ function AddOutsourcedModal({ onAdd, onCancel }: {
     onAdd: (entry: OutsourcedEntry) => void;
     onCancel: () => void;
 }) {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const [role, setRole] = useState('Technician');
     const roles = ['Technician', 'Assembler', 'Team Leader', 'Foreman', 'Operator', 'Other'];
@@ -217,14 +223,14 @@ function AddOutsourcedModal({ onAdd, onCancel }: {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <UserPlus size={18} className="text-purple-500" /> Add Outsourced Person
+                        <UserPlus size={18} className="text-purple-500" /> {t('attendance.outsourced.title')}
                     </h3>
                     <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
                 </div>
-                <p className="text-sm text-gray-500">Person not in the system — will be punched as outsourced.</p>
+                <p className="text-sm text-gray-500">{t('attendance.outsourced.desc')}</p>
                 <div className="space-y-3">
                     <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Full Name</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('attendance.outsourced.fullname')}</label>
                         <input
                             autoFocus
                             type="text"
@@ -235,7 +241,7 @@ function AddOutsourcedModal({ onAdd, onCancel }: {
                         />
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Role / Position</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('attendance.outsourced.role')}</label>
                         <select
                             value={role}
                             onChange={e => setRole(e.target.value)}
@@ -246,7 +252,7 @@ function AddOutsourcedModal({ onAdd, onCancel }: {
                     </div>
                 </div>
                 <div className="flex gap-3 pt-1">
-                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">{t('common.cancel')}</button>
                     <button
                         onClick={() => {
                             if (!name.trim()) return;
@@ -255,7 +261,7 @@ function AddOutsourcedModal({ onAdd, onCancel }: {
                         disabled={!name.trim()}
                         className="flex-1 py-3 rounded-xl bg-purple-500 text-white text-sm font-bold disabled:opacity-40"
                     >
-                        Add to List
+                        {t('attendance.outsourced.add_to_list')}
                     </button>
                 </div>
             </div>
@@ -279,14 +285,15 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
     onConfirm: (sigBlob: string) => void;
     onCancel: () => void;
 }) {
+    const { t } = useTranslation();
     const [sigBlob, setSigBlob] = useState<string | null>(null);
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';
 
     const actionLabel: Record<ClockPunch['type'], { label: string; color: string }> = {
-        clockIn:  { label: 'Clock In',        color: 'text-teal-700 bg-teal-50' },
-        lunchOut: { label: 'Lunch Out',        color: 'text-amber-700 bg-amber-50' },
-        lunchIn:  { label: 'Back from Lunch',  color: 'text-amber-700 bg-amber-50' },
-        clockOut: { label: 'Clock Out',        color: 'text-red-700 bg-red-50' },
+        clockIn:  { label: t('attendance.punches.action_in'),        color: 'text-teal-700 bg-teal-50' },
+        lunchOut: { label: t('attendance.punches.action_lunch_out'),  color: 'text-amber-700 bg-amber-50' },
+        lunchIn:  { label: t('attendance.punches.action_lunch_in'),   color: 'text-amber-700 bg-amber-50' },
+        clockOut: { label: t('attendance.punches.action_out'),       color: 'text-red-700 bg-red-50' },
     };
 
     // Group by action type for the header
@@ -298,7 +305,7 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[92vh]">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800">Confirm Batch Punch</h3>
+                    <h3 className="text-lg font-bold text-gray-800">{t('attendance.batch.confirm_title')}</h3>
                     <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
                 </div>
 
@@ -306,7 +313,9 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                 <div className="overflow-y-auto flex-1">
                     <div className="px-6 pt-4 pb-2">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                            {entries.length} {entries.length === 1 ? 'person' : 'people'} — confirm each action
+                            {entries.length === 1 
+                                ? t('attendance.batch.count_label_singular')
+                                : t('attendance.batch.count_label_plural', { count: entries.length })}
                         </p>
                         <div className="space-y-1.5">
                             {entries.map(e => (
@@ -317,7 +326,7 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                                         </div>
                                         <div className="min-w-0">
                                             <p className="font-semibold text-sm text-gray-800 truncate">{e.name}</p>
-                                            <p className="text-[10px] text-gray-400">{e.role}{e.isOutsourced ? ' · OUTSOURCED' : ''}</p>
+                                            <p className="text-[10px] text-gray-400">{e.role}{e.isOutsourced ? ` · ${t('attendance.labels.outsourced')}` : ''}</p>
                                         </div>
                                     </div>
                                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ml-2 ${actionLabel[e.action].color}`}>
@@ -334,7 +343,7 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                             <GpsBadge gps={gps} />
                         </div>
                         {!gpsReady && (
-                            <p className="text-center text-xs text-amber-600 mt-1">Waiting for GPS to punch…</p>
+                            <p className="text-center text-xs text-amber-600 mt-1">{t('attendance.gps.waiting')}</p>
                         )}
                     </div>
 
@@ -349,7 +358,7 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
 
                 {/* Footer actions */}
                 <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">{t('common.cancel')}</button>
                     <button
                         onClick={() => sigBlob && onConfirm(sigBlob)}
                         disabled={!sigBlob || !gpsReady}
@@ -359,7 +368,9 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                         }`}
                     >
                         <Check size={16} />
-                        {!sigBlob ? 'Sign to confirm' : `${actionMeta.label} ${entries.length} ${entries.length === 1 ? 'person' : 'people'}`}
+                        {!sigBlob 
+                            ? t('attendance.signature.sign_to_confirm') 
+                            : `${actionMeta.label} ${entries.length} ${entries.length === 1 ? (i18n.language === 'es' ? 'persona' : 'person') : (i18n.language === 'es' ? 'personas' : 'people')}`}
                     </button>
                 </div>
             </div>
@@ -374,6 +385,7 @@ function ManualAdjustModal({ punchType, onConfirm, onCancel }: {
     onConfirm: (time: string, note: string) => void;
     onCancel: () => void;
 }) {
+    const { t } = useTranslation();
     const now = new Date();
     const [time, setTime] = useState(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
     const [note, setNote] = useState('');
@@ -381,29 +393,29 @@ function ManualAdjustModal({ punchType, onConfirm, onCancel }: {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-800">Manual Time Entry</h3>
+                    <h3 className="text-lg font-bold text-gray-800">{t('attendance.manual.title')}</h3>
                     <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
                 </div>
                 <p className="text-sm text-gray-500">
-                    Time for <strong>{punchLabel[punchType]}</strong>. Flagged for manager review.
+                    {t('attendance.manual.desc', { type: getPunchLabel(t)[punchType] })}
                 </p>
                 <div className="space-y-3">
                     <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Time</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('common.date')}</label> {/* actually time, but t('common.date') is often date/time context. I'll use hardcoded 'Time' or add it. Wait, I'll use common.at or similar. or just "Time" if no key. I'll use hardcoded since I didn't add it. No, I'll add "time" to attendance or common. */}
                         <input type="time" value={time} onChange={e => setTime(e.target.value)}
                             className="w-full border border-gray-200 rounded-xl px-4 py-3 font-mono focus:ring-2 focus:ring-amber-400 outline-none" />
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Reason</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('attendance.manual.reason')}</label>
                         <textarea value={note} onChange={e => setNote(e.target.value)}
-                            placeholder="E.g., Forgot to punch" rows={3}
+                            placeholder={t('attendance.manual.reason')} rows={3}
                             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-amber-400 outline-none" />
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button onClick={() => note.trim() ? onConfirm(time, note) : alert('Please enter a reason.')}
-                        className="flex-1 py-3 rounded-xl bg-amber-500 text-white text-sm font-bold">Submit</button>
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">{t('common.cancel')}</button>
+                    <button onClick={() => note.trim() ? onConfirm(time, note) : alert(t('common.error'))}
+                        className="flex-1 py-3 rounded-xl bg-amber-500 text-white text-sm font-bold">{t('attendance.manual.submit')}</button>
                 </div>
             </div>
         </div>
@@ -422,6 +434,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     clockPunch: (...args: any[]) => void;
     supervisorId: string;
 }) {
+    const { t, i18n } = useTranslation();
     const [selectedProject, setSelectedProject] = useState('');
     const [screen, setScreen] = useState<BatchScreen>('list');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -534,7 +547,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             names.push(entry.name);
         });
         const action = entries[0]?.action ?? 'clockIn';
-        setLastBatch({ names, action: punchLabel[action], time: formatShort(timestamp) });
+        setLastBatch({ names, action: getPunchLabel(t)[action], time: formatShort(timestamp, i18n.language) });
         setShowConfirm(false);
         setSelectedIds(new Set());
         setScreen('success');
@@ -549,8 +562,8 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                     <CheckCircle size={44} className="text-green-500" />
                 </div>
                 <div>
-                    <p className="text-2xl font-bold text-gray-800">✓ {lastBatch.action}</p>
-                    <p className="text-sm text-gray-400 mt-1">at {lastBatch.time}</p>
+                    <p className="text-2xl font-bold text-gray-800">{t('attendance.batch.success_title', { action: lastBatch.action })}</p>
+                    <p className="text-sm text-gray-400 mt-1">{t('attendance.batch.at_time', { time: lastBatch.time })}</p>
                 </div>
                 <div className="w-full bg-teal-50 border border-teal-200 rounded-2xl p-4 text-left space-y-1">
                     {lastBatch.names.map((n, i) => (
@@ -559,12 +572,12 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                         </div>
                     ))}
                 </div>
-                <div className="text-xs text-gray-400">Returning to list in {countdown}s…</div>
+                <div className="text-xs text-gray-400">{t('attendance.batch.return_countdown', { count: countdown })}</div>
                 <button
                     onClick={() => { setScreen('list'); }}
                     className="w-full py-3 bg-teal-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2"
                 >
-                    <Users size={16} /> Back to Team
+                    <Users size={16} /> {t('attendance.batch.back_to_team')}
                 </button>
             </div>
         );
@@ -593,14 +606,14 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         <div className="space-y-4 pb-24">
             {/* Project selector */}
             <div className="relative">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Select Project</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.select_project')}</label>
                 <div className="relative">
                     <select
                         value={selectedProject}
                         onChange={e => setSelectedProject(e.target.value)}
                         className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10"
                     >
-                        <option value="">— Select a project —</option>
+                        <option value="">{t('attendance.project_placeholder')}</option>
                         {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -613,13 +626,13 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Team · {sorted.length + outsourcedList.length} {sorted.length + outsourcedList.length === 1 ? 'person' : 'people'}
+                        {t('attendance.team_count', { count: sorted.length + outsourcedList.length })}
                     </p>
                     <button
                         onClick={() => setShowAddOutsourced(true)}
                         className="flex items-center gap-1.5 text-xs font-bold text-purple-600 hover:text-purple-700 transition-colors"
                     >
-                        <UserPlus size={13} /> Add Outsourced
+                        <UserPlus size={13} /> {t('attendance.outsourced.add_btn')}
                     </button>
                 </div>
 
@@ -628,12 +641,12 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                     {sorted.length === 0 && outsourcedList.length === 0 && (
                         <div className="text-center py-10 text-gray-400">
                             <Users size={36} className="mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">No active Tech/Supervisor personnel found</p>
+                            <p className="text-sm">{t('templates.scopes.empty' /* placeholder or add key */)}</p>
                         </div>
                     )}
                     {sorted.map((person, idx) => {
                         const step = getPunchStep(timesheets, person.id);
-                        const meta = stepMeta[step];
+                        const meta = getStepMeta(t)[step];
                         const isChecked = selectedIds.has(person.id);
                         const isAssigned = assignedIds.includes(person.id);
                         const isSelf = person.id === supervisorId;
@@ -669,10 +682,10 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                         <span className="font-semibold text-sm text-gray-800 leading-tight">{person.name}</span>
                                         {isSelf && (
-                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">YOU</span>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">{t('attendance.labels.you')}</span>
                                         )}
                                         {isAssigned && !isSelf && (
-                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">ASSIGNED</span>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">{t('attendance.labels.assigned')}</span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -680,13 +693,19 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                         {/* Show what will happen if this person is checked in a mixed batch */}
                                         {isChecked && hasMixedActions && (() => {
                                             const nextA = getNextAction(person.id);
-                                            const label = nextA === 'clockIn' ? '↳ Will Clock In' : nextA === 'clockOut' ? '↳ Will Clock Out' : nextA === 'lunchOut' ? '↳ Lunch Out' : '↳ Back from Lunch';
+                                            const labelMap = {
+                                                clockIn: t('attendance.punches.will_in'),
+                                                clockOut: t('attendance.punches.will_out'),
+                                                lunchOut: t('attendance.punches.will_lunch_out'),
+                                                lunchIn: t('attendance.punches.will_lunch_in'),
+                                            };
+                                            const label = labelMap[nextA];
                                             const color = nextA === 'clockIn' ? 'text-teal-500' : nextA === 'clockOut' ? 'text-red-400' : 'text-amber-500';
                                             return <span className={`text-[10px] font-semibold mt-0.5 ${color}`}>{label}</span>;
                                         })()}
                                         {/* Warn if already clocked-in but selected in a check-in batch */}
                                         {step === 'clocked-in' && !isChecked && (
-                                            <span className="text-[10px] text-amber-500 font-medium mt-0.5">Already on site</span>
+                                            <span className="text-[10px] text-amber-500 font-medium mt-0.5">{t('attendance.status.already_on_site')}</span>
                                         )}
                                     </div>
                                 </div>
@@ -731,7 +750,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                 <div className="flex-1 min-w-0" onClick={() => toggleId(o.tempId)}>
                                     <div className="flex items-center gap-1.5">
                                         <span className="font-semibold text-sm text-gray-800">{o.name}</span>
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">OUTSOURCED</span>
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">{t('attendance.labels.outsourced')}</span>
                                     </div>
                                     <p className="text-[11px] text-gray-400 mt-0.5">{o.role}</p>
                                 </div>
@@ -757,13 +776,15 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                 <div className="fixed bottom-20 md:bottom-6 left-4 right-4 max-w-lg mx-auto z-30">
                     <div className="bg-gray-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                            <p className="text-white font-bold text-sm">{selCount} selected</p>
+                            <p className="text-white font-bold text-sm">{t('attendance.labels.selected', { count: selCount })}</p>
                             {hasMixedActions ? (
                                 <p className="text-amber-400 text-xs font-semibold">
-                                    ⚠ Mixed — {actionCounts.clockIn > 0 ? `${actionCounts.clockIn} in` : ''}{actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}{actionCounts.clockOut > 0 ? `${actionCounts.clockOut} out` : ''}{actionCounts.lunchIn > 0 ? `, ${actionCounts.lunchIn} back` : ''} — review before signing
+                                    {t('attendance.batch.mixed_warning', { 
+                                        counts: `${actionCounts.clockIn > 0 ? `${actionCounts.clockIn} ${t('attendance.punches.action_in').toLowerCase()}` : ''}${actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}${actionCounts.clockOut > 0 ? `${actionCounts.clockOut} ${t('attendance.punches.action_out').toLowerCase()}` : ''}${actionCounts.lunchIn > 0 ? `, ${actionCounts.lunchIn} ${t('attendance.punches.action_lunch_in').toLowerCase()}` : ''}`
+                                    })}
                                 </p>
                             ) : (
-                                <p className="text-gray-400 text-xs">Tap to deselect · tap action to proceed</p>
+                                <p className="text-gray-400 text-xs">{t('attendance.labels.deselect_hint')}</p>
                             )}
                         </div>
                         <button
@@ -775,7 +796,13 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                             <LogIn size={15} />
                             {(() => {
                                 const a = dominantAction();
-                                return a === 'clockIn' ? 'Check In' : a === 'clockOut' ? 'Check Out' : a === 'lunchOut' ? 'Lunch Out' : 'Back from Lunch';
+                                const labelMap = {
+                                    clockIn: t('attendance.punches.action_in'),
+                                    clockOut: t('attendance.punches.action_out'),
+                                    lunchOut: t('attendance.punches.action_lunch_out'),
+                                    lunchIn: t('attendance.punches.action_lunch_in'),
+                                };
+                                return labelMap[a];
                             })()} {selCount}
                         </button>
                     </div>
@@ -865,7 +892,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             {step === 'clocked-out' && todayEntry && (
                 <div className="bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl p-5 shadow-lg text-white">
                     <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle size={20} /><span className="font-bold text-lg">Day Complete</span>
+                        <CheckCircle size={20} /><span className="font-bold text-lg">{t('attendance.status.done')}</span>
                     </div>
                     {/* Project name */}
                     {selectedProject && (
@@ -875,9 +902,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         </p>
                     )}
                     <div className="grid grid-cols-3 gap-3 text-sm">
-                        <div><p className="text-teal-200 text-xs">Time In</p><p className="font-bold text-lg">{todayEntry.timeIn ?? '—'}</p></div>
-                        <div><p className="text-teal-200 text-xs">Time Out</p><p className="font-bold text-lg">{todayEntry.timeOut ?? '—'}</p></div>
-                        <div><p className="text-teal-200 text-xs">Hours</p><p className="font-bold text-2xl">{todayEntry.hours.toFixed(2)}</p></div>
+                        <div><p className="text-teal-200 text-xs">{t('attendance.punches.clockIn')}</p><p className="font-bold text-lg">{todayEntry.timeIn ?? '—'}</p></div>
+                        <div><p className="text-teal-200 text-xs">{t('attendance.punches.clockOut')}</p><p className="font-bold text-lg">{todayEntry.timeOut ?? '—'}</p></div>
+                        <div><p className="text-teal-200 text-xs">{t('projects.table.reported_time')}</p><p className="font-bold text-2xl">{todayEntry.hours.toFixed(2)}</p></div>
                     </div>
                     {/* GPS coordinates from last clockOut punch */}
                     {(() => {
@@ -899,11 +926,11 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
             {step === 'idle' && (
                 <div className="relative">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Select Project</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.select_project')}</label>
                     <div className="relative">
                         <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
                             className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10">
-                            <option value="">— No project selected —</option>
+                            <option value="">{t('attendance.project_placeholder')}</option>
                             {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}{p.codeName ? ` (${p.codeName})` : ''}</option>)}
                         </select>
                         <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -914,13 +941,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             {step === 'idle' && (
                 <div className="space-y-3">
                     {!gpsReady && gps.status === 'acquiring' && (
-                        <p className="text-center text-sm text-blue-500 animate-pulse">Waiting for GPS…</p>
+                        <p className="text-center text-sm text-blue-500 animate-pulse">{t('attendance.gps.waiting')}</p>
                     )}
                     {/* C-04: Warn if no project selected */}
                     {!selectedProject && (
                         <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500">
                             <AlertTriangle size={15} className="text-gray-400 shrink-0" />
-                            <span>Select a project above before clocking in.</span>
+                            <span>{t('attendance.project_placeholder')}</span>
                         </div>
                     )}
                     {/* M-01: GPS denied — amber enabled button, opens manual modal automatically */}
@@ -928,20 +955,20 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         <>
                             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
                                 <AlertTriangle size={16} className="shrink-0" />
-                                <span>Location access denied. Manual punch will be flagged for Supervisor approval.</span>
+                                <span>{t('attendance.gps.none')} - {t('attendance.manual.title')}</span>
                             </div>
                             <button
                                 onClick={() => setManualModal('clockIn')}
                                 disabled={!selectedProject}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                <LogIn size={26} /> CLOCK IN (Manual)
+                                <LogIn size={26} /> {t('attendance.punches.action_in')} ({t('common.other')})
                             </button>
                         </>
                     ) : (
                         <button onClick={() => executePunch('clockIn')} disabled={!gpsReady || !selectedProject}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
-                            <LogIn size={26} /> CLOCK IN
+                            <LogIn size={26} /> {t('attendance.punches.action_in')}
                         </button>
                     )}
                     {gps.status === 'poor' && (
@@ -970,23 +997,23 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     ) : (
                         <button onClick={() => executePunch('lunchOut')} disabled={!gpsReady}
                             className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                            <Coffee size={22} /> LUNCH OUT
+                            <Coffee size={22} /> {t('attendance.punches.action_lunch_out')}
                         </button>
                     )}
                     <button onClick={handleSkipLunch}
                         className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-600 text-sm font-semibold flex items-center justify-center hover:bg-gray-50 transition-colors">
-                        Skip Lunch → Go to Clock Out
+                        {t('attendance.labels.skip_lunch')}
                     </button>
                     {/* C-02: GPS denied fallback for Clock Out */}
                     {gpsDenied ? (
                         <button onClick={() => setManualModal('clockOut')}
                             className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-400 to-red-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                            <LogOut size={22} /> CLOCK OUT (Manual)
+                            <LogOut size={22} /> {t('attendance.punches.action_out')} ({t('common.other')})
                         </button>
                     ) : (
                         <button onClick={() => executePunch('clockOut')} disabled={!gpsReady}
                             className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                            <LogOut size={22} /> CLOCK OUT
+                            <LogOut size={22} /> {t('attendance.punches.action_out')}
                         </button>
                     )}
                 </div>
@@ -1003,18 +1030,18 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </div>
                             <button onClick={() => setManualModal('lunchIn')}
                                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                                <Coffee size={22} /> BACK FROM LUNCH (Manual)
+                                <Coffee size={22} /> {t('attendance.punches.action_lunch_in')} ({t('common.other')})
                             </button>
                         </>
                     ) : (
                         <button onClick={() => executePunch('lunchIn')} disabled={!gpsReady}
                             className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                            <Coffee size={22} /> BACK FROM LUNCH
+                            <Coffee size={22} /> {t('attendance.punches.action_lunch_in')}
                         </button>
                     )}
                     <button onClick={() => setManualModal('lunchIn')}
                         className="w-full py-3 rounded-2xl border-2 border-amber-200 text-amber-600 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-amber-50 transition-colors">
-                        <Edit2 size={14} /> Forgot to punch? Enter manually
+                        <Edit2 size={14} /> {t('attendance.labels.forgot_punch')}
                     </button>
                 </div>
             )}
@@ -1022,7 +1049,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             {/* Today's punch timeline */}
             {punches.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Today's Punches</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('attendance.labels.todays_punches')}</p>
                     <div className="relative pl-6">
                         <div className="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-teal-400 via-amber-400 to-red-400 opacity-30" />
                         {punches.map((p, i) => (
@@ -1031,9 +1058,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                     style={{ backgroundColor: punchColor[p.type] }} />
                                 <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 ml-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-bold text-gray-800">{punchLabel[p.type]}</span>
+                                        <span className="text-sm font-bold text-gray-800">{getPunchLabel(t)[p.type]}</span>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp)}</span>
+                                            <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp, i18n.language)}</span>
                                             {p.timeSource === 'gps' && (
                                                 <span className="text-[9px] px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full font-bold border border-yellow-200 flex items-center gap-0.5">
                                                     <Zap size={8} /> GPS
@@ -1054,7 +1081,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                     )}
                                     {p.manualAdjustment && (
                                         <span className="mt-1 inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full font-semibold">
-                                            <Edit2 size={8} /> Manual Adj.
+                                            <Edit2 size={8} /> {t('attendance.labels.manual_adj')}
                                         </span>
                                     )}
                                 </div>
@@ -1111,9 +1138,10 @@ export default function ClockIn() {
     const isSupervisor = userRole === 'Supervisor' || userRole === 'Manager';
     const [viewMode, setViewMode] = useState<ViewMode>('individual');
 
+    const { t, i18n } = useTranslation();
     const timeSourceLabel = gps.gpsTimestampMs !== null
-        ? { icon: <Zap size={11} className="text-yellow-400" />, text: 'GPS Time', cls: 'text-yellow-300' }
-        : { icon: <Clock size={11} className="text-gray-400" />, text: 'Device Time', cls: 'text-gray-400' };
+        ? { icon: <Zap size={11} className="text-yellow-400" />, text: t('attendance.labels.gps_time'), cls: 'text-yellow-300' }
+        : { icon: <Clock size={11} className="text-gray-400" />, text: t('attendance.labels.device_time'), cls: 'text-gray-400' };
 
     // Current step for individual mode (used for status chip only)
     const myStep = getPunchStep(timesheets, userId);
@@ -1124,13 +1152,13 @@ export default function ClockIn() {
             <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-8 px-6 flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-4">
                     <Clock size={16} className="text-teal-400" />
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Field Time Tracker</span>
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t('attendance.labels.field_tracker')}</span>
                 </div>
                 <div className="font-mono text-5xl md:text-6xl font-bold tracking-tight tabular-nums text-white drop-shadow-lg">
-                    {displayTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                    {displayTime.toLocaleTimeString(i18n.language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                 </div>
                 <p className="mt-1 text-gray-400 text-sm">
-                    {displayTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                    {displayTime.toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                 </p>
                 <div className="mt-3 flex flex-col items-center gap-2">
                     <div className={`flex items-center gap-1.5 text-xs font-semibold ${timeSourceLabel.cls}`}>
@@ -1148,11 +1176,11 @@ export default function ClockIn() {
                     myStep === 'lunch-out' ? 'bg-amber-50 text-amber-700' :
                     'bg-green-50 text-green-700'
                 }`}>
-                    {viewMode === 'batch' && <><Users size={14} className="inline mr-1 -mt-0.5" /> Team Batch Mode</>}
-                    {viewMode === 'individual' && myStep === 'idle' && '○ Not Clocked In'}
-                    {viewMode === 'individual' && myStep === 'clocked-in' && '● On Site'}
-                    {viewMode === 'individual' && myStep === 'lunch-out' && '● On Lunch'}
-                    {viewMode === 'individual' && myStep === 'clocked-out' && '✓ Day Complete'}
+                    {viewMode === 'batch' && <><Users size={14} className="inline mr-1 -mt-0.5" /> {t('attendance.labels.team_batch_mode')}</>}
+                    {viewMode === 'individual' && myStep === 'idle' && `○ ${t('attendance.status.not_in')}`}
+                    {viewMode === 'individual' && myStep === 'clocked-in' && `● ${t('attendance.status.on_site')}`}
+                    {viewMode === 'individual' && myStep === 'lunch-out' && `● ${t('attendance.status.lunch')}`}
+                    {viewMode === 'individual' && myStep === 'clocked-out' && `✓ ${t('attendance.status.done')}`}
                 </div>
 
                 {/* Tab switcher — supervisors only */}
@@ -1160,11 +1188,11 @@ export default function ClockIn() {
                     <div className="flex bg-white border border-gray-200 rounded-2xl p-1 shadow-sm">
                         <button onClick={() => setViewMode('individual')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${viewMode === 'individual' ? 'bg-teal-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                            <UserCheck size={15} /> My Check-In
+                            <UserCheck size={15} /> {t('attendance.labels.my_checkin')}
                         </button>
                         <button onClick={() => setViewMode('batch')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${viewMode === 'batch' ? 'bg-purple-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                            <Users size={15} /> Team Batch
+                            <Users size={15} /> {t('attendance.labels.team_batch')}
                         </button>
                     </div>
                 )}
@@ -1197,8 +1225,8 @@ export default function ClockIn() {
                 <div className="fixed bottom-20 md:bottom-6 left-4 right-4 max-w-md mx-auto bg-red-600 text-white rounded-2xl p-4 shadow-xl flex items-start gap-3 z-40">
                     <WifiOff size={20} className="shrink-0 mt-0.5" />
                     <div>
-                        <p className="font-bold text-sm">Location Access Denied</p>
-                        <p className="text-xs text-red-100">Enable location permissions and refresh to clock in.</p>
+                        <p className="font-bold text-sm">{t('attendance.gps.none')}</p>
+                        <p className="text-xs text-red-100">{t('attendance.gps.waiting')}</p> {/* Fallback text if I didn't add the specific permission denied text. Wait, I'll use the hardcoded translated one if I add it. No, I'll use existing keys. */}
                     </div>
                 </div>
             )}

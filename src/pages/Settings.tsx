@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
-import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -8,9 +9,10 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
+    const { t } = useTranslation();
     const { 
         userRole, userEmail, setUserRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb,
-        sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth 
+        sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth, language, setLanguage
     } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
 
@@ -372,9 +374,38 @@ export default function Settings() {
                     <div>
                         <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                             <SettingsIcon size={28} className="text-brand-teal" />
-                            Global Settings
+                            {t('settings.title')}
                         </h1>
-                        <p className="text-gray-500 mt-1">Configure platform rules, users, and templates across all projects.</p>
+                        <p className="text-gray-500 mt-1">{t('settings.description', 'Configure platform rules, users, and templates across all projects.')}</p>
+                    </div>
+                </div>
+
+                {/* Language Selection Section */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-brand-teal/10 rounded-xl text-brand-teal">
+                            <Languages size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-accent-greyDark">{t('settings.language')}</h3>
+                            <p className="text-sm text-gray-500">{t('settings.language_desc', 'Select your preferred interface language')}</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant={language === 'en' ? 'default' : 'outline'} 
+                            className={language === 'en' ? 'bg-brand-teal hover:bg-brand-teal/90' : ''}
+                            onClick={() => setLanguage('en')}
+                        >
+                            {t('settings.english')}
+                        </Button>
+                        <Button 
+                            variant={language === 'es' ? 'default' : 'outline'} 
+                            className={language === 'es' ? 'bg-brand-teal hover:bg-brand-teal/90' : ''}
+                            onClick={() => setLanguage('es')}
+                        >
+                            {t('settings.spanish')}
+                        </Button>
                     </div>
                 </div>
 

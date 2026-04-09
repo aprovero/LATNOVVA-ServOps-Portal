@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import {
     MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText, Wrench,
@@ -11,6 +11,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
 export default function ProjectDetail() {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole } = useStore();
@@ -202,8 +203,8 @@ export default function ProjectDetail() {
         return (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
                 <AlertCircle size={48} className="text-gray-200" />
-                <p className="text-lg font-medium">Project not found.</p>
-                <Button variant="outline" onClick={() => navigate('/projects')}>Back to Projects</Button>
+                <p className="text-lg font-medium">{t('projects.empty.title', 'Project not found.')}</p>
+                <Button variant="outline" onClick={() => navigate('/projects')}>{t('projects.back_to_projects', 'Back to Projects')}</Button>
             </div>
         );
     }
@@ -229,7 +230,7 @@ export default function ProjectDetail() {
                 onClick={() => navigate('/projects')}
                 className="flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-brand-teal transition-colors"
             >
-                <ArrowLeft size={16} /> Back to Projects
+                <ArrowLeft size={16} /> {t('projects.back_to_projects', 'Back to Projects')}
             </button>
 
             {/* ── Project Header Card ─────────────────────────────── */}
@@ -253,9 +254,10 @@ export default function ProjectDetail() {
                                 <h1 className="text-2xl md:text-3xl font-bold text-accent-greyDark mb-1 flex items-center gap-2">
                                     {project.name}
                                     {project.hasNoDefinedScope && (
-                                        <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Labor Only</span>
+                                        <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">{t('projects.labor_only', 'Labor Only')}</span>
                                     )}
                                 </h1>
+ domestic: False
                                 {project.codeName && (
                                     <p className="text-sm font-mono font-bold text-brand-teal mb-3">{project.codeName}</p>
                                 )}
@@ -264,7 +266,7 @@ export default function ProjectDetail() {
                                     <div className="flex flex-wrap items-center gap-2 mb-4">
                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-status-success/10 text-status-success border border-status-success/20 rounded-xl text-xs font-bold shadow-sm">
                                             <Target size={14} />
-                                            Site Leads:
+                                            {t('projects.site_leads', 'Site Leads')}:
                                         </div>
                                         {project.siteLeadIds.map(leadId => {
                                             const lead = personnel.find(p => p.id === leadId);
@@ -310,7 +312,7 @@ export default function ProjectDetail() {
                                                         }
                                                     }}
                                                 >
-                                                    <MapPin size={10} className="group-hover:animate-ping" /> Update via GPS
+                                                    <MapPin size={10} className="group-hover:animate-ping" /> {t('projects.update_gps', 'Update via GPS')}
                                                 </Button>
                                             )}
                                         </div>
@@ -495,7 +497,7 @@ export default function ProjectDetail() {
 
                 {/* Stats */}
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
-                    <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2"><BarChart2 size={18} className="text-brand-teal" /> Project Stats</h2>
+                    <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2"><BarChart2 size={18} className="text-brand-teal" /> {t('projects.stats', 'Project Stats')}</h2>
                     
                     {project.hasNoDefinedScope ? (
                         <>
@@ -542,7 +544,7 @@ export default function ProjectDetail() {
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 lg:col-span-2 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2">
-                            <Users size={18} className="text-brand-teal" /> {isAddingPersonnel ? 'Add Personnel' : 'Assigned Personnel'}
+                            <Users size={18} className="text-brand-teal" /> {isAddingPersonnel ? t('projects.add_personnel', 'Add Personnel') : t('projects.assigned_personnel', 'Assigned Personnel')}
                             <span className="text-xs bg-brand-teal/10 text-brand-teal font-bold px-2 py-0.5 rounded-full">{assignedToThis.length}</span>
                         </h2>
                         {canEditPersonnel && (
@@ -552,7 +554,7 @@ export default function ProjectDetail() {
                                 className={`text-xs h-7 border-brand-teal/20 hover:border-brand-teal text-brand-teal transition-all ${isAddingPersonnel ? 'bg-brand-teal/10' : ''}`}
                                 onClick={() => setIsAddingPersonnel(!isAddingPersonnel)}
                             >
-                                {isAddingPersonnel ? 'Done' : '+ Add Personnel'}
+                                {isAddingPersonnel ? t('common.done', 'Done') : t('projects.add_personnel_action', '+ Add Personnel')}
                             </Button>
                         )}
                     </div>
@@ -775,12 +777,12 @@ export default function ProjectDetail() {
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-50 gap-4">
                         <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2">
-                            <AlertCircle size={18} className="text-orange-500" /> Reported Issues / Blockers
+                            <AlertCircle size={18} className="text-orange-500" /> {t('projects.issues', 'Reported Issues / Blockers')}
                             <span className="text-xs bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full">{projectOccurrences.length}</span>
                         </h2>
                         <div className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-100">
                             <Hourglass size={14} className="text-orange-500" />
-                            <span className="text-xs font-bold text-orange-600">Total Lost Time:</span>
+                            <span className="text-xs font-bold text-orange-600">{t('projects.lost_time', 'Total Lost Time')}:</span>
                             <span className="text-sm font-black text-orange-700">{totalLostTimeHours} hr</span>
                         </div>
                     </div>
@@ -789,33 +791,33 @@ export default function ProjectDetail() {
                         <table className="w-full text-left">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Date</th>
-                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Category</th>
-                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Description</th>
-                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">Impact</th>
-                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">Lost Time</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('common.date')}</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('reports.category', 'Category')}</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('common.description', 'Description')}</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">{t('reports.impact', 'Impact')}</th>
+                                    <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">{t('projects.lost_time_col', 'Lost Time')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {projectOccurrences.map((occ, idx) => (
                                     <tr key={`${occ.id}-${idx}`} className="hover:bg-orange-50/30 transition-colors group cursor-pointer" onClick={() => navigate(`/reports/${occ.reportId}`)}>
                                         <td className="p-4 text-sm font-semibold text-gray-500 whitespace-nowrap">
-                                            {new Date(occ.reportDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} <span className="text-gray-400 font-normal">at {occ.time}</span>
+                                            {new Date(occ.reportDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} <span className="text-gray-400 font-normal">{t('common.at', 'at')} {occ.time}</span>
                                         </td>
                                         <td className="p-4">
                                             <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 flex items-center gap-1.5 w-max">
-                                                <Target size={12} className="text-gray-400" /> {occ.category || 'Other'}
+                                                <Target size={12} className="text-gray-400" /> {occ.category || t('common.other')}
                                             </span>
                                         </td>
                                         <td className="p-4 text-sm text-accent-greyDark font-medium min-w-[200px]">
-                                            {occ.description || <span className="text-gray-400 italic">No description provided</span>}
+                                            {occ.description || <span className="text-gray-400 italic">{t('reports.no_description', 'No description provided')}</span>}
                                         </td>
                                         <td className="p-4 hidden sm:table-cell">
                                             <div className="flex gap-1.5 flex-wrap">
-                                                {occ.impact?.schedule && <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded font-bold">Schedule</span>}
-                                                {occ.impact?.productivity && <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded font-bold">Productivity</span>}
-                                                {occ.impact?.safety && <span className="text-[10px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded font-bold">Safety</span>}
-                                                {occ.impact?.clientVisible && <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded font-bold">Visible</span>}
+                                                {occ.impact?.schedule && <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded font-bold">{t('reports.impact_schedule', 'Schedule')}</span>}
+                                                {occ.impact?.productivity && <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded font-bold">{t('reports.impact_productivity', 'Productivity')}</span>}
+                                                {occ.impact?.safety && <span className="text-[10px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded font-bold">{t('reports.impact_safety', 'Safety')}</span>}
+                                                {occ.impact?.clientVisible && <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded font-bold">{t('reports.impact_visible', 'Visible')}</span>}
                                                 {!occ.impact?.schedule && !occ.impact?.productivity && !occ.impact?.safety && !occ.impact?.clientVisible && (
                                                     <span className="text-xs text-gray-300">-</span>
                                                 )}
@@ -839,26 +841,26 @@ export default function ProjectDetail() {
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between p-6 border-b border-gray-50">
                     <h2 className="text-base font-bold text-accent-greyDark flex items-center gap-2">
-                        <FileText size={18} className="text-brand-teal" /> Reports
+                        <FileText size={18} className="text-brand-teal" /> {t('reports.title')}
                         <span className="text-xs bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-full">{projectReports.length}</span>
                     </h2>
-                    <div className="flex items-center gap-4">
-                        <select
-                            className="bg-gray-50 border border-gray-100 text-sm font-medium text-gray-600 rounded-xl px-3 py-1.5 outline-none focus:border-brand-teal/50"
-                            value={filterReportState}
-                            onChange={e => setFilterReportState(e.target.value)}
-                        >
-                            <option value="All">All States</option>
-                            <option value="Draft">Draft</option>
-                            <option value="Pending Manager Review">Pending Manager Review</option>
-                            <option value="Available for Customer Review">Available for Customer Review</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Closed">Closed</option>
-                        </select>
-                        <Button size="sm" onClick={handleCreateReport} className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
-                            <Plus size={14} /> New Report
-                        </Button>
-                    </div>
+                        <div className="flex items-center gap-4">
+                            <select
+                                className="bg-gray-50 border border-gray-100 text-sm font-medium text-gray-600 rounded-xl px-3 py-1.5 outline-none focus:border-brand-teal/50"
+                                value={filterReportState}
+                                onChange={e => setFilterReportState(e.target.value)}
+                            >
+                                <option value="All">{t('reports.all_states', 'All States')}</option>
+                                <option value="Draft">{t('reports.draft')}</option>
+                                <option value="Pending Manager Review">{t('reports.pending_manager')}</option>
+                                <option value="Available for Customer Review">{t('reports.pending_customer')}</option>
+                                <option value="Approved">{t('reports.approved')}</option>
+                                <option value="Closed">{t('reports.closed')}</option>
+                            </select>
+                            <Button size="sm" onClick={handleCreateReport} className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
+                                <Plus size={14} /> {t('reports.new_report', 'New Report')}
+                            </Button>
+                        </div>
                 </div>
 
                 {projectReports.length === 0 ? (
@@ -871,11 +873,11 @@ export default function ProjectDetail() {
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
-                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Report ID</th>
-                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Date</th>
-                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">State</th>
-                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden md:table-cell">Labor Entries</th>
-                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">Action</th>
+                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('reports.table.id', 'Report ID')}</th>
+                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('common.date')}</th>
+                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('common.status')}</th>
+                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden md:table-cell">{t('reports.table.labor_entries', 'Labor Entries')}</th>
+                                <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider text-right">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -897,13 +899,13 @@ export default function ProjectDetail() {
                                         <td className="p-4 hidden md:table-cell">
                                             <span className="flex items-center gap-1.5 text-sm text-gray-500">
                                                 <Clock size={13} className="text-gray-300" />
-                                                {rep.labor?.length || 0} entr{rep.labor?.length === 1 ? 'y' : 'ies'}
+                                                {rep.labor?.length || 0} {rep.labor?.length === 1 ? t('reports.labor_entry', 'entry') : t('reports.labor_entries_count', 'entries')}
                                             </span>
                                         </td>
                                         <td className="p-4 text-right">
                                             <Link to={`/reports/${rep.id}`}>
                                                 <Button size="sm" variant="ghost" className="h-8 text-brand-teal hover:bg-brand-teal/10 font-bold text-xs">
-                                                    Open →
+                                                    {t('common.open', 'Open')} →
                                                 </Button>
                                             </Link>
                                         </td>

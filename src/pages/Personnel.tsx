@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { useStore, Personnel as PersonnelType } from '../store/useStore';
 import {
@@ -12,6 +13,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
 export default function Personnel() {
+    const { t } = useTranslation();
     const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects } = useStore();
     const location = useLocation();
 
@@ -114,10 +116,10 @@ export default function Personnel() {
         <div className="space-y-3 pt-4 border-t border-gray-100">
             <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <Award size={12} className="text-brand-teal" /> Certifications
+                    <Award size={12} className="text-brand-teal" /> {t('personnel.profile.certifications')}
                 </label>
                 <Button variant="outline" size="sm" onClick={() => handleAddCert(draft, setter)} className="h-7 gap-1 rounded-lg text-xs">
-                    <Plus size={12} /> Add Cert
+                    <Plus size={12} /> {t('personnel.profile.add_cert')}
                 </Button>
             </div>
             {(draft.certifications || []).map((cert, index) => (
@@ -127,7 +129,7 @@ export default function Personnel() {
                     </button>
                     <div className="flex-1">
                         <Input
-                            placeholder="Cert. Name (e.g. OSHA 30)"
+                            placeholder={`${t('personnel.profile.cert_name')} (e.g. OSHA 30)`}
                             value={cert.name}
                             onChange={e => handleUpdateCert(index, 'name', e.target.value, draft, setter)}
                             className="h-8 text-xs bg-white border-gray-200 mb-1.5"
@@ -145,7 +147,7 @@ export default function Personnel() {
             ))}
             {(!draft.certifications || draft.certifications.length === 0) && (
                 <p className="text-xs text-gray-400 text-center py-2 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                    No certifications. Click "Add Cert" to add one.
+                    {t('personnel.profile.no_certs')}. {t('common.actions')}.
                 </p>
             )}
         </div>
@@ -158,9 +160,9 @@ export default function Personnel() {
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <User className="text-brand-teal" size={28} />
-                        Personnel
+                        {t('nav.personnel')}
                     </h1>
-                    <p className="text-gray-500 mt-1">Manage field staff and internal employees.</p>
+                    <p className="text-gray-500 mt-1">{t('personnel.subtitle')}</p>
                 </div>
 
                 <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -169,42 +171,42 @@ export default function Personnel() {
                             className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6"
                             onClick={() => setNewPerson(null)}
                         >
-                            <Plus size={18} /> Add Personnel
+                            <Plus size={18} /> {t('personnel.new_personnel')}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto rounded-2xl p-6">
                         <DialogHeader>
-                            <DialogTitle className="text-xl font-bold text-accent-greyDark">Create New User</DialogTitle>
+                            <DialogTitle className="text-xl font-bold text-accent-greyDark">{t('personnel.new_personnel')}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-accent-greyDark">Full Name</label>
+                                <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.columns.name')}</label>
                                 <Input placeholder="e.g. John Doe" value={newPerson?.name || ''} onChange={e => setNewPerson({ ...newPerson, name: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Job Title / Position</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.columns.position')}</label>
                                     <Input placeholder="e.g. Lead Electrician" value={newPerson?.position || ''} onChange={e => setNewPerson({ ...newPerson, position: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><FolderGit2 size={14} className="text-brand-teal" /> Employee ID</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><FolderGit2 size={14} className="text-brand-teal" /> {t('personnel.columns.id')}</label>
                                     <Input placeholder="e.g. EMP-1234" value={newPerson?.employeeNumber || ''} onChange={e => setNewPerson({ ...newPerson, employeeNumber: e.target.value })} />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Email Address</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.email')}</label>
                                     <Input type="email" placeholder="john.doe@latnovva.com" value={newPerson?.email || ''} onChange={e => setNewPerson({ ...newPerson, email: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Phone Number</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.phone')}</label>
                                     <Input placeholder="e.g. 956-280-8290" value={newPerson?.phoneNumber || ''} onChange={e => setNewPerson({ ...newPerson, phoneNumber: e.target.value })} />
                                 </div>
                             </div>
                             {isManager && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> App Role</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> {t('personnel.columns.role')}</label>
                                         <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={newPerson?.appRole || 'Tech'} onChange={e => setNewPerson({ ...newPerson, appRole: e.target.value as any })}>
                                             <option value="Tech">Tech</option>
                                             <option value="Supervisor">Supervisor</option>
@@ -212,17 +214,17 @@ export default function Personnel() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> Status</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> {t('personnel.columns.status')}</label>
                                         <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={newPerson?.status || 'Active'} onChange={e => setNewPerson({ ...newPerson, status: e.target.value as any })}>
-                                            <option value="Active">Active</option>
-                                            <option value="Inactive">Inactive</option>
+                                            <option value="Active">{t('common.active')}</option>
+                                            <option value="Inactive">{t('common.inactive')}</option>
                                         </select>
                                     </div>
                                 </div>
                             )}
                             <div className="space-y-4">
                                 <label className="text-sm font-semibold text-accent-greyDark flex items-center justify-between cursor-pointer bg-gray-50 p-3 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
-                                    <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-brand-teal" /> Prevailing Wage</span>
+                                    <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-brand-teal" /> {t('personnel.prevailing_wage')}</span>
                                     <input 
                                         type="checkbox" 
                                         className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
@@ -231,12 +233,12 @@ export default function Personnel() {
                                     />
                                 </label>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> Certs Folder Link</label>
-                                    <Input placeholder="e.g. OneDrive or Google Drive URL" value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
+                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
+                                    <Input placeholder={t('personnel.certs_folder_placeholder')} value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
                                 </div>
                             </div>
                             <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Profile Photo</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">{t('personnel.profile_photo')}</label>
                                 <div className="flex items-center gap-4">
                                     <div className="w-14 h-14 rounded-full bg-brand-teal/10 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center text-brand-teal">
                                         {newPerson?.image ? <img src={newPerson.image} alt="Preview" className="w-full h-full object-cover" /> : <Camera size={20} />}
@@ -251,7 +253,7 @@ export default function Personnel() {
                             </div>
                             {newPerson && renderCertsEditor(newPerson, setNewPerson)}
                             <Button className="w-full mt-2 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAdd}>
-                                Create User
+                                {t('personnel.create_user')}
                             </Button>
                         </div>
                     </DialogContent>
@@ -261,11 +263,11 @@ export default function Personnel() {
             {/* Filter Bar */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end">
                 <div className="space-y-1.5 flex-[1.5] min-w-[200px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> Search Directory</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> {t('personnel.filters.search')}</label>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <Input
-                            placeholder="Find by name, role or email..."
+                            placeholder={t('personnel.filters.search_placeholder')}
                             className="pl-10 w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-teal h-10"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
@@ -274,14 +276,14 @@ export default function Personnel() {
                 </div>
 
                 <div className="space-y-1.5 flex-1 min-w-[150px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Shield size={12} /> Filter Role</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Shield size={12} /> {t('personnel.filters.role')}</label>
                     <div className="relative">
                         <select
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer h-10"
                             value={filterRole}
                             onChange={e => setFilterRole(e.target.value)}
                         >
-                            <option value="All">All Roles</option>
+                            <option value="All">{t('personnel.filters.all_roles')}</option>
                             <option value="Tech">Techs</option>
                             <option value="Supervisor">Supervisors</option>
                             <option value="Manager">Managers</option>
@@ -295,13 +297,13 @@ export default function Personnel() {
                         onClick={() => setViewMode('list')}
                         className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'list' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <List size={16} /> List
+                        <List size={16} /> {t('common.search')}
                     </button>
                     <button
                         onClick={() => setViewMode('org')}
                         className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'org' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <Network size={16} /> Deployments
+                        <Network size={16} /> {t('nav.projects')}
                     </button>
                 </div>
             </div>
@@ -312,13 +314,13 @@ export default function Personnel() {
                     {/* LEFT: Person List */}
                     <div className="w-64 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
-                            Directory · {filteredPersonnel.length}
+                            {t('personnel.directory_count', { count: filteredPersonnel.length })}
                         </p>
 
                         {filteredPersonnel.length === 0 && (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-10 px-4 text-center">
                                 <User size={28} className="mb-2 opacity-30" />
-                                <p className="text-xs font-medium">No personnel found</p>
+                                <p className="text-xs font-medium">{t('common.no_results')}</p>
                             </div>
                         )}
 
@@ -429,7 +431,7 @@ export default function Personnel() {
                                                         </span>
                                                         {selectedPerson.prevailingWage && (
                                                             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                                                                <Award size={10} /> Prevailing Wage
+                                                                <Award size={10} /> {t('personnel.prevailing_wage')}
                                                             </span>
                                                         )}
                                                         {assignedProject && (
@@ -472,20 +474,20 @@ export default function Personnel() {
 
                                 {/* Edit Form Body */}
                                 <div className="p-6 flex-1 overflow-y-auto space-y-5">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Edit Information</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('personnel.edit_info')}</p>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark">Full Name</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.columns.name')}</label>
                                         <Input value={editDraft.name || ''} onChange={e => setEditDraft(d => d ? { ...d, name: e.target.value } : d)} />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">Job Title / Position</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.columns.position')}</label>
                                             <Input value={editDraft.position || ''} onChange={e => setEditDraft(d => d ? { ...d, position: e.target.value } : d)} />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><FolderGit2 size={14} className="text-brand-teal" /> Employee ID</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><FolderGit2 size={14} className="text-brand-teal" /> {t('personnel.columns.id')}</label>
                                             <Input value={editDraft.employeeNumber || ''} onChange={e => setEditDraft(d => d ? { ...d, employeeNumber: e.target.value } : d)} />
                                         </div>
                                     </div>
@@ -505,7 +507,7 @@ export default function Personnel() {
                                         <>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> App Role</label>
+                                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> {t('personnel.columns.role')}</label>
                                                 <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.appRole || 'Tech'} onChange={e => setEditDraft(d => d ? { ...d, appRole: e.target.value as any } : d)}>
                                                     <option value="Tech">Tech</option>
                                                     <option value="Supervisor">Supervisor</option>
@@ -514,7 +516,7 @@ export default function Personnel() {
                                             </div>
                                             <div className="space-y-2 pt-6">
                                                 <label className="text-sm font-semibold text-accent-greyDark flex items-center justify-between cursor-pointer bg-gray-50 p-2.5 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
-                                                    <span className="flex items-center gap-2"><Award size={14} className="text-brand-teal" /> Prevailing Wage</span>
+                                                    <span className="flex items-center gap-2"><Award size={14} className="text-brand-teal" /> {t('personnel.prevailing_wage')}</span>
                                                     <input 
                                                         type="checkbox" 
                                                         className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
@@ -525,7 +527,7 @@ export default function Personnel() {
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> Status</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> {t('personnel.columns.status')}</label>
                                             <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.status || 'Active'} onChange={e => setEditDraft(d => d ? { ...d, status: e.target.value as any } : d)}>
                                                 <option value="Active">Active</option>
                                                 <option value="Inactive">Inactive</option>
@@ -535,7 +537,7 @@ export default function Personnel() {
                                     )}
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> Certs Folder Link</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
                                         <Input placeholder="e.g. OneDrive or Google Drive URL" value={editDraft.sharedFolderLink || ''} onChange={e => setEditDraft(d => d ? { ...d, sharedFolderLink: e.target.value } : d)} />
                                     </div>
 
@@ -545,23 +547,21 @@ export default function Personnel() {
                                         className={`w-full h-11 font-bold rounded-xl gap-2 transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-500 text-white' : 'bg-brand-teal hover:bg-brand-teal/90 text-white'}`}
                                         onClick={handleSave}
                                     >
-                                        {isSaved ? <><CheckCircle2 size={18} /> Saved!</> : <><Save size={18} /> Save Changes</>}
+                                        {isSaved ? <><CheckCircle2 size={18} /> {t('personnel.saved')}</> : <><Save size={18} /> {t('personnel.profile.save')}</>}
                                     </Button>
                                 </div>
                             </div>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
                                 <User size={36} className="mb-3 opacity-30" />
-                                <p className="text-sm font-medium text-accent-greyDark">Select a person</p>
+                                <p className="text-sm font-medium text-accent-greyDark">{t('personnel.select_prompt')}</p>
                                 <p className="text-xs mt-1">Click anyone from the list to view and edit their profile.</p>
                             </div>
                         )}
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 min-h-[600px] w-full max-w-full">
-                    <OrgChartView />
-                </div>
+                <OrgChartView />
             )}
         </div>
     );

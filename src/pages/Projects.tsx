@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
 import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, Building2, ChevronDown, Filter, Search, Check, Plus, Target } from 'lucide-react';
@@ -52,6 +53,7 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 };
 
 export default function Projects() {
+    const { t } = useTranslation();
     const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject } = useStore();
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
@@ -149,20 +151,22 @@ export default function Projects() {
         <div className="space-y-8 pb-20 md:pb-0 h-full flex flex-col">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">{userRole === 'Customer' ? 'Customer Portal' : 'Global Operations'}</h1>
-                    <p className="text-gray-500 mt-1">Real-time tracking and operational intelligence.</p>
+                    <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
+                        {userRole === 'Customer' ? t('projects.customer_portal', 'Customer Portal') : t('projects.global_ops', 'Global Operations')}
+                    </h1>
+                    <p className="text-gray-500 mt-1">{t('projects.subtitle', 'Real-time tracking and operational intelligence.')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {userRole !== 'Customer' && (
                         <Link to="/live-map">
                             <Button variant="outline" className="border-gray-200 text-gray-700 hover:bg-gray-50 gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
-                                <Map size={18} /> <span className="hidden sm:inline">Live Map</span>
+                                <Map size={18} /> <span className="hidden sm:inline">{t('nav.live_map')}</span>
                             </Button>
                         </Link>
                     )}
                     {['Manager', 'Supervisor'].includes(userRole) && (
                         <Button onClick={() => setIsAddProjectOpen(true)} className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
-                            <Plus size={18} /> New Project
+                            <Plus size={18} /> {t('projects.new_project')}
                         </Button>
                     )}
                 </div>
@@ -178,7 +182,7 @@ export default function Projects() {
                             <div className="flex items-center gap-3 w-full sm:w-auto sm:mr-auto shrink-0 mb-2 sm:mb-0">
                                 <h2 className="text-lg font-bold text-accent-greyDark flex items-center gap-2">
                                     <FolderGit2 className="text-brand-teal" size={20} />
-                                    Projects Directory
+                                    {t('projects.directory', 'Projects Directory')}
                                     <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{visibleProjects.length}</span>
                                 </h2>
                             </div>
@@ -192,7 +196,7 @@ export default function Projects() {
                                             value={filterCustomer}
                                             onChange={(e) => setFilterCustomer(e.target.value)}
                                         >
-                                            <option value="All">All Customers</option>
+                                            <option value="All">{t('common.all_customers', 'All Customers')}</option>
                                             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
@@ -209,11 +213,11 @@ export default function Projects() {
                                             value={filterStatus}
                                             onChange={(e) => setFilterStatus(e.target.value)}
                                         >
-                                            <option value="All">All Status</option>
-                                            <option value="Active">Active</option>
-                                            <option value="On Hold">On Hold</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Critical">Critical Issues</option>
+                                            <option value="All">{t('common.all_status', 'All Status')}</option>
+                                            <option value="Active">{t('common.active')}</option>
+                                            <option value="On Hold">{t('common.on_hold')}</option>
+                                            <option value="Completed">{t('common.completed')}</option>
+                                            <option value="Critical">{t('common.critical_issues', 'Critical Issues')}</option>
                                         </select>
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                                     </div>
@@ -226,11 +230,11 @@ export default function Projects() {
                             <table className="w-full text-left border-collapse">
                                 <thead className="sticky top-0 bg-gray-50 z-10 border-b border-gray-100 shadow-sm">
                                     <tr>
-                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Project</th>
-                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">Customer</th>
-                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Status</th>
-                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">Progress</th>
-                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden lg:table-cell">Reported Time</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('projects.table.project', 'Project')}</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden sm:table-cell">{t('projects.table.customer', 'Customer')}</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('projects.table.status', 'Status')}</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider">{t('projects.table.progress', 'Progress')}</th>
+                                        <th className="p-4 text-xs font-bold text-accent-greyLight uppercase tracking-wider hidden lg:table-cell">{t('projects.table.reported_time', 'Reported Time')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -300,7 +304,7 @@ export default function Projects() {
                                                                     return allActs.length > 0 ? Math.round(totalProgress / allActs.length) : proj.progress || 0;
                                                                 })()}%
                                                             </p>
-                                                            <p className="text-[10px] text-gray-400 font-medium">Accomplished</p>
+                                                            <p className="text-[10px] text-gray-400 font-medium">{t('projects.accomplished', 'Accomplished')}</p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -318,8 +322,8 @@ export default function Projects() {
                                             <tr>
                                                 <td colSpan={6} className="p-12 text-center text-gray-500">
                                                     <FolderGit2 size={48} className="mx-auto mb-4 text-gray-300" />
-                                                    <p className="text-lg font-medium text-accent-greyDark">No projects found</p>
-                                                    <p className="text-sm mt-1">There are no active projects to display.</p>
+                                                    <p className="text-lg font-medium text-accent-greyDark">{t('projects.empty.title', 'No projects found')}</p>
+                                                    <p className="text-sm mt-1">{t('projects.empty.subtitle', 'There are no active projects to display.')}</p>
                                                 </td>
                                             </tr>
                                         )}
@@ -334,15 +338,15 @@ export default function Projects() {
                         {/* Right Column: Intelligence Layer */}
                         <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
                                 <ActivityIcon className="text-brand-teal" size={24} />
-                                Intelligence Feed
+                                {t('projects.intelligence_feed', 'Intelligence Feed')}
                         </h2>
 
                         {/* Removed Redundant Alerts Summary */}
 
                         <Card className="flex-1 rounded-3xl border-gray-100 shadow-sm overflow-hidden flex flex-col">
                             <CardHeader className="bg-gray-50 border-b border-gray-100 pb-4">
-                                <CardTitle className="text-base text-accent-greyDark">Recent Activity</CardTitle>
-                                <CardDescription>Timeline of operations and reports.</CardDescription>
+                                <CardTitle className="text-base text-accent-greyDark">{t('projects.recent_activity', 'Recent Activity')}</CardTitle>
+                                <CardDescription>{t('projects.activity_desc', 'Timeline of operations and reports.')}</CardDescription>
                             </CardHeader>
                             <CardContent className="flex-1 p-0 overflow-y-auto">
                                 <div className="divide-y divide-gray-100 relative">
@@ -493,7 +497,7 @@ export default function Projects() {
                                     <option value="Solar">Solar</option>
                                     <option value="BESS">BESS</option>
                                     <option value="Hybrid">Hybrid</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Other">{t('common.other', 'Other')}</option>
                                 </select>
                             </div>
                        </div>

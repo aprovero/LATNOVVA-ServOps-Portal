@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore, Project, ProjectScope, ProjectActivity } from '../../store/useStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -13,6 +14,7 @@ interface ManageScopesModalProps {
 }
 
 export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesModalProps) {
+    const { t } = useTranslation();
     const { addScopeToProject, addActivityToScope, projects, scopeTemplates, updateProject } = useStore();
     const currentProject = projects.find(p => p.id === project.id) || project;
 
@@ -129,23 +131,23 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Manage Scopes & Activities - {currentProject.codeName ? `${currentProject.codeName} • ` : ''}{currentProject.name}</DialogTitle>
+                    <DialogTitle>{t('projects.manage_scopes', 'Manage Scopes & Activities')} - {currentProject.codeName ? `${currentProject.codeName} • ` : ''}{currentProject.name}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
                     {/* Add New Scope */}
                     <div className="flex flex-col gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <div className="space-y-2">
-                            <Label>Source</Label>
+                            <Label>{t('projects.source', 'Source')}</Label>
                             <select
                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none transition-all"
                                 value={selectedTemplateId}
                                 onChange={(e) => setSelectedTemplateId(e.target.value)}
                             >
-                                <option value="custom">Blank Custom Scope</option>
+                                <option value="custom">{t('projects.blank_custom', 'Blank Custom Scope')}</option>
                                 {scopeTemplates.length > 0 && (
-                                    <optgroup label="Templates">
+                                    <optgroup label={t('templates.title', 'Templates')}>
                                         {scopeTemplates.map(t => (
-                                            <option key={t.id} value={t.id}>{t.name} ({t.activities.length} tasks)</option>
+                                            <option key={t.id} value={t.id}>{t.name} ({t.activities.length} {t('reports.labor_entries_count', 'entries')})</option>
                                         ))}
                                     </optgroup>
                                 )}
@@ -156,29 +158,29 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                             <>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label>New Scope Name</Label>
+                                        <Label>{t('projects.new_scope_name', 'New Scope Name')}</Label>
                                         <Input 
-                                            placeholder="e.g. Civil Works, Commissioning..." 
+                                            placeholder={t('projects.scope_name_placeholder', 'e.g. Civil Works, Commissioning...')} 
                                             value={newScopeName}
                                             onChange={e => setNewScopeName(e.target.value)}
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Discipline</Label>
+                                        <Label>{t('projects.discipline', 'Discipline')}</Label>
                                         <select
                                             className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none transition-all"
                                             value={newScopeDiscipline}
                                             onChange={(e) => setNewScopeDiscipline(e.target.value as any)}
                                         >
                                             {DISCIPLINE_OPTIONS.map(d => (
-                                                <option key={d} value={d}>{d}</option>
+                                                <option key={d} value={d}>{t(`disciplines.${d.toLowerCase()}`, d)}</option>
                                             ))}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="flex justify-end mt-2">
                                     <Button onClick={handleAddScope} className="shrink-0 bg-brand-teal hover:bg-brand-teal/90 text-white" disabled={!newScopeName.trim()}>
-                                        <Plus size={16} className="mr-2"/> Add Scope
+                                        <Plus size={16} className="mr-2"/> {t('projects.add_scope', 'Add Scope')}
                                     </Button>
                                 </div>
                             </>
@@ -187,14 +189,14 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                 <div className="bg-white p-3 rounded-lg border border-gray-100">
                                     <h4 className="text-sm font-bold text-accent-greyDark flex items-center gap-2 mb-2">
                                         <ListChecks size={16} className="text-brand-teal" />
-                                        Activities to be added
+                                        {t('projects.activities_to_add', 'Activities to be added')}
                                     </h4>
                                     <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2">
                                         {scopeTemplates.find(t => t.id === selectedTemplateId)?.activities.map((act, i) => (
                                             <div key={i} className="flex flex-col gap-1 p-2 bg-gray-50 rounded-lg border border-gray-100">
                                                 <div className="flex items-center gap-2 text-xs font-bold text-accent-greyDark">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-brand-teal shrink-0" />
-                                                    {act.title} <span className="text-[10px] text-gray-400 font-normal">({act.expectedDays} days)</span>
+                                                    {act.title} <span className="text-[10px] text-gray-400 font-normal">({act.expectedDays} {t('common.days', 'days')})</span>
                                                 </div>
                                                 {act.steps.length > 0 && (
                                                     <div className="pl-4 flex flex-wrap gap-x-3 gap-y-1">
@@ -211,7 +213,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                 </div>
                                 <div className="flex justify-end">
                                     <Button onClick={handleAddScope} className="shrink-0 bg-brand-teal hover:bg-brand-teal/90 text-white">
-                                        <Plus size={16} className="mr-2"/> Add Scope from Template
+                                        <Plus size={16} className="mr-2"/> {t('projects.add_scope_template', 'Add Scope from Template')}
                                     </Button>
                                 </div>
                             </div>
@@ -239,7 +241,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                 onChange={e => setEditScopeName(e.target.value)}
                                                                 className="h-8 py-0 focus-visible:ring-brand-teal w-[180px]"
                                                                 autoFocus
-                                                                placeholder="Scope Name"
+                                                                placeholder={t('projects.scope_name', 'Scope Name')}
                                                             />
                                                             <select
                                                                 className="h-8 bg-white border border-gray-200 rounded-lg px-2 text-[10px] font-bold focus:ring-1 focus:ring-brand-teal outline-none"
@@ -247,7 +249,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                 onChange={(e) => setEditScopeDiscipline(e.target.value as any)}
                                                             >
                                                                 {DISCIPLINE_OPTIONS.map(d => (
-                                                                    <option key={d} value={d}>{d}</option>
+                                                                    <option key={d} value={d}>{t(`disciplines.${d.toLowerCase()}`, d)}</option>
                                                                 ))}
                                                             </select>
                                                             <Input
@@ -255,10 +257,10 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                 value={editScopeStartDate}
                                                                 onChange={e => setEditScopeStartDate(e.target.value)}
                                                                 className="h-8 py-0 w-[130px]"
-                                                                title="Start Date"
+                                                                title={t('projects.start_date', 'Start Date')}
                                                             />
                                                             <Input
-                                                                placeholder="Duration (e.g. 4 Weeks)"
+                                                                placeholder={t('projects.duration_placeholder', 'Duration (e.g. 4 Weeks)')}
                                                                 value={editScopeExpectedDuration}
                                                                 onChange={e => setEditScopeExpectedDuration(e.target.value)}
                                                                 className="h-8 py-0 w-[150px]"
@@ -277,7 +279,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                             {scope.name}
                                                             {scope.discipline && (
                                                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-teal/10 text-brand-teal border border-brand-teal/20 uppercase tracking-tighter">
-                                                                    {scope.discipline}
+                                                                    {t(`disciplines.${scope.discipline.toLowerCase()}`, scope.discipline)}
                                                                 </span>
                                                             )}
                                                             {scope.startDate && (
@@ -295,7 +297,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                 )}
                                                 {isCompleted && (
                                                     <span className="text-xs font-bold text-status-success bg-white/60 px-2 py-0.5 rounded-md border border-status-success/20">
-                                                        Completed on {scope.completedDate ? new Date(scope.completedDate).toLocaleDateString() : 'Unknown Database State'}
+                                                        {t('projects.completed_on', 'Completed on')} {scope.completedDate ? new Date(scope.completedDate).toLocaleDateString() : t('common.unknown_state', 'Unknown State')}
                                                     </span>
                                                 )}
                                             </div>
@@ -318,7 +320,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                     <button 
                                                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                                                         onClick={() => {
-                                                            if (window.confirm(`Are you sure you want to delete the scope "${scope.name}" and all its activities?`)) {
+                                                            if (window.confirm(t('projects.confirm_delete_scope', { name: scope.name, defaultValue: `Are you sure you want to delete the scope "{{name}}" and all its activities?` }))) {
                                                                 deleteProjectScope(currentProject.id, scope.id);
                                                             }
                                                         }}
@@ -337,7 +339,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                         <div className="p-4 space-y-3 bg-white">
                                             {/* Activities List */}
                                             {scope.activities.length === 0 ? (
-                                                <p className="text-sm text-gray-400 italic">No activities defined yet.</p>
+                                                <p className="text-sm text-gray-400 italic">{t('projects.no_activities', 'No activities defined yet.')}</p>
                                             ) : (
                                                 <div className="space-y-2 mb-4">
                                                     {scope.activities.map(act => (
@@ -357,7 +359,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                                 onChange={e => setEditActivityTitle(e.target.value)}
                                                                                 className="h-8 py-0 text-sm font-bold focus-visible:ring-brand-teal"
                                                                                 autoFocus
-                                                                                placeholder="Activity Title"
+                                                                                placeholder={t('projects.activity_title', 'Activity Title')}
                                                                             />
                                                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-status-success shrink-0" onClick={() => handleUpdateActivityTitle(scope.id, act.id)}>
                                                                                 <Check size={16} />
@@ -368,7 +370,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                         </div>
                                                                         
                                                                         <div className="space-y-1.5 pl-2">
-                                                                            <Label className="text-[10px] font-bold text-gray-400 uppercase">Checklist Steps</Label>
+                                                                            <Label className="text-[10px] font-bold text-gray-400 uppercase">{t('reports.checklist', 'Checklist')} {t('reports.table.id', 'Steps')}</Label>
                                                                             <div className="space-y-1">
                                                                                 {editActivitySteps.map((step, idx) => (
                                                                                     <div key={idx} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-xs border border-gray-100">
@@ -382,7 +384,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                                     <Input 
                                                                                         value={newStepText}
                                                                                         onChange={e => setNewStepText(e.target.value)}
-                                                                                        placeholder="New step..."
+                                                                                        placeholder={t('projects.new_step_placeholder', 'New step...')}
                                                                                         className="h-7 text-[11px] py-0"
                                                                                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addStepToEdit())}
                                                                                     />
@@ -400,7 +402,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                         </span>
                                                                         {act.steps.length > 0 && (
                                                                             <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                                                                                <ListChecks size={10} /> {act.steps.filter(s => s.completed).length}/{act.steps.length} steps completed
+                                                                                <ListChecks size={10} /> {act.steps.filter(s => s.completed).length}/{act.steps.length} {t('projects.steps_completed', 'steps completed')}
                                                                             </span>
                                                                         )}
                                                                     </div>
@@ -422,7 +424,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                         <button 
                                                                             className="p-1 text-gray-400 hover:text-red-500 rounded"
                                                                             onClick={() => {
-                                                                                if (window.confirm(`Delete activity "${act.title}"?`)) {
+                                                                                if (window.confirm(t('projects.confirm_delete_activity', { title: act.title, defaultValue: `Delete activity "{{title}}"?` }))) {
                                                                                     deleteProjectActivity(currentProject.id, scope.id, act.id);
                                                                                 }
                                                                             }}
@@ -433,7 +435,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                 )}
                                                                 <span className="text-xs text-brand-teal font-bold">{act.progress}%</span>
                                                                 <span className="text-xs text-gray-400 border border-gray-200 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block">
-                                                                    {act.expectedDays ? `${act.expectedDays}d • ` : ''}{(act.status === 'Completed' || act.progress === 100) ? 'Completed' : act.status}
+                                                                    {act.expectedDays ? `${act.expectedDays}d • ` : ''}{(act.status === 'Completed' || act.progress === 100) ? t('reports.closed') : t(`reports.${act.status.toLowerCase()}`, act.status)}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -444,7 +446,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                             {/* Add Activity */}
                                             <div className="flex items-center gap-2 mt-2">
                                                 <Input 
-                                                    placeholder="Add an activity (e.g. Step 1: Excavation)..." 
+                                                    placeholder={t('projects.add_activity_placeholder', 'Add an activity (e.g. Step 1: Excavation)...')} 
                                                     value={newActivityTitles[scope.id] || ''}
                                                     onChange={e => setNewActivityTitles(prev => ({ ...prev, [scope.id]: e.target.value }))}
                                                     className="h-8 text-sm"
@@ -453,7 +455,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                     }}
                                                 />
                                                 <Button size="sm" variant="secondary" onClick={() => handleAddActivity(scope.id)}>
-                                                    Add
+                                                    {t('common.add', 'Add')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -464,7 +466,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={() => onOpenChange(false)}>Done</Button>
+                    <Button onClick={() => onOpenChange(false)}>{t('common.done', 'Done')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

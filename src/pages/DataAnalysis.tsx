@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import { Activity, TrendingUp, Users, Clock, AlertTriangle, FolderGit2, PieChart as PieChartIcon, LineChart as LineChartIcon, Timer } from 'lucide-react';
 import { useMemo, useEffect, useState } from 'react';
@@ -13,6 +14,7 @@ function isThisMonth(dateStr: string): boolean {
 }
 
 export default function DataAnalysis() {
+    const { t } = useTranslation();
     const { reports, projects, personnel, userRole } = useStore();
     const [activeDiscipline, setActiveDiscipline] = useState<string>('All');
 
@@ -22,8 +24,8 @@ export default function DataAnalysis() {
         return (
             <div className="flex flex-col items-center justify-center pt-24 text-gray-400">
                 <AlertTriangle size={48} className="mb-4 text-status-warning/50" />
-                <h2 className="text-xl font-bold text-accent-grey">Access Denied</h2>
-                <p className="text-sm mt-2">Global intelligence requires Manager privileges.</p>
+                <h2 className="text-xl font-bold text-accent-grey">{t('analysis.denied')}</h2>
+                <p className="text-sm mt-2">{t('analysis.denied_desc')}</p>
             </div>
         );
     }
@@ -182,10 +184,10 @@ export default function DataAnalysis() {
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <Activity className="text-brand-teal" size={28} />
-                        Intelligence Feed
+                        {t('analysis.title')}
                     </h1>
                     <p className="text-gray-500 mt-1">
-                        Operational analytics and portfolio trends.
+                        {t('analysis.subtitle')}
                         <span className="ml-2 text-[11px] font-bold text-brand-teal/70 uppercase tracking-wider bg-brand-teal/5 border border-brand-teal/20 px-2 py-0.5 rounded-lg">{monthLabel}</span>
                     </p>
                 </div>
@@ -206,54 +208,54 @@ export default function DataAnalysis() {
             <div className="dash-stagger grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="card-container border-l-4 border-brand-teal p-5">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Active Projects</p>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">{t('analysis.stats.active_projects')}</p>
                         <FolderGit2 size={20} className="text-brand-teal" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{activeProjects}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-medium">All time</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.all_time')}</p>
                 </div>
 
                 <div className="card-container border-l-4 border-blue-500 p-5">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Completion</p>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">{t('analysis.stats.completion')}</p>
                         <TrendingUp size={20} className="text-blue-500" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{overallProgress}%</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-medium">Monthly avg</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.monthly_avg')}</p>
                 </div>
 
                 <div className="card-container border-l-4 border-purple-500 p-5">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Reports</p>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">{t('analysis.stats.reports')}</p>
                         <FileTextIcon size={20} className="text-purple-500" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{totalReports}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-medium">This month</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.this_month')}</p>
                 </div>
 
                 <div className="card-container border-l-4 border-orange-500 p-5">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Total Hours</p>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">{t('analysis.stats.total_hours')}</p>
                         <Clock size={20} className="text-orange-500" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{totalHoursLog.toLocaleString()}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-medium">This month</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.this_month')}</p>
                 </div>
 
                 <div className="card-container border-l-4 border-red-400 p-5">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">Lost Time</p>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">{t('analysis.stats.lost_time')}</p>
                         <Timer size={20} className="text-red-400" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{totalLostTimeMins > 0 ? lostTimeDisplay : '—'}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-medium">This month</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.this_month')}</p>
                 </div>
             </div>
 
             <div className="dash-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="card-container">
                     <h2 className="text-lg font-bold text-accent-greyDark mb-6 flex items-center gap-2">
-                        <Users className="text-brand-teal" size={20} /> Labor Burn Rate
+                        <Users className="text-brand-teal" size={20} /> {t('analysis.stats.burn_rate')}
                     </h2>
                     <div className="h-72 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -270,7 +272,7 @@ export default function DataAnalysis() {
 
                 <div className="card-container">
                     <h2 className="text-lg font-bold text-accent-greyDark mb-6 flex items-center gap-2">
-                        <PieChartIcon className="text-brand-teal" size={20} /> Resource Utilization
+                        <PieChartIcon className="text-brand-teal" size={20} /> {t('analysis.stats.utilization')}
                     </h2>
                     <div className="h-72 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -286,18 +288,18 @@ export default function DataAnalysis() {
                     <div className="flex justify-center gap-6">
                         <div className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-brand-teal"></span>
-                            <span className="text-xs font-bold text-gray-600">Assigned ({utilizationData[0].value})</span>
+                            <span className="text-xs font-bold text-gray-600">{t('analysis.charts.assigned')} ({utilizationData[0].value})</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-gray-200"></span>
-                            <span className="text-xs font-bold text-gray-600">Bench ({utilizationData[1].value})</span>
+                            <span className="text-xs font-bold text-gray-600">{t('analysis.charts.bench')} ({utilizationData[1].value})</span>
                         </div>
                     </div>
                 </div>
 
                 <div className="card-container">
                     <h2 className="text-lg font-bold text-accent-greyDark mb-6 flex items-center gap-2">
-                        <AlertTriangle className="text-orange-500" size={20} /> Lost Time by Category
+                        <AlertTriangle className="text-orange-500" size={20} /> {t('analysis.lost_time_by_cat')}
                     </h2>
                     {lostTimeData.length > 0 ? (
                         <>
@@ -328,14 +330,14 @@ export default function DataAnalysis() {
                         </>
                     ) : (
                         <div className="h-72 flex items-center justify-center text-gray-400">
-                            <p className="text-sm font-medium">No lost time reported</p>
+                            <p className="text-sm font-medium">{t('analysis.no_lost_time')}</p>
                         </div>
                     )}
                 </div>
 
                 <div className="card-container lg:col-span-3">
                     <h2 className="text-lg font-bold text-accent-greyDark mb-6 flex items-center gap-2">
-                        <LineChartIcon className="text-blue-500" size={20} /> Project Velocity (S-Curve)
+                        <LineChartIcon className="text-blue-500" size={20} /> {t('analysis.project_velocity')}
                     </h2>
                     <div className="h-80 w-full">
                         <ResponsiveContainer width="100%" height="100%">

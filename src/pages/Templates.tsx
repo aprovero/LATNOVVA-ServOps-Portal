@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Plus, Search, CheckSquare, Trash2, ListChecks, FolderGit2, FileText, Pencil, X, Clock } from 'lucide-react';
 import { useStore, ChecklistTemplate, ScopeTemplate, SubReportTemplate, SubReportFieldType, ScopeTemplateActivity } from '../store/useStore';
@@ -12,6 +13,7 @@ import {
 } from '../components/ui/dialog';
 
 export default function Templates() {
+    const { t } = useTranslation();
     const { templates, scopeTemplates, subReportTemplates, addTemplate, deleteTemplate, addScopeTemplate, deleteScopeTemplate, addSubReportTemplate, deleteSubReportTemplate } = useStore();
     const [activeTab, setActiveTab] = useState<'checklists' | 'scopes' | 'subreports'>('scopes');
     const [searchTerm, setSearchTerm] = useState('');
@@ -164,15 +166,15 @@ export default function Templates() {
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <ListChecks className="text-brand-teal" size={28} />
-                        Templates Manager
+                        {t('templates.title')}
                     </h1>
-                    <p className="text-gray-500 mt-1">Manage reusable configurations for reports and projects.</p>
+                    <p className="text-gray-500 mt-1">{t('templates.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <Input
-                            placeholder="Find a template..."
+                            placeholder={t('templates.search')}
                             className="pl-10 w-full md:w-80 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -187,19 +189,19 @@ export default function Templates() {
                     className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'scopes' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} 
                     onClick={() => setActiveTab('scopes')}
                 >
-                    <FolderGit2 size={16} /> Scope / WBS
+                    <FolderGit2 size={16} /> {t('templates.tabs.scopes')}
                 </button>
                 <button 
                     className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'checklists' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} 
                     onClick={() => setActiveTab('checklists')}
                 >
-                    <CheckSquare size={16} /> Checklists
+                    <CheckSquare size={16} /> {t('templates.tabs.checklists')}
                 </button>
                 <button 
                     className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'subreports' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} 
                     onClick={() => setActiveTab('subreports')}
                 >
-                    <FileText size={16} /> Forms / Sub-Reports
+                    <FileText size={16} /> {t('templates.tabs.subreports')}
                 </button>
             </div>
 
@@ -218,13 +220,13 @@ export default function Templates() {
                 }}>
                     <DialogTrigger asChild>
                         <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
-                            <Plus size={18} /> Add Scope Template
+                            <Plus size={18} /> {t('templates.scopes.add')}
                         </Button>
                     </DialogTrigger>
                             <DialogContent className="sm:max-w-[500px] rounded-2xl p-6">
                         <DialogHeader>
                             <DialogTitle className="text-xl font-bold text-accent-greyDark">
-                                {editingScopeId ? 'Edit Scope Template' : 'Create Scope Template'}
+                                {editingScopeId ? t('templates.scopes.edit') : t('templates.scopes.create')}
                             </DialogTitle>
                         </DialogHeader>
                                 <div className="space-y-6 py-4">
@@ -239,7 +241,7 @@ export default function Templates() {
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <label className="text-sm font-semibold text-accent-greyDark text-left block">
-                                            Standard Activities & Tasks
+                                            {t('templates.scopes.activities')}
                                         </label>
                                         <Button 
                                             variant="outline" 
@@ -250,7 +252,7 @@ export default function Templates() {
                                             })} 
                                             className="h-7 text-xs px-2"
                                         >
-                                            <Plus size={14} className="mr-1" /> Add Activity
+                                            <Plus size={14} className="mr-1" /> {t('templates.scopes.add_activity')}
                                         </Button>
                                     </div>
                                     <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
@@ -258,7 +260,7 @@ export default function Templates() {
                                             <div key={index} className="space-y-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group/act">
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex-1 space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Activity Title</label>
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('templates.scopes.activity_title')}</label>
                                                         <Input
                                                             placeholder={`e.g. Electrical Installation`}
                                                             value={act.title}
@@ -271,7 +273,7 @@ export default function Templates() {
                                                         />
                                                     </div>
                                                     <div className="w-24 space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Days</label>
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('templates.scopes.days')}</label>
                                                         <div className="flex items-center gap-1">
                                                             <Input
                                                                 type="number"
@@ -300,7 +302,7 @@ export default function Templates() {
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between items-center">
                                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                                                            <ListChecks size={10} /> Sub-steps / Tasks
+                                                            <ListChecks size={10} /> {t('templates.scopes.tasks')}
                                                         </label>
                                                         <button 
                                                             onClick={() => {
@@ -310,7 +312,7 @@ export default function Templates() {
                                                             }}
                                                             className="text-[10px] font-bold text-brand-teal hover:underline"
                                                         >
-                                                            + Add Step
+                                                            {t('templates.scopes.add_step')}
                                                         </button>
                                                     </div>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -344,7 +346,7 @@ export default function Templates() {
                                         ))}
                                     </div>
                                     <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddScopeTemplate}>
-                                        {editingScopeId ? 'Update Template' : 'Save Template'}
+                                        {editingScopeId ? t('templates.scopes.update') : t('templates.scopes.save')}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -361,7 +363,7 @@ export default function Templates() {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-accent-greyDark text-lg">{template.name}</h3>
-                                            <p className="text-sm text-gray-400">{template.activities.length} activities</p>
+                                            <p className="text-sm text-gray-400">{t('templates.scopes.count', { count: template.activities.length })}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -383,14 +385,14 @@ export default function Templates() {
                                             </div>
                                             {item.steps.length > 0 && (
                                                 <div className="pl-4 text-[10px] text-gray-400 font-medium">
-                                                    {item.steps.length} steps defined
+                                                    {t('templates.scopes.count_steps', { count: item.steps.length }) /* Hack if key missing, using count for now */}
                                                 </div>
                                             )}
                                         </div>
                                     ))}
                                     {template.activities.length > 4 && (
                                         <p className="text-xs text-brand-teal font-medium mt-2 pl-1">
-                                            + {template.activities.length - 4} more activities...
+                                            {t('templates.scopes.more', { count: template.activities.length - 4 })}
                                         </p>
                                     )}
                                 </div>
@@ -399,8 +401,8 @@ export default function Templates() {
                         {filteredScopes.length === 0 && (
                             <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
                                 <FolderGit2 size={48} className="mx-auto text-gray-300 mb-4" />
-                                <h3 className="text-lg font-bold text-gray-500">No scope templates found</h3>
-                                <p className="text-gray-400">Create a new template to standardize project WBS creation.</p>
+                                <h3 className="text-lg font-bold text-gray-500">{t('templates.scopes.empty')}</h3>
+                                <p className="text-gray-400">{t('templates.scopes.empty_desc')}</p>
                             </div>
                         )}
                     </div>
@@ -422,13 +424,13 @@ export default function Templates() {
                         }}>
                             <DialogTrigger asChild>
                                 <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
-                                    <Plus size={18} /> Add Checklist Template
+                                    <Plus size={18} /> {t('templates.checklists.add')}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[500px] rounded-2xl p-6">
                                 <DialogHeader>
                                     <DialogTitle className="text-xl font-bold text-accent-greyDark">
-                                        {editingChecklistId ? 'Edit Checklist Template' : 'Create Checklist Template'}
+                                        {editingChecklistId ? t('templates.checklists.edit') : t('templates.checklists.create')}
                                     </DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-6 py-4">
@@ -444,10 +446,10 @@ export default function Templates() {
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
                                             <label className="text-sm font-semibold text-accent-greyDark text-left block">
-                                                Checklist Items
+                                                {t('templates.checklists.items')}
                                             </label>
                                             <Button variant="outline" size="sm" onClick={() => setNewChecklist({ ...newChecklist, items: [...newChecklist.items, ''] })} className="h-7 text-xs px-2">
-                                                <Plus size={14} className="mr-1" /> Add Item
+                                                <Plus size={14} className="mr-1" /> {t('templates.checklists.add_item')}
                                             </Button>
                                         </div>
                                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
@@ -477,7 +479,7 @@ export default function Templates() {
                                         </div>
                                     </div>
                                     <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddChecklist}>
-                                        {editingChecklistId ? 'Update Template' : 'Save Template'}
+                                        {editingChecklistId ? t('templates.checklists.update') : t('templates.checklists.save')}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -494,7 +496,7 @@ export default function Templates() {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-accent-greyDark text-lg">{template.name}</h3>
-                                            <p className="text-sm text-gray-400">{template.items.length} items</p>
+                                            <p className="text-sm text-gray-400">{t('templates.checklists.count', { count: template.items.length })}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -516,7 +518,7 @@ export default function Templates() {
                                     ))}
                                     {template.items.length > 4 && (
                                         <p className="text-xs text-brand-teal font-medium mt-2 pl-1">
-                                            + {template.items.length - 4} more items...
+                                            {t('templates.checklists.more', { count: template.items.length - 4 })}
                                         </p>
                                     )}
                                 </div>
@@ -525,8 +527,8 @@ export default function Templates() {
                         {filteredChecklists.length === 0 && (
                             <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
                                 <CheckSquare size={48} className="mx-auto text-gray-300 mb-4" />
-                                <h3 className="text-lg font-bold text-gray-500">No checklist templates found</h3>
-                                <p className="text-gray-400">Try adjusting your search or create a new template.</p>
+                                <h3 className="text-lg font-bold text-gray-500">{t('templates.checklists.empty')}</h3>
+                                <p className="text-gray-400">{t('templates.checklists.empty_desc')}</p>
                             </div>
                         )}
                     </div>
@@ -547,18 +549,18 @@ export default function Templates() {
                         }}>
                             <DialogTrigger asChild>
                                 <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
-                                    <Plus size={18} /> Add Form Template
+                                    <Plus size={18} /> {t('templates.forms.add')}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[600px] rounded-2xl p-6">
                                 <DialogHeader>
                                     <DialogTitle className="text-xl font-bold text-accent-greyDark">
-                                        {editingSubReportId ? 'Edit Form Template' : 'Create Form / Sub-Report Template'}
+                                        {editingSubReportId ? t('templates.forms.edit') : t('templates.forms.create')}
                                     </DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-6 py-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark text-left block">Form Name</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark text-left block">{t('templates.forms.name')}</label>
                                         <Input
                                             placeholder="e.g. Unit Commissioning Report"
                                             value={newSubReportTemplate.name}
@@ -569,10 +571,10 @@ export default function Templates() {
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
                                             <label className="text-sm font-semibold text-accent-greyDark text-left block">
-                                                Form Fields
+                                                {t('templates.forms.fields')}
                                             </label>
                                             <Button variant="outline" size="sm" onClick={() => setNewSubReportTemplate({ ...newSubReportTemplate, fields: [...newSubReportTemplate.fields, { name: '', type: 'text' }] })} className="h-7 text-xs px-2">
-                                                <Plus size={14} className="mr-1" /> Add Field
+                                                <Plus size={14} className="mr-1" /> {t('templates.forms.add_field')}
                                             </Button>
                                         </div>
                                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
@@ -597,10 +599,10 @@ export default function Templates() {
                                                             setNewSubReportTemplate({ ...newSubReportTemplate, fields: newFields });
                                                         }}
                                                     >
-                                                        <option value="text">Text Input</option>
-                                                        <option value="number">Number</option>
-                                                        <option value="checkbox">Checkbox (Pass/Fail)</option>
-                                                        <option value="picture">Picture Upload</option>
+                                                        <option value="text">{t('templates.field_types.text')}</option>
+                                                        <option value="number">{t('templates.field_types.number')}</option>
+                                                        <option value="checkbox">{t('templates.field_types.checkbox')}</option>
+                                                        <option value="picture">{t('templates.field_types.picture')}</option>
                                                     </select>
                                                     <button
                                                         onClick={() => {
@@ -616,7 +618,7 @@ export default function Templates() {
                                         </div>
                                     </div>
                                     <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddSubReportTemplate}>
-                                        {editingSubReportId ? 'Update Template' : 'Save Template'}
+                                        {editingSubReportId ? t('templates.forms.update') : t('templates.forms.save')}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -633,7 +635,7 @@ export default function Templates() {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-accent-greyDark text-lg">{template.name}</h3>
-                                            <p className="text-sm text-gray-400">{template.fields.length} predefined fields</p>
+                                            <p className="text-sm text-gray-400">{t('templates.forms.count', { count: template.fields.length })}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -655,7 +657,7 @@ export default function Templates() {
                                     ))}
                                     {template.fields.length > 4 && (
                                         <p className="text-xs text-brand-teal font-medium mt-2 pl-1">
-                                            + {template.fields.length - 4} more fields...
+                                            {t('templates.forms.more', { count: template.fields.length - 4 })}
                                         </p>
                                     )}
                                 </div>
@@ -664,8 +666,8 @@ export default function Templates() {
                         {filteredSubReports.length === 0 && (
                             <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
                                 <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-                                <h3 className="text-lg font-bold text-gray-500">No Form templates found</h3>
-                                <p className="text-gray-400">Create a sub-report template so users can append it to their daily reports.</p>
+                                <h3 className="text-lg font-bold text-gray-500">{t('templates.forms.empty')}</h3>
+                                <p className="text-gray-400">{t('templates.forms.empty_desc')}</p>
                             </div>
                         )}
                     </div>

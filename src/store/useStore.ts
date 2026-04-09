@@ -359,6 +359,7 @@ interface AppState {
     updateProject: (id: string, updates: Partial<Project>) => void;
     addReport: (report: Report) => void;
     updateReport: (id: string, updates: Partial<Report>) => void;
+    deleteReport: (id: string) => void;
     addComment: (reportId: string, text: string, sectionKey?: string) => void;
     addTool: (tool: Tool) => void;
     updateTool: (id: string, updates: Partial<Tool>) => void;
@@ -407,6 +408,8 @@ interface AppState {
     };
     setSharepointConfig: (config: Partial<AppState['sharepointConfig']>) => void;
     setMicrosoftAuth: (auth: Partial<AppState['microsoftAuth']>) => void;
+    language: 'en' | 'es';
+    setLanguage: (lang: 'en' | 'es') => void;
 }
 
 export const useStore = create<AppState>()(
@@ -477,6 +480,11 @@ export const useStore = create<AppState>()(
             },
             setSharepointConfig: (config) => set((state) => ({ sharepointConfig: { ...state.sharepointConfig, ...config } })),
             setMicrosoftAuth: (auth) => set((state) => ({ microsoftAuth: { ...state.microsoftAuth, ...auth } })),
+            language: (localStorage.getItem('i18nextLng') as 'en' | 'es') || 'en',
+            setLanguage: (lang) => {
+                set({ language: lang });
+                import('../i18n').then(m => m.default.changeLanguage(lang));
+            },
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
@@ -729,6 +737,12 @@ export const useStore = create<AppState>()(
                     discipline: reportToSave.discipline
                 };
                 await supabase.from('reports').insert(dbPayload);
+            },
+            deleteReport: async (id) => {
+                set((state) => ({
+                    reports: state.reports.filter((r) => r.id !== id),
+                }));
+                await supabase.from('reports').delete().eq('id', id);
             },
             updateReport: async (id, updates) => {
                 // C-03: Enforce valid state transitions

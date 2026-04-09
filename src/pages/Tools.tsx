@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save } from 'lucide-react';
@@ -7,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 
 export default function Tools() {
+    const { t } = useTranslation();
     const { tools, addTool, updateTool, deleteTool, projects } = useStore();
     const location = useLocation();
 
@@ -71,7 +73,7 @@ export default function Tools() {
             serialNumber: newTool.serialNumber!,
             certificationExpiry: newTool.certificationExpiry || '',
             assignedProjectId: newTool.assignedProjectId || undefined,
-            history: [{ date: new Date().toISOString().split('T')[0], description: 'Tool registered in system', projectId: newTool.assignedProjectId }]
+            history: [{ date: new Date().toISOString().split('T')[0], description: t('inventory.registered'), projectId: newTool.assignedProjectId }]
         };
         addTool(tool);
         setNewTool({ name: '', model: '', serialNumber: '', certificationExpiry: '', assignedProjectId: '' });
@@ -103,15 +105,15 @@ export default function Tools() {
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <Wrench className="text-brand-teal" size={28} />
-                        Tools Management
+                        {t('inventory.title')}
                     </h1>
-                    <p className="text-gray-500 mt-1">Manage your fleet of tools, certifications, and assignments.</p>
+                    <p className="text-gray-500 mt-1">{t('inventory.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <Input
-                            placeholder="Search by name, model or serial..."
+                            placeholder={t('inventory.search')}
                             className="pl-10 w-72 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
@@ -120,41 +122,41 @@ export default function Tools() {
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <DialogTrigger asChild>
                             <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
-                                <Plus size={18} /> Add Tool
+                                <Plus size={18} /> {t('inventory.add_tool')}
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px] rounded-2xl p-6">
                             <DialogHeader>
-                                <DialogTitle className="text-xl font-bold text-accent-greyDark">Add New Tool</DialogTitle>
+                                <DialogTitle className="text-xl font-bold text-accent-greyDark">{t('inventory.new_tool')}</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Name</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.name')}</label>
                                     <Input placeholder="e.g. Thermal Camera" value={newTool.name} onChange={e => setNewTool({ ...newTool, name: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Model</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.model')}</label>
                                     <Input placeholder="e.g. Fluke Ti401" value={newTool.model} onChange={e => setNewTool({ ...newTool, model: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Serial Number</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.serial')}</label>
                                     <Input placeholder="e.g. SN-12345" value={newTool.serialNumber} onChange={e => setNewTool({ ...newTool, serialNumber: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Certification Expiry</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.cert_expiry')}</label>
                                     <Input type="date" value={newTool.certificationExpiry} onChange={e => setNewTool({ ...newTool, certificationExpiry: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">Assign to Project (Optional)</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.assign_to_project')}</label>
                                     <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={newTool.assignedProjectId || ''} onChange={e => setNewTool({ ...newTool, assignedProjectId: e.target.value })}>
-                                        <option value="">Unassigned</option>
+                                        <option value="">{t('inventory.no_project')}</option>
                                         {projects.filter(p => p.status === 'Active').map(p => (
                                             <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <Button className="w-full mt-2 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddTool}>
-                                    Save Tool
+                                    {t('inventory.save_tool')}
                                 </Button>
                             </div>
                         </DialogContent>
@@ -167,13 +169,13 @@ export default function Tools() {
                 {/* LEFT: Tool List */}
                 <div className="w-64 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
-                        Inventory · {filteredTools.length}
+                        {t('inventory.inventory_count', { count: filteredTools.length })}
                     </p>
 
                     {filteredTools.length === 0 && (
                         <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-10 px-4 text-center">
                             <Wrench size={28} className="mb-2 opacity-30" />
-                            <p className="text-xs font-medium">No tools found</p>
+                            <p className="text-xs font-medium">{t('inventory.no_tools')}</p>
                         </div>
                     )}
 
@@ -214,7 +216,7 @@ export default function Tools() {
                                             ? 'bg-brand-teal/10 text-brand-teal'
                                             : 'bg-gray-100 text-gray-400'
                                 }`}>
-                                    {assignedProject ? 'ON SITE' : 'FREE'}
+                                    {assignedProject ? t('inventory.status.on_site') : t('inventory.status.free')}
                                 </span>
                             </button>
                         );
@@ -245,59 +247,59 @@ export default function Tools() {
                                                             : 'bg-emerald-50 text-emerald-600 border-emerald-200'
                                                     }`}>
                                                         {expired ? <AlertTriangle size={10} /> : <CheckCircle2 size={10} />}
-                                                        {expired ? 'Cert Expired' : 'Certified'} · {selectedTool.certificationExpiry ? new Date(selectedTool.certificationExpiry).toLocaleDateString() : 'No date'}
+                                                        {expired ? t('inventory.status.expired') : t('inventory.status.certified')} · {selectedTool.certificationExpiry ? new Date(selectedTool.certificationExpiry).toLocaleDateString() : t('inventory.no_date')}
                                                     </span>
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                                                         assignedProject ? 'bg-brand-teal/10 text-brand-teal border-brand-teal/20' : 'bg-amber-50 text-amber-600 border-amber-200'
                                                     }`}>
                                                         <Building2 size={10} />
-                                                        {assignedProject ? assignedProject.name : 'Unassigned'}
+                                                        {assignedProject ? assignedProject.name : t('inventory.no_project')}
                                                     </span>
                                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-gray-100 text-gray-500 border-gray-200 flex items-center gap-1">
-                                                        <Clock size={10} /> {selectedTool.history.length} entries
+                                                        <Clock size={10} /> {selectedTool.history.length} {t('inventory.entries_count')}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => { deleteTool(selectedTool.id); setSelectedToolId(null); setEditDraft(null); }}
-                                            className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors shrink-0"
-                                            title="Delete Tool"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                            <button
+                                                onClick={() => { deleteTool(selectedTool.id); setSelectedToolId(null); setEditDraft(null); }}
+                                                className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors shrink-0"
+                                                title={t('inventory.delete_tool')}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                     </div>
                                 </div>
 
                                 {/* Edit Body */}
                                 <div className="p-5 flex-1 overflow-y-auto space-y-5">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Edit Information</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('inventory.edit_info')}</p>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">Name</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.name')}</label>
                                             <Input value={editDraft.name} onChange={e => setEditDraft({ ...editDraft, name: e.target.value })} className="rounded-xl border-gray-200" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">Model</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.model')}</label>
                                             <Input value={editDraft.model} onChange={e => setEditDraft({ ...editDraft, model: e.target.value })} className="rounded-xl border-gray-200" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">Serial Number</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.serial')}</label>
                                             <Input value={editDraft.serialNumber} onChange={e => setEditDraft({ ...editDraft, serialNumber: e.target.value })} className="rounded-xl border-gray-200" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">Certification Expiry</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.cert_expiry')}</label>
                                             <Input type="date" value={editDraft.certificationExpiry} onChange={e => setEditDraft({ ...editDraft, certificationExpiry: e.target.value })} className="rounded-xl border-gray-200" />
                                         </div>
                                         <div className="col-span-2 space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">Assign to Project</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.assign_to_project')}</label>
                                             <select
                                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
                                                 value={editDraft.assignedProjectId || ''}
                                                 onChange={e => setEditDraft({ ...editDraft, assignedProjectId: e.target.value || undefined })}
                                             >
-                                                <option value="">Unassigned</option>
+                                                <option value="">{t('inventory.no_project')}</option>
                                                 {projects.filter(p => p.status === 'Active').map(p => (
                                                     <option key={p.id} value={p.id}>{p.name}</option>
                                                 ))}
@@ -308,14 +310,14 @@ export default function Tools() {
                                     {/* History */}
                                     <div className="space-y-3 pt-4 border-t border-gray-100">
                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                                            <Clock size={12} /> History & Tracking · {editDraft.history.length} entries
+                                            <Clock size={12} /> {t('inventory.history_tracking')} · {editDraft.history.length} {t('inventory.entries_count')}
                                         </p>
 
                                         {/* Add entry */}
                                         <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
-                                            <p className="text-xs font-bold text-gray-500">Add New Entry</p>
+                                            <p className="text-xs font-bold text-gray-500">{t('inventory.add_entry')}</p>
                                             <Input
-                                                placeholder="Description (e.g. Recalibrated, Repaired...)"
+                                                placeholder={t('inventory.desc_placeholder')}
                                                 value={newHistoryEntry.description}
                                                 onChange={e => setNewHistoryEntry({ ...newHistoryEntry, description: e.target.value })}
                                                 className="h-8 text-sm bg-white"
@@ -332,10 +334,10 @@ export default function Tools() {
                                                     value={newHistoryEntry.projectId}
                                                     onChange={e => setNewHistoryEntry({ ...newHistoryEntry, projectId: e.target.value })}
                                                 >
-                                                    <option value="">No Project</option>
+                                                    <option value="">{t('inventory.no_project')}</option>
                                                     {projects.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                                                 </select>
-                                                <Button size="sm" onClick={handleAddHistory} className="h-8 px-4 bg-brand-teal text-white rounded-lg">Add</Button>
+                                                <Button size="sm" onClick={handleAddHistory} className="h-8 px-4 bg-brand-teal text-white rounded-lg">{t('common.actions').split('/')[0] /* Add hack if not ready */ 'Add'}</Button>
                                             </div>
                                         </div>
 
@@ -363,7 +365,7 @@ export default function Tools() {
                                                 );
                                             })}
                                             {editDraft.history.length === 0 && (
-                                                <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">No history entries yet.</p>
+                                                <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">{t('inventory.no_history')}</p>
                                             )}
                                         </div>
                                     </div>
@@ -372,7 +374,7 @@ export default function Tools() {
                                         className={`w-full h-11 font-bold rounded-xl gap-2 transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-500 text-white' : 'bg-brand-teal hover:bg-brand-teal/90 text-white'}`}
                                         onClick={handleSave}
                                     >
-                                        {isSaved ? <><CheckCircle2 size={18} /> Saved!</> : <><Save size={18} /> Save Changes</>}
+                                        {isSaved ? <><CheckCircle2 size={18} /> {t('inventory.saved')}</> : <><Save size={18} /> {t('inventory.save_tool')}</>}
                                     </Button>
                                 </div>
                             </div>
@@ -380,8 +382,8 @@ export default function Tools() {
                     })() : (
                         <div className="h-full flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
                             <Wrench size={36} className="mb-3 opacity-30" />
-                            <p className="text-sm font-medium text-accent-greyDark">Select a tool</p>
-                            <p className="text-xs mt-1">Click a tool from the list to view and edit its details.</p>
+                            <p className="text-sm font-medium text-accent-greyDark">{t('inventory.select_tool')}</p>
+                            <p className="text-xs mt-1">{t('inventory.select_tool_desc')}</p>
                         </div>
                     )}
                 </div>

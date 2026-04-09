@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
+import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS, GOD_MODE_ADMIN_EMAIL } from '../auth/AuthRoute';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
@@ -29,6 +30,7 @@ import {
 import { Label } from '../ui/label';
 
 export default function Layout() {
+    const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
     const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
@@ -126,26 +128,26 @@ export default function Layout() {
 
     const navGroups = [
         {
-            name: 'OPERATIONS',
+            name: t('nav.operations'),
             links: [
-                { name: 'Live Map', path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
-                { name: 'Projects', path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
-                { name: 'Reports', path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
+                { name: t('nav.live_map'), path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
+                { name: t('nav.projects'), path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
+                { name: t('nav.reports'), path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
             ]
         },
         {
-            name: 'RESOURCES',
+            name: t('nav.resources'),
             links: [
-                { name: 'Personnel', path: '/personnel', icon: User, roles: ['Supervisor', 'Manager'] },
-                { name: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
-                { name: 'Tools', path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager'] },
+                { name: t('nav.personnel'), path: '/personnel', icon: User, roles: ['Supervisor', 'Manager'] },
+                { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
+                { name: t('nav.tools'), path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager'] },
             ]
         },
         {
-            name: 'INTELLIGENCE',
+            name: t('nav.intelligence'),
             links: [
-                { name: 'Data Analysis', path: '/analysis', icon: Activity, roles: ['Supervisor', 'Manager'] },
-                { name: 'Calendar', path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager'] },
+                { name: t('nav.analysis'), path: '/analysis', icon: Activity, roles: ['Supervisor', 'Manager'] },
+                { name: t('nav.calendar'), path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager'] },
             ]
         },
     ];
@@ -272,7 +274,7 @@ export default function Layout() {
                                     }`}
                                 >
                                     <Fingerprint size={18} className="text-emerald-500" />
-                                    <span>Clock In</span>
+                                    <span>{t('nav.clock_in')}</span>
                                 </Link>
                             );
                         })()}
@@ -438,19 +440,19 @@ export default function Layout() {
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
                                 {['Manager', 'Supervisor'].includes(userRole) && (
                                     <>
-                                        <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                                        <DropdownMenuLabel>{t('auth.admin', 'Admin')}</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/settings')}>
-                                            <Settings size={14} className="text-gray-400" /> Settings
+                                            <Settings size={14} className="text-gray-400" /> {t('nav.settings')}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
-                                            <CheckSquare size={14} className="text-gray-400" /> Templates
+                                            <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                     </>
                                 )}
                                 <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => { setAuthData('', ''); navigate('/login'); }}>
-                                    Log out
+                                    {t('auth.logout')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -550,7 +552,7 @@ export default function Layout() {
                         className={`flex flex-col items-center p-2 rounded-xl transition-colors ${location.pathname.startsWith('/clock-in') ? 'text-emerald-600' : 'text-emerald-500'}`}
                     >
                         <Fingerprint size={24} className="mb-1" />
-                        <span className="text-[10px] font-semibold">Clock In</span>
+                        <span className="text-[10px] font-semibold">{t('nav.clock_in')}</span>
                     </Link>
                 )}
                 {flatNavLinks.slice(0, ['Tech', 'Supervisor'].includes(userRole) ? 4 : 5).map((link) => {

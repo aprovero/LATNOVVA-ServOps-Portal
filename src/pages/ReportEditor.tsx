@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, ReportState, ChecklistGroup } from '../store/useStore';
 import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin, FilePlus, CheckCircle, AlertTriangle, Users } from 'lucide-react';
@@ -21,6 +22,7 @@ import SectionCommentBubble from '../components/report/SectionCommentBubble';
 let _toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export default function ReportEditor() {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const { reports, projects, personnel, timesheets, updateReport, updateActivityProgress, userRole, addComment, getCurrentUserName, addTimesheet } = useStore();
@@ -130,7 +132,7 @@ export default function ReportEditor() {
     }, []);
 
     if (!report) {
-        return <div className="p-8 text-center text-gray-500">Report not found.</div>;
+        return <div className="p-8 text-center text-gray-500">{t('reports.not_found')}</div>;
     }
 
     // Access Controls
@@ -240,7 +242,7 @@ export default function ReportEditor() {
                 </div>
             )}
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-brand-teal font-semibold hover:underline">
-                <ChevronLeft size={20} /> Back to List
+                <ChevronLeft size={20} /> {t('reports.back_to_list')}
             </button>
 
             <div className="editor-fade flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -255,7 +257,7 @@ export default function ReportEditor() {
                         </span>
                     </div>
                     <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mt-1">
-                        <p className="text-gray-500 font-mono text-sm">ID: {report.id} • Date: {report.date}</p>
+                        <p className="text-gray-500 font-mono text-sm">{t('reports.labels.id')}: {report.id} • {t('reports.labels.date')}: {report.date}</p>
                         {locationState && (
                             <div className="flex items-center gap-1.5 text-xs font-bold text-brand-teal bg-brand-teal/10 px-2 py-1 rounded-md">
                                 <MapPin size={12} />
@@ -264,14 +266,14 @@ export default function ReportEditor() {
                         )}
                         {project?.disciplines && project.disciplines.length > 0 && (
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Work Stream:</span>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('reports.work_stream')}:</span>
                                 <select 
                                     className="bg-brand-teal/5 border border-brand-teal/20 text-xs font-bold text-brand-teal rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-brand-teal h-7"
                                     value={discipline}
                                     onChange={(e) => setDiscipline(e.target.value)}
                                     disabled={!canEditFields}
                                 >
-                                    <option value="">Select Stream...</option>
+                                    <option value="">{t('common.search')}...</option>
                                     {project.disciplines.map(d => (
                                         <option key={d} value={d}>{d}</option>
                                     ))}
@@ -283,7 +285,7 @@ export default function ReportEditor() {
 
                 {report.state === 'Closed' && (
                     <div className="flex items-center gap-2 text-status-error font-bold bg-status-error/10 px-4 py-2 rounded-xl">
-                        <Lock size={18} /> Record Locked (Legal Validity)
+                        <Lock size={18} /> {t('reports.alerts.locked')}
                     </div>
                 )}
             </div>
@@ -296,7 +298,7 @@ export default function ReportEditor() {
                     <div className="editor-fade flex flex-col gap-2 p-4 bg-red-50 border-l-4 border-red-500 rounded-2xl shadow-sm">
                         <div className="flex items-center gap-2">
                             <AlertTriangle size={18} className="text-red-600 shrink-0" />
-                            <span className="text-sm font-bold text-red-800 uppercase tracking-wide">Report Returned — Manager Feedback</span>
+                            <span className="text-sm font-bold text-red-800 uppercase tracking-wide">{t('reports.alerts.returned')}</span>
                         </div>
                         <div className="space-y-2 pl-6">
                             {rejectionComments.map((c: any, i: number) => (
@@ -308,7 +310,7 @@ export default function ReportEditor() {
                                 </div>
                             ))}
                         </div>
-                        <p className="text-[11px] text-red-400 pl-6">Address the feedback above before resubmitting for review.</p>
+                        <p className="text-[11px] text-red-400 pl-6">{t('reports.alerts.returned_desc')}</p>
                     </div>
                 );
             })()}
@@ -330,10 +332,10 @@ export default function ReportEditor() {
                             <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
                             <div className="flex-1">
                                 <p className="text-sm font-bold text-amber-800">
-                                    {missing.length} assigned personnel have no timesheet for {report.date}.
+                                    {t('reports.alerts.timesheet_missing', { count: missing.length, date: report.date })}
                                 </p>
                                 <p className="text-xs text-amber-600 mt-0.5">
-                                    GPS clock-in records will be used if available. Otherwise manual entries will be created.
+                                    {t('reports.alerts.timesheet_missing_desc')}
                                 </p>
                             </div>
                             {(isSupervisor || isManager) && !showTimesheetCreator && (
@@ -341,19 +343,19 @@ export default function ReportEditor() {
                                     onClick={() => setShowTimesheetCreator(true)}
                                     className="shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-colors"
                                 >
-                                    <Users size={14} /> Batch Create Timesheets
+                                    <Users size={14} /> {t('timesheets.batch_create')}
                                 </button>
                             )}
                         </div>
                         {showTimesheetCreator && (
                             <div className="mt-3 p-4 bg-white border border-amber-200 rounded-2xl space-y-3">
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Authorize Timesheet Creation</p>
-                                <p className="text-xs text-gray-500">Sign below to confirm these records are accurate. Both a name and signature are required.</p>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('timesheets.batch_authorize')}</p>
+                                <p className="text-xs text-gray-500">{t('timesheets.batch_signature_required')}</p>
                                 <input
                                     type="text"
                                     value={batchTsSignerName}
                                     onChange={e => setBatchTsSignerName(e.target.value)}
-                                    placeholder="Your full name"
+                                    placeholder={t('personnel.columns.name')}
                                     className="input-field w-full text-sm"
                                 />
                                 {/* C-03: Signature canvas — blob required before confirming */}
@@ -362,7 +364,7 @@ export default function ReportEditor() {
                                 </div>
                                 {batchTsSignature && (
                                     <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                                        <CheckCircle size={10} /> Signature captured
+                                        <CheckCircle size={10} /> {t('common.success')}
                                     </p>
                                 )}
                                 <div className="flex gap-2">
@@ -397,9 +399,9 @@ export default function ReportEditor() {
                                         }}
                                         className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors"
                                     >
-                                        Confirm &amp; Create
+                                        {t('common.confirm')}
                                     </button>
-                                    <button onClick={() => { setShowTimesheetCreator(false); setBatchTsSignature(''); }} className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
+                                    <button onClick={() => { setShowTimesheetCreator(false); setBatchTsSignature(''); }} className="px-3 py-2 text-gray-400 hover:text-gray-600 text-sm">{t('common.cancel')}</button>
                                 </div>
                             </div>
                         )}
@@ -433,7 +435,7 @@ export default function ReportEditor() {
 
             <div className="editor-fade card-container">
                     <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Field Notes & Observations</h3>
+                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">{t('reports.editor_sections.notes')}</h3>
                         <SectionCommentBubble
                             sectionKey="notes"
                             sectionLabel="Field Notes"
@@ -447,7 +449,7 @@ export default function ReportEditor() {
                         onChange={(e) => setNotes(e.target.value)}
                         disabled={!canEditFields}
                         className="input-field min-h-[150px] resize-y text-base"
-                        placeholder="Enter daily remarks, incidents, or completion notes..."
+                        placeholder={t('reports.editor_sections.notes_placeholder')}
                     />
                 </div>
 
@@ -455,7 +457,7 @@ export default function ReportEditor() {
             <div className="editor-fade card-container">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                        <Wrench className="text-brand-teal" size={24} /> Equipment &amp; Tools Used
+                        <Wrench className="text-brand-teal" size={24} /> {t('reports.editor_sections.equipment')}
                     </h2>
                     <div className="flex items-center gap-3">
                         {/* H-05: Scoped comment bubble on Equipment */}
@@ -481,7 +483,7 @@ export default function ReportEditor() {
                 <div className="space-y-3">
                     {usedTools.length === 0 ? (
                         <div className="text-center p-6 bg-surface-alt rounded-2xl border border-dashed border-gray-300 text-gray-400">
-                            No tools selected.
+                            {t('reports.empty.subtitle')}
                         </div>
                     ) : (
                         usedTools.map(toolId => {
@@ -496,7 +498,7 @@ export default function ReportEditor() {
                                         <p className="font-mono text-xs text-brand-teal">SN: {tool.serialNumber}</p>
                                         {isExpired && (
                                             <div className="text-xs font-bold text-status-warning mt-1 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 inline-block w-fit">
-                                                ⚠️ Certification Expired On: {new Date(tool.certificationExpiry).toLocaleDateString()}
+                                                ⚠️ {t('tools.expired')} {new Date(tool.certificationExpiry).toLocaleDateString()}
                                             </div>
                                         )}
                                     </div>
@@ -557,7 +559,7 @@ export default function ReportEditor() {
             {(isManager || isSupervisor || (report as any).externalAttachments?.length > 0) && (
                 <div className="editor-fade card-container">
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2 mb-6">
-                        <FilePlus size={24} className="text-brand-teal" /> Supporting Documents
+                        <FilePlus size={24} className="text-brand-teal" /> {t('reports.editor_sections.media')}
                     </h2>
                     <div className="space-y-3">
                         {((report as any).externalAttachments || []).map((att: any, idx: number) => (
@@ -572,7 +574,7 @@ export default function ReportEditor() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <a href={att.url} target="_blank" rel="noreferrer" className="btn-secondary h-9 px-3 text-xs bg-white">View</a>
+                                    <a href={att.url} target="_blank" rel="noreferrer" className="btn-secondary h-9 px-3 text-xs bg-white">{t('common.open')}</a>
                                     {(isManager || isSupervisor) && report.state !== 'Closed' && (
                                         <button 
                                             onClick={() => {
@@ -591,8 +593,8 @@ export default function ReportEditor() {
                             <div className="flex items-center gap-4 p-4 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
                                 <FilePlus size={32} className="text-gray-300" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-bold text-accent-greyDark">Upload Reference File</p>
-                                    <p className="text-xs text-gray-400">Attach PDFs, site photos, or client check-ins.</p>
+                                    <p className="text-sm font-bold text-accent-greyDark">{t('reports.editor_sections.media')}</p>
+                                    <p className="text-xs text-gray-400">{t('reports.editor_sections.media_placeholder')}</p>
                                 </div>
                                 <input 
                                     type="file" 
@@ -616,11 +618,11 @@ export default function ReportEditor() {
                                         }
                                     }}
                                 />
-                                <label htmlFor="ext-att-upload" className="btn-primary h-10 px-6 text-sm cursor-pointer whitespace-nowrap">Choose File</label>
+                                <label htmlFor="ext-att-upload" className="btn-primary h-10 px-6 text-sm cursor-pointer whitespace-nowrap">{t('common.search')}</label>
                             </div>
                         )}
                         {(!(report as any).externalAttachments?.length && !isManager && !isSupervisor) && (
-                            <p className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-xl">No supporting documents attached.</p>
+                            <p className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-xl">{t('reports.empty.subtitle')}</p>
                         )}
                     </div>
                 </div>
@@ -630,11 +632,11 @@ export default function ReportEditor() {
             <div className="editor-fade card-container">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                        <Plus size={20} className="text-brand-teal" /> Dynamic Sections
+                        <Plus size={20} className="text-brand-teal" /> {t('common.add')}
                     </h2>
                     {canEditFields && (
                         <button onClick={handleAddSection} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2">
-                            <Plus size={16} /> Add Custom Module
+                            <Plus size={16} /> {t('common.add')}
                         </button>
                     )}
                 </div>
@@ -665,7 +667,7 @@ export default function ReportEditor() {
                         </div>
                     ))}
                     {sections.length === 0 && (
-                        <p className="text-sm text-gray-400 text-center py-4">No custom modules added. Use this to attach specific technical parameters or daily talks.</p>
+                        <p className="text-sm text-gray-400 text-center py-4">{t('reports.empty.subtitle')}</p>
                     )}
                 </div>
             </div>
@@ -674,7 +676,7 @@ export default function ReportEditor() {
             {(report.state.includes('Review') || report.state === 'Approved' || report.state === 'Closed' || report.comments?.length > 0) && (
                 <div className="editor-fade card-container bg-blue-50/50 border-blue-100">
                     <h2 className="text-xl font-bold text-accent-greyDark mb-6 flex items-center gap-2">
-                        <MessageSquare size={20} className="text-blue-500" /> Technical Review Comments
+                        <MessageSquare size={20} className="text-blue-500" /> {t('reports.pending_manager')}
                     </h2>
 
                     <div className="space-y-4 mb-4">
@@ -691,7 +693,7 @@ export default function ReportEditor() {
                                 <p className="text-sm text-accent-grey">{c.text}</p>
                             </div>
                         ))}
-                        {(!report.comments || report.comments.length === 0) && <p className="text-sm text-gray-500 text-center py-4">No comments yet.</p>}
+                        {(!report.comments || report.comments.length === 0) && <p className="text-sm text-gray-500 text-center py-4">{t('reports.empty.subtitle')}</p>}
                     </div>
 
                     {(report.state.includes('Review') && (isManager || isCustomer)) && (
@@ -704,7 +706,7 @@ export default function ReportEditor() {
                                 className="input-field flex-1"
                                 onKeyDown={e => e.key === 'Enter' && submitComment()}
                             />
-                            <button onClick={submitComment} className="btn-primary py-2 px-4 rounded-xl">Post</button>
+                            <button onClick={submitComment} className="btn-primary py-2 px-4 rounded-xl">{t('common.add')}</button>
                         </div>
                     )}
                 </div>
@@ -718,7 +720,7 @@ export default function ReportEditor() {
                             <PenTool size={24} className="text-green-400" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-lg text-white">Cryptographically Sealed</h3>
+                            <h3 className="font-bold text-lg text-white">{t('reports.alerts.locked')}</h3>
                             <div className="text-sm text-gray-400 mt-1 space-y-1">
                                 {report.signatures.map(sig => (
                                     <div key={sig.role} className="flex gap-2 items-center">
@@ -735,7 +737,7 @@ export default function ReportEditor() {
                     >
                         {({ loading }) => (
                             <button className="bg-white/10 hover:bg-white/20 text-white py-2 px-6 rounded-xl font-semibold transition-colors flex items-center gap-2" disabled={loading}>
-                                <FileText size={16} /> {loading ? 'Generating...' : 'Print PDF'}
+                                <FileText size={16} /> {loading ? `${t('common.search')}...` : t('nav.reports')}
                             </button>
                         )}
                     </PDFDownloadLink>
@@ -751,13 +753,13 @@ export default function ReportEditor() {
                     >
                         {({ loading }) => (
                             <button className="w-full md:w-auto btn-secondary text-brand-teal border-brand-teal/20 bg-brand-teal/5 hover:bg-brand-teal/10 flex items-center justify-center gap-2" disabled={loading}>
-                                <FileText size={18} /> {loading ? 'Generating PDF...' : 'Download PDF'}
+                                <FileText size={18} /> {loading ? `${t('common.search')}...` : 'Download PDF'}
                             </button>
                         )}
                     </PDFDownloadLink>
                     {canEditFields && (
                         <button onClick={handleSave} className="w-full md:w-auto btn-secondary flex items-center justify-center gap-2">
-                            <Save size={18} /> Save Draft
+                            <Save size={18} /> {t('reports.actions.save_draft')}
                         </button>
                     )}
                 </div>
@@ -783,27 +785,27 @@ export default function ReportEditor() {
                                 handleChangeState('Pending Manager Review');
                             } else {
                                 if (!signatures.some(s => s.role === 'Supervisor')) {
-                                    alert('A Tech or Supervisor signature is required before submitting the report for review.');
+                                    alert(t('reports.alerts.confirm_submit'));
                                     return;
                                 }
                                 handleSave();
                                 handleChangeState('Pending Manager Review');
                             }
                         }} className="w-full md:w-auto btn-primary flex items-center justify-center gap-2 whitespace-nowrap">
-                            Submit for Review
+                            {t('reports.actions.submit')}
                         </button>
                     ) : isManager && report.state === 'Pending Manager Review' ? (
                         <>
                             <button onClick={() => {
                                 // M-04: Prompt for rejection reason, store as a scoped comment
-                                const reason = prompt('Optional: Enter a reason for returning this report to Draft. This will be visible to the field team.') ?? '';
+                                const reason = prompt(t('reports.alerts.reject_reason')) ?? '';
                                 if (reason.trim()) {
                                     addComment(report.id, `[REJECTED] ${reason.trim()}`, 'rejection');
                                 }
                                 handleChangeState('Draft');
-                                showToast('Report returned to Draft.', 'warning');
+                                showToast(t('reports.alerts.rejected_toast'), 'warning');
                             }} className="w-full md:w-auto btn-secondary text-status-error hover:bg-red-50 hover:border-red-200 border-red-100 flex items-center justify-center gap-2">
-                                <Ban size={18} /> Reject &amp; Return to Draft
+                                <Ban size={18} /> {t('reports.actions.reject_return')}
                             </button>
                             <button onClick={() => {
                                 // Manager bypass: if no Supervisor sig, auto-add 'Approved by Manager' comment to sig trail
@@ -822,9 +824,9 @@ export default function ReportEditor() {
                                 // H-06: Save report content before state change
                                 handleSave();
                                 handleChangeState('Pending Customer Review');
-                                showToast('Report sent to Customer for approval.', 'success');
+                                showToast(t('reports.alerts.customer_approval_toast'), 'success');
                             }} className="w-full md:w-auto btn-primary bg-status-success hover:bg-green-700 shadow-status-success/20 flex items-center justify-center gap-2">
-                                <Lock size={18} /> Approve & Send to Customer
+                                <Lock size={18} /> {t('reports.actions.approve_send')}
                             </button>
                         </>
                     ) : isCustomer && report.state === 'Pending Customer Review' ? (
@@ -845,7 +847,7 @@ export default function ReportEditor() {
                                 });
                                 navigate('/reports');
                             }} className="w-full md:w-auto btn-primary bg-brand-teal hover:bg-brand-teal/90 shadow-sm flex items-center justify-center gap-2">
-                                <Lock size={18} /> Approve Report
+                                <Lock size={18} /> {t('reports.actions.approve_report')}
                             </button>
                         </>
                     ) : isManager && report.state === 'Approved' ? (

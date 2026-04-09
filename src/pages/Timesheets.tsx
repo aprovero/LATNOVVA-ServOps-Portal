@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore, TimesheetEntry } from '../store/useStore';
 import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -21,12 +21,12 @@ const calculateHours = (inTime: string, outTime: string) => {
     return Number((diff / 60).toFixed(2));
 };
 
-const punchLabel: Record<string, string> = {
-    clockIn: 'Clock In',
-    lunchOut: 'Lunch Out',
-    lunchIn: 'Back from Lunch',
-    clockOut: 'Clock Out',
-};
+    const punchLabel: Record<string, string> = {
+        clockIn: t('timesheets.punches.clock_in'),
+        lunchOut: t('timesheets.punches.lunch_out'),
+        lunchIn: t('timesheets.punches.lunch_in'),
+        clockOut: t('timesheets.punches.clock_out'),
+    };
 
 const punchDotColor: Record<string, string> = {
     clockIn: '#00B4A6',
@@ -38,6 +38,7 @@ const punchDotColor: Record<string, string> = {
 const formatPunchTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
 export default function Timesheets() {
+    const { t } = useTranslation();
     const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName } = useStore();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -153,18 +154,18 @@ export default function Timesheets() {
 
         // L-06: Explicit positive hours check applies to BOTH creates AND edits
         if (!newEntry.hours || Number(newEntry.hours) <= 0) {
-            alert('Hours must be greater than 0. Please check the time range.');
+            alert(t('timesheets.alerts.hours_positive'));
             return;
         }
 
         if (newEntry.type === 'On Site' && newEntry.projectId && !signatureBlob) {
-            alert('A customer or site supervisor signature is required for On-Site project hours.');
+            alert(t('timesheets.alerts.signature_required'));
             return;
         }
 
         // H-04: Require justification for ALL manually-entered or edited timesheets
         if (!newEntry.manualReason?.trim()) {
-            alert('Please enter a reason / justification for this manual time entry.');
+            alert(t('timesheets.alerts.reason_required'));
             return;
         }
 
@@ -192,7 +193,7 @@ export default function Timesheets() {
         });
 
         if (overlap) {
-            alert("This time overlaps with an existing timesheet entry for this person on this date.");
+            alert(t('timesheets.alerts.overlap'));
             return;
         }
 
@@ -228,7 +229,7 @@ export default function Timesheets() {
 
     const handleBatchSubmit = () => {
         if (!batchProject) {
-            alert("Please select a project for the batch check-in.");
+            alert(t('timesheets.alerts.select_project'));
             return;
         }
 
@@ -297,9 +298,9 @@ export default function Timesheets() {
         setBatchSignatures({});
         setSelectedPersonnel([]);
         const summary = batchAction === 'Check-in'
-            ? `✅ ${reused} GPS records updated. ⚠ ${created} manual entries created (no GPS data).`
-            : `✅ ${reused} check-outs recorded.`;
-        alert(`Batch ${batchAction} complete.\n${summary}`);
+            ? t('timesheets.batch.summary_checkin', { reused, created })
+            : t('timesheets.batch.summary_checkout', { reused });
+        alert(`${t('timesheets.batch.complete_alert', { action: batchAction })}\n${summary}`);
     };
 
     const handleExportCSV = () => {
@@ -345,54 +346,54 @@ export default function Timesheets() {
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
                         <Clock className="text-brand-teal" size={28} />
-                        Timesheets & Logs
+                        {t('timesheets.title')}
                     </h1>
-                    <p className="text-gray-500 mt-1">Track personnel hours, overtime, and travel.</p>
+                    <p className="text-gray-500 mt-1">{t('timesheets.subtitle')}</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="flex bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm px-4 py-2 hidden sm:flex">
-                        <span className="text-sm font-semibold text-gray-500">Total Hours Logged:</span>
+                        <span className="text-sm font-semibold text-gray-500">{t('timesheets.total_hours')}:</span>
                         <span className="ml-2 text-sm font-bold text-brand-teal">{totalHours} hrs</span>
                     </div>
 
                     {['Manager', 'Supervisor'].includes(userRole) && (
                         <>
                             <Button variant="outline" onClick={openBatchModal} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
-                                <Users size={18} /> Team Check-in
+                                <Users size={18} /> {t('timesheets.team_checkin')}
                             </Button>
                             <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-gray-200 hover:bg-gray-50 text-gray-700">
-                                <Download size={18} /> Export CSV
+                                <Download size={18} /> {t('common.actions')}
                             </Button>
                         </>
                     )}
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6" onClick={openAddModal}>
-                            <Plus size={18} /> Log Time
+                            <Plus size={18} /> {t('timesheets.log_time')}
                         </Button>
                         <DialogContent className="sm:max-w-[425px] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle className="text-xl font-bold text-accent-greyDark">
-                                    {editingEntryId ? 'Edit Timesheet' : 'Log Hours'}
+                                    {editingEntryId ? t('timesheets.modals.edit_timesheet') : t('timesheets.modals.log_hours')}
                                 </DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark block">Personnel</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.personnel')}</label>
                                     <select
                                         className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal disabled:bg-gray-50 disabled:text-gray-500"
                                         value={newEntry.personnelId}
                                         onChange={e => setNewEntry({ ...newEntry, personnelId: e.target.value })}
                                         disabled={userRole === 'Tech'}
                                     >
-                                        <option value="" disabled>Select personnel...</option>
+                                        <option value="" disabled>{t('personnel.select_prompt')}...</option>
                                         {personnel.filter(p => userRole === 'Tech' ? p.id === newEntry.personnelId : true).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark block">Date</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.date')}</label>
                                     <Input
                                         type="date"
                                         value={newEntry.date}
@@ -403,7 +404,7 @@ export default function Timesheets() {
 
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark block">Time In</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.time_in')}</label>
                                         <Input
                                             type="time"
                                             value={newEntry.timeIn || ''}
@@ -412,7 +413,7 @@ export default function Timesheets() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark block">Time Out</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.time_out')}</label>
                                         <Input
                                             type="time"
                                             value={newEntry.timeOut || ''}
@@ -421,7 +422,7 @@ export default function Timesheets() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark block">Hours</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.hours')}</label>
                                         <Input
                                             type="number"
                                             min="0"
@@ -435,33 +436,33 @@ export default function Timesheets() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark block">Type / Location</label>
+                                        <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.type_location')}</label>
                                         <select
                                             className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
                                             value={newEntry.type}
                                             onChange={e => setNewEntry({ ...newEntry, type: e.target.value as any })}
                                         >
-                                            <option value="On Site">On Site</option>
-                                            <option value="Travel">Travel</option>
-                                            <option value="Other">Other</option>
+                                            <option value="On Site">{t('timesheets.types.on_site')}</option>
+                                            <option value="Travel">{t('timesheets.types.travel')}</option>
+                                            <option value="Other">{t('timesheets.types.other')}</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark block">Project (Optional)</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.project_optional')}</label>
                                     <select
                                         className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
                                         value={newEntry.projectId || ''}
                                         onChange={e => setNewEntry({ ...newEntry, projectId: e.target.value })}
                                     >
-                                        <option value="">None (Admin / Prep)</option>
+                                        <option value="">{t('timesheets.modals.none_admin')}</option>
                                         {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark block">Notes (Optional)</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark block">{t('timesheets.modals.notes_optional')}</label>
                                     <Input
                                         placeholder="e.g. Travel to Site Alpha"
                                         value={newEntry.notes || ''}
@@ -474,11 +475,11 @@ export default function Timesheets() {
                                     <div className="space-y-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                                         <label className="text-sm font-semibold text-amber-800 flex items-center gap-2">
                                             <AlertTriangle size={14} className="text-amber-600" />
-                                            Reason for Manual Entry <span className="text-red-500">*</span>
+                                            {t('timesheets.modals.manual_reason')} <span className="text-red-500">*</span>
                                         </label>
-                                        <p className="text-xs text-amber-600">Required — GPS clock-in should be used when possible. This note will appear in the audit trail.</p>
+                                        <p className="text-xs text-amber-600">{t('timesheets.modals.manual_reason_help')}</p>
                                         <Input
-                                            placeholder="e.g. GPS unavailable at site / retroactive entry with supervisor approval"
+                                            placeholder={t('timesheets.modals.manual_reason_placeholder')}
                                             value={(newEntry as any).manualReason || ''}
                                             onChange={e => setNewEntry({ ...newEntry, manualReason: e.target.value } as any)}
                                             className="rounded-xl bg-white border-amber-300 focus:ring-amber-400"
@@ -488,12 +489,12 @@ export default function Timesheets() {
 
                                 <div className="space-y-2 mt-6 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
                                     <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2">
-                                        <PenTool size={16} className="text-brand-teal" /> Site Supervisor / Customer Signature
+                                        <PenTool size={16} className="text-brand-teal" /> {t('timesheets.modals.signature_label')}
                                     </label>
-                                    <p className="text-xs text-gray-500 mb-2">Required for all on-site project hours.</p>
+                                    <p className="text-xs text-gray-500 mb-2">{t('timesheets.modals.signature_help')}</p>
                                     <div className="space-y-3">
                                         <Input 
-                                            placeholder="Signer's Name" 
+                                            placeholder={t('timesheets.modals.signer_placeholder')} 
                                             value={signatureName} 
                                             onChange={e => setSignatureName(e.target.value)}
                                             className="rounded-xl bg-white"
@@ -501,13 +502,13 @@ export default function Timesheets() {
                                         {signatureBlob ? (
                                             <div className="bg-white border text-center p-2 rounded-xl relative group">
                                                 <img src={signatureBlob} alt="Signature" className="mx-auto max-h-24" />
-                                                <button onClick={() => setSignatureBlob('')} className="absolute top-2 right-2 p-1.5 bg-red-100 text-red-600 font-bold text-xs rounded-md shadow-sm transition-opacity">Clear</button>
+                                                <button onClick={() => setSignatureBlob('')} className="absolute top-2 right-2 p-1.5 bg-red-100 text-red-600 font-bold text-xs rounded-md shadow-sm transition-opacity">{t('timesheets.modals.clear')}</button>
                                             </div>
                                         ) : (
                                             <div className="h-32 bg-white border border-dashed border-gray-300 rounded-xl relative overflow-hidden group">
                                                 <SignatureCanvasBox onSign={(blob) => setSignatureBlob(blob)} />
                                                 <div className="absolute inset-x-0 bottom-4 pointer-events-none text-center opacity-30">
-                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sign Here</span>
+                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t('timesheets.modals.sign_here')}</span>
                                                 </div>
                                             </div>
                                         )}
@@ -515,7 +516,7 @@ export default function Timesheets() {
                                 </div>
 
                                 <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleSaveEntry}>
-                                    {editingEntryId ? 'Update Entry' : 'Save Entry'}
+                                    {editingEntryId ? t('timesheets.modals.update_entry') : t('timesheets.modals.save_entry')}
                                 </Button>
                             </div>
                         </DialogContent>
@@ -526,12 +527,12 @@ export default function Timesheets() {
             {/* Filters */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end">
                 <div className="space-y-1.5 flex-1 min-w-[200px] relative z-20" ref={projectDropdownRef}>
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Filter Project</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> {t('timesheets.filters.project')}</label>
                     <div 
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus-within:ring-2 focus-within:ring-brand-teal flex items-center justify-between cursor-pointer"
                         onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
                     >
-                        <span className="truncate">{filterProject ? projects.find(p => p.id === filterProject)?.codeName || projects.find(p => p.id === filterProject)?.name : 'All Projects'}</span>
+                        <span className="truncate">{filterProject ? projects.find(p => p.id === filterProject)?.codeName || projects.find(p => p.id === filterProject)?.name : t('timesheets.filters.all_projects')}</span>
                         <ChevronDown className={`text-gray-400 transition-transform ${isProjectDropdownOpen ? 'rotate-180': ''}`} size={16} />
                     </div>
                     {isProjectDropdownOpen && (
@@ -539,7 +540,7 @@ export default function Timesheets() {
                             <div className="p-2 border-b border-gray-100 bg-gray-50/50">
                                 <input
                                     type="text"
-                                    placeholder="Search projects..."
+                                    placeholder={t('timesheets.filters.search_projects')}
                                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-brand-teal/50"
                                     value={projectSearchDropdown}
                                     onChange={(e) => setProjectSearchDropdown(e.target.value)}
@@ -552,7 +553,7 @@ export default function Timesheets() {
                                     className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${!filterProject ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
                                     onClick={() => { setFilterProject(''); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}
                                 >
-                                    All Projects
+                                    {t('timesheets.filters.all_projects')}
                                 </div>
                                 {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).map(p => (
                                     <div 
@@ -564,7 +565,7 @@ export default function Timesheets() {
                                     </div>
                                 ))}
                                 {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).length === 0 && (
-                                    <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No matching projects found</div>
+                                    <div className="px-3 py-4 text-center text-xs text-gray-400 italic">{t('timesheets.filters.no_projects')}</div>
                                 )}
                             </div>
                         </div>
@@ -572,12 +573,12 @@ export default function Timesheets() {
                 </div>
                 {userRole !== 'Tech' && (
                     <div className="space-y-1.5 flex-1 min-w-[200px] relative z-10" ref={personnelDropdownRef}>
-                        <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><User size={12} /> Filter Personnel</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><User size={12} /> {t('timesheets.filters.personnel')}</label>
                         <div 
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus-within:ring-2 focus-within:ring-brand-teal flex items-center justify-between cursor-pointer"
                             onClick={() => setIsPersonnelDropdownOpen(!isPersonnelDropdownOpen)}
                         >
-                            <span className="truncate">{filterPersonnel ? personnel.find(p => p.id === filterPersonnel)?.name : 'All Personnel'}</span>
+                            <span className="truncate">{filterPersonnel ? personnel.find(p => p.id === filterPersonnel)?.name : t('timesheets.filters.all_personnel')}</span>
                             <ChevronDown className={`text-gray-400 transition-transform ${isPersonnelDropdownOpen ? 'rotate-180': ''}`} size={16} />
                         </div>
                         {isPersonnelDropdownOpen && (
@@ -585,7 +586,7 @@ export default function Timesheets() {
                                 <div className="p-2 border-b border-gray-100 bg-gray-50/50">
                                     <input
                                         type="text"
-                                        placeholder="Search personnel..."
+                                        placeholder={t('timesheets.filters.search_personnel')}
                                         className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-brand-teal/50"
                                         value={personnelSearchDropdown}
                                         onChange={(e) => setPersonnelSearchDropdown(e.target.value)}
@@ -598,7 +599,7 @@ export default function Timesheets() {
                                         className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${!filterPersonnel ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
                                         onClick={() => { setFilterPersonnel(''); setIsPersonnelDropdownOpen(false); setPersonnelSearchDropdown(''); }}
                                     >
-                                        All Personnel
+                                        {t('timesheets.filters.all_personnel')}
                                     </div>
                                     {personnel.filter(p => !personnelSearchDropdown || (p.name || '').toLowerCase().includes(personnelSearchDropdown.toLowerCase())).map(p => (
                                         <div 
@@ -610,7 +611,7 @@ export default function Timesheets() {
                                         </div>
                                     ))}
                                     {personnel.filter(p => !personnelSearchDropdown || (p.name || '').toLowerCase().includes(personnelSearchDropdown.toLowerCase())).length === 0 && (
-                                        <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No matching personnel found</div>
+                                        <div className="px-3 py-4 text-center text-xs text-gray-400 italic">{t('timesheets.filters.no_personnel')}</div>
                                     )}
                                 </div>
                             </div>
@@ -618,7 +619,7 @@ export default function Timesheets() {
                     </div>
                 )}
                 <div className="space-y-1.5 flex-1 min-w-[150px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><CalendarIcon size={12} /> From Date</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><CalendarIcon size={12} /> {t('timesheets.filters.from_date')}</label>
                     <Input
                         type="date"
                         className="bg-gray-50 border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-brand-teal h-[42px]"
@@ -627,7 +628,7 @@ export default function Timesheets() {
                     />
                 </div>
                 <div className="space-y-1.5 flex-1 min-w-[150px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><CalendarIcon size={12} /> To Date</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><CalendarIcon size={12} /> {t('timesheets.filters.to_date')}</label>
                     <Input
                         type="date"
                         className="bg-gray-50 border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-brand-teal h-[42px]"
@@ -637,7 +638,7 @@ export default function Timesheets() {
                 </div>
                 {(filterProject || filterPersonnel || filterStartDate || filterEndDate) && (
                     <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl px-4 py-2.5 h-auto text-sm font-bold" onClick={() => { setFilterProject(''); setFilterPersonnel(''); setFilterStartDate(''); setFilterEndDate(''); }}>
-                        Clear Filters
+                        {t('timesheets.filters.clear')}
                     </Button>
                 )}
             </div>
@@ -648,14 +649,14 @@ export default function Timesheets() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-bold">
-                                <th className="p-4 rounded-tl-xl whitespace-nowrap">Date</th>
-                                <th className="p-4">Personnel</th>
-                                <th className="p-4 whitespace-nowrap">Time In/Out</th>
-                                <th className="p-4 whitespace-nowrap">Hours</th>
-                                <th className="p-4 min-w-[150px]">Project</th>
-                                <th className="p-4 whitespace-nowrap">GPS</th>
-                                <th className="p-4 whitespace-nowrap">Status</th>
-                                <th className="p-4 rounded-tr-xl text-right">Actions</th>
+                                <th className="p-4 rounded-tl-xl whitespace-nowrap">{t('timesheets.table.date')}</th>
+                                <th className="p-4">{t('timesheets.table.personnel')}</th>
+                                <th className="p-4 whitespace-nowrap">{t('timesheets.table.time_in_out')}</th>
+                                <th className="p-4 whitespace-nowrap">{t('timesheets.table.hours')}</th>
+                                <th className="p-4 min-w-[150px]">{t('timesheets.table.project')}</th>
+                                <th className="p-4 whitespace-nowrap">{t('timesheets.table.gps')}</th>
+                                <th className="p-4 whitespace-nowrap">{t('timesheets.table.status')}</th>
+                                <th className="p-4 rounded-tr-xl text-right">{t('timesheets.table.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -663,8 +664,8 @@ export default function Timesheets() {
                                 <tr>
                                     <td colSpan={8} className="p-8 text-center text-gray-500">
                                         <Clock className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                                        <p className="text-lg font-semibold text-accent-greyDark flex items-center justify-center gap-2">No timesheets found.</p>
-                                        <p className="text-sm">Log hours above to get started.</p>
+                                        <p className="text-lg font-semibold text-accent-greyDark flex items-center justify-center gap-2">{t('timesheets.table.empty')}</p>
+                                        <p className="text-sm">{t('timesheets.table.empty_subtitle')}</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -692,8 +693,8 @@ export default function Timesheets() {
                                                     <span className="truncate max-w-[150px]" title={getProjectName(entry.projectId)}>{getProjectName(entry.projectId)}</span>
                                                 </div>
                                                 {entry.signature && (
-                                                    <div className="flex items-center gap-1 mt-1.5 text-[10px] text-status-success font-bold px-1.5 py-0.5 bg-green-50 border border-green-100/50 rounded-md w-fit uppercase tracking-wider" title={`Signed by ${entry.signature.name}`}>
-                                                        <PenTool size={10} /> Verified
+                                                    <div className="flex items-center gap-1 mt-1.5 text-[10px] text-status-success font-bold px-1.5 py-0.5 bg-green-50 border border-green-100/50 rounded-md w-fit uppercase tracking-wider" title={`${t('common.actions')} ${entry.signature.name}`}>
+                                                        <PenTool size={10} /> {t('timesheets.table.verified')}
                                                     </div>
                                                 )}
                                             </td>
@@ -707,18 +708,18 @@ export default function Timesheets() {
                                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                                                                 : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                                                         }`}
-                                                        title="Click to view GPS punch trail"
+                                                        title={t('timesheets.table.view_gps')}
                                                     >
                                                         {entry.gpsVerified
-                                                            ? <><CheckCircle size={11} /> GPS ✓</>                                                                : <><AlertTriangle size={11} /> Review</>}
+                                                            ? <><CheckCircle size={11} /> GPS ✓</>                                                                : <><AlertTriangle size={11} /> {t('timesheets.table.review')}</>}
                                                         {expandedPunchId === entry.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                                     </button>
                                                 ) : (
                                                     <span
                                                         className="text-[11px] px-2 py-1 bg-amber-50 text-amber-700 rounded-full font-semibold border border-amber-200 cursor-help"
-                                                        title={entry.manualReason || 'Manually entered — no GPS punch'}
+                                                        title={entry.manualReason || t('timesheets.table.manual')}
                                                     >
-                                                        ⚠ Manual{entry.manualReason ? ' ·ℹ' : ''}
+                                                        ⚠ {t('timesheets.table.manual')}{entry.manualReason ? ' ·ℹ' : ''}
                                                     </span>
                                                 )}
                                             </td>
@@ -728,7 +729,9 @@ export default function Timesheets() {
                                                     entry.status === 'Rejected' ? 'bg-red-100 text-red-700' :
                                                     'bg-amber-100 text-amber-700'
                                                 }`}>
-                                                    {entry.status || 'Pending'}
+                                                    {entry.status === 'Approved' ? t('timesheets.status.approved') :
+                                                    entry.status === 'Rejected' ? t('timesheets.status.rejected') :
+                                                    t('timesheets.status.pending')}
                                                 </span>
                                             </td>
                                             <td className="p-4 text-right">
@@ -737,7 +740,7 @@ export default function Timesheets() {
                                                         <button
                                                             onClick={() => updateTimesheet(entry.id, { status: 'Approved', approvedBy: getCurrentUserName() })}
                                                             className="text-status-success hover:text-green-700 hover:bg-green-50 p-2 rounded-lg transition-colors"
-                                                            title="Approve Timesheet (Lock)"
+                                                            title={t('timesheets.status.approved')}
                                                         >
                                                             <CheckCircle size={16} />
                                                         </button>
@@ -746,7 +749,7 @@ export default function Timesheets() {
                                                         <button
                                                             onClick={() => updateTimesheet(entry.id, { status: 'Pending' })}
                                                             className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 p-2 rounded-lg transition-colors"
-                                                            title="Unlock Timesheet"
+                                                            title={t('timesheets.status.pending')}
                                                         >
                                                             <Clock size={16} />
                                                         </button>
@@ -760,18 +763,18 @@ export default function Timesheets() {
                                                             <button
                                                                 onClick={() => openEditModal(entry)}
                                                                 className="text-brand-teal hover:text-brand-teal/80 hover:bg-teal-50 p-2 rounded-lg transition-colors"
-                                                                title="Edit Timesheet"
+                                                                title={t('timesheets.modals.edit_timesheet')}
                                                             >
                                                                 <Edit2 size={16} />
                                                             </button>
                                                             <button
                                                                 onClick={() => {
-                                                                    if (confirm(`Delete timesheet entry for ${getPersonnelName(entry.personnelId)} on ${entry.date}? This cannot be undone.`)) {
+                                                                    if (confirm(t('timesheets.alerts.delete_confirm', { name: getPersonnelName(entry.personnelId), date: entry.date }))) {
                                                                         deleteTimesheet(entry.id);
                                                                     }
                                                                 }}
                                                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                                title="Delete Timesheet"
+                                                                title={t('common.actions')}
                                                             >
                                                                 <Trash2 size={16} />
                                                             </button>
@@ -786,7 +789,7 @@ export default function Timesheets() {
                                                 <td colSpan={8} className="px-6 pb-4 pt-0 bg-gray-50/60">
                                                     <div className="border border-gray-100 rounded-xl p-4 bg-white shadow-sm">
                                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                                            <MapPin size={12} /> GPS Punch Audit Trail
+                                                            <MapPin size={12} /> {t('timesheets.table.audit_trail')}
                                                         </p>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                                                             {entry.punches.map((punch, i) => (
@@ -805,10 +808,10 @@ export default function Timesheets() {
                                                                                 <MapPin size={9} />
                                                                                 {punch.lat.toFixed(4)}, {punch.lng.toFixed(4)} · ±{Math.round(punch.accuracy)}m
                                                                             </a>
-                                                                        ) : <p className="text-[10px] text-gray-400">No GPS data</p>}
+                                                                        ) : <p className="text-[10px] text-gray-400">{t('timesheets.table.no_gps')}</p>}
                                                                         {punch.manualAdjustment && (
                                                                             <span className="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full font-bold">
-                                                                                ✏ Manual Adj.
+                                                                                ✏ {t('timesheets.table.manual_adj')}
                                                                             </span>
                                                                         )}
                                                                         {punch.adjustmentNote && (
@@ -819,7 +822,7 @@ export default function Timesheets() {
                                                             ))}
                                                         </div>
                                                         {entry.lunchSkipped && (
-                                                            <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">☕ No lunch break taken</p>
+                                                            <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">☕ {t('timesheets.table.no_lunch')}</p>
                                                         )}
                                                     </div>
                                                 </td>
@@ -838,7 +841,7 @@ export default function Timesheets() {
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
                             <Users size={20} className="text-brand-teal" /> 
-                            Group Operations Manager
+                            {t('timesheets.batch.manager_title')}
                         </DialogTitle>
                     </DialogHeader>
 
@@ -848,19 +851,19 @@ export default function Timesheets() {
                                 className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-in' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
                                 onClick={() => { setBatchAction('Check-in'); setSelectedPersonnel([]); setBatchSignatures({}); }}
                             >
-                                Check-in Group
+                                {t('timesheets.batch.checkin_group')}
                             </button>
                             <button 
                                 className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-out' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
                                 onClick={() => { setBatchAction('Check-out'); setSelectedPersonnel([]); setBatchSignatures({}); }}
                             >
-                                Check-out Group
+                                {t('timesheets.batch.checkout_group')}
                             </button>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-accent-greyDark">Project Site</label>
+                                <label className="text-sm font-semibold text-accent-greyDark">{t('timesheets.batch.project_site')}</label>
                                 <select 
                                     className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
                                     value={batchProject}
@@ -880,12 +883,12 @@ export default function Timesheets() {
                                         setBatchSignatures({}); // Clear signatures since team changed
                                     }}
                                 >
-                                    <option value="">Select Project...</option>
+                                    <option value="">{t('timesheets.modals.project_optional').split(' (')[0]}...</option>
                                     {projects.filter(p => p.status === 'Active').map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-accent-greyDark">{batchAction} Time</label>
+                                <label className="text-sm font-semibold text-accent-greyDark">{batchAction === 'Check-in' ? t('timesheets.punches.clock_in') : t('timesheets.punches.clock_out')} {t('timesheet.manual_time')}</label>
                                 <Input
                                     type="time"
                                     value={batchTime}
@@ -897,7 +900,7 @@ export default function Timesheets() {
 
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-accent-greyDark">
-                                Select Personnel & Obtain Signatures
+                                {t('timesheets.batch.select_obtain')}
                             </label>
                             <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto p-1 pr-2 thin-scrollbar">
                                 {personnel.filter(p => {
@@ -942,7 +945,7 @@ export default function Timesheets() {
                                                 <div className="flex items-center">
                                                     {hasSigned ? (
                                                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-status-success bg-green-50 px-2 py-1 rounded-lg border border-green-100">
-                                                            <CheckCircle size={12} /> SIGNED
+                                                            <CheckCircle size={12} /> {t('timesheets.batch.signed')}
                                                             <button 
                                                                 onClick={() => {
                                                                     const newSigs = { ...batchSignatures };
@@ -959,7 +962,7 @@ export default function Timesheets() {
                                                             onClick={() => setSigningPersonnelId(p.id)}
                                                             className="flex items-center gap-1.5 text-[10px] font-bold text-brand-teal bg-white hover:bg-brand-teal hover:text-white px-3 py-1.5 rounded-lg border border-brand-teal/20 shadow-sm transition-all"
                                                         >
-                                                            <PenTool size={12} /> SIGN NOW
+                                                            <PenTool size={12} /> {t('timesheets.batch.sign_now')}
                                                         </button>
                                                     )}
                                                 </div>
@@ -975,11 +978,11 @@ export default function Timesheets() {
                             disabled={selectedPersonnel.length === 0 || !batchProject || selectedPersonnel.some(id => !batchSignatures[id])}
                             onClick={handleBatchSubmit}
                         >
-                            Complete Group {batchAction} ({selectedPersonnel.length} members)
+                            {t('timesheets.batch.complete_action', { action: batchAction, count: selectedPersonnel.length })}
                         </Button>
                         {selectedPersonnel.some(id => !batchSignatures[id]) && selectedPersonnel.length > 0 && (
                             <p className="text-[10px] text-center text-status-warning font-bold mt-2 animate-pulse uppercase tracking-widest">
-                                ⚠ Waiting for all selected members to sign
+                                ⚠ {t('timesheets.batch.waiting_signatures')}
                             </p>
                         )}
                     </div>
@@ -992,12 +995,16 @@ export default function Timesheets() {
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-accent-greyDark flex items-center gap-2">
                              <PenTool size={18} className="text-brand-teal" /> 
-                             {personnel.find(p => p.id === signingPersonnelId)?.name}'s Signature
+                             {t('timesheets.batch.worker_signature_title', { name: personnel.find(p => p.id === signingPersonnelId)?.name })}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <p className="text-xs text-gray-500 leading-relaxed">
-                            By signing below, I confirm my {batchAction === 'Check-in' ? 'attendance and arrival' : 'departure and hours'} for {batchDate} at {batchTime}.
+                            {t('timesheets.batch.confirm_text', { 
+                                action: batchAction === 'Check-in' ? t('timesheets.punches.clock_in') : t('timesheets.punches.clock_out'),
+                                date: batchDate,
+                                time: batchTime
+                            })}
                         </p>
                         <div className="h-48 bg-white border-2 border-dashed border-gray-200 rounded-2xl relative overflow-hidden group">
                             <SignatureCanvasBox onSign={(blob) => {
@@ -1005,10 +1012,10 @@ export default function Timesheets() {
                                 setSigningPersonnelId(null);
                             }} />
                             <div className="absolute inset-x-0 bottom-4 pointer-events-none text-center opacity-20">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Worker Signature</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t('timesheets.modals.worker_signature')}</span>
                             </div>
                         </div>
-                        <Button variant="outline" className="w-full rounded-xl" onClick={() => setSigningPersonnelId(null)}>Cancel</Button>
+                        <Button variant="outline" className="w-full rounded-xl" onClick={() => setSigningPersonnelId(null)}>{t('personnel.delete_title').split(' ')[0] /* Cancel/Cerrar hack if common not ready, but common.actions works better */ t('common.actions')}</Button>
                     </div>
                 </DialogContent>
             </Dialog>
