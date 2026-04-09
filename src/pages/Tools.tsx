@@ -337,7 +337,7 @@ export default function Tools() {
                                                     <option value="">{t('inventory.no_project')}</option>
                                                     {projects.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                                                 </select>
-                                                <Button size="sm" onClick={handleAddHistory} className="h-8 px-4 bg-brand-teal text-white rounded-lg">{t('common.actions').split('/')[0] /* Add hack if not ready */ 'Add'}</Button>
+                                                <Button size="sm" onClick={handleAddHistory} className="h-8 px-4 bg-brand-teal text-white rounded-lg">{t('common.add')}</Button>
                                             </div>
                                         </div>
 

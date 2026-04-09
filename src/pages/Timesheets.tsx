@@ -1015,7 +1015,7 @@ export default function Timesheets() {
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t('timesheets.modals.worker_signature')}</span>
                             </div>
                         </div>
-                        <Button variant="outline" className="w-full rounded-xl" onClick={() => setSigningPersonnelId(null)}>{t('personnel.delete_title').split(' ')[0] /* Cancel/Cerrar hack if common not ready, but common.actions works better */ t('common.actions')}</Button>
+                        <Button variant="outline" className="w-full rounded-xl" onClick={() => setSigningPersonnelId(null)}>{t('common.cancel')}</Button>
                     </div>
                 </DialogContent>
             </Dialog>
