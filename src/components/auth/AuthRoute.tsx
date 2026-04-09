@@ -4,10 +4,11 @@ import { useStore } from '../../store/useStore';
 
 
 // ─── GOD MODE ──────────────────────────────────────────────────────────────────
-// Bypasses Supabase UI auth for local QA testing.
-// RLS is disabled on all tables — anon reads work without a session.
-// Default identity on boot = Manager (Andres Provero).
+// Set GOD_MODE_ACTIVE = false before going to production.
+// That single change hides all God Mode UI and re-enables real Supabase auth.
 // ───────────────────────────────────────────────────────────────────────────────
+export const GOD_MODE_ACTIVE = true;
+
 export const GOD_MODE_PERSONAS = {
     Manager:    { userId: 'GM-ANDRES', userEmail: 'andres.provero@latnovva.com',  displayName: 'Andres Provero' },
     Supervisor: { userId: 'GM-MARIN',  userEmail: 'marin.ledezma@latnovva.com',   displayName: 'Marin Ledezma' },
@@ -18,11 +19,9 @@ export const GOD_MODE_PERSONAS = {
 export const AuthRoute: React.FC = () => {
     const { setAuthData, setUserRole, userRole, initDb } = useStore();
 
-    // God Mode bootstrap — runs once on mount.
-    // 1. Resolve stored role (default Manager).
-    // 2. Sign in anonymously so Supabase has a valid session → RLS passes.
-    // 3. Re-run initDb so personnel/projects/etc. are fetched with auth.
+    // God Mode bootstrap — only runs when GOD_MODE_ACTIVE is true.
     useEffect(() => {
+        if (!GOD_MODE_ACTIVE) return;
         const currentRole = useStore.getState().userRole;
         const resolvedRole = (currentRole && currentRole in GOD_MODE_PERSONAS)
             ? currentRole as keyof typeof GOD_MODE_PERSONAS

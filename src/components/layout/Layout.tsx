@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
-import { GOD_MODE_PERSONAS } from '../auth/AuthRoute';
+import { GOD_MODE_PERSONAS, GOD_MODE_ACTIVE } from '../auth/AuthRoute';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -315,28 +315,17 @@ export default function Layout() {
                 </div>
 
                 <div className="p-6 border-t border-gray-100">
-                    {/* God Mode Banner */}
-                    <div className="mb-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2">
-                        <Zap size={13} className="text-amber-500 shrink-0" />
-                        <div className="min-w-0">
-                            <p className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">God Mode</p>
-                            <p className="text-xs font-bold text-amber-800 truncate">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gray-100 rounded-lg text-accent-greyDark">
+                            <User size={18} />
+                        </div>
+                        <div className="text-sm">
+                            <p className="font-bold text-accent-greyDark truncate">
                                 {GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole}
                             </p>
+                            <p className="text-xs text-gray-400">{userRole}</p>
                         </div>
                     </div>
-                    {/* Role Switcher — always visible in God Mode */}
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5 px-1">Testing As</label>
-                    <select
-                        value={userRole}
-                        onChange={(e) => setUserRole(e.target.value as any)}
-                        className="w-full bg-surface-alt border border-amber-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-1 focus:ring-amber-400"
-                    >
-                        <option value="Manager">Manager — Andres Provero</option>
-                        <option value="Supervisor">Supervisor — Marin Ledezma</option>
-                        <option value="Tech">Tech — Carlos Mendoza</option>
-                        <option value="Customer">Customer — Client User</option>
-                    </select>
                 </div>
             </aside>
 
@@ -357,7 +346,8 @@ export default function Layout() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
 
-                        {/* God Mode role switcher — click to switch personas */}
+                        {/* God Mode role switcher — only visible when GOD_MODE_ACTIVE */}
+                        {GOD_MODE_ACTIVE && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors outline-none">
@@ -388,6 +378,7 @@ export default function Layout() {
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        )}
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
