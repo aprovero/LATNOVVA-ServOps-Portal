@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap } from 'lucide-react';
 import { useStore, Project } from '../../store/useStore';
-import { GOD_MODE_PERSONAS, GOD_MODE_ACTIVE } from '../auth/AuthRoute';
+import { GOD_MODE_PERSONAS, GOD_MODE_ADMIN_EMAIL } from '../auth/AuthRoute';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -31,7 +31,8 @@ import { Label } from '../ui/label';
 export default function Layout() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setUserRole, userId, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
+    const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
+    const isGodMode = userEmail === GOD_MODE_ADMIN_EMAIL;
 
     // Dialog States
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -321,7 +322,9 @@ export default function Layout() {
                         </div>
                         <div className="text-sm">
                             <p className="font-bold text-accent-greyDark truncate">
-                                {GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole}
+                                {isGodMode
+                                    ? (GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole)
+                                    : useStore.getState().getCurrentUserName()}
                             </p>
                             <p className="text-xs text-gray-400">{userRole}</p>
                         </div>
@@ -346,8 +349,8 @@ export default function Layout() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
 
-                        {/* God Mode role switcher — only visible when GOD_MODE_ACTIVE */}
-                        {GOD_MODE_ACTIVE && (
+                        {/* God Mode role switcher — only visible to aprovero */}
+                        {isGodMode && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors outline-none">

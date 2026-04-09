@@ -4,10 +4,11 @@ import { useStore } from '../../store/useStore';
 
 
 // ─── GOD MODE ──────────────────────────────────────────────────────────────────
-// Set GOD_MODE_ACTIVE = false before going to production.
-// That single change hides all God Mode UI and re-enables real Supabase auth.
+// Set GOD_MODE_ADMIN_EMAIL to the Supabase email that gets God Mode access.
+// Works in bypass mode (email is seeded) AND real auth (aprovero logs in).
+// Everyone else sees a normal interface with no God Mode UI.
 // ───────────────────────────────────────────────────────────────────────────────
-export const GOD_MODE_ACTIVE = true;
+export const GOD_MODE_ADMIN_EMAIL = 'andres.provero@latnovva.com';
 
 export const GOD_MODE_PERSONAS = {
     Manager:    { userId: 'GM-ANDRES', userEmail: 'andres.provero@latnovva.com',  displayName: 'Andres Provero' },
@@ -19,9 +20,16 @@ export const GOD_MODE_PERSONAS = {
 export const AuthRoute: React.FC = () => {
     const { setAuthData, setUserRole, userRole, initDb } = useStore();
 
-    // God Mode bootstrap — only runs when GOD_MODE_ACTIVE is true.
+    // God Mode bootstrap — runs on first launch (unseeded store) or when
+    // the logged-in user is the designated admin. This way:
+    //   • Bypass mode: seeds aprovero's email on first run → God Mode UI appears.
+    //   • Real auth: only aprovero's login email triggers this → others see nothing.
     useEffect(() => {
-        if (!GOD_MODE_ACTIVE) return;
+        const storedEmail = useStore.getState().userEmail;
+        const isFirstRun = !storedEmail || storedEmail === '';
+        const isAdmin    = storedEmail === GOD_MODE_ADMIN_EMAIL;
+        if (!isFirstRun && !isAdmin) return;
+
         const currentRole = useStore.getState().userRole;
         const resolvedRole = (currentRole && currentRole in GOD_MODE_PERSONAS)
             ? currentRole as keyof typeof GOD_MODE_PERSONAS
