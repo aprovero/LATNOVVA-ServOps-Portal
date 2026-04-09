@@ -337,8 +337,8 @@ export default function Personnel() {
                                                 : 'hover:bg-white hover:shadow-sm'
                                     }`}
                                 >
-                                    {/* Avatar */}
-                                    <div className={`w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0 relative ${
+                                    {/* Square avatar (matches Deployments style) */}
+                                    <div className={`w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center text-xs font-bold shrink-0 relative ${
                                         isSelected ? 'bg-white/20 text-white' : isInactive ? 'bg-gray-200 text-gray-400' : 'bg-brand-teal/10 text-brand-teal'
                                     }`}>
                                         {person.image
@@ -346,7 +346,7 @@ export default function Personnel() {
                                             : person.name.charAt(0)
                                         }
                                         {/* Status dot */}
-                                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? 'border-brand-teal' : 'border-gray-50'} ${person.status === 'Active' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+                                        <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border ${isSelected ? 'border-brand-teal' : 'border-gray-50'} ${person.status === 'Active' ? 'bg-emerald-400' : 'bg-gray-300'}`} />
                                     </div>
 
                                     <div className="flex-1 min-w-0">
@@ -355,7 +355,7 @@ export default function Personnel() {
                                                 {person.name}
                                             </p>
                                             {person.prevailingWage && (
-                                                <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-brand-teal'}`} title="Prevailing Wage" />
+                                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelected ? 'bg-white' : 'bg-brand-teal'}`} title="Prevailing Wage" />
                                             )}
                                         </div>
                                         <p className={`text-[10px] font-semibold mt-0.5 truncate ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>

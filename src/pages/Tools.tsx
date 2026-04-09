@@ -1,20 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save } from 'lucide-react';
 import { useStore, Tool } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 
 export default function Tools() {
     const { tools, addTool, updateTool, deleteTool, projects } = useStore();
     const location = useLocation();
+
     const [searchTerm, setSearchTerm] = useState(() => {
         const params = new URLSearchParams(location.search);
         return params.get('q') || '';
@@ -23,52 +18,52 @@ export default function Tools() {
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const q = params.get('q');
-        if (q !== null) {
-            setSearchTerm(q);
-        }
+        if (q !== null) setSearchTerm(q);
     }, [location.search]);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newTool, setNewTool] = useState<Partial<Tool>>({
         name: '', model: '', serialNumber: '', certificationExpiry: '', assignedProjectId: ''
     });
 
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [currentTool, setCurrentTool] = useState<Tool | null>(null);
-    const [newHistoryEntry, setNewHistoryEntry] = useState({ date: new Date().toISOString().split('T')[0], description: '', projectId: '' });
+    const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
+    const [editDraft, setEditDraft] = useState<Tool | null>(null);
+    const [isSaved, setIsSaved] = useState(false);
+    const [newHistoryEntry, setNewHistoryEntry] = useState({
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        projectId: ''
+    });
 
-    const openEdit = (tool: Tool) => {
-        setCurrentTool(tool);
-        setTimeout(() => setIsEditModalOpen(true), 0);
+    const isExpired = (expiryStr: string) => !!expiryStr && new Date(expiryStr) < new Date();
+
+    const handleSelectTool = (tool: Tool) => {
+        setSelectedToolId(tool.id);
+        setEditDraft({ ...tool, history: [...tool.history] });
+        setIsSaved(false);
+        setNewHistoryEntry({ date: new Date().toISOString().split('T')[0], description: '', projectId: '' });
     };
 
-    const handleEditTool = () => {
-        if (!currentTool?.id) return;
-        updateTool(currentTool.id, currentTool);
-        setIsEditModalOpen(false);
-        setCurrentTool(null);
+    const handleSave = () => {
+        if (!editDraft?.id) return;
+        updateTool(editDraft.id, editDraft);
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 2000);
     };
 
     const handleAddHistory = () => {
-        if (!currentTool || !newHistoryEntry.description) return;
-        const updatedHistory = [...currentTool.history, newHistoryEntry];
-        setCurrentTool({ ...currentTool, history: updatedHistory });
+        if (!editDraft || !newHistoryEntry.description) return;
+        setEditDraft({ ...editDraft, history: [...editDraft.history, { ...newHistoryEntry }] });
         setNewHistoryEntry({ date: new Date().toISOString().split('T')[0], description: '', projectId: '' });
     };
 
     const handleRemoveHistory = (index: number) => {
-        if (!currentTool) return;
-        const updatedHistory = currentTool.history.filter((_, i) => i !== index);
-        setCurrentTool({ ...currentTool, history: updatedHistory });
-    };
-
-    const isExpired = (expiryStr: string) => {
-        return new Date(expiryStr) < new Date();
+        if (!editDraft) return;
+        setEditDraft({ ...editDraft, history: editDraft.history.filter((_, i) => i !== index) });
     };
 
     const handleAddTool = () => {
         if (!newTool.name || !newTool.serialNumber) return;
-
         const tool: Tool = {
             id: `TOOL-${Date.now()}`,
             name: newTool.name!,
@@ -76,27 +71,34 @@ export default function Tools() {
             serialNumber: newTool.serialNumber!,
             certificationExpiry: newTool.certificationExpiry || '',
             assignedProjectId: newTool.assignedProjectId || undefined,
-            history: [
-                {
-                    date: new Date().toISOString().split('T')[0],
-                    description: 'Tool registered in system',
-                    projectId: newTool.assignedProjectId
-                }
-            ]
+            history: [{ date: new Date().toISOString().split('T')[0], description: 'Tool registered in system', projectId: newTool.assignedProjectId }]
         };
         addTool(tool);
         setNewTool({ name: '', model: '', serialNumber: '', certificationExpiry: '', assignedProjectId: '' });
         setIsAddModalOpen(false);
+        setSelectedToolId(tool.id);
+        setEditDraft({ ...tool });
     };
 
-    const filteredTools = tools.filter(t =>
-        t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.model.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredTools = tools
+        .filter(t =>
+            t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.model.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            // Expired tools sink to bottom
+            const aExp = isExpired(a.certificationExpiry);
+            const bExp = isExpired(b.certificationExpiry);
+            if (aExp !== bExp) return aExp ? 1 : -1;
+            return a.name.localeCompare(b.name);
+        });
+
+    const selectedTool = tools.find(t => t.id === selectedToolId) ?? null;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
@@ -107,15 +109,14 @@ export default function Tools() {
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <Input
-                            placeholder="Find a tool by name, model or serial..."
-                            className="pl-10 w-full md:w-80 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
+                            placeholder="Search by name, model or serial..."
+                            className="pl-10 w-72 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={e => setSearchTerm(e.target.value)}
                         />
                     </div>
-
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <DialogTrigger asChild>
                             <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
@@ -128,55 +129,31 @@ export default function Tools() {
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark text-left block">Name</label>
-                                    <Input
-                                        placeholder="e.g. Thermal Camera"
-                                        value={newTool.name}
-                                        onChange={(e) => setNewTool({ ...newTool, name: e.target.value })}
-                                        className="rounded-xl border-gray-200"
-                                    />
+                                    <label className="text-sm font-semibold text-accent-greyDark">Name</label>
+                                    <Input placeholder="e.g. Thermal Camera" value={newTool.name} onChange={e => setNewTool({ ...newTool, name: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark text-left block">Model</label>
-                                    <Input
-                                        placeholder="e.g. Fluke Ti401"
-                                        value={newTool.model}
-                                        onChange={(e) => setNewTool({ ...newTool, model: e.target.value })}
-                                        className="rounded-xl border-gray-200"
-                                    />
+                                    <label className="text-sm font-semibold text-accent-greyDark">Model</label>
+                                    <Input placeholder="e.g. Fluke Ti401" value={newTool.model} onChange={e => setNewTool({ ...newTool, model: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark text-left block">Serial Number</label>
-                                    <Input
-                                        placeholder="e.g. SN-12345"
-                                        value={newTool.serialNumber}
-                                        onChange={(e) => setNewTool({ ...newTool, serialNumber: e.target.value })}
-                                        className="rounded-xl border-gray-200"
-                                    />
+                                    <label className="text-sm font-semibold text-accent-greyDark">Serial Number</label>
+                                    <Input placeholder="e.g. SN-12345" value={newTool.serialNumber} onChange={e => setNewTool({ ...newTool, serialNumber: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark text-left block">Certification Expiry</label>
-                                    <Input
-                                        type="date"
-                                        value={newTool.certificationExpiry}
-                                        onChange={(e) => setNewTool({ ...newTool, certificationExpiry: e.target.value })}
-                                        className="rounded-xl border-gray-200"
-                                    />
+                                    <label className="text-sm font-semibold text-accent-greyDark">Certification Expiry</label>
+                                    <Input type="date" value={newTool.certificationExpiry} onChange={e => setNewTool({ ...newTool, certificationExpiry: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark text-left block">Assign to Project (Optional)</label>
-                                    <select
-                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent transition-all"
-                                        value={newTool.assignedProjectId || ''}
-                                        onChange={(e) => setNewTool({ ...newTool, assignedProjectId: e.target.value })}
-                                    >
+                                    <label className="text-sm font-semibold text-accent-greyDark">Assign to Project (Optional)</label>
+                                    <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={newTool.assignedProjectId || ''} onChange={e => setNewTool({ ...newTool, assignedProjectId: e.target.value })}>
                                         <option value="">Unassigned</option>
                                         {projects.filter(p => p.status === 'Active').map(p => (
                                             <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddTool}>
+                                <Button className="w-full mt-2 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAddTool}>
                                     Save Tool
                                 </Button>
                             </div>
@@ -185,225 +162,230 @@ export default function Tools() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTools.map(tool => {
-                    const expired = isExpired(tool.certificationExpiry);
-                    const assignedProject = tool.assignedProjectId ? projects.find(p => p.id === tool.assignedProjectId) : null;
-                    return (
-                        <div key={tool.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft flex flex-col hover:border-brand-teal/30 hover:shadow-md transition-all">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="font-bold text-accent-greyDark text-lg block">{tool.name}</h3>
-                                    <p className="text-sm text-gray-500">{tool.model} • SN: {tool.serialNumber}</p>
-                                </div>
-                                <div className="flex gap-2 transition-opacity">
-                                    <button className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-brand-teal/10 hover:text-brand-teal transition-colors" onClick={() => openEdit(tool)}>
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" onClick={() => deleteTool(tool.id)}>
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
+            {/* Master / Detail Layout */}
+            <div className="flex gap-4" style={{ minHeight: '560px' }}>
+                {/* LEFT: Tool List */}
+                <div className="w-64 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
+                        Inventory · {filteredTools.length}
+                    </p>
 
-                            <div className="space-y-3 flex-1 mb-6">
-                                <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-xl border ${expired ? 'bg-red-50 text-red-600 border-red-100 font-medium' : 'bg-green-50 text-green-600 border-green-100'}`}>
-                                    {expired ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
-                                    <span>{expired ? 'Certification Expired' : 'Certified'} until {new Date(tool.certificationExpiry).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl border bg-gray-50 border-gray-100 text-gray-600">
-                                    <Building2 size={16} className="text-gray-400" />
-                                    <span>
-                                        {assignedProject ? `Assigned to: ${assignedProject.name}` : 'Available / Unassigned'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between items-center text-accent-greyDark bg-gray-50 hover:bg-white hover:border-brand-teal hover:text-brand-teal transition-all group">
-                                        <span className="flex items-center gap-2"><Clock size={16} /> View History</span>
-                                        <div className="bg-white group-hover:bg-brand-teal/10 px-2 py-0.5 rounded-full text-xs font-bold font-mono border">
-                                            {tool.history.length}
-                                        </div>
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[500px] rounded-2xl">
-                                    <DialogHeader>
-                                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                                            <Wrench className="text-brand-teal" size={20} />
-                                            {tool.name} History
-                                        </DialogTitle>
-                                    </DialogHeader>
-                                    <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 py-4">
-                                        {tool.history.slice().reverse().map((h, i) => {
-                                            const hProj = h.projectId ? projects.find(p => p.id === h.projectId) : null;
-                                            return (
-                                                <div key={i} className="flex gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
-                                                    <div className="shrink-0 pt-1">
-                                                        <div className="w-8 h-8 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal">
-                                                            <Calendar size={14} />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-semibold text-accent-greyDark">{h.description}</p>
-                                                        <p className="text-xs text-brand-teal/80 font-mono mt-1 mb-2">{new Date(h.date).toLocaleDateString()}</p>
-                                                        {hProj && (
-                                                            <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 rounded-md text-xs font-medium text-gray-600">
-                                                                <MapPin size={10} className="text-gray-400" />
-                                                                Project: {hProj.name}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                        {tool.history.length === 0 && (
-                                            <p className="text-center text-gray-400 py-8">No history available for this tool.</p>
-                                        )}
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                    );
-                })}
-                {filteredTools.length === 0 && (
-                    <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
-                        <Wrench size={48} className="mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-lg font-bold text-gray-500">No tools found</h3>
-                        <p className="text-gray-400">Try adjusting your search or add a new tool.</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Edit Modal */}
-            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto rounded-2xl p-6">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <Wrench className="text-brand-teal" size={20} />
-                            Edit Tool
-                        </DialogTitle>
-                    </DialogHeader>
-                    {currentTool && (
-                        <div className="space-y-6 py-4">
-                            <div className="space-y-4">
-                                <h3 className="font-bold text-accent-greyDark border-b pb-2">Basic Info</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="space-y-2 min-w-0">
-                                        <label className="text-sm font-semibold text-accent-greyDark">Name</label>
-                                        <Input
-                                            value={currentTool.name}
-                                            onChange={(e) => setCurrentTool({ ...currentTool, name: e.target.value })}
-                                            className="rounded-xl border-gray-200 h-9"
-                                        />
-                                    </div>
-                                    <div className="space-y-2 min-w-0">
-                                        <label className="text-sm font-semibold text-accent-greyDark">Model</label>
-                                        <Input
-                                            value={currentTool.model}
-                                            onChange={(e) => setCurrentTool({ ...currentTool, model: e.target.value })}
-                                            className="rounded-xl border-gray-200 h-9"
-                                        />
-                                    </div>
-                                    <div className="space-y-2 min-w-0">
-                                        <label className="text-sm font-semibold text-accent-greyDark">Serial Number</label>
-                                        <Input
-                                            value={currentTool.serialNumber}
-                                            onChange={(e) => setCurrentTool({ ...currentTool, serialNumber: e.target.value })}
-                                            className="rounded-xl border-gray-200 h-9"
-                                        />
-                                    </div>
-                                    <div className="space-y-2 min-w-0">
-                                        <label className="text-sm font-semibold text-accent-greyDark">Certification Expiry</label>
-                                        <Input
-                                            type="date"
-                                            value={currentTool.certificationExpiry}
-                                            onChange={(e) => setCurrentTool({ ...currentTool, certificationExpiry: e.target.value })}
-                                            className="rounded-xl border-gray-200 h-9"
-                                        />
-                                    </div>
-                                    <div className="space-y-2 sm:col-span-2 min-w-0">
-                                        <label className="text-sm font-semibold text-accent-greyDark text-left block">Assign to Project (Optional)</label>
-                                        <select
-                                            className="w-full truncate bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-accent-grey outline-none focus:ring-2 focus:ring-brand-teal transition-all"
-                                            value={currentTool.assignedProjectId || ''}
-                                            onChange={(e) => setCurrentTool({ ...currentTool, assignedProjectId: e.target.value })}
-                                        >
-                                            <option value="">Unassigned</option>
-                                            {projects.filter(p => p.status === 'Active').map(p => (
-                                                <option key={p.id} value={p.id} className="truncate">{p.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="font-bold text-accent-greyDark border-b pb-2 flex justify-between items-center">
-                                    <span>History & Tracking</span>
-                                    <span className="text-xs font-normal text-gray-500">{currentTool.history.length} Entries</span>
-                                </h3>
-                                
-                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-3">
-                                    <div className="text-xs font-bold text-gray-500 uppercase">Add New Entry</div>
-                                    <Input
-                                        placeholder="Description (e.g. Recalibrated, Repaired...)"
-                                        value={newHistoryEntry.description}
-                                        onChange={(e) => setNewHistoryEntry({ ...newHistoryEntry, description: e.target.value })}
-                                        className="h-8 text-sm bg-white"
-                                    />
-                                    <div className="flex gap-2">
-                                        <Input
-                                            type="date"
-                                            value={newHistoryEntry.date}
-                                            onChange={(e) => setNewHistoryEntry({ ...newHistoryEntry, date: e.target.value })}
-                                            className="h-8 text-sm bg-white flex-1"
-                                        />
-                                        <select
-                                            className="h-8 text-sm bg-white border border-gray-200 rounded-md px-2 flex-1 outline-none focus:border-brand-teal"
-                                            value={newHistoryEntry.projectId}
-                                            onChange={(e) => setNewHistoryEntry({ ...newHistoryEntry, projectId: e.target.value })}
-                                        >
-                                            <option value="">No Project</option>
-                                            {projects.map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <Button size="sm" onClick={handleAddHistory} className="h-8 px-3 bg-brand-teal text-white rounded-md">Add</Button>
-                                    </div>
-                                </div>
-
-                                <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-                                    {currentTool.history.slice().reverse().map((h, i) => {
-                                        const actualIndex = currentTool.history.length - 1 - i;
-                                        const hProj = h.projectId ? projects.find(p => p.id === h.projectId) : null;
-                                        return (
-                                            <div key={i} className="flex gap-3 p-2 bg-white border border-gray-100 rounded-lg relative group">
-                                                <div className="text-brand-teal/50 pt-1"><Clock size={14}/></div>
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-semibold text-accent-greyDark">{h.description}</p>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-[10px] font-mono bg-gray-100 px-1 rounded text-gray-500">{new Date(h.date).toLocaleDateString()}</span>
-                                                        {hProj && <span className="text-[10px] bg-brand-teal/10 text-brand-teal px-1 rounded truncate max-w-[120px]">{hProj.name}</span>}
-                                                    </div>
-                                                </div>
-                                                <button onClick={() => handleRemoveHistory(actualIndex)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                            
-                            <Button className="w-full mt-4 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleEditTool}>
-                                Save Changes
-                            </Button>
+                    {filteredTools.length === 0 && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-10 px-4 text-center">
+                            <Wrench size={28} className="mb-2 opacity-30" />
+                            <p className="text-xs font-medium">No tools found</p>
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
+
+                    {filteredTools.map(tool => {
+                        const isSelected = selectedToolId === tool.id;
+                        const expired = isExpired(tool.certificationExpiry);
+                        const assignedProject = tool.assignedProjectId ? projects.find(p => p.id === tool.assignedProjectId) : null;
+
+                        return (
+                            <button
+                                key={tool.id}
+                                onClick={() => handleSelectTool(tool)}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center gap-3 ${
+                                    isSelected
+                                        ? 'bg-brand-teal text-white shadow-md'
+                                        : expired
+                                            ? 'hover:bg-white hover:shadow-sm opacity-60'
+                                            : 'hover:bg-white hover:shadow-sm'
+                                }`}
+                            >
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                    isSelected ? 'bg-white/20' : expired ? 'bg-red-100' : 'bg-brand-teal/10'
+                                }`}>
+                                    <Wrench size={13} className={isSelected ? 'text-white' : expired ? 'text-red-500' : 'text-brand-teal'} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className={`text-xs font-bold truncate leading-tight ${isSelected ? 'text-white' : 'text-accent-greyDark'}`}>
+                                        {tool.name}
+                                    </p>
+                                    <p className={`text-[10px] font-semibold mt-0.5 truncate ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
+                                        {tool.model || tool.serialNumber}
+                                    </p>
+                                </div>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+                                    isSelected
+                                        ? 'bg-white/20 text-white'
+                                        : assignedProject
+                                            ? 'bg-brand-teal/10 text-brand-teal'
+                                            : 'bg-gray-100 text-gray-400'
+                                }`}>
+                                    {assignedProject ? 'ON SITE' : 'FREE'}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* RIGHT: Detail / Edit Panel */}
+                <div className="flex-1 min-w-0">
+                    {editDraft && selectedTool ? (() => {
+                        const expired = isExpired(editDraft.certificationExpiry);
+                        const assignedProject = editDraft.assignedProjectId ? projects.find(p => p.id === editDraft.assignedProjectId) : null;
+                        return (
+                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col">
+                                {/* Tool Header */}
+                                <div className={`p-5 border-b border-gray-100 shrink-0 ${expired ? 'bg-red-50/50' : 'bg-gradient-to-r from-brand-teal/5 to-transparent'}`}>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${expired ? 'bg-red-100' : 'bg-brand-teal/10'}`}>
+                                                <Wrench size={24} className={expired ? 'text-red-500' : 'text-brand-teal'} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-xl font-bold text-accent-greyDark">{selectedTool.name}</h2>
+                                                <p className="text-sm text-gray-500 mt-0.5">{selectedTool.model} · SN: <span className="font-mono">{selectedTool.serialNumber}</span></p>
+                                                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                                                        expired
+                                                            ? 'bg-red-50 text-red-600 border-red-200'
+                                                            : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                                    }`}>
+                                                        {expired ? <AlertTriangle size={10} /> : <CheckCircle2 size={10} />}
+                                                        {expired ? 'Cert Expired' : 'Certified'} · {selectedTool.certificationExpiry ? new Date(selectedTool.certificationExpiry).toLocaleDateString() : 'No date'}
+                                                    </span>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                                                        assignedProject ? 'bg-brand-teal/10 text-brand-teal border-brand-teal/20' : 'bg-amber-50 text-amber-600 border-amber-200'
+                                                    }`}>
+                                                        <Building2 size={10} />
+                                                        {assignedProject ? assignedProject.name : 'Unassigned'}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-gray-100 text-gray-500 border-gray-200 flex items-center gap-1">
+                                                        <Clock size={10} /> {selectedTool.history.length} entries
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => { deleteTool(selectedTool.id); setSelectedToolId(null); setEditDraft(null); }}
+                                            className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors shrink-0"
+                                            title="Delete Tool"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Edit Body */}
+                                <div className="p-5 flex-1 overflow-y-auto space-y-5">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Edit Information</p>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">Name</label>
+                                            <Input value={editDraft.name} onChange={e => setEditDraft({ ...editDraft, name: e.target.value })} className="rounded-xl border-gray-200" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">Model</label>
+                                            <Input value={editDraft.model} onChange={e => setEditDraft({ ...editDraft, model: e.target.value })} className="rounded-xl border-gray-200" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">Serial Number</label>
+                                            <Input value={editDraft.serialNumber} onChange={e => setEditDraft({ ...editDraft, serialNumber: e.target.value })} className="rounded-xl border-gray-200" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">Certification Expiry</label>
+                                            <Input type="date" value={editDraft.certificationExpiry} onChange={e => setEditDraft({ ...editDraft, certificationExpiry: e.target.value })} className="rounded-xl border-gray-200" />
+                                        </div>
+                                        <div className="col-span-2 space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">Assign to Project</label>
+                                            <select
+                                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                                value={editDraft.assignedProjectId || ''}
+                                                onChange={e => setEditDraft({ ...editDraft, assignedProjectId: e.target.value || undefined })}
+                                            >
+                                                <option value="">Unassigned</option>
+                                                {projects.filter(p => p.status === 'Active').map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* History */}
+                                    <div className="space-y-3 pt-4 border-t border-gray-100">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <Clock size={12} /> History & Tracking · {editDraft.history.length} entries
+                                        </p>
+
+                                        {/* Add entry */}
+                                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
+                                            <p className="text-xs font-bold text-gray-500">Add New Entry</p>
+                                            <Input
+                                                placeholder="Description (e.g. Recalibrated, Repaired...)"
+                                                value={newHistoryEntry.description}
+                                                onChange={e => setNewHistoryEntry({ ...newHistoryEntry, description: e.target.value })}
+                                                className="h-8 text-sm bg-white"
+                                            />
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    type="date"
+                                                    value={newHistoryEntry.date}
+                                                    onChange={e => setNewHistoryEntry({ ...newHistoryEntry, date: e.target.value })}
+                                                    className="h-8 text-sm bg-white flex-1"
+                                                />
+                                                <select
+                                                    className="h-8 text-sm bg-white border border-gray-200 rounded-md px-2 flex-1 outline-none focus:border-brand-teal"
+                                                    value={newHistoryEntry.projectId}
+                                                    onChange={e => setNewHistoryEntry({ ...newHistoryEntry, projectId: e.target.value })}
+                                                >
+                                                    <option value="">No Project</option>
+                                                    {projects.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                                                </select>
+                                                <Button size="sm" onClick={handleAddHistory} className="h-8 px-4 bg-brand-teal text-white rounded-lg">Add</Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Entry list */}
+                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                            {editDraft.history.slice().reverse().map((h, i) => {
+                                                const actualIndex = editDraft.history.length - 1 - i;
+                                                const hProj = h.projectId ? projects.find(p => p.id === h.projectId) : null;
+                                                return (
+                                                    <div key={i} className="flex gap-3 p-2.5 bg-gray-50 border border-gray-100 rounded-xl group relative">
+                                                        <div className="w-7 h-7 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal shrink-0">
+                                                            <Calendar size={13} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-accent-greyDark">{h.description}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{new Date(h.date).toLocaleDateString()}</span>
+                                                                {hProj && <span className="text-[10px] bg-brand-teal/10 text-brand-teal px-1.5 py-0.5 rounded flex items-center gap-1"><MapPin size={9} />{hProj.name}</span>}
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => handleRemoveHistory(actualIndex)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                            {editDraft.history.length === 0 && (
+                                                <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">No history entries yet.</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        className={`w-full h-11 font-bold rounded-xl gap-2 transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-500 text-white' : 'bg-brand-teal hover:bg-brand-teal/90 text-white'}`}
+                                        onClick={handleSave}
+                                    >
+                                        {isSaved ? <><CheckCircle2 size={18} /> Saved!</> : <><Save size={18} /> Save Changes</>}
+                                    </Button>
+                                </div>
+                            </div>
+                        );
+                    })() : (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                            <Wrench size={36} className="mb-3 opacity-30" />
+                            <p className="text-sm font-medium text-accent-greyDark">Select a tool</p>
+                            <p className="text-xs mt-1">Click a tool from the list to view and edit its details.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

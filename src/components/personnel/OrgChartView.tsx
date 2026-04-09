@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, Personnel } from '../../store/useStore';
-import { User, Briefcase, ChevronRight, UserMinus, Check, Users } from 'lucide-react';
+import { User, ChevronRight, UserMinus, Check, Users } from 'lucide-react';
 
 export default function OrgChartView() {
     const { personnel, projects, updateProject } = useStore();
@@ -120,8 +120,8 @@ export default function OrgChartView() {
                                         : 'hover:bg-white hover:shadow-sm text-accent-greyDark'
                                 }`}
                             >
-                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/20' : 'bg-brand-teal/10'}`}>
-                                    <Briefcase size={14} className={isSelected ? 'text-white' : 'text-brand-teal'} />
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${isSelected ? 'bg-white/20' : 'bg-brand-teal/10'}`}>
+                                    <img src="/latnovva-O-logo.png" alt="" className={`w-5 h-5 object-contain ${isSelected ? 'brightness-0 invert' : ''}`} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className={`text-xs font-bold truncate leading-tight ${isSelected ? 'text-white' : 'text-accent-greyDark'}`}>
@@ -149,8 +149,8 @@ export default function OrgChartView() {
                                 <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-brand-teal/5 to-transparent flex justify-between items-start shrink-0">
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
-                                            <div className="bg-brand-teal p-1.5 rounded-lg text-white">
-                                                <Briefcase size={16} />
+                                            <div className="bg-brand-teal p-1.5 rounded-lg">
+                                                <img src="/latnovva-O-logo.png" alt="" className="w-5 h-5 object-contain brightness-0 invert" />
                                             </div>
                                             <h2 className="text-lg font-bold text-accent-greyDark leading-tight">{selectedProject.name}</h2>
                                         </div>

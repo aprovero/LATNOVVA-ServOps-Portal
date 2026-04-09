@@ -1,21 +1,57 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { FileText, Search, FileSpreadsheet, Filter, Briefcase, ChevronDown, Plus } from 'lucide-react';
-import gsap from 'gsap';
+import { FileText, Search, FileSpreadsheet, Filter, ChevronDown, Plus, ArrowRight, Clock, Calendar, Link2, AlertCircle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
+type ReportEntry = {
+    type: 'Daily' | 'Form';
+    id: string;
+    projectId: string;
+    clientId: string | undefined;
+    projectName: string;
+    templateName?: string;
+    date: string;
+    state: string;
+    isOverdue: boolean;
+};
+
+const STATE_STYLES: Record<string, string> = {
+    'Draft': 'bg-amber-50 text-amber-600 border-amber-200',
+    'Pending Manager Review': 'bg-brand-teal/10 text-brand-teal border-brand-teal/20',
+    'Pending Customer Review': 'bg-blue-50 text-blue-600 border-blue-200',
+    'Approved': 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    'Closed': 'bg-gray-100 text-gray-500 border-gray-200',
+};
+
+const STATE_BAR: Record<string, string> = {
+    'Draft': 'bg-amber-400',
+    'Pending Manager Review': 'bg-brand-teal',
+    'Pending Customer Review': 'bg-blue-400',
+    'Approved': 'bg-emerald-400',
+    'Closed': 'bg-gray-300',
+};
+
+function getStateDisplay(state: string, isOverdue: boolean) {
+    if (isOverdue) return 'Overdue';
+    if (state === 'Pending Manager Review') return 'Mgr Review';
+    if (state === 'Pending Customer Review') return 'Cust Review';
+    return state;
+}
+
 export default function ReportList() {
     const { reports, subReportInstances, projects, userRole, clientId, addReport, clients, userId } = useStore();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const projectIdFilter = searchParams.get('project');
+
     const [filter, setFilter] = useState<'All' | 'Draft' | 'Pending Manager Review' | 'Pending Customer Review' | 'Approved' | 'Closed' | 'Overdue'>('All');
     const [typeFilter, setTypeFilter] = useState<'All' | 'Daily' | 'Form'>('All');
     const [projectFilter, setProjectFilter] = useState<string>(projectIdFilter || 'All');
     const [search, setSearch] = useState('');
+    const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
     const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
     const [projectSearchDropdown, setProjectSearchDropdown] = useState('');
@@ -30,39 +66,35 @@ export default function ReportList() {
         const selectedProj = projects.find(p => p.id === newReportProject);
         if (!selectedProj) return;
 
-        // H-03: Prevent duplicate reports for same project + date
         const reportDate = newReportDate || new Date().toISOString().split('T')[0];
         const duplicate = reports.find(r => r.projectId === newReportProject && r.date === reportDate);
         if (duplicate) {
-            if (window.confirm(`A report already exists for ${selectedProj.name} on ${reportDate}. Open it instead of creating a new one?`)) {
+            if (window.confirm(`A report already exists for ${selectedProj.name} on ${reportDate}. Open it instead?`)) {
                 navigate(`/reports/${duplicate.id}`);
             }
             setIsCreateReportOpen(false);
             return;
         }
 
-        // M-06: Collision-safe ID using timestamp + random suffix
         const reportId = `REP-${Date.now().toString(36).toUpperCase()}`;
         const now = new Date().toISOString();
-        const newRep = {
+        addReport({
             id: reportId,
             projectId: selectedProj.id,
             projectName: selectedProj.name,
             clientId: selectedProj.clientId,
             date: reportDate,
-            state: 'Draft' as const,
+            state: 'Draft',
             weather: { temp: 0, condition: 'Unknown' },
             equipment: [],
             customSections: [],
             comments: [],
             notes: '',
-            // H-01: Originator trace
             createdBy: userId,
             createdAt: now,
             updatedBy: userId,
             updatedAt: now,
-        };
-        addReport(newRep);
+        });
         setIsCreateReportOpen(false);
         setNewReportProject('');
         setNewReportDate(new Date().toISOString().split('T')[0]);
@@ -81,76 +113,85 @@ export default function ReportList() {
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Combine Daily Reports and Sub-Reports into a uniform list for display
-    const combinedReports = useMemo(() => {
-        const unified: any[] = [];
-        
-        // Add Daily Reports
+    const combinedReports = useMemo<ReportEntry[]>(() => {
+        const unified: ReportEntry[] = [];
+
         reports.forEach(r => {
             const isOverdue = r.date < today && r.state !== 'Approved' && r.state !== 'Closed';
-            unified.push({
-                type: 'Daily',
-                id: r.id,
-                projectId: r.projectId,
-                clientId: r.clientId,
-                projectName: r.projectName,
-                date: r.date,
-                state: r.state,
-                isOverdue
-            });
+            unified.push({ type: 'Daily', id: r.id, projectId: r.projectId, clientId: r.clientId, projectName: r.projectName, date: r.date, state: r.state, isOverdue });
         });
 
-        // Add Sub-Reports
         subReportInstances.forEach(sr => {
             const project = projects.find(p => p.id === sr.projectId);
             const date = sr.createdAt.split('T')[0];
             const isOverdue = date < today && sr.state !== 'Approved' && sr.state !== 'Closed';
             unified.push({
-                type: 'Form',
-                id: sr.id,
-                projectId: sr.projectId,
-                clientId: project?.clientId,
-                projectName: `${sr.templateName} - ${project?.name || 'Unknown Project'}`,
-                date,
-                state: sr.state,
-                isOverdue
+                type: 'Form', id: sr.id, projectId: sr.projectId, clientId: project?.clientId,
+                projectName: project?.name || 'Unknown Project',
+                templateName: sr.templateName,
+                date, state: sr.state, isOverdue
             });
         });
 
         return unified.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [reports, subReportInstances, projects, today]);
 
-
-    useEffect(() => {
-        gsap.fromTo(
-            '.report-item',
-            { y: 20, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
-        );
-    }, [combinedReports, filter, search]);
-
-    const visibleReports = combinedReports.filter((r) => {
+    const visibleReports = combinedReports.filter(r => {
         if (projectFilter !== 'All' && r.projectId !== projectFilter) return false;
         if (typeFilter !== 'All' && r.type !== typeFilter) return false;
-        if (userRole === 'Customer') {
-            return r.clientId === clientId && ['Approved', 'Closed', 'Pending Customer Review'].includes(r.state);
-        }
-        if (userRole === 'Tech') {
-            return false;
-        }
-        return true; 
-    }).filter((r) => {
+        if (userRole === 'Customer') return r.clientId === clientId && ['Approved', 'Closed', 'Pending Customer Review'].includes(r.state);
+        if (userRole === 'Tech') return false;
         if (filter === 'Overdue') return r.isOverdue;
         if (filter !== 'All' && r.state !== filter) return false;
         if (search && !r.projectName.toLowerCase().includes(search.toLowerCase()) && !r.id.toLowerCase().includes(search.toLowerCase())) return false;
         return true;
     });
 
+    const selectedReport = visibleReports.find(r => r.id === selectedReportId) ?? null;
+
+    // If selected report gets filtered out, clear it
+    useEffect(() => {
+        if (selectedReportId && !visibleReports.find(r => r.id === selectedReportId)) {
+            setSelectedReportId(null);
+        }
+    }, [visibleReports, selectedReportId]);
+
+    // Auto-select first when list changes and nothing selected
+    useEffect(() => {
+        if (!selectedReportId && visibleReports.length > 0) {
+            setSelectedReportId(visibleReports[0].id);
+        }
+    }, [visibleReports.length]);
+
+    // Sub-reports linked to the selected Daily report
+    const linkedSubReports = useMemo(() => {
+        if (!selectedReport || selectedReport.type !== 'Daily') return [];
+        const parentReport = reports.find(r => r.id === selectedReport.id);
+        if (!parentReport) return [];
+        return subReportInstances.filter(sr =>
+            sr.projectId === parentReport.projectId &&
+            sr.createdAt.split('T')[0] === parentReport.date
+        );
+    }, [selectedReport, reports, subReportInstances]);
+
+    // Full Daily report data for the selected
+    const selectedDailyReport = selectedReport?.type === 'Daily'
+        ? reports.find(r => r.id === selectedReport.id)
+        : null;
+
+    const selectedSubReport = selectedReport?.type === 'Form'
+        ? subReportInstances.find(sr => sr.id === selectedReport.id)
+        : null;
+
     return (
-        <div className="space-y-6 pb-20 md:pb-0">
+        <div className="space-y-5 pb-20 md:pb-0">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">Reports Database</h1>
+                    <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
+                        <FileText className="text-brand-teal" size={28} />
+                        Reports Database
+                    </h1>
                     <p className="text-gray-500 mt-1">Manage all site documentation, daily logs, and technical forms.</p>
                 </div>
                 {['Manager', 'Supervisor', 'Tech'].includes(userRole) && (
@@ -161,26 +202,22 @@ export default function ReportList() {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Create Daily Report</DialogTitle>
-                            </DialogHeader>
+                            <DialogHeader><DialogTitle>Create Daily Report</DialogTitle></DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
                                     <label className="text-sm font-semibold">Select Project</label>
                                     <select
-                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none max-h-60 cursor-pointer"
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-brand-teal outline-none cursor-pointer"
                                         value={newReportProject}
-                                        onChange={(e) => setNewReportProject(e.target.value)}
+                                        onChange={e => setNewReportProject(e.target.value)}
                                     >
                                         <option value="" disabled>Select an active project...</option>
                                         {clients.map(client => {
-                                            const clientProjects = projects.filter(p => p.clientId === client.id && p.status === 'Active');
-                                            if (clientProjects.length === 0) return null;
+                                            const cp = projects.filter(p => p.clientId === client.id && p.status === 'Active');
+                                            if (!cp.length) return null;
                                             return (
                                                 <optgroup key={client.id} label={client.name}>
-                                                    {clientProjects.map(p => (
-                                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                                    ))}
+                                                    {cp.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                                 </optgroup>
                                             );
                                         })}
@@ -188,13 +225,7 @@ export default function ReportList() {
                                 </div>
                                 <div className="grid gap-2">
                                     <label className="text-sm font-semibold">Report Date</label>
-                                    <Input
-                                        type="date"
-                                        value={newReportDate}
-                                        onChange={(e) => setNewReportDate(e.target.value)}
-                                        max={new Date().toISOString().split('T')[0]}
-                                        className="w-full"
-                                    />
+                                    <Input type="date" value={newReportDate} onChange={e => setNewReportDate(e.target.value)} max={today} />
                                 </div>
                             </div>
                             <DialogFooter>
@@ -208,28 +239,17 @@ export default function ReportList() {
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end">
-                <div className="space-y-1.5 flex-1 min-w-[200px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> Search Reports</label>
+                <div className="space-y-1.5 flex-1 min-w-[180px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> Search</label>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search by ID or Project..."
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                        <input type="text" placeholder="Search by ID or Project..." className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                 </div>
-
-                <div className="space-y-1.5 flex-[0.8] min-w-[150px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><FileText size={12} /> Report Type</label>
+                <div className="space-y-1.5 min-w-[140px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><FileText size={12} /> Type</label>
                     <div className="relative">
-                        <select
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none"
-                            value={typeFilter}
-                            onChange={e => setTypeFilter(e.target.value as any)}
-                        >
+                        <select className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none" value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}>
                             <option value="All">All Types</option>
                             <option value="Daily">Daily Reports</option>
                             <option value="Form">Forms</option>
@@ -237,15 +257,10 @@ export default function ReportList() {
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                     </div>
                 </div>
-
-                <div className="space-y-1.5 flex-[0.8] min-w-[170px]">
+                <div className="space-y-1.5 min-w-[150px]">
                     <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Status</label>
                     <div className="relative">
-                        <select
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none"
-                            value={filter}
-                            onChange={e => setFilter(e.target.value as any)}
-                        >
+                        <select className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none" value={filter} onChange={e => setFilter(e.target.value as any)}>
                             <option value="All">All Statuses</option>
                             <option value="Draft">Draft</option>
                             <option value="Pending Manager Review">Manager Review</option>
@@ -257,114 +272,247 @@ export default function ReportList() {
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                     </div>
                 </div>
-
-                <div className="space-y-1.5 flex-1 min-w-[200px] relative z-20" ref={dropdownRef}>
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Briefcase size={12} /> Filter Project</label>
-                    <div 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-brand-teal transition-all"
-                        onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-                    >
-                        <span className="truncate">
-                            {projectFilter === 'All' ? 'All Projects' : (projects.find(p => p.id === projectFilter)?.codeName || projects.find(p => p.id === projectFilter)?.name || 'All Projects')}
-                        </span>
-                        <ChevronDown className={`text-gray-400 transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} size={16} />
+                <div className="space-y-1.5 flex-1 min-w-[180px] relative z-20" ref={dropdownRef}>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Project</label>
+                    <div className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold flex items-center justify-between cursor-pointer" onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}>
+                        <span className="truncate">{projectFilter === 'All' ? 'All Projects' : (projects.find(p => p.id === projectFilter)?.codeName || projects.find(p => p.id === projectFilter)?.name || 'All Projects')}</span>
+                        <ChevronDown className={`text-gray-400 transition-transform shrink-0 ${isProjectDropdownOpen ? 'rotate-180' : ''}`} size={16} />
                     </div>
                     {isProjectDropdownOpen && (
-                        <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden will-change-transform animate-in fade-in slide-in-from-top-2 duration-200">
-                            <div className="p-2 border-b border-gray-100 bg-gray-50/50">
-                                <input
-                                    type="text"
-                                    placeholder="Search projects..."
-                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-brand-teal/50"
-                                    value={projectSearchDropdown}
-                                    onChange={(e) => setProjectSearchDropdown(e.target.value)}
-                                    onClick={e => e.stopPropagation()}
-                                    autoFocus
-                                />
+                        <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="p-2 border-b border-gray-100">
+                                <input type="text" placeholder="Search projects..." className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-teal/50" value={projectSearchDropdown} onChange={e => setProjectSearchDropdown(e.target.value)} onClick={e => e.stopPropagation()} autoFocus />
                             </div>
-                            <div className="max-h-[240px] overflow-y-auto custom-scrollbar p-1">
-                                <div 
-                                    className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${projectFilter === 'All' ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
-                                    onClick={() => {
-                                        setProjectFilter('All');
-                                        setIsProjectDropdownOpen(false);
-                                        setProjectSearchDropdown('');
-                                    }}
-                                >
-                                    All Projects
-                                </div>
+                            <div className="max-h-[240px] overflow-y-auto p-1">
+                                <div className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold ${projectFilter === 'All' ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`} onClick={() => { setProjectFilter('All'); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}>All Projects</div>
                                 {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).map(p => (
-                                    <div 
-                                        key={p.id}
-                                        className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${projectFilter === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
-                                        onClick={() => {
-                                            setProjectFilter(p.id);
-                                            setIsProjectDropdownOpen(false);
-                                            setProjectSearchDropdown('');
-                                        }}
-                                    >
+                                    <div key={p.id} className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold ${projectFilter === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`} onClick={() => { setProjectFilter(p.id); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}>
                                         {p.codeName || p.name}
                                     </div>
                                 ))}
-                                {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).length === 0 && (
-                                    <div className="px-3 py-4 text-center text-xs text-gray-400 italic">No matching projects found</div>
-                                )}
                             </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {visibleReports.map((report) => (
-                    <div
-                        key={report.id}
-                        className={`report-item card-container cursor-pointer hover:border-brand-teal/50 hover:shadow-float transition-all group relative overflow-hidden flex flex-col h-full ${report.isOverdue ? 'border-status-error/30' : ''}`}
-                        onClick={() => navigate(report.type === 'Daily' ? `/reports/${report.id}` : `/sub-reports/${report.id}`)}
-                    >
-                        <div className={`absolute top-0 left-0 w-1 h-full 
-                            ${report.isOverdue ? 'bg-status-error' : 
-                              report.state === 'Draft' ? 'bg-status-warning' :
-                                report.state.includes('Review') || report.state === 'Approved' ? 'bg-brand-teal' :
-                                    'bg-status-success'}`}>
-                        </div>
+            {/* Master / Detail */}
+            <div className="flex gap-4" style={{ minHeight: '560px' }}>
+                {/* LEFT: Report List */}
+                <div className="w-72 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
+                        Reports · {visibleReports.length}
+                    </p>
 
-                        <div className="flex justify-between items-start mb-4">
-                            <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest
-                                ${report.isOverdue ? 'bg-status-error/10 text-status-error shadow-[0_0_10px_rgba(239,68,68,0.2)]' :
-                                  report.state === 'Draft' ? 'bg-status-warning/10 text-status-warning' :
-                                    report.state.includes('Review') || report.state === 'Approved' ? 'bg-brand-teal/10 text-brand-teal shadow-[0_0_10px_rgba(20,184,166,0.1)]' :
-                                        'bg-status-success/10 text-status-success'}`}>
-                                {report.type === 'Form' ? <FileSpreadsheet size={12} /> : <FileText size={12} />}
-                                {report.isOverdue ? 'OVERDUE' : (report.state === 'Pending Manager Review' ? 'Reviewing' : report.state)}
-                            </span>
-                            <span className="text-xs text-brand-teal font-mono font-bold bg-brand-teal/5 px-2 py-1 rounded-md">
-                                {report.id}
-                            </span>
+                    {visibleReports.length === 0 && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-10 px-4 text-center">
+                            <FileText size={28} className="mb-2 opacity-30" />
+                            <p className="text-xs font-medium">No reports found</p>
+                            <p className="text-[10px] mt-1">Try adjusting your filters.</p>
                         </div>
+                    )}
 
-                        <h3 className="text-xl font-bold text-accent-greyDark mb-2 group-hover:text-brand-teal transition-colors line-clamp-2 leading-tight">
-                            {report.projectName}
-                        </h3>
+                    {visibleReports.map(report => {
+                        const isSelected = selectedReportId === report.id;
+                        return (
+                            <button
+                                key={report.id}
+                                onClick={() => setSelectedReportId(report.id)}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center gap-3 ${
+                                    isSelected
+                                        ? 'bg-brand-teal text-white shadow-md'
+                                        : report.isOverdue
+                                            ? 'hover:bg-white hover:shadow-sm border border-red-100'
+                                            : 'hover:bg-white hover:shadow-sm'
+                                }`}
+                            >
+                                {/* Left accent bar */}
+                                <div className={`w-1 h-8 rounded-full shrink-0 ${isSelected ? 'bg-white/40' : report.isOverdue ? 'bg-red-400' : (STATE_BAR[report.state] || 'bg-gray-300')}`} />
 
-                        <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between text-sm">
-                            <span className="text-gray-500 font-medium">Type</span>
-                            <span className="font-bold text-accent-greyDark capitalize">{report.type}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        {report.type === 'Form'
+                                            ? <FileSpreadsheet size={11} className={isSelected ? 'text-white/70' : 'text-blue-400'} />
+                                            : <FileText size={11} className={isSelected ? 'text-white/70' : 'text-brand-teal'} />
+                                        }
+                                        <p className={`text-[9px] font-bold uppercase tracking-wider ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
+                                            {report.type === 'Form' ? (report.templateName || 'Form') : 'Daily'}
+                                        </p>
+                                    </div>
+                                    <p className={`text-xs font-bold truncate leading-tight ${isSelected ? 'text-white' : 'text-accent-greyDark'}`}>
+                                        {report.projectName}
+                                    </p>
+                                    <p className={`text-[10px] font-mono mt-0.5 ${isSelected ? 'text-white/60' : 'text-gray-400'}`}>
+                                        {report.date}
+                                    </p>
+                                </div>
+
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 border ${
+                                    isSelected
+                                        ? 'bg-white/20 text-white border-white/20'
+                                        : report.isOverdue
+                                            ? 'bg-red-50 text-red-600 border-red-200'
+                                            : (STATE_STYLES[report.state] || 'bg-gray-100 text-gray-500 border-gray-200')
+                                }`}>
+                                    {getStateDisplay(report.state, report.isOverdue)}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* RIGHT: Report Preview Panel */}
+                <div className="flex-1 min-w-0">
+                    {selectedReport ? (
+                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col">
+                            {/* Report Header */}
+                            <div className={`p-5 border-b border-gray-100 shrink-0 relative overflow-hidden ${selectedReport.isOverdue ? 'bg-red-50/60' : 'bg-gradient-to-r from-brand-teal/5 to-transparent'}`}>
+                                {/* Accent bar */}
+                                <div className={`absolute top-0 left-0 w-1 h-full ${selectedReport.isOverdue ? 'bg-red-400' : (STATE_BAR[selectedReport.state] || 'bg-gray-300')}`} />
+                                <div className="pl-4 flex items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${selectedReport.isOverdue ? 'bg-red-50 text-red-600 border-red-200' : (STATE_STYLES[selectedReport.state] || 'bg-gray-100 text-gray-500 border-gray-200')}`}>
+                                                {selectedReport.type === 'Form' ? <FileSpreadsheet size={10} /> : <FileText size={10} />}
+                                                {getStateDisplay(selectedReport.state, selectedReport.isOverdue)}
+                                            </span>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                                                {selectedReport.type === 'Daily' ? 'Daily Report' : `Form · ${selectedReport.templateName || ''}`}
+                                            </span>
+                                        </div>
+                                        <h2 className="text-xl font-bold text-accent-greyDark leading-tight">{selectedReport.projectName}</h2>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-xs text-brand-teal font-mono font-bold">{selectedReport.id}</span>
+                                            <span className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={11} /> {selectedReport.date}</span>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => navigate(selectedReport.type === 'Daily' ? `/reports/${selectedReport.id}` : `/sub-reports/${selectedReport.id}`)}
+                                        className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold h-10 px-5 shrink-0"
+                                    >
+                                        Open Report <ArrowRight size={16} />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Report Body */}
+                            <div className="p-5 flex-1 overflow-y-auto space-y-5">
+                                {/* Daily report: show summary info + linked forms */}
+                                {selectedReport.type === 'Daily' && selectedDailyReport && (
+                                    <>
+                                        {/* Metadata grid */}
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'Weather', value: `${selectedDailyReport.weather?.condition || '—'} · ${selectedDailyReport.weather?.temp ?? '—'}°` },
+                                                { label: 'Equipment', value: `${selectedDailyReport.equipment?.length ?? 0} items` },
+                                                { label: 'Notes', value: selectedDailyReport.notes ? 'Has notes' : 'No notes' },
+                                            ].map(item => (
+                                                <div key={item.label} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{item.label}</p>
+                                                    <p className="text-sm font-semibold text-accent-greyDark">{item.value}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Linked sub-reports */}
+                                        <div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                <Link2 size={12} /> Attached Forms · {linkedSubReports.length}
+                                            </p>
+                                            {linkedSubReports.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {linkedSubReports.map(sr => {
+                                                        const srDate = sr.createdAt.split('T')[0];
+                                                        const srOverdue = srDate < today && sr.state !== 'Approved' && sr.state !== 'Closed';
+                                                        return (
+                                                            <div
+                                                                key={sr.id}
+                                                                className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-brand-teal/30 hover:bg-white transition-all cursor-pointer group"
+                                                                onClick={() => navigate(`/sub-reports/${sr.id}`)}
+                                                            >
+                                                                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                                                    <FileSpreadsheet size={14} className="text-blue-500" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-bold text-accent-greyDark truncate">{sr.templateName}</p>
+                                                                    <p className="text-[10px] font-mono text-gray-400">{sr.id}</p>
+                                                                </div>
+                                                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${srOverdue ? 'bg-red-50 text-red-600 border-red-200' : (STATE_STYLES[sr.state] || 'bg-gray-100 text-gray-500 border-gray-200')}`}>
+                                                                    {getStateDisplay(sr.state, srOverdue)}
+                                                                </span>
+                                                                <ArrowRight size={14} className="text-gray-300 group-hover:text-brand-teal transition-colors shrink-0" />
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div className="py-6 flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                                                    <FileSpreadsheet size={20} className="mb-1.5 opacity-40" />
+                                                    <p className="text-xs font-medium">No forms attached to this report</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Comments preview */}
+                                        {(selectedDailyReport.comments?.length ?? 0) > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                    <Clock size={12} /> Activity · {selectedDailyReport.comments?.length} comments
+                                                </p>
+                                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                                    {(selectedDailyReport.comments || []).slice(-3).map((c: any, i: number) => (
+                                                        <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                            <div className="w-6 h-6 rounded-full bg-brand-teal/10 text-brand-teal flex items-center justify-center text-xs font-bold shrink-0">
+                                                                {(c.author || 'U').charAt(0)}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-semibold text-accent-greyDark">{c.text || c.content}</p>
+                                                                <p className="text-[10px] text-gray-400 mt-0.5">{c.author} · {c.timestamp?.split('T')[0]}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* Form report preview */}
+                                {selectedReport.type === 'Form' && selectedSubReport && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Template</p>
+                                                <p className="text-sm font-semibold text-accent-greyDark">{selectedSubReport.templateName}</p>
+                                            </div>
+                                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Submitted</p>
+                                                <p className="text-sm font-semibold text-accent-greyDark font-mono">{selectedSubReport.createdAt?.split('T')[0]}</p>
+                                            </div>
+                                        </div>
+                                        {selectedReport.isOverdue && (
+                                            <div className="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                                                <AlertCircle size={16} className="text-red-500 shrink-0" />
+                                                <p className="text-sm text-red-600 font-medium">This form is overdue and requires attention.</p>
+                                            </div>
+                                        )}
+                                        <div className="py-8 flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                                            <FileSpreadsheet size={24} className="mb-2 opacity-40" />
+                                            <p className="text-sm font-medium text-accent-greyDark">Form details are in the editor</p>
+                                            <p className="text-xs mt-1">Click "Open Report" to view and edit the full form.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-sm">
-                            <span className="text-gray-500 font-medium">Date</span>
-                            <span className="font-mono font-bold text-accent-grey">{report.date}</span>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                            <FileText size={36} className="mb-3 opacity-30" />
+                            <p className="text-sm font-medium text-accent-greyDark">Select a report</p>
+                            <p className="text-xs mt-1">Click a report from the list to preview it.</p>
                         </div>
-                    </div>
-                ))}
-
-                {visibleReports.length === 0 && (
-                    <div className="col-span-full card-container py-12 text-center text-gray-500">
-                        <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg font-bold text-accent-grey">No reports found.</p>
-                        <p className="text-sm">Try adjusting your filters or search terms.</p>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );
