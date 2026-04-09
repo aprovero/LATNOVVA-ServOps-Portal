@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download } from 'lucide-react';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { GOD_MODE_PERSONAS, GOD_MODE_ADMIN_EMAIL } from '../auth/AuthRoute';
 import { AddScopeModal } from '../project/AddScopeModal';
@@ -33,6 +34,7 @@ export default function Layout() {
     const navigate = useNavigate();
     const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
     const isGodMode = userEmail === GOD_MODE_ADMIN_EMAIL;
+    const { canInstall, triggerInstall } = usePWAInstall();
 
     // Dialog States
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -349,6 +351,19 @@ export default function Layout() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
 
+                        {/* PWA Install Button — only shown when installable */}
+                        {canInstall && (
+                            <button
+                                id="pwa-install-btn-desktop"
+                                onClick={() => triggerInstall()}
+                                className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-brand-teal/10 border border-brand-teal/30 rounded-xl hover:bg-brand-teal/20 transition-all duration-200 text-brand-teal outline-none group"
+                                title="Install LATNOVVA ServiceTool as an app"
+                            >
+                                <Download size={13} className="shrink-0 group-hover:translate-y-0.5 transition-transform" />
+                                <span className="text-xs font-semibold">Install App</span>
+                            </button>
+                        )}
+
                         {/* God Mode role switcher — only visible to aprovero */}
                         {isGodMode && (
                         <DropdownMenu>
@@ -450,6 +465,18 @@ export default function Layout() {
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-4 object-contain" />
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* PWA Install — mobile */}
+                        {canInstall && (
+                            <button
+                                id="pwa-install-btn-mobile"
+                                onClick={() => triggerInstall()}
+                                className="p-2 text-brand-teal rounded-full bg-brand-teal/10 hover:bg-brand-teal/20 transition-colors"
+                                aria-label="Install app"
+                                title="Install LATNOVVA ServiceTool"
+                            >
+                                <Download size={18} />
+                            </button>
+                        )}
                         {/* Search — opens command palette */}
                         <button
                             onClick={() => setMobileSearchTrigger(true)}
@@ -458,7 +485,7 @@ export default function Layout() {
                         >
                             <Search size={18} />
                         </button>
-                        {/* Notifications bell — untouched */}
+                        {/* Notifications bell */}
                         <button className="relative p-2 text-gray-500 rounded-full bg-gray-50">
                             <Bell size={18} />
                             {notifications.length > 0 && (
