@@ -175,6 +175,8 @@ export interface Personnel {
     managerId?: string;
     phoneNumber?: string;
     prevailingWage?: boolean;
+    /** If true, this person appears in project/report selectors but never on the Deployments bench. */
+    benchExempt?: boolean;
 }
 
 export interface ChecklistTemplate {
@@ -488,12 +490,13 @@ export const useStore = create<AppState>()(
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
-                    const [{ data: clientsDB }, { data: projectsDB }, { data: personnelDB }, { data: reportsDB }, { data: timesheetsDB }] = await Promise.all([
+                    const [{ data: clientsDB }, { data: projectsDB }, { data: personnelDB }, { data: reportsDB }, { data: timesheetsDB }, { data: toolsDB }] = await Promise.all([
                         supabase.from('clients').select('*'),
                         supabase.from('projects').select('*'),
                         supabase.from('personnel').select('*'),
                         supabase.from('reports').select('*'),
-                        supabase.from('timesheets').select('*')
+                        supabase.from('timesheets').select('*'),
+                        supabase.from('tools').select('*')
                     ]);
 
                     // Guard: only overwrite store state if Supabase returned actual rows.
@@ -542,7 +545,8 @@ export const useStore = create<AppState>()(
                                 managerId: p.manager_id,
                                 clientId: p.client_id,
                                 image: p.image,
-                                prevailingWage: p.prevailing_wage || false
+                                prevailingWage: p.prevailing_wage || false,
+                                benchExempt: p.bench_exempt || false
                             }))
                             : state.personnel,
                         reports: reportsDB?.length
@@ -600,6 +604,17 @@ export const useStore = create<AppState>()(
                                 manualReason: (t as any).manual_reason,
                             }))
                             : state.timesheets,
+                        tools: toolsDB?.length
+                            ? toolsDB.map(t => ({
+                                id: t.id,
+                                name: t.name,
+                                model: t.model,
+                                serialNumber: t.serial_number,
+                                certificationExpiry: t.certification_expiry,
+                                assignedProjectId: t.assigned_project_id,
+                                history: t.history || []
+                            }))
+                            : state.tools,
                     }));
                 } catch (error) {
                     console.error('Failed to init DB from Supabase', error);
@@ -816,15 +831,41 @@ export const useStore = create<AppState>()(
                     await supabase.from('reports').update({ comments: updatedComments }).eq('id', reportId);
                 }
             },
-            addTool: (tool) => set((state) => ({ tools: [...state.tools, tool] })),
-            updateTool: (id, updates) =>
+            addTool: async (tool) => {
+                set((state) => ({ tools: [...state.tools, tool] }));
+                const dbPayload = {
+                    id: tool.id,
+                    name: tool.name,
+                    model: tool.model,
+                    serial_number: tool.serialNumber,
+                    certification_expiry: tool.certificationExpiry,
+                    assigned_project_id: tool.assignedProjectId,
+                    history: tool.history || []
+                };
+                await supabase.from('tools').insert(dbPayload);
+            },
+            updateTool: async (id, updates) => {
                 set((state) => ({
                     tools: state.tools.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-                })),
-            deleteTool: (id) =>
+                }));
+                const dbPayload: any = {};
+                if (updates.name !== undefined) dbPayload.name = updates.name;
+                if (updates.model !== undefined) dbPayload.model = updates.model;
+                if (updates.serialNumber !== undefined) dbPayload.serial_number = updates.serialNumber;
+                if (updates.certificationExpiry !== undefined) dbPayload.certification_expiry = updates.certificationExpiry;
+                if (updates.assignedProjectId !== undefined) dbPayload.assigned_project_id = updates.assignedProjectId;
+                if (updates.history !== undefined) dbPayload.history = updates.history;
+
+                if (Object.keys(dbPayload).length > 0) {
+                    await supabase.from('tools').update(dbPayload).eq('id', id);
+                }
+            },
+            deleteTool: async (id) => {
                 set((state) => ({
                     tools: state.tools.filter((t) => t.id !== id),
-                })),
+                }));
+                await supabase.from('tools').delete().eq('id', id);
+            },
             addPersonnel: async (person) => {
                 set((state) => ({ personnel: [...state.personnel, person] }));
                 const dbPayload = {
@@ -841,7 +882,8 @@ export const useStore = create<AppState>()(
                     manager_id: person.managerId,
                     client_id: person.clientId,
                     image: person.image,
-                    prevailing_wage: person.prevailingWage || false
+                    prevailing_wage: person.prevailingWage || false,
+                    bench_exempt: person.benchExempt || false
                 };
                 await supabase.from('personnel').insert(dbPayload);
             },
@@ -863,6 +905,7 @@ export const useStore = create<AppState>()(
                 if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
                 if (updates.image !== undefined) dbPayload.image = updates.image;
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
+                if (updates.benchExempt !== undefined) dbPayload.bench_exempt = updates.benchExempt;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('personnel').update(dbPayload).eq('id', id);
                 }

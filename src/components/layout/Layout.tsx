@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download, Check } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useTranslation } from 'react-i18next';
@@ -452,21 +452,21 @@ export default function Layout() {
                                     </>
                                 )}
 
-                                <DropdownMenuLabel>{t('common.language', 'Language')}</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
-                                    className="cursor-pointer justify-between" 
-                                    onClick={() => i18n.changeLanguage('en')}
+                                    className="cursor-pointer flex items-center justify-center p-0 hover:bg-transparent focus:bg-transparent" 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        i18n.changeLanguage(i18n.language === 'en' ? 'es' : 'en');
+                                    }}
                                 >
-                                    <span>{t('common.english', 'English')}</span>
-                                    {i18n.language === 'en' && <Check size={14} className="text-brand-teal" />}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                    className="cursor-pointer justify-between" 
-                                    onClick={() => i18n.changeLanguage('es')}
-                                >
-                                    <span>{t('common.spanish', 'Spanish')}</span>
-                                    {i18n.language === 'es' && <Check size={14} className="text-brand-teal" />}
+                                    <div className="flex items-center gap-0 bg-gray-50 rounded-lg p-1 w-full border border-gray-100">
+                                        <div className={`flex-1 py-1 text-center text-[10px] font-bold rounded-md transition-all ${i18n.language === 'en' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}>
+                                            EN
+                                        </div>
+                                        <div className={`flex-1 py-1 text-center text-[10px] font-bold rounded-md transition-all ${i18n.language === 'es' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}>
+                                            ES
+                                        </div>
+                                    </div>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => { setAuthData('', ''); navigate('/login'); }}>

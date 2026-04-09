@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useStore, Personnel } from '../../store/useStore';
 import { User, ChevronRight, UserMinus, Check, Users, Briefcase } from 'lucide-react';
 
@@ -16,7 +16,16 @@ export default function OrgChartView() {
     const fieldPersonnel = personnel.filter(p => p.status !== 'Inactive');
 
     const assignedPersonnelIds = new Set(projects.flatMap(p => p.assignedPersonnel || []));
-    const benchedPersonnel = fieldPersonnel.filter(p => !assignedPersonnelIds.has(p.id));
+    // Bench = active, assigned to no project, and NOT bench-exempt (e.g. Andres â€” occasional field visits)
+    const benchedPersonnel = fieldPersonnel.filter(p => !assignedPersonnelIds.has(p.id) && !p.benchExempt);
+    // Staff available to add to a specific project: unassigned OR bench-exempt (but not already on THIS project)
+    const getAddableStaff = (project: typeof activeProjects[0]) => {
+        const currentIds = new Set(project.assignedPersonnel || []);
+        return fieldPersonnel.filter(p =>
+            !currentIds.has(p.id) &&
+            (!assignedPersonnelIds.has(p.id) || p.benchExempt)
+        );
+    };
 
     const selectedProject = activeProjects.find(p => p.id === selectedProjectId) ?? null;
 
@@ -105,7 +114,7 @@ export default function OrgChartView() {
             <div className="flex gap-4" style={{ minHeight: '480px' }}>
                 {/* LEFT: Project List */}
                 <div className="w-64 shrink-0 flex flex-col gap-1 bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">Active Projects · {activeProjects.length}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">Active Projects Â· {activeProjects.length}</p>
                     {activeProjects.length === 0 && (
                         <div className="flex-1 flex items-center justify-center text-gray-400 text-xs">No active projects</div>
                     )}
@@ -176,13 +185,26 @@ export default function OrgChartView() {
                                                 }}
                                             >
                                                 <option value="" disabled>+ Add Staff</option>
-                                                {benchedPersonnel.length > 0 ? (
-                                                    benchedPersonnel.map(member => (
-                                                        <option key={member.id} value={member.id}>{member.name}</option>
-                                                    ))
-                                                ) : (
-                                                    <option value="" disabled>No Unassigned Staff</option>
-                                                )}
+
+                                                {(() => {
+
+                                                    const addable = getAddableStaff(selectedProject);
+
+                                                    return addable.length > 0 ? (
+
+                                                        addable.map(member => (
+
+                                                            <option key={member.id} value={member.id}>{member.name}</option>
+
+                                                        ))
+
+                                                    ) : (
+
+                                                        <option value="" disabled>No Available Staff</option>
+
+                                                    );
+
+                                                })()}
                                             </select>
                                             <ChevronRight size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-teal pointer-events-none" />
                                         </div>
@@ -194,7 +216,7 @@ export default function OrgChartView() {
                                     <div className="flex items-center gap-2 mb-4">
                                         <Users size={14} className="text-gray-400" />
                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                            Assigned Team · {team.length}
+                                            Assigned Team Â· {team.length}
                                         </p>
                                     </div>
                                     {team.length > 0 ? (
@@ -253,3 +275,4 @@ export default function OrgChartView() {
         </div>
     );
 }
+
