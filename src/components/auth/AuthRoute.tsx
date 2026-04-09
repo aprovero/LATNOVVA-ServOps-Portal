@@ -25,10 +25,12 @@ export const AuthRoute: React.FC = () => {
     //   • Bypass mode: seeds aprovero's email on first run → God Mode UI appears.
     //   • Real auth: only aprovero's login email triggers this → others see nothing.
     useEffect(() => {
-        const storedEmail = useStore.getState().userEmail;
-        const isFirstRun = !storedEmail || storedEmail === '';
-        const isAdmin    = storedEmail === GOD_MODE_ADMIN_EMAIL;
-        if (!isFirstRun && !isAdmin) return;
+        const storedEmail  = useStore.getState().userEmail;
+        const storedUserId = useStore.getState().userId;
+        const isFirstRun       = !storedEmail || storedEmail === '';
+        const isAdminEmail     = storedEmail === GOD_MODE_ADMIN_EMAIL;
+        const isGodModeSession = storedUserId?.startsWith('GM-'); // any persona
+        if (!isFirstRun && !isAdminEmail && !isGodModeSession) return;
 
         const currentRole = useStore.getState().userRole;
         const resolvedRole = (currentRole && currentRole in GOD_MODE_PERSONAS)
