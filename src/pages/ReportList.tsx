@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, Search, FileSpreadsheet, Filter, ChevronDown, Plus, ArrowRight, Clock, Calendar, Link2, AlertCircle, Trash2 } from 'lucide-react';
+import { FileText, Search, FileSpreadsheet, Filter, ChevronDown, Plus, ArrowRight, ArrowLeft, Clock, Calendar, Link2, AlertCircle, Trash2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../components/ui/dialog';
@@ -301,9 +301,9 @@ export default function ReportList() {
             </div>
 
             {/* Master / Detail */}
-            <div className="flex gap-4" style={{ minHeight: '560px' }}>
+            <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: '560px' }}>
                 {/* LEFT: Report List */}
-                <div className="w-72 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5">
+                <div className={`w-full md:w-72 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5 ${selectedReportId ? 'hidden md:flex' : 'flex'}`}>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
                         {t('reports.title')} · {visibleReports.length}
                     </p>
@@ -366,7 +366,7 @@ export default function ReportList() {
                 </div>
 
                 {/* RIGHT: Report Preview Panel */}
-                <div className="flex-1 min-w-0">
+                <div className={`flex-1 min-w-0 ${!selectedReportId ? 'hidden md:block' : 'block'}`}>
                     {selectedReport ? (
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col">
                             {/* Report Header */}
@@ -374,7 +374,14 @@ export default function ReportList() {
                                 {/* Accent bar */}
                                 <div className={`absolute top-0 left-0 w-1 h-full ${selectedReport.isOverdue ? 'bg-red-400' : (STATE_BAR[selectedReport.state] || 'bg-gray-300')}`} />
                                 <div className="pl-4 flex items-start justify-between gap-4">
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <button 
+                                            onClick={() => setSelectedReportId(null)}
+                                            className="md:hidden p-2 -ml-2 hover:bg-black/5 rounded-full transition-colors"
+                                        >
+                                            <ArrowLeft size={20} className="text-accent-greyDark" />
+                                        </button>
+                                        <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${selectedReport.isOverdue ? 'bg-red-50 text-red-600 border-red-200' : (STATE_STYLES[selectedReport.state] || 'bg-gray-100 text-gray-500 border-gray-200')}`}>
                                                 {selectedReport.type === 'Form' ? <FileSpreadsheet size={10} /> : <FileText size={10} />}
@@ -388,6 +395,7 @@ export default function ReportList() {
                                         <div className="flex items-center gap-3 mt-1">
                                             <span className="text-xs text-brand-teal font-mono font-bold">{selectedReport.id}</span>
                                             <span className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={11} /> {selectedReport.date}</span>
+                                        </div>
                                         </div>
                                     </div>
                                     <Button

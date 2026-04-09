@@ -27,7 +27,7 @@ export default defineConfig({
         short_name: 'ServiceTool',
         description: 'COR Solutions / LATNOVVA field service & construction site management platform.',
         theme_color: '#0097A7',
-        background_color: '#0D1117',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
         start_url: '/',

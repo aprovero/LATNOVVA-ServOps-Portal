@@ -5,7 +5,7 @@ import { useStore, Personnel as PersonnelType } from '../store/useStore';
 import {
     User, Plus, Trash2, Shield, Award, Search, Camera, ExternalLink,
     Activity, FolderGit2, Network, List, ChevronDown, Phone, Mail,
-    Briefcase, CheckCircle2, CircleDashed, Save
+    Briefcase, CheckCircle2, CircleDashed, Save, ArrowLeft
 } from 'lucide-react';
 import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
@@ -310,9 +310,9 @@ export default function Personnel() {
 
             {/* Content Area */}
             {viewMode === 'list' ? (
-                <div className="flex gap-4" style={{ minHeight: '560px' }}>
+                <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: '560px' }}>
                     {/* LEFT: Person List */}
-                    <div className="w-64 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5">
+                    <div className={`w-full md:w-64 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5 ${selectedPersonId ? 'hidden md:flex' : 'flex'}`}>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
                             {t('personnel.directory_count', { count: filteredPersonnel.length })}
                         </p>
@@ -380,12 +380,18 @@ export default function Personnel() {
                     </div>
 
                     {/* RIGHT: Detail / Edit Panel */}
-                    <div className="flex-1 min-w-0">
+                    <div className={`flex-1 min-w-0 ${!selectedPersonId ? 'hidden md:block' : 'block'}`}>
                         {editDraft && selectedPerson ? (
                             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex flex-col">
                                 {/* Profile Header */}
                                 <div className={`p-6 border-b border-gray-100 shrink-0 ${selectedPerson.status === 'Inactive' ? 'bg-gray-50' : 'bg-gradient-to-r from-brand-teal/5 to-transparent'}`}>
                                     <div className="flex items-center gap-5">
+                                        <button 
+                                            onClick={() => setSelectedPersonId(null)}
+                                            className="md:hidden p-2 -ml-2 hover:bg-black/5 rounded-full transition-colors"
+                                        >
+                                            <ArrowLeft size={20} className="text-accent-greyDark" />
+                                        </button>
                                         {/* Avatar + Photo Upload */}
                                         <div className="relative shrink-0 group">
                                             <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-brand-teal/10 flex items-center justify-center text-brand-teal text-2xl font-bold">

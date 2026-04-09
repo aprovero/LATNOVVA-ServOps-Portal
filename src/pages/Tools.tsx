@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save, ChevronDown } from 'lucide-react';
+import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save, ChevronDown, ArrowLeft } from 'lucide-react';
 import { useStore, Tool } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -207,9 +207,9 @@ export default function Tools() {
             </div>
 
             {/* Master / Detail Layout */}
-            <div className="flex gap-4" style={{ minHeight: '560px' }}>
+            <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: '560px' }}>
                 {/* LEFT: Tool List */}
-                <div className="w-64 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5">
+                <div className={`w-full md:w-64 shrink-0 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 p-2 overflow-y-auto gap-0.5 ${selectedToolId ? 'hidden md:flex' : 'flex'}`}>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
                         {t('inventory.inventory_count', { count: filteredTools.length })}
                     </p>
@@ -266,7 +266,7 @@ export default function Tools() {
                 </div>
 
                 {/* RIGHT: Detail / Edit Panel */}
-                <div className="flex-1 min-w-0">
+                <div className={`flex-1 min-w-0 ${!selectedToolId ? 'hidden md:block' : 'block'}`}>
                     {editDraft && selectedTool ? (() => {
                         const expired = isExpired(editDraft.certificationExpiry);
                         const assignedProject = editDraft.assignedProjectId ? projects.find(p => p.id === editDraft.assignedProjectId) : null;
@@ -276,6 +276,12 @@ export default function Tools() {
                                 <div className={`p-5 border-b border-gray-100 shrink-0 ${expired ? 'bg-red-50/50' : 'bg-gradient-to-r from-brand-teal/5 to-transparent'}`}>
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex items-center gap-4">
+                                            <button 
+                                                onClick={() => setSelectedToolId(null)}
+                                                className="md:hidden p-2 -ml-2 hover:bg-black/5 rounded-full transition-colors"
+                                            >
+                                                <ArrowLeft size={20} className="text-accent-greyDark" />
+                                            </button>
                                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${expired ? 'bg-red-100' : 'bg-brand-teal/10'}`}>
                                                 <Wrench size={24} className={expired ? 'text-red-500' : 'text-brand-teal'} />
                                             </div>
