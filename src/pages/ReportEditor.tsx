@@ -737,7 +737,7 @@ export default function ReportEditor() {
                     >
                         {({ loading }) => (
                             <button className="bg-white/10 hover:bg-white/20 text-white py-2 px-6 rounded-xl font-semibold transition-colors flex items-center gap-2" disabled={loading}>
-                                <FileText size={16} /> {loading ? `${t('common.search')}...` : t('nav.reports')}
+                                <FileText size={16} /> {loading ? t('common.preparing_pdf') : t('common.download_pdf')}
                             </button>
                         )}
                     </PDFDownloadLink>
@@ -753,7 +753,7 @@ export default function ReportEditor() {
                     >
                         {({ loading }) => (
                             <button className="w-full md:w-auto btn-secondary text-brand-teal border-brand-teal/20 bg-brand-teal/5 hover:bg-brand-teal/10 flex items-center justify-center gap-2" disabled={loading}>
-                                <FileText size={18} /> {loading ? `${t('common.search')}...` : 'Download PDF'}
+                                <FileText size={18} /> {loading ? t('common.preparing_pdf') : t('common.download_pdf')}
                             </button>
                         )}
                     </PDFDownloadLink>

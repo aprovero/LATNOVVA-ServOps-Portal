@@ -40,7 +40,11 @@ export default function DataAnalysis() {
 
     // 1. Overall Project Health metrics
     const overallProgress = useMemo(() => {
-        const relevantProjects = projects.filter(p => !p.hasNoDefinedScope && (activeDiscipline === 'All' || p.disciplines?.includes(activeDiscipline)));
+        const relevantProjects = projects.filter(p => 
+            p.status === 'Active' && 
+            !p.hasNoDefinedScope && 
+            (activeDiscipline === 'All' || p.disciplines?.includes(activeDiscipline))
+        );
         if (relevantProjects.length === 0) return 0;
         const total = relevantProjects.reduce((acc, p) => acc + p.progress, 0);
         return Math.round(total / relevantProjects.length);
@@ -93,7 +97,11 @@ export default function DataAnalysis() {
     // 5. Project Velocity (S-Curve)
     const velocityData = useMemo(() => {
         const relevantReports = reports.filter(r => activeDiscipline === 'All' || r.discipline === activeDiscipline);
-        const relevantProjectsCount = projects.filter(p => !p.hasNoDefinedScope && (activeDiscipline === 'All' || p.disciplines?.includes(activeDiscipline))).length || 1;
+        const relevantProjectsCount = projects.filter(p => 
+            p.status === 'Active' && 
+            !p.hasNoDefinedScope && 
+            (activeDiscipline === 'All' || p.disciplines?.includes(activeDiscipline))
+        ).length || 1;
         
         const sortedReports = [...relevantReports].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         const dates = Array.from(new Set(sortedReports.map(r => r.date))).sort();
@@ -212,7 +220,7 @@ export default function DataAnalysis() {
                         <FolderGit2 size={20} className="text-brand-teal" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{activeProjects}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.all_time')}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.currently_active', 'Currently active')}</p>
                 </div>
 
                 <div className="card-container border-l-4 border-blue-500 p-5">
@@ -221,7 +229,7 @@ export default function DataAnalysis() {
                         <TrendingUp size={20} className="text-blue-500" />
                     </div>
                     <p className="text-3xl font-black text-accent-greyDark mt-2">{overallProgress}%</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.monthly_avg')}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{t('analysis.time_range.active_portfolio_avg', 'Active portfolio avg')}</p>
                 </div>
 
                 <div className="card-container border-l-4 border-purple-500 p-5">

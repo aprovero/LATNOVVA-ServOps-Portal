@@ -364,7 +364,7 @@ export default function Timesheets() {
                                 <Users size={18} /> {t('timesheets.team_checkin')}
                             </Button>
                             <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-gray-200 hover:bg-gray-50 text-gray-700">
-                                <Download size={18} /> {t('common.actions')}
+                                <Download size={18} /> {t('common.export')}
                             </Button>
                         </>
                     )}

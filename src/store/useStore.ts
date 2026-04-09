@@ -845,16 +845,44 @@ export const useStore = create<AppState>()(
                 await supabase.from('tools').insert(dbPayload);
             },
             updateTool: async (id, updates) => {
+                const state = get();
+                const tool = state.tools.find(t => t.id === id);
+                if (!tool) return;
+
+                let finalHistory = updates.history || tool.history || [];
+
+                // Auto-generate history on project assignment change
+                if (updates.assignedProjectId !== undefined && updates.assignedProjectId !== tool.assignedProjectId) {
+                    const project = state.projects.find(p => p.id === updates.assignedProjectId);
+                    const oldProject = state.projects.find(p => p.id === tool.assignedProjectId);
+                    
+                    const description = updates.assignedProjectId 
+                        ? `Assigned to project: ${project?.name || updates.assignedProjectId}`
+                        : `Vacated from project: ${oldProject?.name || tool.assignedProjectId}`;
+
+                    finalHistory = [
+                        ...finalHistory,
+                        {
+                            date: new Date().toISOString().split('T')[0],
+                            description,
+                            projectId: updates.assignedProjectId
+                        }
+                    ];
+                }
+
                 set((state) => ({
-                    tools: state.tools.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+                    tools: state.tools.map((t) => (t.id === id ? { ...t, ...updates, history: finalHistory } : t)),
                 }));
+
                 const dbPayload: any = {};
                 if (updates.name !== undefined) dbPayload.name = updates.name;
                 if (updates.model !== undefined) dbPayload.model = updates.model;
                 if (updates.serialNumber !== undefined) dbPayload.serial_number = updates.serialNumber;
                 if (updates.certificationExpiry !== undefined) dbPayload.certification_expiry = updates.certificationExpiry;
                 if (updates.assignedProjectId !== undefined) dbPayload.assigned_project_id = updates.assignedProjectId;
-                if (updates.history !== undefined) dbPayload.history = updates.history;
+                
+                // Always sync history if it was updated automatically
+                dbPayload.history = finalHistory;
 
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('tools').update(dbPayload).eq('id', id);

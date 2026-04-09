@@ -34,7 +34,10 @@
     "unknown_state": "Unknown State",
     "language": "Language",
     "english": "English",
-    "spanish": "Spanish"
+    "spanish": "Spanish",
+    "export": "Export",
+    "preparing_pdf": "Preparing PDF...",
+    "download_pdf": "Download PDF"
   },
   "nav": {
     "operations": "OPERATIONS",
@@ -166,6 +169,7 @@
       "customer_approval_toast": "Report sent to Customer for approval."
     },
     "back_to_list": "Back to List",
+    "back_to_report": "Back to Report",
     "work_stream": "Work Stream",
     "actions": {
       "save_draft": "Save Draft",

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { ChevronLeft, FileText, Camera, Trash2, ShieldCheck, Printer } from 'lucide-react';
@@ -7,6 +8,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PrintableSubReportTemplate } from '../components/reports/PrintableSubReportTemplate';
 
 export default function SubReportEditor() {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const { subReportInstances, subReportTemplates, reports, updateSubReportInstance, userRole } = useStore();
@@ -28,7 +30,7 @@ export default function SubReportEditor() {
     }, []);
 
     if (!subReport || !parentReport) {
-        return <div className="p-8 text-center text-gray-500">Form not found or parent report is missing.</div>;
+        return <div className="p-8 text-center text-gray-500">{t('reports.not_found')}</div>;
     }
 
     // Access Controls inherited from parent report
@@ -58,7 +60,7 @@ export default function SubReportEditor() {
     return (
         <div className="space-y-6 pb-24 md:pb-10 max-w-4xl mx-auto">
             <button onClick={() => navigate(`/reports/${parentReport.id}`)} className="flex items-center gap-2 text-brand-teal font-semibold hover:underline">
-                <ChevronLeft size={20} /> Back to Master Report
+                <ChevronLeft size={20} /> {t('reports.back_to_report')}
             </button>
 
             <div className="editor-fade flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -86,7 +88,7 @@ export default function SubReportEditor() {
                         {/* @ts-ignore */}
                         {({ loading }) => (
                             <button className="btn-secondary py-2 px-4 text-sm flex items-center gap-2 shadow-sm whitespace-nowrap" disabled={loading}>
-                                <Printer size={16} /> {loading ? 'Preparing PDF...' : 'Export Form PDF'}
+                                <Printer size={16} /> {loading ? t('common.preparing_pdf') : t('common.download_pdf')}
                             </button>
                         )}
                     </PDFDownloadLink>

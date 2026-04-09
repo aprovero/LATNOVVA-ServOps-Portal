@@ -34,7 +34,10 @@
     "unknown_state": "Estado desconocido",
     "language": "Idioma",
     "english": "Inglés",
-    "spanish": "Español"
+    "spanish": "Español",
+    "export": "Exportar",
+    "preparing_pdf": "Preparando PDF...",
+    "download_pdf": "Descargar PDF"
   },
   "nav": {
     "operations": "OPERACIONES",
@@ -165,7 +168,8 @@
       "rejected_toast": "Reporte devuelto a Borrador.",
       "customer_approval_toast": "Reporte enviado al Cliente para aprobación."
     },
-    "back_to_list": "Volver a la Lista",
+    "back_to_list": "Volver a la lista",
+    "back_to_report": "Volver al reporte",
     "work_stream": "Línea de Trabajo",
     "actions": {
       "save_draft": "Guardar Borrador",

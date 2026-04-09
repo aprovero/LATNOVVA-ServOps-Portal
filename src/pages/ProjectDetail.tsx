@@ -15,7 +15,7 @@ export default function ProjectDetail() {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole } = useStore();
+    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, updateTool } = useStore();
 
     const project = projects.find(p => p.id === id);
     const client = clients.find(c => c.id === project?.clientId);
@@ -49,9 +49,25 @@ export default function ProjectDetail() {
     const { tools, addTool } = useStore();
     const projectTools = tools.filter(t => t.assignedProjectId === id);
     const [isAddToolModalOpen, setIsAddToolModalOpen] = useState(false);
+    const [isAssignInventoryOpen, setIsAssignInventoryOpen] = useState(false);
+    const [toolSearch, setToolSearch] = useState('');
     const [newTool, setNewTool] = useState<{name: string, model: string, serialNumber: string, certificationExpiry: string}>({
         name: '', model: '', serialNumber: '', certificationExpiry: ''
     });
+
+    const unassignedTools = useMemo(() => {
+        return tools.filter(t => 
+            !t.assignedProjectId && 
+            (t.name.toLowerCase().includes(toolSearch.toLowerCase()) || 
+             t.serialNumber.toLowerCase().includes(toolSearch.toLowerCase()))
+        );
+    }, [tools, toolSearch]);
+
+    const handleAssignFromInventory = (toolId: string) => {
+        updateTool(toolId, { assignedProjectId: id });
+        setIsAssignInventoryOpen(false);
+        setToolSearch('');
+    };
 
     const handleQuickAddTool = () => {
         if (!newTool.name || !newTool.serialNumber) return;
@@ -638,13 +654,23 @@ export default function ProjectDetail() {
                         <span className="text-xs bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-full">{projectTools.length}</span>
                     </h2>
                     {canEdit && (
-                        <Button 
-                            size="sm" 
-                            className="bg-brand-teal/10 hover:bg-brand-teal text-brand-teal hover:text-white transition-colors text-xs font-bold gap-1.5"
-                            onClick={() => setIsAddToolModalOpen(true)}
-                        >
-                            <Plus size={13} /> Quick Add Tool
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 transition-colors text-xs font-bold gap-1.5"
+                                onClick={() => setIsAssignInventoryOpen(true)}
+                            >
+                                <Search size={13} /> Assign from Inventory
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                className="bg-brand-teal text-white hover:bg-brand-teal/90 transition-colors text-xs font-bold gap-1.5"
+                                onClick={() => setIsAddToolModalOpen(true)}
+                            >
+                                <Plus size={13} /> Quick Add Tool
+                            </Button>
+                        </div>
                     )}
                 </div>
                 
@@ -673,12 +699,64 @@ export default function ProjectDetail() {
                 )}
             </div>
 
+            {/* Assign Existing Tool Modal */}
+            {isAssignInventoryOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+                        <div className="flex items-center gap-3 mb-4 text-brand-teal">
+                            <Search size={22} />
+                            <h2 className="text-lg font-bold text-accent-greyDark flex-1">Assign from Inventory</h2>
+                            <button onClick={() => setIsAssignInventoryOpen(false)} className="text-gray-400 hover:text-gray-600 border border-gray-100 p-1.5 rounded-xl"><X size={18}/></button>
+                        </div>
+                        
+                        <div className="relative mb-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                            <Input 
+                                placeholder="Search inventory..." 
+                                className="pl-9 h-9 text-sm bg-gray-50 border-gray-100" 
+                                value={toolSearch}
+                                onChange={e => setToolSearch(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[100px]">
+                            {unassignedTools.map(tool => (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => handleAssignFromInventory(tool.id)}
+                                    className="w-full text-left p-3 rounded-2xl bg-gray-50 border border-transparent hover:border-brand-teal/30 hover:bg-brand-teal/5 transition-all group"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-bold text-accent-greyDark group-hover:text-brand-teal transition-colors">{tool.name}</p>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">Free</span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <p className="text-[10px] text-gray-400 font-medium">{tool.model || 'No model'}</p>
+                                        <p className="text-[10px] font-mono text-gray-400 font-bold">{tool.serialNumber}</p>
+                                    </div>
+                                </button>
+                            ))}
+                            {unassignedTools.length === 0 && (
+                                <div className="text-center py-10">
+                                    <p className="text-sm text-gray-400 font-medium italic">No unassigned tools found.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6">
+                            <Button variant="outline" className="w-full rounded-2xl" onClick={() => setIsAssignInventoryOpen(false)}>Close</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Quick Add Tool Modal */}
             {isAddToolModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
                     <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 mb-4 text-brand-teal">
-                            <Wrench size={24} />
+                            <Plus size={24} />
                             <h2 className="text-xl font-bold text-accent-greyDark flex-1">Register Site Tool</h2>
                             <button onClick={() => setIsAddToolModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
                         </div>
