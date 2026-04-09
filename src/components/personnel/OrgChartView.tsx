@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, Personnel } from '../../store/useStore';
-import { User, ChevronRight, UserMinus, Check, Users } from 'lucide-react';
+import { User, ChevronRight, UserMinus, Check, Users, Briefcase } from 'lucide-react';
 
 export default function OrgChartView() {
     const { personnel, projects, updateProject } = useStore();
