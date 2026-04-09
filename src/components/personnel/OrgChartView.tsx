@@ -10,8 +10,10 @@ export default function OrgChartView() {
         activeProjects.length > 0 ? activeProjects[0].id : null
     );
 
-    // Exclude Managers from field deployments
-    const fieldPersonnel = personnel.filter(p => p.appRole !== 'Manager' && p.status !== 'Inactive');
+    // Only exclude inactive personnel.
+    // Office managers (Andres, Fernando, Jesus, Juan Maria) have no personnel row by design,
+    // so they never appear here. Any Manager WITH a personnel row (Marin, Rubio) is field-going.
+    const fieldPersonnel = personnel.filter(p => p.status !== 'Inactive');
 
     const assignedPersonnelIds = new Set(projects.flatMap(p => p.assignedPersonnel || []));
     const benchedPersonnel = fieldPersonnel.filter(p => !assignedPersonnelIds.has(p.id));

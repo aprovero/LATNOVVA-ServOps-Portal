@@ -31,7 +31,10 @@
     "days": "días",
     "add": "Agregar",
     "all": "Todos",
-    "unknown_state": "Estado desconocido"
+    "unknown_state": "Estado desconocido",
+    "language": "Idioma",
+    "english": "Inglés",
+    "spanish": "Español"
   },
   "nav": {
     "operations": "OPERACIONES",

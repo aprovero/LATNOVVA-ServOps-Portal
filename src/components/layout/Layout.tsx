@@ -30,7 +30,7 @@ import {
 import { Label } from '../ui/label';
 
 export default function Layout() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
     const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
@@ -451,6 +451,24 @@ export default function Layout() {
                                         <DropdownMenuSeparator />
                                     </>
                                 )}
+
+                                <DropdownMenuLabel>{t('common.language', 'Language')}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                    className="cursor-pointer justify-between" 
+                                    onClick={() => i18n.changeLanguage('en')}
+                                >
+                                    <span>{t('common.english', 'English')}</span>
+                                    {i18n.language === 'en' && <Check size={14} className="text-brand-teal" />}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    className="cursor-pointer justify-between" 
+                                    onClick={() => i18n.changeLanguage('es')}
+                                >
+                                    <span>{t('common.spanish', 'Spanish')}</span>
+                                    {i18n.language === 'es' && <Check size={14} className="text-brand-teal" />}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => { setAuthData('', ''); navigate('/login'); }}>
                                     {t('auth.logout')}
                                 </DropdownMenuItem>
