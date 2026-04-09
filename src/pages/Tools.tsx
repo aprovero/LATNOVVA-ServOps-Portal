@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save } from 'lucide-react';
+import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save, ChevronDown } from 'lucide-react';
 import { useStore, Tool } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -17,6 +17,8 @@ export default function Tools() {
         return params.get('q') || '';
     });
 
+    const [filterProject, setFilterProject] = useState<string>('All');
+    
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const q = params.get('q');
@@ -36,6 +38,20 @@ export default function Tools() {
         description: '',
         projectId: ''
     });
+
+    useEffect(() => {
+        if (location.state?.selectedToolId && tools.length > 0) {
+            const toolToSelect = tools.find(t => t.id === location.state.selectedToolId);
+            if (toolToSelect && selectedToolId !== toolToSelect.id) {
+                setSelectedToolId(toolToSelect.id);
+                setEditDraft({ ...toolToSelect, history: [...toolToSelect.history] });
+                setIsSaved(false);
+                setNewHistoryEntry({ date: new Date().toISOString().split('T')[0], description: '', projectId: '' });
+                // Clean up state so we don't re-select if something else triggers a tools update
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [location.state, tools, selectedToolId]);
 
     const isExpired = (expiryStr: string) => !!expiryStr && new Date(expiryStr) < new Date();
 
@@ -83,6 +99,7 @@ export default function Tools() {
     };
 
     const filteredTools = tools
+        .filter(t => filterProject === 'All' || (filterProject === 'None' ? !t.assignedProjectId : t.assignedProjectId === filterProject))
         .filter(t =>
             t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             t.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,15 +127,6 @@ export default function Tools() {
                     <p className="text-gray-500 mt-1">{t('inventory.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                        <Input
-                            placeholder={t('inventory.search')}
-                            className="pl-10 w-72 bg-white border-gray-200 focus-visible:ring-brand-teal h-11 rounded-xl"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <DialogTrigger asChild>
                             <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
@@ -161,6 +169,40 @@ export default function Tools() {
                             </div>
                         </DialogContent>
                     </Dialog>
+                </div>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-soft flex flex-wrap gap-4 items-end">
+                <div className="space-y-1.5 flex-[1.5] min-w-[200px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> SEARCH INVENTORY</label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Input
+                            placeholder={t('inventory.search')}
+                            className="pl-10 w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-teal h-10"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-[150px]">
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Building2 size={12} /> FILTER PROJECT</label>
+                    <div className="relative">
+                        <select
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer h-10"
+                            value={filterProject}
+                            onChange={e => setFilterProject(e.target.value)}
+                        >
+                            <option value="All">All Projects</option>
+                            <option value="None">None (Unassigned)</option>
+                            {projects.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                    </div>
                 </div>
             </div>
 

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore, ScheduledEvent } from '../store/useStore';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
@@ -11,6 +12,7 @@ import { Input } from '../components/ui/input';
 
 export default function Calendar() {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const { events, addEvent, deleteEvent, projects, personnel, tools, reports } = useStore();
     
     const dateLocale = i18n.language === 'es' ? es : enUS;
@@ -46,6 +48,7 @@ export default function Calendar() {
         id: `tool-${tool.id}`,
         type: 'calibration',
         title: t('scheduling.reminders.calibration', { name: tool.name }),
+        toolId: tool.id,
         date: tool.certificationExpiry!
     }));
 
@@ -130,7 +133,7 @@ export default function Calendar() {
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                         <DialogTrigger asChild>
-                            <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
+                            <Button className="hidden bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6">
                                 <Plus size={18} /> {t('scheduling.schedule_event')}
                             </Button>
                         </DialogTrigger>
@@ -238,9 +241,7 @@ export default function Calendar() {
                 <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                         <div key={day} className="py-3 text-center text-sm font-bold text-gray-400 capitalize">
-                            {format(parseISO(`2026-04-12`), 'EEE', { locale: dateLocale }) /* placeholder Sunday to get localized labels */}
-                            {/* Actually, much better: */}
-                            {day /* Keep as is for now or use better iteration */}
+                            {day}
                         </div>
                     ))}
                 </div>
@@ -334,12 +335,17 @@ export default function Calendar() {
                                     ))}
 
                                     {dayToolReminders.map(rem => (
-                                        <div key={rem.id} className="text-[9px] px-1.5 py-0.5 rounded-md truncate font-bold cursor-default group relative border-l-2 bg-amber-50/80 text-amber-800 border-amber-400 mt-0.5" title={rem.title}>
+                                        <button 
+                                            key={rem.id} 
+                                            onClick={(e) => { e.stopPropagation(); navigate('/tools', { state: { selectedToolId: rem.toolId } }); }}
+                                            className="text-[9px] px-1.5 py-0.5 rounded-md truncate font-bold group relative border-l-2 bg-amber-50/80 text-amber-800 border-amber-400 mt-0.5 text-left w-full hover:brightness-95 transition-all outline-none" 
+                                            title={rem.title}
+                                        >
                                             <span className="flex items-center gap-1">
                                                 <Wrench size={8} className="shrink-0 text-amber-600" />
                                                 {rem.title}
                                             </span>
-                                        </div>
+                                        </button>
                                     ))}
                                 </div>
                             </div>

@@ -476,7 +476,7 @@
     "conflict_tool": "Conflicto de herramienta con \"{{title}}\"",
     "soft_warning": "Aviso: Puede guardar el evento a pesar del conflicto.",
     "reminders": {
-      "calibration": "Calibración",
+      "calibration": "Calibración: {{name}}",
       "cert_expiry": "Venc. {{name}}...",
       "report": "Reporte {{id}}"
     },

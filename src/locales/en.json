@@ -476,7 +476,7 @@
     "conflict_tool": "Tool conflict with \"{{title}}\"",
     "soft_warning": "This is a soft warning. You can still save the event.",
     "reminders": {
-      "calibration": "Calibration",
+      "calibration": "Calibration: {{name}}",
       "cert_expiry": "{{name}} Exp...",
       "report": "Report {{id}}"
     },
