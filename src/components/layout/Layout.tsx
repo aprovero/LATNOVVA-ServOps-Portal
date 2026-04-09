@@ -11,7 +11,6 @@ import { differenceInDays, parseISO } from 'date-fns';
 import CommandSearch from '../search/CommandSearch';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -149,13 +148,6 @@ export default function Layout() {
                 { name: 'Calendar', path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager'] },
             ]
         },
-        {
-            name: 'SYSTEM',
-            links: [
-                { name: 'Templates', path: '/templates', icon: CheckSquare, roles: ['Supervisor', 'Manager'] },
-                { name: 'Settings', path: '/settings', icon: Settings, roles: ['Supervisor', 'Manager'] },
-            ]
-        }
     ];
 
     const flatNavLinks = navGroups.flatMap(g => g.links).filter(link => link.roles.includes(userRole));
@@ -436,24 +428,33 @@ export default function Layout() {
                             </DropdownMenuContent>
                         </DropdownMenu>
 
+                        {/* Gear menu — all roles see Log out; Manager+Supervisor also see Settings & Templates */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <button className="outline-none flex items-center gap-2">
-                                    <Avatar className="h-9 w-9 border-2 border-transparent hover:border-brand-teal transition-all cursor-pointer">
-                                        <AvatarImage src={userRole === 'Customer' ? (clients.find(c => c.id === clientId)?.logo || "https://github.com/shadcn.png") : (personnel.find(p => p.id === userId)?.image || "https://github.com/shadcn.png")} alt="@user" />
-                                        <AvatarFallback className="bg-brand-teal/10 text-brand-teal font-semibold text-sm">US</AvatarFallback>
-                                    </Avatar>
+                                <button className="outline-none flex items-center justify-center w-9 h-9 rounded-xl bg-gray-100 hover:bg-brand-teal/10 text-accent-greyLight hover:text-brand-teal transition-all">
+                                    <Settings size={18} />
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 rounded-xl border-gray-100 shadow-xl">
-                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/settings')}>Profile Settings</DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/settings')}>Notification Preferences</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => { setAuthData('', ''); navigate('/login'); }}>Log out</DropdownMenuItem>
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
+                                {['Manager', 'Supervisor'].includes(userRole) && (
+                                    <>
+                                        <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/settings')}>
+                                            <Settings size={14} className="text-gray-400" /> Settings
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
+                                            <CheckSquare size={14} className="text-gray-400" /> Templates
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => { setAuthData('', ''); navigate('/login'); }}>
+                                    Log out
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+
                     </div>
                 </header>
 
@@ -465,6 +466,34 @@ export default function Layout() {
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-4 object-contain" />
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* God Mode switcher — mobile */}
+                        {isGodMode && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="flex items-center gap-1 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg outline-none">
+                                        <Zap size={12} className="text-amber-500 shrink-0" />
+                                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">{userRole}</span>
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52 rounded-xl border-amber-100 shadow-xl">
+                                    <DropdownMenuLabel className="flex items-center gap-2 text-amber-700">
+                                        <Zap size={12} className="text-amber-500" /> God Mode — Switch Role
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {(Object.entries(GOD_MODE_PERSONAS) as [keyof typeof GOD_MODE_PERSONAS, typeof GOD_MODE_PERSONAS[keyof typeof GOD_MODE_PERSONAS]][]).map(([role, persona]) => (
+                                        <DropdownMenuItem
+                                            key={role}
+                                            onClick={() => setUserRole(role as any)}
+                                            className={`cursor-pointer flex items-center gap-2 ${userRole === role ? 'bg-amber-50 text-amber-800 font-semibold' : ''}`}
+                                        >
+                                            {userRole === role && <Zap size={11} className="text-amber-500 shrink-0" />}
+                                            <span className={userRole === role ? '' : 'ml-[19px]'}>{persona.displayName}</span>
+                                            <span className="ml-auto text-[9px] text-gray-400 uppercase">{role}</span>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                         {/* PWA Install — mobile */}
                         {canInstall && (
                             <button
@@ -494,6 +523,7 @@ export default function Layout() {
                         </button>
                     </div>
                 </header>
+
 
                 <div className="p-4 md:p-8 pb-28 md:pb-8 max-w-7xl mx-auto w-full flex-1 flex flex-col">
                     <Outlet />

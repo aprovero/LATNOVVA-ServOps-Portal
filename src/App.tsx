@@ -26,6 +26,13 @@ import ClockIn from './pages/ClockIn';
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
+// Guard: only Managers and Supervisors can access Settings.
+const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
+    const userRole = useStore(s => s.userRole);
+    if (!['Manager', 'Supervisor'].includes(userRole)) return <Navigate to="/projects" replace />;
+    return <>{children}</>;
+};
+
 function App() {
     const { initDb } = useStore();
 
@@ -52,7 +59,7 @@ function App() {
                     <Route path="tools" element={<Tools />} />
                     <Route path="templates" element={<Templates />} />
                     <Route path="calendar" element={<Calendar />} />
-                    <Route path="settings" element={<Settings />} />
+                    <Route path="settings" element={<ManagerRoute><Settings /></ManagerRoute>} />
                     <Route path="personnel" element={<Personnel />} />
                     <Route path="timesheets" element={<Timesheets />} />
                     <Route path="clock-in" element={<ClockIn />} />

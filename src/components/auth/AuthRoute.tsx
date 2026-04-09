@@ -18,7 +18,7 @@ export const GOD_MODE_PERSONAS = {
 } as const;
 
 export const AuthRoute: React.FC = () => {
-    const { setAuthData, setUserRole, userRole, initDb } = useStore();
+    const { setAuthData, setUserRole, userRole, initDb, setClientId } = useStore();
 
     // God Mode bootstrap — runs on first launch (unseeded store) or when
     // the logged-in user is the designated admin. This way:
@@ -40,19 +40,30 @@ export const AuthRoute: React.FC = () => {
         setAuthData(persona.userId, persona.userEmail);
         setUserRole(resolvedRole);
 
-        // Re-fetch all data with the seeded identity.
-        // RLS is disabled so the anon key reads succeed without a session.
-        initDb();
+        // Re-fetch all data. After load, auto-assign clientId for Customer persona.
+        initDb().then(() => {
+            if (resolvedRole === 'Customer') {
+                const clients = useStore.getState().clients;
+                const greensol = clients.find(c => c.name.toLowerCase().includes('greensol'));
+                if (greensol) setClientId(greensol.id);
+            }
+        });
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Keep identity pill in sync when role changes via the sidebar switcher.
+    // Keep identity pill + clientId in sync when role changes via the switcher.
     useEffect(() => {
         const persona = GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS];
         if (persona) {
             setAuthData(persona.userId, persona.userEmail);
+            // For Customer persona, resolve and set Greensol's real clientId.
+            if (userRole === 'Customer') {
+                const clients = useStore.getState().clients;
+                const greensol = clients.find(c => c.name.toLowerCase().includes('greensol'));
+                if (greensol) setClientId(greensol.id);
+            }
         }
-    }, [userRole, setAuthData]);
+    }, [userRole, setAuthData, setClientId]);
 
     // God Mode: always authenticated — no redirect.
     return <Outlet />;

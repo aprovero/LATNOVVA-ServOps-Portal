@@ -83,6 +83,8 @@ export interface Database {
           app_role: string | null
           status: string | null
           certifications: Json | null
+          image: string | null
+          prevailing_wage: boolean | null
         }
         Insert: {
           id?: string

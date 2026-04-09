@@ -174,6 +174,7 @@ export interface Personnel {
     supervisorId?: string;
     managerId?: string;
     phoneNumber?: string;
+    prevailingWage?: boolean;
 }
 
 export interface ChecklistTemplate {
@@ -350,6 +351,7 @@ interface AppState {
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
     setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer') => void;
+    setClientId: (id: string) => void;
     addClient: (client: Client) => void;
     updateClient: (id: string, updates: Partial<Client>) => void;
     deleteClient: (id: string) => void;
@@ -530,7 +532,9 @@ export const useStore = create<AppState>()(
                                 certifications: p.certifications || [],
                                 supervisorId: p.supervisor_id,
                                 managerId: p.manager_id,
-                                clientId: p.client_id
+                                clientId: p.client_id,
+                                image: p.image,
+                                prevailingWage: p.prevailing_wage || false
                             }))
                             : state.personnel,
                         reports: reportsDB?.length
@@ -626,6 +630,7 @@ export const useStore = create<AppState>()(
             },
             setAuthData: (id, email) => set({ userId: id, userEmail: email }),
             setUserRole: (role) => set({ userRole: role }),
+            setClientId: (id) => set({ clientId: id }),
             addClient: async (client) => {
                 set((state) => ({ clients: [...state.clients, client] }));
                 await supabase.from('clients').insert({
@@ -820,7 +825,9 @@ export const useStore = create<AppState>()(
                     phone_number: person.phoneNumber,
                     supervisor_id: person.supervisorId,
                     manager_id: person.managerId,
-                    client_id: person.clientId
+                    client_id: person.clientId,
+                    image: person.image,
+                    prevailing_wage: person.prevailingWage || false
                 };
                 await supabase.from('personnel').insert(dbPayload);
             },
@@ -840,6 +847,8 @@ export const useStore = create<AppState>()(
                 if (updates.supervisorId !== undefined) dbPayload.supervisor_id = updates.supervisorId;
                 if (updates.managerId !== undefined) dbPayload.manager_id = updates.managerId;
                 if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
+                if (updates.image !== undefined) dbPayload.image = updates.image;
+                if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('personnel').update(dbPayload).eq('id', id);
                 }

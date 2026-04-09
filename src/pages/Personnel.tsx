@@ -67,6 +67,7 @@ export default function Personnel() {
             sharedFolderLink: newPerson.sharedFolderLink,
             certifications: newPerson.certifications || [],
             appRole: newPerson.appRole || 'Tech',
+            prevailingWage: newPerson.prevailingWage || false,
         };
         addPersonnel(created);
         setIsAddModalOpen(false);
@@ -219,9 +220,20 @@ export default function Personnel() {
                                     </div>
                                 </div>
                             )}
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> Certs Folder Link</label>
-                                <Input placeholder="e.g. OneDrive or Google Drive URL" value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
+                            <div className="space-y-4">
+                                <label className="text-sm font-semibold text-accent-greyDark flex items-center justify-between cursor-pointer bg-gray-50 p-3 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
+                                    <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-brand-teal" /> Prevailing Wage</span>
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
+                                        checked={newPerson?.prevailingWage || false}
+                                        onChange={e => setNewPerson({ ...newPerson, prevailingWage: e.target.checked })}
+                                    />
+                                </label>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> Certs Folder Link</label>
+                                    <Input placeholder="e.g. OneDrive or Google Drive URL" value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
+                                </div>
                             </div>
                             <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Profile Photo</label>
@@ -338,9 +350,14 @@ export default function Personnel() {
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <p className={`text-xs font-bold truncate leading-tight ${isSelected ? 'text-white' : 'text-accent-greyDark'}`}>
-                                            {person.name}
-                                        </p>
+                                        <div className="flex items-center gap-1.5">
+                                            <p className={`text-xs font-bold truncate leading-tight ${isSelected ? 'text-white' : 'text-accent-greyDark'}`}>
+                                                {person.name}
+                                            </p>
+                                            {person.prevailingWage && (
+                                                <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-brand-teal'}`} title="Prevailing Wage" />
+                                            )}
+                                        </div>
                                         <p className={`text-[10px] font-semibold mt-0.5 truncate ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
                                             {person.position}
                                         </p>
@@ -410,6 +427,11 @@ export default function Personnel() {
                                                         <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
                                                             #{selectedPerson.employeeNumber}
                                                         </span>
+                                                        {selectedPerson.prevailingWage && (
+                                                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                                                <Award size={10} /> Prevailing Wage
+                                                            </span>
+                                                        )}
                                                         {assignedProject && (
                                                             <span className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2 py-0.5 rounded-full border border-brand-teal/20 flex items-center gap-1">
                                                                 <Briefcase size={10} /> {assignedProject.name}
@@ -480,6 +502,7 @@ export default function Personnel() {
                                     </div>
 
                                     {isManager && (
+                                        <>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> App Role</label>
@@ -489,14 +512,26 @@ export default function Personnel() {
                                                     <option value="Manager">Manager</option>
                                                 </select>
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> Status</label>
-                                                <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.status || 'Active'} onChange={e => setEditDraft(d => d ? { ...d, status: e.target.value as any } : d)}>
-                                                    <option value="Active">Active</option>
-                                                    <option value="Inactive">Inactive</option>
-                                                </select>
+                                            <div className="space-y-2 pt-6">
+                                                <label className="text-sm font-semibold text-accent-greyDark flex items-center justify-between cursor-pointer bg-gray-50 p-2.5 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
+                                                    <span className="flex items-center gap-2"><Award size={14} className="text-brand-teal" /> Prevailing Wage</span>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
+                                                        checked={editDraft.prevailingWage || false}
+                                                        onChange={e => setEditDraft(d => d ? { ...d, prevailingWage: e.target.checked } : d)}
+                                                    />
+                                                </label>
                                             </div>
                                         </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> Status</label>
+                                            <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.status || 'Active'} onChange={e => setEditDraft(d => d ? { ...d, status: e.target.value as any } : d)}>
+                                                <option value="Active">Active</option>
+                                                <option value="Inactive">Inactive</option>
+                                            </select>
+                                        </div>
+                                        </>
                                     )}
 
                                     <div className="space-y-2">
