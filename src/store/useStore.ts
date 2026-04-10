@@ -366,7 +366,7 @@ interface AppState {
     initDb: () => Promise<void>;
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
-    setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer') => void;
+    setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR') => void;
     setClientId: (id: string) => void;
     addClient: (client: Client) => void;
     updateClient: (id: string, updates: Partial<Client>) => void;
@@ -426,6 +426,7 @@ interface AppState {
     setMicrosoftAuth: (auth: Partial<AppState['microsoftAuth']>) => void;
     language: 'en' | 'es';
     setLanguage: (lang: 'en' | 'es') => void;
+    initializeGlobalTemplates: () => Promise<void>;
 }
 
 export const useStore = create<AppState>()(
@@ -1271,24 +1272,74 @@ export const useStore = create<AppState>()(
                 set((state) => ({
                     templates: state.templates.filter((t) => t.id !== id),
                 })),
-            addScopeTemplate: (template) => set((state) => ({ scopeTemplates: [...state.scopeTemplates, template] })),
-            updateScopeTemplate: (id, updates) =>
+            addScopeTemplate: async (template) => {
+                set((state) => ({ scopeTemplates: [...state.scopeTemplates, template] }));
+                const { userRole } = get();
+                if (userRole === 'Manager' || userRole === 'Supervisor') {
+                    await supabase.from('scope_templates').insert({
+                        id: template.id,
+                        name: template.name,
+                        activities: template.activities
+                    });
+                }
+            },
+            updateScopeTemplate: async (id, updates) => {
                 set((state) => ({
                     scopeTemplates: state.scopeTemplates.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-                })),
-            deleteScopeTemplate: (id) =>
+                }));
+                const { userRole } = get();
+                if (userRole === 'Manager' || userRole === 'Supervisor') {
+                    const dbPayload: any = {};
+                    if (updates.name !== undefined) dbPayload.name = updates.name;
+                    if (updates.activities !== undefined) dbPayload.activities = updates.activities;
+                    if (Object.keys(dbPayload).length > 0) {
+                        await supabase.from('scope_templates').update(dbPayload).eq('id', id);
+                    }
+                }
+            },
+            deleteScopeTemplate: async (id) => {
                 set((state) => ({
                     scopeTemplates: state.scopeTemplates.filter((t) => t.id !== id),
-                })),
-            addSubReportTemplate: (template) => set((state) => ({ subReportTemplates: [...state.subReportTemplates, template] })),
-            updateSubReportTemplate: (id, updates) =>
+                }));
+                const { userRole } = get();
+                if (userRole === 'Manager' || userRole === 'Supervisor') {
+                    await supabase.from('scope_templates').delete().eq('id', id);
+                }
+            },
+            addSubReportTemplate: async (template) => {
+                set((state) => ({ subReportTemplates: [...state.subReportTemplates, template] }));
+                const { userRole } = get();
+                if (userRole === 'Manager' || userRole === 'Supervisor') {
+                    await supabase.from('sub_report_templates').insert({
+                        id: template.id,
+                        name: template.name,
+                        fields: template.fields
+                    });
+                }
+            },
+            updateSubReportTemplate: async (id, updates) => {
                 set((state) => ({
                     subReportTemplates: state.subReportTemplates.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-                })),
-            deleteSubReportTemplate: (id) =>
+                }));
+                const { userRole } = get();
+                if (userRole === 'Manager' || userRole === 'Supervisor') {
+                    const dbPayload: any = {};
+                    if (updates.name !== undefined) dbPayload.name = updates.name;
+                    if (updates.fields !== undefined) dbPayload.fields = updates.fields;
+                    if (Object.keys(dbPayload).length > 0) {
+                        await supabase.from('sub_report_templates').update(dbPayload).eq('id', id);
+                    }
+                }
+            },
+            deleteSubReportTemplate: async (id) => {
                 set((state) => ({
                     subReportTemplates: state.subReportTemplates.filter((t) => t.id !== id),
-                })),
+                }));
+                const { userRole } = get();
+                if (userRole === 'Manager' || userRole === 'Supervisor') {
+                    await supabase.from('sub_report_templates').delete().eq('id', id);
+                }
+            },
             addSubReportInstance: (instance) => set((state) => ({ subReportInstances: [...state.subReportInstances, instance] })),
             updateSubReportInstance: (id, updates) =>
                 set((state) => ({
@@ -1549,9 +1600,48 @@ export const useStore = create<AppState>()(
                         return p;
                     })
                 })),
+            /** Fetches templates from Supabase and handles initial seeding if empty. */
+            initializeGlobalTemplates: async () => {
+                const { userRole } = get();
+                
+                try {
+                    const [scopeRes, subRes] = await Promise.all([
+                        supabase.from('scope_templates').select('*'),
+                        supabase.from('sub_report_templates').select('*')
+                    ]);
+
+                    let finalScopes = scopeRes.data || [];
+                    let finalSubs = subRes.data || [];
+
+                    // AUTO-INJECTION: If DB is empty, seed it with hardcoded defaults (Manager/Supervisor only)
+                    if (finalScopes.length === 0 && (userRole === 'Manager' || userRole === 'Supervisor')) {
+                        console.log('[Sync] Seeding scope templates to Supabase...');
+                        await supabase.from('scope_templates').insert(
+                            get().scopeTemplates.map(t => ({ id: t.id, name: t.name, activities: t.activities }))
+                        );
+                    }
+
+                    if (finalSubs.length === 0 && (userRole === 'Manager' || userRole === 'Supervisor')) {
+                        console.log('[Sync] Seeding sub-report templates to Supabase...');
+                        await supabase.from('sub_report_templates').insert(
+                            get().subReportTemplates.map(t => ({ id: t.id, name: t.name, fields: t.fields }))
+                        );
+                    }
+
+                    // Refresh from DB if we just seeded or if we have data
+                    if (scopeRes.data && scopeRes.data.length > 0) {
+                        set({ scopeTemplates: scopeRes.data.map(t => ({ id: t.id, name: t.name, activities: t.activities })) });
+                    }
+                    if (subRes.data && subRes.data.length > 0) {
+                        set({ subReportTemplates: subRes.data.map(t => ({ id: t.id, name: t.name, fields: t.fields })) });
+                    }
+                } catch (e) {
+                    console.error('[Sync] Failed to initialize global templates:', e);
+                }
+            },
         }),
         {
-            name: 'latnovva-storage-v2',
+            name: 'latnovva-storage-v3',
         }
     )
 );

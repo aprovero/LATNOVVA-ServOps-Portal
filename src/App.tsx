@@ -42,6 +42,7 @@ function App() {
     useEffect(() => {
         // Initialize mock DB / offline storage on startup
         initDb();
+        useStore.getState().initializeGlobalTemplates();
     }, [initDb]);
 
     return (

@@ -15,6 +15,7 @@ export const GOD_MODE_PERSONAS = {
     Supervisor: { userId: 'GM-MARIN',  userEmail: 'marin.ledezma@latnovva.com',   displayName: 'Marin Ledezma' },
     Tech:       { userId: 'GM-JOSHUA', userEmail: 'joshua.sanchez@latnovva.com',  displayName: 'Joshua Sanchez' },
     Customer:   { userId: 'GM-CUST',   userEmail: 'customer@greensol.com',        displayName: 'Greensol' },
+    HR:         { userId: 'GM-ALICIA', userEmail: 'alicia.mendez@latnovva.com',   displayName: 'Alicia Mendez' },
 } as const;
 
 export const AuthRoute: React.FC = () => {
