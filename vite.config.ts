@@ -49,13 +49,14 @@ export default defineConfig({
           },
           {
             // Maskable icon — used on Android for adaptive icon shapes
+            // Using white background icons to prevent black-bars on Android
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
           },
           {
-            // Apple Touch Icon (referenced by index.html too)
+            // Apple Touch Icon
             src: 'apple-touch-icon.png',
             sizes: '512x512',
             type: 'image/png',
