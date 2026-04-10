@@ -396,6 +396,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                         </div>
                                                                     </div>
                                                                 ) : (
+                                                                    <div className="flex flex-col">
                                                                         <span className={`text-sm ${(act.status === 'Completed' || act.progress === 100) ? 'text-gray-500 line-through' : 'font-medium text-accent-greyDark'}`}>
                                                                             {act.title}
                                                                         </span>

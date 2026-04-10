@@ -189,7 +189,7 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
                            <View style={{ flexDirection: 'row', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#fafafa' }}>
                                <View style={{ width: '40%' }}>
                                    <Text style={styles.label}>{field.name}</Text>
-                                   {field.type === 'checkbox' && !field.description && (
+                                   {field.type === 'checkbox' && (
                                        <Text style={{ fontSize: 7, color: '#aaa', marginTop: 1 }}>(Pass / Fail / NA)</Text>
                                    )}
                                </View>

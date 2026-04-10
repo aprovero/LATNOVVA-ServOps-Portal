@@ -108,7 +108,12 @@ export default function SubReportEditor() {
                             The template for this sub-report is no longer available. Data is isolated.
                         </div>
                     ) : (
-
+                        template.fields.map((field) => (
+                            <div key={field.id} className={`${field.type === 'table' ? 'col-span-full' : ''} space-y-2`}>
+                                <label className="text-xs font-bold text-accent-greyDark flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-brand-teal" />
+                                    {field.name}
+                                </label>
                                 {field.type === 'text' && (
                                     <input
                                         type="text"
