@@ -169,12 +169,24 @@ export interface Personnel {
     status: 'Active' | 'Inactive';
     sharedFolderLink?: string; // Link to certifications folder
     certifications: Certification[];
-    appRole?: 'Tech' | 'Supervisor' | 'Manager' | 'Customer';
+    appRole?: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR';
     clientId?: string; // For assigned customers to limit scopes
     supervisorId?: string;
     managerId?: string;
     phoneNumber?: string;
     prevailingWage?: boolean;
+    emergencyContact?: string;
+    onboardingDate?: string;
+    // Financial Fields (HR/Manager Only)
+    regularRate?: number;
+    rainyDayRate?: number;
+    overtimeRate?: number;
+    mealAllowance?: number;
+    gasAllowance?: number;
+    truckAllowance?: number;
+    leadPay?: number;
+    deductions?: number;
+    totalPerdiem?: number;
     /** If true, this person appears in project/report selectors but never on the Deployments bench. */
     benchExempt?: boolean;
 }
@@ -198,12 +210,14 @@ export interface ScopeTemplate {
     activities: ScopeTemplateActivity[];
 }
 
-export type SubReportFieldType = 'text' | 'number' | 'checkbox' | 'picture';
+export type SubReportFieldType = 'text' | 'number' | 'checkbox' | 'picture' | 'table';
 
 export interface SubReportFieldDef {
     id: string;
     name: string;
     type: SubReportFieldType;
+    columns?: { id: string; name: string; type: 'text' | 'number' | 'checkbox' }[];
+    rows?: { id: string; name: string }[];
 }
 
 export interface SubReportTemplate {
@@ -332,7 +346,7 @@ export const ALLOWED_REPORT_TRANSITIONS: Record<ReportState, ReportState[]> = {
 };
 
 interface AppState {
-    userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer';
+    userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR';
     userId: string;
     userEmail?: string;
     clientId: string;
@@ -448,6 +462,149 @@ export const useStore = create<AppState>()(
                         { id: 'act-3', title: 'Cold Commissioning', steps: ['Visual Check', 'Continuity'], expectedDays: 3 },
                         { id: 'act-4', title: 'Hot Commissioning', steps: ['Power on', 'Functional'], expectedDays: 7 }
                     ]
+                },
+                {
+                    id: 'STPL-INV-COLD',
+                    name: 'Inverter COLD COMMISSIONING',
+                    activities: [
+                        { 
+                            id: 'inv-c-1', 
+                            title: '1. Visual Inspection', 
+                            steps: [
+                                'Verify inverter model, serial number, and rating match project documentation',
+                                'Inspect enclosure for physical damage, corrosion, or water ingress',
+                                'Confirm proper mounting, alignment, and clearance per OEM specs',
+                                'Check cable routing (AC, DC, control) for mechanical stress or sharp bends',
+                                'Verify labeling of cables, terminals, and equipment (as per drawings)',
+                                'Confirm grounding connections are present and properly terminated'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-c-2', 
+                            title: '2. Mechanical & Torque Verification', 
+                            steps: [
+                                'Verify torque of AC terminals (L1, L2, L3, N if applicable) per OEM spec',
+                                'Verify torque of DC input terminals or busbars',
+                                'Check grounding/bonding connections torque',
+                                'Inspect internal busbars and connections (if accessible)',
+                                'Verify torque on auxiliary power and control connections',
+                                'Confirm all covers and shields are in place and secured'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-c-3', 
+                            title: '3. Cable & Insulation Checks', 
+                            steps: [
+                                'Check phase-to-phase and phase-to-ground insulation resistance on AC cables',
+                                'Check positive-to-negative and pole-to-ground insulation resistance on DC cables',
+                                'Verify continuity of all grounding and bonding conductors',
+                                'Ensure control and communication cables are separated from power cables',
+                                'Perform point-to-point wiring check for control and signal circuits',
+                                'Verify all cable glands and entries are sealed/weather-tight'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-c-4', 
+                            title: '4. Firmware & Parameter Verification', 
+                            steps: [
+                                'Verify inverter firmware version matches latest OEM/Project requirement',
+                                'Check and record pre-set grid protection parameters (over/under voltage, frequency)',
+                                'Verify communication settings (IP address, Modbus ID, Baud rate)',
+                                'Confirm time and date settings are synchronized with site server/GPS',
+                                'Check that internal clock batteries are functional (if applicable)',
+                                'Ensure all configurable safety features (e.g., AFCI, RISO) are enabled as per specs'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-c-5', 
+                            title: '5. Auxiliary Systems & Communications Check', 
+                            steps: [
+                                'Verify auxiliary power supply voltage matches rating',
+                                'Test operation of internal cooling fans or liquid cooling pumps',
+                                'Confirm communication link between inverter and site monitoring/SCADA',
+                                'Test emergency stop (E-Stop) circuit continuity',
+                                'Check status of internal surge protection devices (SPDs)',
+                                'Perform loop test on remote control/shutdown signals'
+                            ],
+                            expectedDays: 1
+                        }
+                    ]
+                },
+                {
+                    id: 'STPL-INV-HOT',
+                    name: 'Inverter HOT COMMISSIONING',
+                    activities: [
+                        { 
+                            id: 'inv-h-1', 
+                            title: '1. Pre-Energization Voltage Checks', 
+                            steps: [
+                                'Measure AC grid voltage on all phases and confirm it is within inverter operating range',
+                                'Confirm proper phase rotation of the AC supply',
+                                'Measure DC input voltage from strings/combiners and verify polarity',
+                                'Confirm DC voltage is within PV start-up range',
+                                'Measure auxiliary power supply voltage again while fully loaded',
+                                'Ensure no ground faults exist on AC or DC systems'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-h-2', 
+                            title: '2. Energization (Step-by-Step)', 
+                            steps: [
+                                'Close auxiliary power breaker and verify HMI/Display boots correctly',
+                                'Release emergency stop and confirm "Ready" status',
+                                'Close DC input breakers one by one and check for immediate faults',
+                                'Close AC output breaker according to the switching sequence',
+                                'Initiate the inverter start sequence via HMI or remote command',
+                                'Monitor the "Grid Synchronization" process',
+                                'Confirm the inverter reaches "Producing" or "Mains Operation" state'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-h-3', 
+                            title: '3. Functional Operation Test', 
+                            steps: [
+                                'Monitor output current and power levels for stability',
+                                'Verify MPPT tracking is active and balanced (if multi-MPPT)',
+                                'Check and record internal temperatures (heat sinks, capacitors, inductors)',
+                                'Observe fan/pump operation at higher loads',
+                                'Confirm all HMI data (kW, kWh, PF, V, I) matches external meter readings',
+                                'Verify reactive power control (if requested by utility/grid controller)'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-h-4', 
+                            title: '4. Protection & Safety Testing', 
+                            steps: [
+                                'Simulate a grid failure (Anti-Islanding test) and record disconnection time',
+                                'Simulate an AC over-voltage/under-voltage condition and verify trip',
+                                'Perform a DC ground fault simulation (if safe and equipment supports)',
+                                'Trigger an E-Stop and confirm immediate shutdown and AC/DC disconnection',
+                                'Verify that the inverter does not auto-restart (if manual reset is required)',
+                                'Check that fault alarms are correctly received at SCADA/Monitoring'
+                            ],
+                            expectedDays: 1
+                        },
+                        { 
+                            id: 'inv-h-5', 
+                            title: '5. Performance & Final Validation', 
+                            steps: [
+                                'Compare calculated DC input power vs AC output power for efficiency check',
+                                'Check for any abnormal noise, vibration, or odors during full load',
+                                'Verify that communication logs are continuous without dropped packets',
+                                'Take thermal images of all internal power connections under load',
+                                'Download final inverter event log and configuration report',
+                                'Secure all enclosure doors and ensure seals are intact for final handover'
+                            ],
+                            expectedDays: 1
+                        }
+                    ]
                 }
             ],
             subReportTemplates: [
@@ -459,6 +616,125 @@ export const useStore = create<AppState>()(
                         { id: 'f2', name: 'Insulation Resistance (MΩ)', type: 'number' },
                         { id: 'f3', name: 'Visual Inspection Passed?', type: 'checkbox' },
                         { id: 'f4', name: 'Nameplate Picture', type: 'picture' }
+                    ]
+                },
+                {
+                    id: 'SRT-TTR',
+                    name: 'TTR – Turns Ratio Test Results',
+                    fields: [
+                        { id: 'h1', name: 'Transformer Tag', type: 'text' },
+                        { id: 'h2', name: 'Serial Number', type: 'text' },
+                        { id: 'h3', name: 'Test Date', type: 'text' },
+                        { id: 'h4', name: 'Technician', type: 'text' },
+                        { id: 'm1', name: 'Instrument Model', type: 'text' },
+                        { id: 'm2', name: 'Instrument Serial', type: 'text' },
+                        { id: 'm3', name: 'Calibration Due Date', type: 'text' },
+                        { id: 'm4', name: 'Tap Position Tested', type: 'text' },
+                        { id: 'm5', name: 'Ambient Temperature (°C)', type: 'number' },
+                        { 
+                            id: 'res_table', 
+                            name: 'Results Table', 
+                            type: 'table',
+                            columns: [
+                                { id: 'phase', name: 'Phase', type: 'text' },
+                                { id: 'hv_v', name: 'HV Voltage (Nominal)', type: 'number' },
+                                { id: 'lv_v', name: 'LV Voltage (Nominal)', type: 'number' },
+                                { id: 'theo_r', name: 'Theoretical Ratio', type: 'number' },
+                                { id: 'meas_r', name: 'Measured Ratio', type: 'number' },
+                                { id: 'dev', name: '% Deviation', type: 'number' },
+                                { id: 'exc_i', name: 'Excitation Current (mA)', type: 'number' },
+                                { id: 'angle', name: 'Phase Angle (°)', type: 'number' },
+                                { id: 'polar', name: 'Polarity', type: 'text' },
+                                { id: 'pass_fail', name: 'Pass/Fail', type: 'checkbox' },
+                                { id: 'comm', name: 'Comments', type: 'text' }
+                            ],
+                            rows: [
+                                { id: 'A', name: 'A' },
+                                { id: 'B', name: 'B' },
+                                { id: 'C', name: 'C' }
+                            ]
+                        },
+                        { 
+                            id: 'acc_crit', 
+                            name: 'Acceptance Criteria', 
+                            type: 'text'
+                        }
+                    ]
+                },
+                {
+                    id: 'SRT-MEGGER',
+                    name: 'Insulation Resistance (Megger) Results',
+                    fields: [
+                        { id: 'h1', name: 'Transformer Tag', type: 'text' },
+                        { id: 'h2', name: 'Serial Number', type: 'text' },
+                        { id: 'h3', name: 'Test Date', type: 'text' },
+                        { id: 'h4', name: 'Technician', type: 'text' },
+                        { id: 'm1', name: 'Instrument Model / Serial', type: 'text' },
+                        { id: 'm2', name: 'Test Voltage (kV or V)', type: 'text' },
+                        { id: 'm3', name: 'Test Duration', type: 'text' },
+                        { id: 'm4', name: 'Ambient Temperature (°C)', type: 'number' },
+                        { id: 'm5', name: 'Winding Temperature (°C)', type: 'number' },
+                        { id: 'm6', name: 'Humidity (%)', type: 'number' },
+                        { 
+                            id: 'res_table', 
+                            name: 'Results Table', 
+                            type: 'table',
+                            columns: [
+                                { id: 'conf', name: 'Test Configuration', type: 'text' },
+                                { id: 'v', name: 'Test Voltage (V)', type: 'number' },
+                                { id: 'ir', name: 'Measured IR (MΩ)', type: 'number' },
+                                { id: 'v10', name: '10 min Value', type: 'number' },
+                                { id: 'pi', name: 'Polarization Index (PI)', type: 'number' },
+                                { id: 'ir_c', name: 'Corrected IR @ 20°C', type: 'number' },
+                                { id: 'acc', name: 'Acceptance Criteria', type: 'text' },
+                                { id: 'pass_fail', name: 'Pass/Fail', type: 'checkbox' },
+                                { id: 'comm', name: 'Comments', type: 'text' }
+                            ],
+                            rows: [
+                                { id: 'hv_lv_gnd', name: 'HV → LV + GND' },
+                                { id: 'hv_gnd', name: 'HV → GND' },
+                                { id: 'lv_hv_gnd', name: 'LV → HV + GND' },
+                                { id: 'lv_gnd', name: 'LV → GND' },
+                                { id: 'core_gnd', name: 'Core → GND' }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'SRT-WINDING',
+                    name: 'Winding / Coil Resistance Results',
+                    fields: [
+                        { id: 'h1', name: 'Transformer Tag', type: 'text' },
+                        { id: 'h2', name: 'Serial Number', type: 'text' },
+                        { id: 'h3', name: 'Test Date', type: 'text' },
+                        { id: 'h4', name: 'Technician', type: 'text' },
+                        { id: 'm1', name: 'Instrument Model / Serial', type: 'text' },
+                        { id: 'm2', name: 'Test Current (A)', type: 'number' },
+                        { id: 'm3', name: 'Ambient Temperature (°C)', type: 'number' },
+                        { id: 'm4', name: 'Winding Temperature (°C)', type: 'number' },
+                        { 
+                            id: 'res_table', 
+                            name: 'Results Table', 
+                            type: 'table',
+                            columns: [
+                                { id: 'winding', name: 'Winding', type: 'text' },
+                                { id: 'phase', name: 'Phase', type: 'text' },
+                                { id: 'meas_r', name: 'Measured Resistance (Ω)', type: 'number' },
+                                { id: 'corr_r', name: 'Temp Corrected (Ω)', type: 'number' },
+                                { id: 'dev', name: 'Dev. Between Phases (%)', type: 'number' },
+                                { id: 'acc', name: 'Acceptance Criteria', type: 'text' },
+                                { id: 'pass_fail', name: 'Pass/Fail', type: 'checkbox' },
+                                { id: 'comm', name: 'Comments', type: 'text' }
+                            ],
+                            rows: [
+                                { id: 'hv_a', name: 'HV - A' },
+                                { id: 'hv_b', name: 'HV - B' },
+                                { id: 'hv_c', name: 'HV - C' },
+                                { id: 'lv_a', name: 'LV - A' },
+                                { id: 'lv_b', name: 'LV - B' },
+                                { id: 'lv_c', name: 'LV - C' }
+                            ]
+                        }
                     ]
                 }
             ],
@@ -695,6 +971,48 @@ export const useStore = create<AppState>()(
                 await supabase.from('projects').insert(dbPayload);
             },
             updateProject: async (id, updates) => {
+                const currentProject = get().projects.find(p => p.id === id);
+                
+                // SIDE EFFECT: When a project is completed, unassign all personnel and tools (H-05)
+                if (updates.status === 'Completed' && currentProject?.status !== 'Completed') {
+                    // 1. Clear personnel from this project
+                    updates.assignedPersonnel = [];
+
+                    // 2. Unassign tools in state
+                    const affectedTools = get().tools.filter(t => t.assignedProjectId === id);
+                    if (affectedTools.length > 0) {
+                        set((state) => ({
+                            tools: state.tools.map(t => t.assignedProjectId === id ? {
+                                ...t,
+                                assignedProjectId: undefined,
+                                history: [
+                                    ...t.history,
+                                    {
+                                        date: new Date().toISOString().split('T')[0],
+                                        description: `Unassigned automatically (Project Completed: ${currentProject?.name || id})`,
+                                        projectId: id
+                                    }
+                                ]
+                            } : t)
+                        }));
+
+                        // 3. Update Supabase for tools
+                        await Promise.all(affectedTools.map(t => 
+                            supabase.from('tools').update({ 
+                                assigned_project_id: null,
+                                history: [
+                                    ...t.history,
+                                    {
+                                        date: new Date().toISOString().split('T')[0],
+                                        description: `Unassigned automatically (Project Completed: ${currentProject?.name || id})`,
+                                        projectId: id
+                                    }
+                                ]
+                            }).eq('id', t.id)
+                        ));
+                    }
+                }
+
                 set((state) => ({ projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p) }));
                 const dbPayload: any = {};
                 if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;

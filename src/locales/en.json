@@ -59,7 +59,8 @@
     "logout": "Log out",
     "login": "Login",
     "role": "Role",
-    "admin": "Admin"
+    "admin": "Admin",
+    "hr": "HR"
   },
   "projects": {
     "title": "Projects",
@@ -257,7 +258,7 @@
       "role": "App Role",
       "contact": "Emergency Contact",
       "status": "Status",
-      "project": "Current Project"
+      "project": "Current Assignment"
     },
     "filters": {
       "search": "Search Directory",
@@ -266,6 +267,19 @@
       "all_roles": "All Roles"
     },
     "prevailing_wage": "Prevailing Wage",
+    "onboarding_date": "Onboarding Date",
+    "finance": {
+      "title": "Financial Details",
+      "regular_hours": "Regular Hours Rate",
+      "rainy_day": "Rainy Day Rate",
+      "over_time": "Over Time Rate",
+      "meal_days": "Meal Days Allowance",
+      "gas_day": "Gas Day Allowance",
+      "truck": "Truck Allowance",
+      "lead_pay": "Lead Pay",
+      "deductions": "Deductions",
+      "total_perdiem": "Total Perdiem Amount"
+    },
     "certs_folder": "Certs Folder Link",
     "certs_folder_placeholder": "e.g. OneDrive or Google Drive URL",
     "profile_photo": "Profile Photo",
@@ -452,8 +466,14 @@
     "project_velocity": "Project Velocity (S-Curve)",
     "time_range": {
       "all_time": "All time",
+      "currently_active": "Currently active",
+      "active_portfolio_avg": "Active portfolio avg",
       "monthly_avg": "Monthly avg",
       "this_month": "This month"
+    },
+    "charts": {
+      "assigned": "Assigned",
+      "bench": "Bench / Available"
     }
   },
   "scheduling": {

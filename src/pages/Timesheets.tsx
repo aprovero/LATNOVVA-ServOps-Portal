@@ -358,15 +358,16 @@ export default function Timesheets() {
                         <span className="ml-2 text-sm font-bold text-brand-teal">{totalHours} hrs</span>
                     </div>
 
-                    {['Manager', 'Supervisor'].includes(userRole) && (
-                        <>
-                            <Button variant="outline" onClick={openBatchModal} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
-                                <Users size={18} /> {t('timesheets.team_checkin')}
-                            </Button>
-                            <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-gray-200 hover:bg-gray-50 text-gray-700">
-                                <Download size={18} /> {t('common.export')}
-                            </Button>
-                        </>
+                    {['Manager', 'Supervisor', 'HR'].includes(userRole) && (
+                        <Button variant="outline" onClick={openBatchModal} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5">
+                            <Users size={18} /> {t('timesheets.team_checkin')}
+                        </Button>
+                    )}
+
+                    {['Manager', 'HR'].includes(userRole) && (
+                        <Button variant="outline" onClick={handleExportCSV} className="rounded-xl gap-2 font-bold shadow-sm h-11 px-6 border-gray-200 hover:bg-gray-50 text-gray-700">
+                            <Download size={18} /> {t('common.export')}
+                        </Button>
                     )}
 
                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -458,7 +459,7 @@ export default function Timesheets() {
                                         onChange={e => setNewEntry({ ...newEntry, projectId: e.target.value })}
                                     >
                                         <option value="">{t('timesheets.modals.none_admin')}</option>
-                                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        {projects.filter(p => p.status === 'Active').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
 
@@ -556,7 +557,7 @@ export default function Timesheets() {
                                 >
                                     {t('timesheets.filters.all_projects')}
                                 </div>
-                                {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).map(p => (
+                                {projects.filter(p => p.status === 'Active' && (!projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase()))).map(p => (
                                     <div 
                                         key={p.id}
                                         className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${filterProject === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}

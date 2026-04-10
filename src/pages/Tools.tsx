@@ -197,7 +197,7 @@ export default function Tools() {
                         >
                             <option value="All">All Projects</option>
                             <option value="None">None (Unassigned)</option>
-                            {projects.map(p => (
+                            {projects.filter(p => p.status === 'Active').map(p => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
                         </select>
@@ -383,7 +383,7 @@ export default function Tools() {
                                                     onChange={e => setNewHistoryEntry({ ...newHistoryEntry, projectId: e.target.value })}
                                                 >
                                                     <option value="">{t('inventory.no_project')}</option>
-                                                    {projects.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                                                    {projects.filter(p => p.status === 'Active').map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
                                                 </select>
                                                 <Button size="sm" onClick={handleAddHistory} className="h-8 px-4 bg-brand-teal text-white rounded-lg">{t('common.add')}</Button>
                                             </div>

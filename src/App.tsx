@@ -22,6 +22,8 @@ import Timesheets from './pages/Timesheets';
 import LiveMap from './pages/LiveMap';
 import ProjectDetail from './pages/ProjectDetail';
 import ClockIn from './pages/ClockIn';
+import SplashScreen from './components/common/SplashScreen';
+import { useState } from 'react';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -35,6 +37,7 @@ const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
     const { initDb } = useStore();
+    const [isSplashComplete, setIsSplashComplete] = useState(false);
 
     useEffect(() => {
         // Initialize mock DB / offline storage on startup
@@ -42,8 +45,13 @@ function App() {
     }, [initDb]);
 
     return (
-        <Router>
-            <Routes>
+        <>
+            {!isSplashComplete && (
+                <SplashScreen onComplete={() => setIsSplashComplete(true)} />
+            )}
+            
+            <Router>
+                <Routes>
                 <Route path="/login" element={<Login />} />
                 
                 <Route element={<AuthRoute />}>
@@ -67,6 +75,7 @@ function App() {
                 </Route>
             </Routes>
         </Router>
+        </>
     );
 }
 

@@ -144,18 +144,60 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
                         );
                     }
 
+                    if (field.type === 'table' && field.columns && field.rows) {
+                        const tableData = val || {};
+                        const colWidth = 100 / (field.columns.length + 1);
+
+                        return (
+                            <View key={field.id} style={{ marginBottom: 15 }} wrap={false}>
+                                <Text style={styles.label}>{field.name}</Text>
+                                <View style={{ borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ccc' }}>
+                                    {/* Header */}
+                                    <View style={{ flexDirection: 'row', backgroundColor: '#f9f9f9', borderTopWidth: 0.5, borderLeftWidth: 0.5, borderColor: '#ccc' }}>
+                                        <View style={{ width: `${colWidth}%`, padding: 4, borderRightWidth: 0.5, borderColor: '#ccc' }}>
+                                            <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold' }}>Row</Text>
+                                        </View>
+                                        {field.columns.map(col => (
+                                            <View key={col.id} style={{ width: `${colWidth}%`, padding: 4, borderRightWidth: 0.5, borderColor: '#ccc' }}>
+                                                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold' }}>{col.name}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                    {/* Rows */}
+                                    {field.rows.map(row => (
+                                        <View key={row.id} style={{ flexDirection: 'row', borderTopWidth: 0.5, borderLeftWidth: 0.5, borderColor: '#ccc' }}>
+                                            <View style={{ width: `${colWidth}%`, padding: 4, borderRightWidth: 0.5, borderColor: '#ccc', backgroundColor: '#fdfdfd' }}>
+                                                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold' }}>{row.name}</Text>
+                                            </View>
+                                            {field.columns!.map(col => {
+                                                const cellVal = tableData[row.id]?.[col.id] || '';
+                                                return (
+                                                    <View key={col.id} style={{ width: `${colWidth}%`, padding: 4, borderRightWidth: 0.5, borderColor: '#ccc' }}>
+                                                        <Text style={{ fontSize: 7 }}>{String(cellVal)}</Text>
+                                                    </View>
+                                                );
+                                            })}
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        );
+                    }
+
                     return (
-                        <View key={field.id} style={[styles.row, { marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#fafafa' }]} wrap={false}>
-                           <View style={{ width: '40%' }}>
-                               <Text style={styles.label}>{field.name}</Text>
-                               {field.type === 'checkbox' && (
-                                   <Text style={{ fontSize: 7, color: '#aaa', marginTop: 1 }}>(Pass / Fail / NA)</Text>
-                               )}
-                           </View>
-                           <View style={{ width: '60%' }}>
-                               <Text style={[styles.value, { fontFamily: val && field.type === 'checkbox' ? 'Helvetica-Bold' : 'Helvetica' }]}>
-                                   {val ? String(val) : '—'}
-                               </Text>
+                        <View key={field.id} style={{ marginBottom: 8 }} wrap={false}>
+                           <View style={{ flexDirection: 'row', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#fafafa' }}>
+                               <View style={{ width: '40%' }}>
+                                   <Text style={styles.label}>{field.name}</Text>
+                                   {field.type === 'checkbox' && !field.description && (
+                                       <Text style={{ fontSize: 7, color: '#aaa', marginTop: 1 }}>(Pass / Fail / NA)</Text>
+                                   )}
+                               </View>
+                               <View style={{ width: '60%' }}>
+                                   <Text style={[styles.value, { fontFamily: val && field.type === 'checkbox' ? 'Helvetica-Bold' : 'Helvetica' }]}>
+                                       {val ? String(val) : '—'}
+                                   </Text>
+                               </View>
                            </View>
                         </View>
                     );

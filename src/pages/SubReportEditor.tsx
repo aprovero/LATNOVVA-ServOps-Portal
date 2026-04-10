@@ -108,10 +108,7 @@ export default function SubReportEditor() {
                             The template for this sub-report is no longer available. Data is isolated.
                         </div>
                     ) : (
-                        template.fields.map(field => (
-                            <div key={field.id} className="space-y-3">
-                                <label className="text-sm font-bold text-accent-greyDark block">{field.name}</label>
-                                
+
                                 {field.type === 'text' && (
                                     <input
                                         type="text"
@@ -129,7 +126,7 @@ export default function SubReportEditor() {
                                         onChange={(e) => handleUpdateValue(field.id, e.target.value)}
                                         disabled={!canEditFields}
                                         className="w-full input-field border-gray-200"
-                                        placeholder="Enter number..."
+                                        placeholder="0.00"
                                     />
                                 )}
                                 {field.type === 'checkbox' && (
@@ -148,6 +145,76 @@ export default function SubReportEditor() {
                                                 {opt}
                                             </button>
                                         ))}
+                                    </div>
+                                )}
+                                {field.type === 'table' && field.columns && field.rows && (
+                                    <div className="col-span-full mt-2 overflow-x-auto rounded-2xl border border-gray-100 shadow-sm bg-gray-50/30">
+                                        <table className="w-full text-left border-collapse min-w-[800px]">
+                                            <thead>
+                                                <tr className="bg-gray-50 border-b border-gray-100">
+                                                    <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest sticky left-0 bg-gray-50 z-10">Row</th>
+                                                    {field.columns.map(col => (
+                                                        <th key={col.id} className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest min-w-[120px]">
+                                                            {col.name}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {field.rows.map(row => (
+                                                    <tr key={row.id} className="hover:bg-white/50 transition-colors">
+                                                        <td className="p-3 text-xs font-bold text-accent-greyDark sticky left-0 bg-gray-50/80 backdrop-blur-sm z-10 border-r border-gray-100">
+                                                            {row.name}
+                                                        </td>
+                                                        {field.columns!.map(col => {
+                                                            const tableValue = values[field.id] || {};
+                                                            const rowValue = tableValue[row.id] || {};
+                                                            const cellValue = rowValue[col.id] || '';
+
+                                                            return (
+                                                                <td key={col.id} className="p-2">
+                                                                    {col.type === 'checkbox' ? (
+                                                                        <div className="flex gap-1">
+                                                                            {(['Pass', 'Fail'] as const).map(opt => (
+                                                                                <button
+                                                                                    key={opt}
+                                                                                    disabled={!canEditFields}
+                                                                                    onClick={() => {
+                                                                                        const newTableValue = { ...tableValue };
+                                                                                        newTableValue[row.id] = { ...rowValue, [col.id]: cellValue === opt ? '' : opt };
+                                                                                        handleUpdateValue(field.id, newTableValue);
+                                                                                    }}
+                                                                                    className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${
+                                                                                        cellValue === opt 
+                                                                                        ? opt === 'Pass' ? 'bg-status-success text-white border-status-success' : 'bg-status-error text-white border-status-error'
+                                                                                        : 'bg-white text-gray-400 border-gray-100 hover:border-gray-200'
+                                                                                    }`}
+                                                                                >
+                                                                                    {opt}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <input
+                                                                            type={col.type === 'number' ? 'number' : 'text'}
+                                                                            value={cellValue}
+                                                                            disabled={!canEditFields}
+                                                                            onChange={(e) => {
+                                                                                const newTableValue = { ...tableValue };
+                                                                                newTableValue[row.id] = { ...rowValue, [col.id]: e.target.value };
+                                                                                handleUpdateValue(field.id, newTableValue);
+                                                                            }}
+                                                                            className="w-full h-8 px-2 bg-white border border-gray-100 rounded-lg text-xs outline-none focus:border-brand-teal transition-colors"
+                                                                            placeholder="..."
+                                                                        />
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 )}
                                 {field.type === 'picture' && (

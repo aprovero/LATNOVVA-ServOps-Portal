@@ -258,45 +258,47 @@ export default function Templates() {
                                     <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                                         {newScopeTemplate.activities.map((act, index) => (
                                             <div key={index} className="space-y-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 relative group/act">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex-1 space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('templates.scopes.activity_title')}</label>
-                                                        <Input
-                                                            placeholder={`e.g. Electrical Installation`}
-                                                            value={act.title}
-                                                            onChange={(e) => {
-                                                                const newActs = [...newScopeTemplate.activities];
-                                                                newActs[index].title = e.target.value;
-                                                                setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
-                                                            }}
-                                                            className="rounded-xl border-gray-200 h-9"
-                                                        />
-                                                    </div>
-                                                    <div className="w-24 space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('templates.scopes.days')}</label>
-                                                        <div className="flex items-center gap-1">
+                                                <div className="flex flex-col gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 space-y-1">
+                                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('templates.scopes.activity_title')}</label>
                                                             <Input
-                                                                type="number"
-                                                                value={act.expectedDays}
+                                                                placeholder={`e.g. Electrical Installation`}
+                                                                value={act.title}
                                                                 onChange={(e) => {
                                                                     const newActs = [...newScopeTemplate.activities];
-                                                                    newActs[index].expectedDays = parseInt(e.target.value) || 1;
+                                                                    newActs[index].title = e.target.value;
                                                                     setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
                                                                 }}
                                                                 className="rounded-xl border-gray-200 h-9"
                                                             />
-                                                            <Clock size={14} className="text-gray-400" />
                                                         </div>
+                                                        <div className="w-24 space-y-1">
+                                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('templates.scopes.days')}</label>
+                                                            <div className="flex items-center gap-1">
+                                                                <Input
+                                                                    type="number"
+                                                                    value={act.expectedDays}
+                                                                    onChange={(e) => {
+                                                                        const newActs = [...newScopeTemplate.activities];
+                                                                        newActs[index].expectedDays = parseInt(e.target.value) || 1;
+                                                                        setNewScopeTemplate({ ...newScopeTemplate, activities: newActs });
+                                                                    }}
+                                                                    className="rounded-xl border-gray-200 h-9"
+                                                                />
+                                                                <Clock size={14} className="text-gray-400" />
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const newActs = newScopeTemplate.activities.filter((_, i) => i !== index);
+                                                                setNewScopeTemplate({ ...newScopeTemplate, activities: newActs.length ? newActs : [{ title: '', steps: [''], expectedDays: 1 }] });
+                                                            }}
+                                                            className="mt-5 p-2 text-red-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            const newActs = newScopeTemplate.activities.filter((_, i) => i !== index);
-                                                            setNewScopeTemplate({ ...newScopeTemplate, activities: newActs.length ? newActs : [{ title: '', steps: [''], expectedDays: 1 }] });
-                                                        }}
-                                                        className="mt-5 p-2 text-red-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
                                                 </div>
 
                                                 <div className="space-y-2">

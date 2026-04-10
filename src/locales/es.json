@@ -59,7 +59,8 @@
     "logout": "Cerrar sesión",
     "login": "Iniciar sesión",
     "role": "Rol",
-    "admin": "Administración"
+    "admin": "Administración",
+    "hr": "RRHH (HR)"
   },
   "projects": {
     "title": "Proyectos",
@@ -257,7 +258,7 @@
       "role": "Rol en App",
       "contact": "Contacto de Emergencia",
       "status": "Estado",
-      "project": "Proyecto Actual"
+      "project": "Asignación Actual"
     },
     "filters": {
       "search": "Buscar Directorio",
@@ -266,6 +267,19 @@
       "all_roles": "Todos los Roles"
     },
     "prevailing_wage": "Salario Prevaleciente",
+    "onboarding_date": "Fecha de Ingreso",
+    "finance": {
+      "title": "Detalles Financieros",
+      "regular_hours": "Tarifa Horas Regulares",
+      "rainy_day": "Tarifa Día de Lluvia",
+      "over_time": "Tarifa Tiempo Extra",
+      "meal_days": "Comidas",
+      "gas_day": "Gasolina",
+      "truck": "Camioneta",
+      "lead_pay": "Lead",
+      "deductions": "Deducciones",
+      "total_perdiem": "Monto Total Perdiem"
+    },
     "certs_folder": "Enlace a Carpeta de Certificados",
     "certs_folder_placeholder": "ej. URL de OneDrive o Google Drive",
     "profile_photo": "Foto de Perfil",
@@ -452,8 +466,14 @@
     "project_velocity": "Velocidad de Proyecto (Curva S)",
     "time_range": {
       "all_time": "Todo el tiempo",
+      "currently_active": "Actualmente activo",
+      "active_portfolio_avg": "Promedio portafolio activo",
       "monthly_avg": "Promedio mensual",
       "this_month": "Este mes"
+    },
+    "charts": {
+      "assigned": "Asignados",
+      "bench": "En Reserva / Libres"
     }
   },
   "scheduling": {
@@ -622,9 +642,9 @@
       "field_tracker": "Seguimiento de Tiempo en Campo",
       "gps_time": "Hora GPS",
       "device_time": "Hora del Dispositivo",
-      "team_batch_mode": "Modo de Equipo por Lote",
+      "team_batch_mode": "Modo de Equipo por Grupo",
       "my_checkin": "Mi Registro",
-      "team_batch": "Equipo por Lote",
+      "team_batch": "Equipo por Grupo",
       "skip_lunch": "Omitir Almuerzo → Ir a Salida",
       "forgot_punch": "¿Olvidó registrar? Ingresar manualmente",
       "todays_punches": "Marcajes de Hoy",

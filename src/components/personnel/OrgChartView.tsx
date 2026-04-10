@@ -1,11 +1,11 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useStore, Personnel } from '../../store/useStore';
 import { User, ChevronRight, UserMinus, Check, Users, Briefcase } from 'lucide-react';
 
 export default function OrgChartView() {
     const { personnel, projects, updateProject } = useStore();
 
-    const activeProjects = projects.filter(p => p.status === 'Active' || p.status === 'On Hold');
+    const activeProjects = projects.filter(p => p.status === 'Active');
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
         activeProjects.length > 0 ? activeProjects[0].id : null
     );
@@ -102,7 +102,7 @@ export default function OrgChartView() {
             const isLeadA = project.siteLeadIds?.includes(a.id) ? 1 : 0;
             const isLeadB = project.siteLeadIds?.includes(b.id) ? 1 : 0;
             if (isLeadA !== isLeadB) return isLeadB - isLeadA;
-            const roleWeight = { 'Manager': 3, 'Supervisor': 2, 'Tech': 1, 'Customer': 0 };
+            const roleWeight: Record<string, number> = { 'HR': 4, 'Manager': 3, 'Supervisor': 2, 'Tech': 1, 'Customer': 0 };
             return (roleWeight[b.appRole || 'Tech'] || 0) - (roleWeight[a.appRole || 'Tech'] || 0);
         });
         return team;

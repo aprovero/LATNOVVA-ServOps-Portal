@@ -18,7 +18,7 @@ export default function Settings() {
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
-    const [inviteRole, setInviteRole] = useState<'Tech' | 'Supervisor' | 'Manager' | 'Customer'>('Tech');
+    const [inviteRole, setInviteRole] = useState<'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR'>('Tech');
     const [inviteCompany, setInviteCompany] = useState('');
 
     const handleInviteUser = () => {
@@ -150,6 +150,7 @@ export default function Settings() {
                             </div>
                         </div>
                     ) : activeTab === 'users' ? (
+                        (['Manager', 'HR'].includes(userRole)) ? (
                         <div className="bg-white border flex flex-col border-gray-100 rounded-2xl shadow-sm overflow-hidden text-left">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                                 <div>
@@ -186,6 +187,7 @@ export default function Settings() {
                                                 <td className="px-6 py-4">
                                                     <span className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 w-max ${
                                                         user.appRole === 'Manager' ? 'bg-purple-100 text-purple-700' :
+                                                        user.appRole === 'HR' ? 'bg-amber-100 text-amber-700' :
                                                         user.appRole === 'Supervisor' ? 'bg-brand-teal/10 text-brand-teal' :
                                                         user.appRole === 'Customer' ? 'bg-orange-100 text-orange-700' :
                                                         'bg-blue-100 text-blue-700'
@@ -219,6 +221,18 @@ export default function Settings() {
                                 </table>
                             </div>
                         </div>
+                        ) : (
+                            <div className="max-w-md mx-auto text-center space-y-6 py-12">
+                                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500">
+                                    <Shield size={40} />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-accent-greyDark">Access Restricted</h2>
+                                    <p className="text-gray-500 mt-2">Only Managers and HR personnel can manage users and invitations.</p>
+                                </div>
+                                <Button onClick={() => setActiveTab(null)} className="bg-brand-teal text-white">Back to Settings</Button>
+                            </div>
+                        )
                     ) : activeTab === 'wbs' ? (
                          <WBSTemplateManager />
                     ) : activeTab === 'cloud' ? (
@@ -444,6 +458,7 @@ export default function Settings() {
                                 <option value="Tech">Tech (Field Execution Level)</option>
                                 <option value="Supervisor">Supervisor (Site Management Level)</option>
                                 <option value="Manager">Manager (Global Operations Level)</option>
+                                <option value="HR">HR (Personnel & Finance Management)</option>
                                 <option value="Customer">Company / Customer (Restricted Client Level)</option>
                             </select>
                         </div>
@@ -533,6 +548,7 @@ export default function Settings() {
                                 <option value="Tech">Tech</option>
                                 <option value="Supervisor">Supervisor</option>
                                 <option value="Manager">Manager</option>
+                                <option value="HR">HR</option>
                                 <option value="Customer">Customer</option>
                             </select>
                         </div>
@@ -594,6 +610,7 @@ export default function Settings() {
                                 <option value="Tech">Tech</option>
                                 <option value="Supervisor">Supervisor</option>
                                 <option value="Manager">Manager</option>
+                                <option value="HR">HR</option>
                                 <option value="Customer">Customer</option>
                             </select>
                         </div>

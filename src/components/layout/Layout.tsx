@@ -138,16 +138,16 @@ export default function Layout() {
         {
             name: t('nav.resources'),
             links: [
-                { name: t('nav.personnel'), path: '/personnel', icon: User, roles: ['Supervisor', 'Manager'] },
-                { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager'] },
-                { name: t('nav.tools'), path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager'] },
+                { name: t('nav.personnel'), path: '/personnel', icon: User, roles: ['Supervisor', 'Manager', 'HR'] },
+                { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager', 'HR'] },
+                { name: t('nav.tools'), path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager', 'HR'] },
             ]
         },
         {
             name: t('nav.intelligence'),
             links: [
-                { name: t('nav.analysis'), path: '/analysis', icon: Activity, roles: ['Supervisor', 'Manager'] },
-                { name: t('nav.calendar'), path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager'] },
+                { name: t('nav.analysis'), path: '/analysis', icon: Activity, roles: ['Supervisor', 'Manager', 'HR'] },
+                { name: t('nav.calendar'), path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager', 'HR'] },
             ]
         },
     ];
@@ -438,7 +438,7 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
-                                {['Manager', 'Supervisor'].includes(userRole) && (
+                                {['Manager', 'Supervisor', 'HR'].includes(userRole) && (
                                     <>
                                         <DropdownMenuLabel>{t('auth.admin', 'Admin')}</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
@@ -541,6 +541,53 @@ export default function Layout() {
                                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                             )}
                         </button>
+
+                        <div className="w-px h-6 bg-gray-100 mx-1"></div>
+
+                        {/* Gear menu — mobile */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="outline-none flex items-center justify-center w-9 h-9 rounded-xl bg-gray-50 hover:bg-brand-teal/10 text-gray-400 hover:text-brand-teal transition-all">
+                                    <Settings size={18} />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
+                                {['Manager', 'Supervisor', 'HR'].includes(userRole) && (
+                                    <>
+                                        <DropdownMenuLabel>{t('auth.admin', 'Admin')}</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/settings')}>
+                                            <Settings size={14} className="text-gray-400" /> {t('nav.settings')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
+                                            <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+
+                                <DropdownMenuItem 
+                                    className="cursor-pointer flex items-center justify-center p-0 hover:bg-transparent focus:bg-transparent" 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        i18n.changeLanguage(i18n.language === 'en' ? 'es' : 'en');
+                                    }}
+                                >
+                                    <div className="flex items-center gap-0 bg-gray-50 rounded-lg p-1 w-full border border-gray-100">
+                                        <div className={`flex-1 py-1 text-center text-[10px] font-bold rounded-md transition-all ${i18n.language === 'en' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}>
+                                            EN
+                                        </div>
+                                        <div className={`flex-1 py-1 text-center text-[10px] font-bold rounded-md transition-all ${i18n.language === 'es' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}>
+                                            ES
+                                        </div>
+                                    </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => { setAuthData('', ''); navigate('/login'); }}>
+                                    {t('auth.logout')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </header>
 
@@ -562,25 +609,25 @@ export default function Layout() {
             </main>
 
             {/* Bottom Nav Mobile */}
-            <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-gray-100 flex justify-around p-3 z-30 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
+            <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-gray-100 flex overflow-x-auto no-scrollbar items-center p-3 z-30 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] gap-1">
                 {/* Clock In pinned first for Tech/Supervisor */}
                 {['Tech', 'Supervisor'].includes(userRole) && (
                     <Link
                         to="/clock-in"
-                        className={`flex flex-col items-center p-2 rounded-xl transition-colors ${location.pathname.startsWith('/clock-in') ? 'text-emerald-600' : 'text-emerald-500'}`}
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors shrink-0 min-w-[72px] ${location.pathname.startsWith('/clock-in') ? 'text-emerald-600' : 'text-emerald-500'}`}
                     >
                         <Fingerprint size={24} className="mb-1" />
                         <span className="text-[10px] font-semibold">{t('nav.clock_in')}</span>
                     </Link>
                 )}
-                {flatNavLinks.slice(0, ['Tech', 'Supervisor'].includes(userRole) ? 4 : 5).map((link) => {
+                {flatNavLinks.map((link) => {
                     const Icon = link.icon;
                     const isActive = location.pathname.startsWith(link.path);
                     return (
                         <Link
                             key={link.name}
                             to={link.path}
-                            className={`flex flex-col items-center p-2 rounded-xl transition-colors ${isActive ? 'text-brand-teal' : 'text-accent-grey'}`}
+                            className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors shrink-0 min-w-[72px] ${isActive ? 'text-brand-teal' : 'text-accent-grey'}`}
                         >
                             <Icon size={24} className="mb-1" />
                             <span className="text-[10px] font-semibold">{link.name}</span>

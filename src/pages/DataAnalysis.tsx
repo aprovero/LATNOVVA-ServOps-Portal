@@ -20,7 +20,7 @@ export default function DataAnalysis() {
 
     const DISCIPLINE_OPTIONS = ['All', 'Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
 
-    if (userRole !== 'Manager') {
+    if (!['Manager', 'Supervisor', 'HR'].includes(userRole)) {
         return (
             <div className="flex flex-col items-center justify-center pt-24 text-gray-400">
                 <AlertTriangle size={48} className="mb-4 text-status-warning/50" />
@@ -74,9 +74,15 @@ export default function DataAnalysis() {
     const utilizationData = useMemo(() => {
         const activePersonnel = personnel.filter(p => p.status === 'Active');
         const assignedIds = new Set<string>();
+        
+        // 1. Get IDs from project assignments (primary source)
+        projects.filter(p => p.status === 'Active').forEach(p => {
+            p.assignedPersonnel?.forEach(id => assignedIds.add(id));
+        });
+
+        // 2. Supplement with IDs from recent reports (last 7 days)
         const last7Days = new Date();
         last7Days.setDate(last7Days.getDate() - 7);
-
         reports.forEach(r => {
             if (new Date(r.date) >= last7Days) {
                 r.labor?.forEach(l => {
@@ -92,7 +98,7 @@ export default function DataAnalysis() {
             { name: 'Assigned', value: assignedCount },
             { name: 'Available', value: unassignedCount }
         ];
-    }, [personnel, reports]);
+    }, [personnel, projects, reports]);
 
     // 5. Project Velocity (S-Curve)
     const velocityData = useMemo(() => {

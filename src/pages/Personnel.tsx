@@ -38,6 +38,7 @@ export default function Personnel() {
     const [newPerson, setNewPerson] = useState<Partial<PersonnelType> | null>(null);
 
     const isManager = userRole === 'Manager';
+    const isHROrManager = ['Manager', 'HR'].includes(userRole);
 
     // Select a person → load into edit draft
     const handleSelectPerson = (person: PersonnelType) => {
@@ -70,6 +71,17 @@ export default function Personnel() {
             certifications: newPerson.certifications || [],
             appRole: newPerson.appRole || 'Tech',
             prevailingWage: newPerson.prevailingWage || false,
+            emergencyContact: newPerson.emergencyContact,
+            onboardingDate: newPerson.onboardingDate,
+            regularRate: newPerson.regularRate,
+            rainyDayRate: newPerson.rainyDayRate,
+            overtimeRate: newPerson.overtimeRate,
+            mealAllowance: newPerson.mealAllowance,
+            gasAllowance: newPerson.gasAllowance,
+            truckAllowance: newPerson.truckAllowance,
+            leadPay: newPerson.leadPay,
+            deductions: newPerson.deductions,
+            totalPerdiem: newPerson.totalPerdiem,
         };
         addPersonnel(created);
         setIsAddModalOpen(false);
@@ -211,6 +223,7 @@ export default function Personnel() {
                                             <option value="Tech">Tech</option>
                                             <option value="Supervisor">Supervisor</option>
                                             <option value="Manager">Manager</option>
+                                            <option value="HR">HR</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2">
@@ -232,9 +245,68 @@ export default function Personnel() {
                                         onChange={e => setNewPerson({ ...newPerson, prevailingWage: e.target.checked })}
                                     />
                                 </label>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
-                                    <Input placeholder={t('personnel.certs_folder_placeholder')} value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
+                                <div className="space-y-4 pt-2">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact')}</label>
+                                            <Input placeholder="e.g. Jane Doe (956-...)" value={newPerson?.emergencyContact || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContact: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
+                                            <Input type="date" value={newPerson?.onboardingDate || ''} onChange={e => setNewPerson({ ...newPerson, onboardingDate: e.target.value })} />
+                                        </div>
+                                    </div>
+
+                                    {isHROrManager && (
+                                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
+                                            <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">
+                                                <Shield size={14} /> {t('personnel.finance.title')}
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.regularRate || ''} onChange={e => setNewPerson({ ...newPerson, regularRate: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.rainyDayRate || ''} onChange={e => setNewPerson({ ...newPerson, rainyDayRate: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.overtimeRate || ''} onChange={e => setNewPerson({ ...newPerson, overtimeRate: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.mealAllowance || ''} onChange={e => setNewPerson({ ...newPerson, mealAllowance: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.gasAllowance || ''} onChange={e => setNewPerson({ ...newPerson, gasAllowance: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.truckAllowance || ''} onChange={e => setNewPerson({ ...newPerson, truckAllowance: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.leadPay || ''} onChange={e => setNewPerson({ ...newPerson, leadPay: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.deductions')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.deductions || ''} onChange={e => setNewPerson({ ...newPerson, deductions: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                                <div className="space-y-1 col-span-2">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.total_perdiem')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.totalPerdiem || ''} onChange={e => setNewPerson({ ...newPerson, totalPerdiem: parseFloat(e.target.value) || 0 })} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
+                                        <Input placeholder={t('personnel.certs_folder_placeholder')} value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
@@ -303,7 +375,7 @@ export default function Personnel() {
                         onClick={() => setViewMode('org')}
                         className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'org' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <Network size={16} /> {t('nav.projects')}
+                        <Network size={16} /> {t('personnel.columns.project')}
                     </button>
                 </div>
             </div>
@@ -509,7 +581,7 @@ export default function Personnel() {
                                         </div>
                                     </div>
 
-                                    {isManager && (
+                                    {isHROrManager && (
                                         <>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
@@ -518,6 +590,7 @@ export default function Personnel() {
                                                     <option value="Tech">Tech</option>
                                                     <option value="Supervisor">Supervisor</option>
                                                     <option value="Manager">Manager</option>
+                                                    <option value="HR">HR</option>
                                                 </select>
                                             </div>
                                             <div className="space-y-2 pt-6">
@@ -540,6 +613,63 @@ export default function Personnel() {
                                             </select>
                                         </div>
                                         </>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact')}</label>
+                                            <Input value={editDraft.emergencyContact || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContact: e.target.value } : d)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
+                                            <Input type="date" value={editDraft.onboardingDate || ''} onChange={e => setEditDraft(d => d ? { ...d, onboardingDate: e.target.value } : d)} />
+                                        </div>
+                                    </div>
+
+                                    {isHROrManager && (
+                                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
+                                            <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">
+                                                <Shield size={14} /> {t('personnel.finance.title')}
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.regularRate || ''} onChange={e => setEditDraft(d => d ? { ...d, regularRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.rainyDayRate || ''} onChange={e => setEditDraft(d => d ? { ...d, rainyDayRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.overtimeRate || ''} onChange={e => setEditDraft(d => d ? { ...d, overtimeRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.mealAllowance || ''} onChange={e => setEditDraft(d => d ? { ...d, mealAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.gasAllowance || ''} onChange={e => setEditDraft(d => d ? { ...d, gasAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.truckAllowance || ''} onChange={e => setEditDraft(d => d ? { ...d, truckAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.leadPay || ''} onChange={e => setEditDraft(d => d ? { ...d, leadPay: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.deductions')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.deductions || ''} onChange={e => setEditDraft(d => d ? { ...d, deductions: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                                <div className="space-y-1 col-span-2">
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.total_perdiem')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.totalPerdiem || ''} onChange={e => setEditDraft(d => d ? { ...d, totalPerdiem: parseFloat(e.target.value) || 0 } : d)} />
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
 
                                     <div className="space-y-2">
