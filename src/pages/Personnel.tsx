@@ -508,31 +508,52 @@ export default function Personnel() {
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    {selectedPerson.email && (
-                                                        <a href={`mailto:${selectedPerson.email}`} className="p-2 rounded-xl bg-gray-100 hover:bg-brand-teal/10 hover:text-brand-teal transition-colors text-gray-400" title={selectedPerson.email}>
-                                                            <Mail size={16} />
-                                                        </a>
-                                                    )}
-                                                    {selectedPerson.phoneNumber && (
-                                                        <a href={`tel:${selectedPerson.phoneNumber}`} className="p-2 rounded-xl bg-gray-100 hover:bg-brand-teal/10 hover:text-brand-teal transition-colors text-gray-400" title={selectedPerson.phoneNumber}>
-                                                            <Phone size={16} />
-                                                        </a>
-                                                    )}
-                                                    {selectedPerson.sharedFolderLink && (
-                                                        <a href={selectedPerson.sharedFolderLink} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 hover:bg-brand-teal/10 hover:text-brand-teal transition-colors text-gray-400" title="Certs Folder">
-                                                            <ExternalLink size={16} />
-                                                        </a>
-                                                    )}
-                                                    {isManager && (
-                                                        <button
-                                                            onClick={() => { deletePersonnel(selectedPerson.id); setSelectedPersonId(null); setEditDraft(null); }}
-                                                            className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors"
-                                                            title="Delete Personnel"
+                                                <div className="flex flex-col items-end gap-3 shrink-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            onClick={handleSelectPerson.bind(null, selectedPerson)}
+                                                            className="h-9 px-4 rounded-xl text-xs gap-1.5 border-gray-200 hover:bg-gray-50"
                                                         >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    )}
+                                                            <X size={14} /> {t('common.cancel', 'Cancel')}
+                                                        </Button>
+                                                        <Button 
+                                                            size="sm" 
+                                                            onClick={handleSave}
+                                                            className={`h-9 px-5 rounded-xl text-xs font-bold gap-1.5 transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-500' : 'bg-brand-teal hover:bg-brand-teal/90'} text-white shadow-soft`}
+                                                        >
+                                                            {isSaved ? <CheckCircle2 size={14} /> : <Save size={14} />}
+                                                            {isSaved ? t('personnel.saved') : t('personnel.profile.save')}
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        {selectedPerson.email && (
+                                                            <a href={`mailto:${selectedPerson.email}`} className="p-2 rounded-xl bg-gray-100 hover:bg-brand-teal/10 hover:text-brand-teal transition-colors text-gray-400" title={selectedPerson.email}>
+                                                                <Mail size={16} />
+                                                            </a>
+                                                        )}
+                                                        {selectedPerson.phoneNumber && (
+                                                            <a href={`tel:${selectedPerson.phoneNumber}`} className="p-2 rounded-xl bg-gray-100 hover:bg-brand-teal/10 hover:text-brand-teal transition-colors text-gray-400" title={selectedPerson.phoneNumber}>
+                                                                <Phone size={16} />
+                                                            </a>
+                                                        )}
+                                                        {selectedPerson.sharedFolderLink && (
+                                                            <a href={selectedPerson.sharedFolderLink} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 hover:bg-brand-teal/10 hover:text-brand-teal transition-colors text-gray-400" title="Certs Folder">
+                                                                <ExternalLink size={16} />
+                                                            </a>
+                                                        )}
+                                                        {isManager && (
+                                                            <button
+                                                                onClick={() => { deletePersonnel(selectedPerson.id); setSelectedPersonId(null); setEditDraft(null); }}
+                                                                className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors"
+                                                                title="Delete Personnel"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -657,12 +678,7 @@ export default function Personnel() {
 
                                     {renderCertsEditor(editDraft, (d) => setEditDraft(d))}
 
-                                    <Button
-                                        className={`w-full h-11 font-bold rounded-xl gap-2 transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-500 text-white' : 'bg-brand-teal hover:bg-brand-teal/90 text-white'}`}
-                                        onClick={handleSave}
-                                    >
-                                        {isSaved ? <><CheckCircle2 size={18} /> {t('personnel.saved')}</> : <><Save size={18} /> {t('personnel.profile.save')}</>}
-                                    </Button>
+
                                 </div>
                             </div>
                         ) : (

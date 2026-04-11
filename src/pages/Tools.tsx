@@ -285,9 +285,9 @@ export default function Tools() {
                                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${expired ? 'bg-red-100' : 'bg-brand-teal/10'}`}>
                                                 <Wrench size={24} className={expired ? 'text-red-500' : 'text-brand-teal'} />
                                             </div>
-                                            <div>
-                                                <h2 className="text-xl font-bold text-accent-greyDark">{selectedTool.name}</h2>
-                                                <p className="text-sm text-gray-500 mt-0.5">{selectedTool.model} · SN: <span className="font-mono">{selectedTool.serialNumber}</span></p>
+                                            <div className="min-w-0">
+                                                <h2 className="text-xl font-bold text-accent-greyDark truncate">{selectedTool.name}</h2>
+                                                <p className="text-sm text-gray-500 mt-0.5 truncate">{selectedTool.model} · SN: <span className="font-mono">{selectedTool.serialNumber}</span></p>
                                                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                                                         expired
@@ -309,6 +309,27 @@ export default function Tools() {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div className="flex flex-col items-end gap-3 shrink-0">
+                                            <div className="flex items-center gap-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    onClick={() => { setEditDraft({ ...selectedTool }); setIsSaved(false); }}
+                                                    className="h-9 px-4 rounded-xl text-xs gap-1.5 border-gray-200 hover:bg-gray-50"
+                                                >
+                                                    <X size={14} /> {t('common.cancel', 'Cancel')}
+                                                </Button>
+                                                <Button 
+                                                    size="sm" 
+                                                    onClick={handleSave}
+                                                    className={`h-9 px-5 rounded-xl text-xs font-bold gap-1.5 transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-500' : 'bg-brand-teal hover:bg-brand-teal/90'} text-white shadow-soft`}
+                                                >
+                                                    {isSaved ? <CheckCircle2 size={14} /> : <Save size={14} />}
+                                                    {isSaved ? t('inventory.saved') : t('inventory.save_tool')}
+                                                </Button>
+                                            </div>
+
                                             <button
                                                 onClick={() => { deleteTool(selectedTool.id); setSelectedToolId(null); setEditDraft(null); }}
                                                 className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors shrink-0"
@@ -316,6 +337,7 @@ export default function Tools() {
                                             >
                                                 <Trash2 size={16} />
                                             </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -418,12 +440,7 @@ export default function Tools() {
                                         </div>
                                     </div>
 
-                                    <Button
-                                        className={`w-full h-11 font-bold rounded-xl gap-2 transition-all ${isSaved ? 'bg-emerald-500 hover:bg-emerald-500 text-white' : 'bg-brand-teal hover:bg-brand-teal/90 text-white'}`}
-                                        onClick={handleSave}
-                                    >
-                                        {isSaved ? <><CheckCircle2 size={18} /> {t('inventory.saved')}</> : <><Save size={18} /> {t('inventory.save_tool')}</>}
-                                    </Button>
+
                                 </div>
                             </div>
                         );

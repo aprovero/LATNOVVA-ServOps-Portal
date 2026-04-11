@@ -78,14 +78,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         >
             <div className="flex flex-col items-center">
                 {/* Main Logo + Branding Container */}
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center font-['Outfit']">
                     {/* LATN letters */}
-                    <div className="flex -mr-1 sm:-mr-2">
+                    <div className="flex sm:mr-4 mr-2">
                         {['L', 'A', 'T', 'N'].map((char, i) => (
                             <span 
                                 key={`prefix-${i}`} 
-                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[-0.05em]"
-                                style={{ fontFeatureSettings: '"tnum" on, "lnum" on' }}
+                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-tight"
                             >
                                 {char}
                             </span>
@@ -114,12 +113,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* VVA letters */}
-                    <div className="flex -ml-1 sm:-ml-2">
+                    <div className="flex sm:ml-4 ml-2">
                         {['V', 'V', 'A'].map((char, i) => (
                             <span 
                                 key={`suffix-${i}`} 
-                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[-0.05em]"
-                                style={{ fontFeatureSettings: '"tnum" on, "lnum" on' }}
+                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-tight"
                             >
                                 {char}
                             </span>
@@ -128,7 +126,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 </div>
 
                 {/* Subtitle */}
-                <div className="brand-subtitle mt-8 text-xs sm:text-base font-semibold tracking-[0.4em] text-accent-greyLight uppercase opacity-80">
+                <div className="brand-subtitle mt-8 text-xs sm:text-base font-semibold tracking-[0.4em] text-accent-greyLight uppercase opacity-80 font-['Outfit']">
                     Service Operations
                 </div>
             </div>
