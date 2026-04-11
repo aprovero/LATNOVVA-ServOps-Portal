@@ -37,20 +37,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
             }
         });
 
-        // 1. Circles appearance (Inner -> Middle -> Outer) - Slightly slower
-        tl.fromTo("#inner-circle", 
+        // 1. Circles appearance (The "O" from official source)
+        tl.fromTo("#rings-logo", 
             { scale: 0, opacity: 0 }, 
-            { scale: 1, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }
-        )
-        .fromTo("#middle-circle", 
-            { scale: 0, opacity: 0 }, 
-            { scale: 1, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }, 
-            "-=0.6"
-        )
-        .fromTo("#outer-circle", 
-            { scale: 0, opacity: 0 }, 
-            { scale: 1, opacity: 1, duration: 0.8, ease: "back.out(1.7)" }, 
-            "-=0.6"
+            { scale: 1, opacity: 1, duration: 1.2, ease: "back.out(1.2)" }
         );
 
         // 2. Letters "LATN" and "VVA" fade in and slide out from behind the logo - Slower
@@ -84,32 +74,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                         {['L', 'A', 'T', 'N'].map((char, i) => (
                             <span 
                                 key={`prefix-${i}`} 
-                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-tight"
+                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[0.25em]"
                             >
                                 {char}
                             </span>
                         ))}
                     </div>
 
-                    {/* Concentric Circles (The "O") */}
-                    <div className="relative w-16 h-16 sm:w-28 sm:h-28">
-                        <svg viewBox="0 0 100 100" className="w-full h-full">
-                            <circle 
-                                id="outer-circle" 
-                                cx="50" cy="50" r="44" 
-                                fill="none" stroke="#0F766E" strokeWidth="12" 
-                            />
-                            <circle 
-                                id="middle-circle" 
-                                cx="50" cy="50" r="28" 
-                                fill="none" stroke="#0F766E" strokeWidth="12" 
-                            />
-                            <circle 
-                                id="inner-circle" 
-                                cx="50" cy="50" r="12" 
-                                fill="none" stroke="#0F766E" strokeWidth="12" 
-                            />
-                        </svg>
+                    {/* Concentric Circles (The "O") - Using official source for accuracy */}
+                    <div className="relative w-16 h-16 sm:w-28 sm:h-28 flex items-center justify-center p-2 bg-white rounded-full">
+                        <img 
+                            id="rings-logo"
+                            src="/latnovva-O-logo.png" 
+                            alt="O" 
+                            className="w-full h-full object-contain"
+                        />
                     </div>
 
                     {/* VVA letters */}
@@ -117,7 +96,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                         {['V', 'V', 'A'].map((char, i) => (
                             <span 
                                 key={`suffix-${i}`} 
-                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-tight"
+                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[0.25em]"
                             >
                                 {char}
                             </span>
@@ -125,8 +104,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
                 </div>
 
-                {/* Subtitle */}
-                <div className="brand-subtitle mt-8 text-xs sm:text-base font-semibold tracking-[0.4em] text-accent-greyLight uppercase opacity-80 font-['Outfit']">
+                {/* Subtitle - Added ml-[0.4em] to offset tracking-[0.4em] for perfect centering */}
+                <div className="brand-subtitle mt-8 text-xs sm:text-base font-semibold tracking-[0.4em] ml-[0.4em] text-accent-greyLight uppercase opacity-80 font-['Outfit']">
                     Service Operations
                 </div>
             </div>

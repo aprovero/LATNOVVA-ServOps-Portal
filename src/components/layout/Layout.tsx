@@ -332,15 +332,8 @@ export default function Layout() {
             <main className="flex-1 overflow-y-auto relative flex flex-col bg-[#F8FAFC]">
                 {/* Desktop Top Bar */}
                 <header className="hidden md:flex bg-white h-[64px] min-h-[64px] shrink-0 border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
-                    {/* Command Search */}
-                    <div className="flex items-center flex-1">
-                        <CommandSearch
-                            onNewReport={() => setIsCreateReportOpen(true)}
-                            onNewProject={() => setIsCreateProjectOpen(true)}
-                            triggerOpen={mobileSearchTrigger}
-                            onTriggerConsumed={() => setMobileSearchTrigger(false)}
-                        />
-                    </div>
+                    {/* Search placeholder for alignment */}
+                    <div className="flex items-center flex-1"></div>
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
@@ -535,12 +528,41 @@ export default function Layout() {
                             <Search size={18} />
                         </button>
                         {/* Notifications bell */}
-                        <button className="relative p-2 text-gray-500 rounded-full bg-gray-50">
-                            <Bell size={18} />
-                            {notifications.length > 0 && (
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                            )}
-                        </button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="relative p-2 text-gray-500 rounded-full bg-gray-50 outline-none">
+                                    <Bell size={18} />
+                                    {notifications.length > 0 && (
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                    )}
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-80 rounded-xl border-gray-100 shadow-xl max-h-[400px] overflow-y-auto">
+                                <DropdownMenuLabel>Alerts & Notifications</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {notifications.length === 0 ? (
+                                    <div className="p-4 text-center text-sm text-gray-500">No new notifications</div>
+                                ) : (
+                                    notifications.map(n => (
+                                        <div 
+                                            key={n.id} 
+                                            onClick={() => {
+                                                if (n.link) navigate(n.link);
+                                            }}
+                                            className={`p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors flex gap-3 items-start ${n.link ? 'cursor-pointer' : ''}`}
+                                        >
+                                            <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${n.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                <AlertTriangle size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-accent-greyDark">{n.title}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                         <div className="w-px h-6 bg-gray-100 mx-1"></div>
 
@@ -595,6 +617,14 @@ export default function Layout() {
                 <div className="p-4 md:p-8 pb-28 md:pb-8 max-w-7xl mx-auto w-full flex-1 flex flex-col">
                     <Outlet />
                 </div>
+
+                {/* Global Search Component - handles its own modal trigged by CMD+K or mobile trigger */}
+                <CommandSearch
+                    onNewReport={() => setIsCreateReportOpen(true)}
+                    onNewProject={() => setIsCreateProjectOpen(true)}
+                    triggerOpen={mobileSearchTrigger}
+                    onTriggerConsumed={() => setMobileSearchTrigger(false)}
+                />
                 
                 {/* Global Footer (Desktop & Mobile) */}
                 <div className="mt-auto py-6 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 w-full opacity-60 hover:opacity-100 transition-opacity bg-white/50 border-t border-gray-100 mix-blend-multiply">

@@ -734,7 +734,7 @@ export default function ProjectDetail() {
                                     </div>
                                 )}
 
-                                <div className="space-y-1.5">
+                                <div className="space-y-1.5 min-h-[100px]">
                                     {(isAddingPersonnel ? availablePersonnel : personnel.filter((p: any) => assignedToThis.includes(p.id))).map((person: any) => {
                                         const isAssigned = assignedToThis.includes(person.id);
                                         const isConflict = assignedElsewhere.has(person.id) && !isAssigned;
@@ -742,54 +742,72 @@ export default function ProjectDetail() {
                                             <div
                                                 key={person.id}
                                                 onClick={() => canEditPersonnel && isAddingPersonnel && !isConflict && togglePersonnel(person.id)}
-                                                className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                                                className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-200 ${
                                                     isAssigned
-                                                        ? 'bg-brand-teal/5 border-brand-teal/20'
+                                                        ? 'bg-brand-teal/5 border-brand-teal/20 shadow-sm'
                                                         : isConflict
                                                         ? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed'
-                                                        : canEditPersonnel && isAddingPersonnel ? 'bg-gray-50 border-gray-100 hover:border-brand-teal/30 hover:bg-brand-teal/5 cursor-pointer' : 'bg-gray-50 border-gray-100'
+                                                        : canEditPersonnel && isAddingPersonnel ? 'bg-white border-gray-100 hover:border-brand-teal/30 hover:bg-brand-teal/5 cursor-pointer hover:shadow-md' : 'bg-gray-50 border-gray-100'
                                                 }`}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isAssigned ? 'bg-brand-teal text-white' : 'bg-gray-200 text-gray-600'}`}>
-                                                        {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                    {/* Square Avatar (Matches Personnel.tsx) */}
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 shadow-sm overflow-hidden ${
+                                                        isAssigned ? 'bg-brand-teal text-white' : 'bg-brand-teal/5 text-brand-teal'
+                                                    }`}>
+                                                        {person.image ? (
+                                                            <img src={person.image} alt={person.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            person.name.charAt(0)
+                                                        )}
                                                     </div>
+                                                    
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center justify-between">
-                                                            <p className="text-sm font-bold text-accent-greyDark truncate">{person.name}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-sm font-bold text-accent-greyDark truncate leading-tight">{person.name}</p>
                                                             {project.siteLeadIds?.includes(person.id) && (
-                                                                <span className="flex items-center gap-1 text-[9px] bg-status-success/10 text-status-success border border-status-success/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                                                                    <Target size={10} /> Lead
+                                                                <span className="flex items-center gap-1 text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                                                    Lead
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-xs text-gray-400 font-medium">{person.position}</p>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5 mt-0.5 truncate">{person.position}</p>
                                                     </div>
                                                 </div>
-                                                {canEditPersonnel && (
-                                                    isAddingPersonnel ? (
-                                                        isAssigned
-                                                            ? <span className="text-brand-teal"><Check size={16} /></span>
-                                                            : isConflict
-                                                            ? <span className="text-xs text-gray-400 italic">On project</span>
-                                                            : <span className="text-gray-300"><Plus size={16} /></span>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); togglePersonnel(person.id); }}
-                                                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                        >
-                                                            <X size={14} />
-                                                        </button>
-                                                    )
-                                                )}
+
+                                                <div className="flex items-center gap-3">
+                                                    {canEditPersonnel && (
+                                                        isAddingPersonnel ? (
+                                                            isAssigned
+                                                                ? <Check size={18} className="text-brand-teal animate-in zoom-in duration-200" />
+                                                                : isConflict
+                                                                ? <span className="text-[10px] text-gray-400 font-bold uppercase bg-gray-100 px-2 py-1 rounded-lg">Busy</span>
+                                                                : <Plus size={18} className="text-gray-300 group-hover:text-brand-teal" />
+                                                        ) : (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); togglePersonnel(person.id); }}
+                                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all hover:scale-110"
+                                                                title="Unassign"
+                                                            >
+                                                                <X size={16} />
+                                                            </button>
+                                                        )
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
                                     {availablePersonnel.length === 0 && isAddingPersonnel && (
-                                        <p className="text-sm text-gray-400 text-center py-4 italic">No personnel match your search.</p>
+                                        <div className="py-10 text-center flex flex-col items-center justify-center bg-gray-50/50 rounded-[2rem] border border-dashed border-gray-200">
+                                            <Search size={24} className="text-gray-200 mb-2" />
+                                            <p className="text-sm text-gray-400 font-medium italic">No personnel found.</p>
+                                        </div>
                                     )}
                                     {assignedToThis.length === 0 && !isAddingPersonnel && (
-                                        <p className="text-sm text-gray-400 text-center py-4 italic">No personnel assigned to this project.</p>
+                                        <div className="py-10 text-center flex flex-col items-center justify-center bg-gray-50/50 rounded-[2rem] border border-dashed border-gray-200">
+                                            <Users size={24} className="text-gray-200 mb-2" />
+                                            <p className="text-sm text-gray-400 font-medium italic">No personnel assigned.</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
