@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save, ChevronDown, ArrowLeft } from 'lucide-react';
+import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save, ChevronDown, ArrowLeft, X } from 'lucide-react';
 import { useStore, Tool } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';

@@ -5,7 +5,7 @@ import { useStore, Personnel as PersonnelType } from '../store/useStore';
 import {
     User, Plus, Trash2, Shield, Award, Search, Camera, ExternalLink,
     Activity, FolderGit2, Network, List, ChevronDown, Phone, Mail,
-    Briefcase, CheckCircle2, CircleDashed, Save, ArrowLeft
+    Briefcase, CheckCircle2, CircleDashed, Save, ArrowLeft, X
 } from 'lucide-react';
 import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
