@@ -573,8 +573,8 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>LATNOVVA Service operations</Text>
-        <Text style={styles.footerText}>Generated automatically from ServiceTool</Text>
+        <Text style={styles.footerText}>LATNOVVA Service Operations</Text>
+        <Text style={styles.footerText}>Generated automatically from Service Operations</Text>
       </View>
 
     </Page>

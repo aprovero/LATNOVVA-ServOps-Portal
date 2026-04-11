@@ -62,10 +62,17 @@ export default function Tools() {
         setNewHistoryEntry({ date: new Date().toISOString().split('T')[0], description: '', projectId: '' });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!editDraft?.id) return;
-        updateTool(editDraft.id, editDraft);
+        await updateTool(editDraft.id, editDraft);
         setIsSaved(true);
+        
+        // Refresh local state from the store to pick up auto-generated history entries
+        const updatedTool = useStore.getState().tools.find(t => t.id === editDraft.id);
+        if (updatedTool) {
+            setEditDraft({ ...updatedTool });
+        }
+        
         setTimeout(() => setIsSaved(false), 2000);
     };
 

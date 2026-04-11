@@ -435,7 +435,10 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     supervisorId: string;
 }) {
     const { t, i18n } = useTranslation();
-    const [selectedProject, setSelectedProject] = useState('');
+    const [selectedProject, setSelectedProject] = useState(() => {
+        const assigned = projects.find(p => p.status === 'Active' && p.assignedPersonnel?.includes(supervisorId));
+        return assigned?.id ?? '';
+    });
     const [screen, setScreen] = useState<BatchScreen>('list');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [outsourcedList, setOutsourcedList] = useState<OutsourcedEntry[]>([]);
@@ -847,7 +850,11 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
     const step = getPunchStep(timesheets, personnelId);
 
-    const [selectedProject, setSelectedProject] = useState(todayEntry?.projectId ?? '');
+    const [selectedProject, setSelectedProject] = useState(() => {
+        if (todayEntry?.projectId) return todayEntry.projectId;
+        const assigned = projects.find(p => p.status === 'Active' && p.assignedPersonnel?.includes(personnelId));
+        return assigned?.id ?? '';
+    });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
     const activeProjects = projects.filter((p: any) => p.status === 'Active');
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';

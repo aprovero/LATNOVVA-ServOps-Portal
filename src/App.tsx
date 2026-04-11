@@ -35,6 +35,13 @@ const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
     return <>{children}</>;
 };
 
+// Redirect / to /clock-in for Techs, /projects for others
+const HomeRedirect = () => {
+    const userRole = useStore(s => s.userRole);
+    const to = userRole === 'Tech' ? '/clock-in' : '/projects';
+    return <Navigate to={to} replace />;
+};
+
 function App() {
     const { initDb } = useStore();
     const [isSplashComplete, setIsSplashComplete] = useState(false);
@@ -57,7 +64,7 @@ function App() {
                 
                 <Route element={<AuthRoute />}>
                     <Route path="/" element={<Layout />}>
-                        <Route index element={<Navigate to="/projects" replace />} />
+                        <Route index element={<HomeRedirect />} />
                         <Route path="projects" element={<Projects />} />
                     <Route path="projects/:id" element={<ProjectDetail />} />
                     <Route path="live-map" element={<LiveMap />} />

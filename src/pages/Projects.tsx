@@ -251,8 +251,6 @@ export default function Projects() {
                                                         </Link>
                                                     )}
                                                     <span className="text-xs text-gray-500 font-mono mt-0.5 block">
-                                                        {proj.codeName ? <span className="text-brand-teal font-bold">{proj.codeName}</span> : null} 
-                                                        {proj.codeName ? ' • ' : ''}
                                                         {proj.id} • {proj.type === 'Complete' ? 'Turnkey' : proj.type}
                                                     </span>
                                                     {proj.location && (
@@ -483,10 +481,7 @@ export default function Projects() {
                                     </Button>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Code Name</Label>
-                                <Input placeholder="e.g. SN-001" value={newProject.codeName || ''} onChange={e => setNewProject({...newProject, codeName: e.target.value})} className="h-11 rounded-xl" />
-                            </div>
+
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">System Type</Label>
                                 <select 

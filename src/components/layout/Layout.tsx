@@ -351,7 +351,7 @@ export default function Layout() {
                                 id="pwa-install-btn-desktop"
                                 onClick={() => triggerInstall()}
                                 className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-brand-teal/10 border border-brand-teal/30 rounded-xl hover:bg-brand-teal/20 transition-all duration-200 text-brand-teal outline-none group"
-                                title="Install LATNOVVA ServiceTool as an app"
+                                title="Install LATNOVVA Service Operations as an app"
                             >
                                 <Download size={13} className="shrink-0 group-hover:translate-y-0.5 transition-transform" />
                                 <span className="text-xs font-semibold">Install App</span>
@@ -521,7 +521,7 @@ export default function Layout() {
                                 onClick={() => triggerInstall()}
                                 className="p-2 text-brand-teal rounded-full bg-brand-teal/10 hover:bg-brand-teal/20 transition-colors"
                                 aria-label="Install app"
-                                title="Install LATNOVVA ServiceTool"
+                                title="Install LATNOVVA Service Operations"
                             >
                                 <Download size={18} />
                             </button>

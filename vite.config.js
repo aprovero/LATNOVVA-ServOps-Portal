@@ -22,8 +22,8 @@ export default defineConfig({
                 'pwa-512x512.png',
             ],
             manifest: {
-                name: 'LATNOVVA ServiceTool',
-                short_name: 'ServiceTool',
+                name: 'LATNOVVA Service Operations',
+                short_name: 'Service Operations',
                 description: 'COR Solutions / LATNOVVA field service & construction site management platform.',
                 theme_color: '#0097A7',
                 background_color: '#ffffff',
@@ -47,9 +47,8 @@ export default defineConfig({
                         purpose: 'any',
                     },
                     {
-                        // Maskable icon — used on Android for adaptive icon shapes
-                        // Using white background icons to prevent black-bars on Android
-                        src: 'pwa-512x512.png',
+                        // Maskable icon — centered with safe-zone padding to avoid clipping on Android
+                        src: 'pwa-maskable-512x512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'maskable',
