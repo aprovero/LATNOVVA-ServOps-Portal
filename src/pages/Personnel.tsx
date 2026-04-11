@@ -235,16 +235,6 @@ export default function Personnel() {
                                     </div>
                                 </div>
                             )}
-                            <div className="space-y-4">
-                                <label className="text-sm font-semibold text-accent-greyDark flex items-center justify-between cursor-pointer bg-gray-50 p-3 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
-                                    <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-brand-teal" /> {t('personnel.prevailing_wage')}</span>
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
-                                        checked={newPerson?.prevailingWage || false}
-                                        onChange={e => setNewPerson({ ...newPerson, prevailingWage: e.target.checked })}
-                                    />
-                                </label>
                                 <div className="space-y-4 pt-2">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
@@ -592,17 +582,6 @@ export default function Personnel() {
                                                     <option value="Manager">Manager</option>
                                                     <option value="HR">HR</option>
                                                 </select>
-                                            </div>
-                                            <div className="space-y-2 pt-6">
-                                                <label className="text-sm font-semibold text-accent-greyDark flex items-center justify-between cursor-pointer bg-gray-50 p-2.5 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
-                                                    <span className="flex items-center gap-2"><Award size={14} className="text-brand-teal" /> {t('personnel.prevailing_wage')}</span>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
-                                                        checked={editDraft.prevailingWage || false}
-                                                        onChange={e => setEditDraft(d => d ? { ...d, prevailingWage: e.target.checked } : d)}
-                                                    />
-                                                </label>
                                             </div>
                                         </div>
                                         <div className="space-y-2">

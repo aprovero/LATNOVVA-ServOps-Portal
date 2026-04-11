@@ -92,7 +92,13 @@ export default function DataAnalysis() {
         });
 
         const assignedCount = assignedIds.size;
-        const unassignedCount = Math.max(0, activePersonnel.length - assignedCount);
+        
+        // Unassigned count only includes active personnel who aren't assigned AND aren't exempt (like Andres)
+        const unassignedCount = personnel.filter(p => 
+            p.status === 'Active' && 
+            !p.benchExempt && 
+            !assignedIds.has(p.id)
+        ).length;
 
         return [
             { name: 'Assigned', value: assignedCount },

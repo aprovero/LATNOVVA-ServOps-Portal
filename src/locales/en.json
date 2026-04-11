@@ -278,7 +278,8 @@
       "truck": "Truck Allowance",
       "lead_pay": "Lead Pay",
       "deductions": "Deductions",
-      "total_perdiem": "Total Perdiem Amount"
+      "total_perdiem": "Total Perdiem Amount",
+      "is_apprentice": "Apprentice"
     },
     "certs_folder": "Certs Folder Link",
     "certs_folder_placeholder": "e.g. OneDrive or Google Drive URL",
@@ -532,6 +533,7 @@
       "empty": "No scope templates found",
       "empty_desc": "Create a new template to standardize project WBS creation.",
       "count": "{{count}} activities",
+      "count_steps": "{{count}} steps",
       "more": "+ {{count}} more activities..."
     },
     "checklists": {

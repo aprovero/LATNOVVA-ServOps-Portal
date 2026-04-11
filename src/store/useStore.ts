@@ -175,6 +175,7 @@ export interface Personnel {
     managerId?: string;
     phoneNumber?: string;
     prevailingWage?: boolean;
+    isApprentice?: boolean;
     emergencyContact?: string;
     onboardingDate?: string;
     // Financial Fields (HR/Manager Only)

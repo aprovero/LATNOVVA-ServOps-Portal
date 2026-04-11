@@ -278,7 +278,8 @@
       "truck": "Camioneta",
       "lead_pay": "Lead",
       "deductions": "Deducciones",
-      "total_perdiem": "Monto Total Perdiem"
+      "total_perdiem": "Monto Total de Viáticos",
+      "is_apprentice": "Aprendiz"
     },
     "certs_folder": "Enlace a Carpeta de Certificados",
     "certs_folder_placeholder": "ej. URL de OneDrive o Google Drive",
@@ -532,6 +533,7 @@
       "empty": "No hay plantillas de alcance",
       "empty_desc": "Cree una plantilla para estandarizar el WBS del proyecto.",
       "count": "{{count}} actividades",
+      "count_steps": "{{count}} pasos",
       "more": "+ {{count}} actividades más..."
     },
     "checklists": {

@@ -387,7 +387,7 @@ export default function Templates() {
                                             </div>
                                             {item.steps.length > 0 && (
                                                 <div className="pl-4 text-[10px] text-gray-400 font-medium">
-                                                    {t('templates.scopes.count_steps', { count: item.steps.length }) /* Hack if key missing, using count for now */}
+                                                    {t('templates.scopes.count_steps', { count: item.steps.length })}
                                                 </div>
                                             )}
                                         </div>
