@@ -72,7 +72,6 @@ export default function DataAnalysis() {
 
     // 3. Resource Utilization
     const utilizationData = useMemo(() => {
-        const activePersonnel = personnel.filter(p => p.status === 'Active');
         const assignedIds = new Set<string>();
         
         // 1. Get IDs from project assignments (primary source)

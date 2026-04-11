@@ -620,7 +620,7 @@
       "add_to_list": "Agregar a la Lista"
     },
     "batch": {
-      "confirm_title": "Confirmar Marcaje de Equipo",
+      "confirm_title": "Confirmar Registro Grupal",
       "count_label_singular": "1 persona — confirme cada acción",
       "count_label_plural": "{{count}} personas — confirme cada acción",
       "mixed_warning": "⚠ Mixto — {{counts}} — revise antes de firmar",
@@ -644,9 +644,9 @@
       "field_tracker": "Seguimiento de Tiempo en Campo",
       "gps_time": "Hora GPS",
       "device_time": "Hora del Dispositivo",
-      "team_batch_mode": "Modo de Equipo por Grupo",
+      "team_batch_mode": "Modo Registro Grupal",
       "my_checkin": "Mi Registro",
-      "team_batch": "Equipo por Grupo",
+      "team_batch": "Registro Grupal",
       "skip_lunch": "Omitir Almuerzo → Ir a Salida",
       "forgot_punch": "¿Olvidó registrar? Ingresar manualmente",
       "todays_punches": "Marcajes de Hoy",

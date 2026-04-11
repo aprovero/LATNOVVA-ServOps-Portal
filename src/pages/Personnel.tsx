@@ -298,7 +298,6 @@ export default function Personnel() {
                                         <Input placeholder={t('personnel.certs_folder_placeholder')} value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
                                     </div>
                                 </div>
-                            </div>
                             <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">{t('personnel.profile_photo')}</label>
                                 <div className="flex items-center gap-4">
