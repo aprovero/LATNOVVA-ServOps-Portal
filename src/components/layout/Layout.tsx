@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download, Play } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useTranslation } from 'react-i18next';
@@ -593,6 +593,9 @@ export default function Layout() {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
                                             <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
+                                            <Play size={14} className="text-brand-teal" /> Preview Branding
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                     </>

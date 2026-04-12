@@ -54,9 +54,7 @@ function App() {
 
     return (
         <>
-            {!isSplashComplete && (
-                <SplashScreen onComplete={() => setIsSplashComplete(true)} />
-            )}
+            <SplashScreen onComplete={() => setIsSplashComplete(true)} />
             
             <Router>
                 <Routes>
