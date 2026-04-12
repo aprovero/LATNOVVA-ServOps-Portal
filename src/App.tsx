@@ -23,7 +23,6 @@ import LiveMap from './pages/LiveMap';
 import ProjectDetail from './pages/ProjectDetail';
 import ClockIn from './pages/ClockIn';
 import SplashScreen from './components/common/SplashScreen';
-import { useState } from 'react';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -44,7 +43,6 @@ const HomeRedirect = () => {
 
 function App() {
     const { initDb } = useStore();
-    const [isSplashComplete, setIsSplashComplete] = useState(false);
 
     useEffect(() => {
         // Initialize mock DB / offline storage on startup
@@ -54,7 +52,7 @@ function App() {
 
     return (
         <>
-            <SplashScreen onComplete={() => setIsSplashComplete(true)} />
+            <SplashScreen onComplete={() => {}} />
             
             <Router>
                 <Routes>

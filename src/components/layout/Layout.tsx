@@ -594,9 +594,11 @@ export default function Layout() {
                                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
                                             <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
-                                            <Play size={14} className="text-brand-teal" /> Preview Branding
-                                        </DropdownMenuItem>
+                                        {isGodMode && (
+                                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
+                                                <Play size={14} className="text-brand-teal" /> Preview Branding
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuSeparator />
                                     </>
                                 )}
