@@ -30,7 +30,11 @@ export const AuthRoute: React.FC = () => {
         const storedUserId = useStore.getState().userId;
         const isFirstRun       = !storedEmail || storedEmail === '';
         const isAdminEmail     = storedEmail === GOD_MODE_ADMIN_EMAIL;
-        const isGodModeSession = storedUserId?.startsWith('GM-'); // any persona
+        
+        // Include any email/ID from the God Mode personas list
+        const isPersonaMatch = Object.values(GOD_MODE_PERSONAS).some(p => p.userEmail === storedEmail || p.userId === storedUserId);
+        const isGodModeSession = storedUserId?.startsWith('GM-') || isPersonaMatch;
+
         if (!isFirstRun && !isAdminEmail && !isGodModeSession) return;
 
         const currentRole = useStore.getState().userRole;
