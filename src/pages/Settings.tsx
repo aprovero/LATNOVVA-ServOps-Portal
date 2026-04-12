@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
 import { useTranslation } from 'react-i18next';
+import { GOD_MODE_PERSONAS } from '../components/auth/AuthRoute';
 import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
@@ -11,7 +12,7 @@ import { Badge } from '../components/ui/badge';
 export default function Settings() {
     const { t } = useTranslation();
     const { 
-        userRole, userEmail, setUserRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb,
+        userRole, userEmail, userId, setUserRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb,
         sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth, language, setLanguage
     } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -440,7 +441,7 @@ export default function Settings() {
                 })}
             </div>
                 
-                {Object.values(GOD_MODE_PERSONAS).some(p => p.userEmail === userEmail || p.userId === userId) && (
+                {Object.values(GOD_MODE_PERSONAS).some((p: any) => p.userEmail === userEmail || p.userId === userId) && (
                     <div className="mt-12 bg-purple-50 border border-purple-100 rounded-2xl p-8 max-w-2xl relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-4 relative z-10">
                             <Shield className="text-purple-600" size={24} />
