@@ -107,8 +107,8 @@ export default function Projects() {
         if (userRole === 'Customer') {
             filtered = filtered.filter(p => p.clientId === clientId);
         } else if (userRole === 'Tech') {
-            const currentUserId = 'l1'; // Mocking current user ID as an assigned personnel id for now until user system fully built
-            filtered = filtered.filter(p => p.status === 'Active' && p.assignedPersonnel?.includes(currentUserId));
+            const currentPersonnelId = useStore.getState().resolvePersonnelId();
+            filtered = filtered.filter(p => p.status === 'Active' && currentPersonnelId && p.assignedPersonnel?.includes(currentPersonnelId));
         }
 
         if (filterCustomer !== 'All') {

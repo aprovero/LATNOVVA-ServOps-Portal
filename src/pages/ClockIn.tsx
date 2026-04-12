@@ -1151,8 +1151,11 @@ export default function ClockIn() {
         ? { icon: <Zap size={11} className="text-yellow-400" />, text: t('attendance.labels.gps_time'), cls: 'text-yellow-300' }
         : { icon: <Clock size={11} className="text-gray-400" />, text: t('attendance.labels.device_time'), cls: 'text-gray-400' };
 
+    // Resolve the real personnel ID for data linking
+    const resolvedPersonnelId = useStore.getState().resolvePersonnelId() || userId;
+
     // Current step for individual mode (used for status chip only)
-    const myStep = getPunchStep(timesheets, userId);
+    const myStep = getPunchStep(timesheets, resolvedPersonnelId);
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
@@ -1210,7 +1213,7 @@ export default function ClockIn() {
             <div className="flex-1 px-4 py-6 max-w-lg mx-auto w-full">
                 {viewMode === 'individual' ? (
                     <IndividualModeView
-                        personnelId={userId}
+                        personnelId={resolvedPersonnelId}
                         gps={gps}
                         projects={projects}
                         timesheets={timesheets}
@@ -1223,7 +1226,7 @@ export default function ClockIn() {
                         personnel={personnel}
                         timesheets={timesheets}
                         clockPunch={clockPunch}
-                        supervisorId={userId}
+                        supervisorId={resolvedPersonnelId}
                     />
                 )}
             </div>

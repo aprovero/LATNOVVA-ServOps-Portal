@@ -33,7 +33,8 @@ const formatPunchTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US
 
 export default function Timesheets() {
     const { t } = useTranslation();
-    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName } = useStore();
+    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName, resolvePersonnelId } = useStore();
+    const resolvedPersonnelId = resolvePersonnelId() || userId;
 
     const punchLabel: Record<string, string> = {
         clockIn: t('timesheets.punches.clock_in'),
@@ -64,7 +65,7 @@ export default function Timesheets() {
         hours: 9,
         type: 'On Site',
         classification: 'Regular',
-        personnelId: personnel[0]?.id || '',
+        personnelId: resolvedPersonnelId,
         status: 'Pending',
         notes: '',
         manualReason: '', // H-04: required justification for manual entries
@@ -127,7 +128,7 @@ export default function Timesheets() {
         setBatchAction('Check-in');
         setBatchSignatures({});
         
-        const assignedProj = projects.find(p => p.assignedPersonnel?.includes(userId));
+        const assignedProj = projects.find(p => p.assignedPersonnel?.includes(resolvedPersonnelId));
         if (assignedProj) {
             setBatchProject(assignedProj.id);
             const teamIds = (assignedProj.assignedPersonnel || []).filter(id => {
@@ -334,7 +335,7 @@ export default function Timesheets() {
     const filteredTimesheets = timesheets
         .filter(t => filterProject ? t.projectId === filterProject : true)
         .filter(t => filterPersonnel ? t.personnelId === filterPersonnel : true)
-        .filter(t => userRole === 'Tech' ? t.personnelId === newEntry.personnelId : true)
+        .filter(t => userRole === 'Tech' ? t.personnelId === resolvedPersonnelId : true)
         .filter(t => filterStartDate ? new Date(t.date) >= new Date(filterStartDate) : true)
         .filter(t => filterEndDate ? new Date(t.date) <= new Date(filterEndDate) : true)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -759,7 +760,7 @@ export default function Timesheets() {
 
                                                     {/* Only Supervisors, Managers, or the Tech who owns the entry can edit/delete, AND it must not be approved */}
                                                     {(['Supervisor', 'Manager'].includes(userRole) || (
-                                                        userRole === 'Tech' && entry.personnelId === newEntry.personnelId /* mock current user */
+                                                        userRole === 'Tech' && entry.personnelId === resolvedPersonnelId
                                                     )) && entry.status !== 'Approved' ? (
                                                         <>
                                                             <button

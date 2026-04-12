@@ -72,6 +72,11 @@ interface CommandSearchProps {
     onNewProject: () => void;
     triggerOpen?: boolean;
     onTriggerConsumed?: () => void;
+    isOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    showButton?: boolean;
+    showModal?: boolean;
+    isGlobal?: boolean;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -80,12 +85,24 @@ export default function CommandSearch({
     onNewReport,
     onNewProject,
     triggerOpen,
-    onTriggerConsumed,
+    showButton = true,
+    showModal = true,
+    isOpen: controlledIsOpen,
+    onOpenChange,
+    isGlobal = false,
 }: CommandSearchProps) {
     const navigate = useNavigate();
     const { projects, reports, personnel, tools, clients, userRole } = useStore();
 
-    const [isOpen, setIsOpen] = useState(false);
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    
+    // Support both controlled and uncontrolled modes (or just simplified controlled-only if used everywhere)
+    const isActuallyOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+    const setIsActuallyOpen = (val: boolean) => {
+        if (onOpenChange) onOpenChange(val);
+        setInternalIsOpen(val);
+    };
+
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
@@ -94,30 +111,32 @@ export default function CommandSearch({
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
-    // ── External trigger (from mobile button) ────────────────────────────────
+    // ── External trigger (backwards compatibility) ───────────────────────────
     useEffect(() => {
         if (triggerOpen) {
-            setIsOpen(true);
+            setIsActuallyOpen(true);
             onTriggerConsumed?.();
         }
     }, [triggerOpen, onTriggerConsumed]);
 
     // ── Keyboard shortcut ────────────────────────────────────────────────────
     useEffect(() => {
+        if (!isGlobal) return;
+        
         const handler = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
-                setIsOpen(prev => !prev);
+                setIsActuallyOpen(!isActuallyOpen);
             }
-            if (e.key === 'Escape') setIsOpen(false);
+            if (e.key === 'Escape') setIsActuallyOpen(false);
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, []);
+    }, [isActuallyOpen, isGlobal]);
 
     // ── Focus input on open ───────────────────────────────────────────────────
     useEffect(() => {
-        if (isOpen) {
+        if (isActuallyOpen) {
             setRecent(getRecent());
             setQuery('');
             setResults([]);
@@ -128,7 +147,7 @@ export default function CommandSearch({
             document.body.style.overflow = '';
         }
         return () => { document.body.style.overflow = ''; };
-    }, [isOpen]);
+    }, [isActuallyOpen]);
 
     // ── Build Quick Actions (role-aware) ─────────────────────────────────────
     const quickActions = useCallback((): SearchResult[] => {
@@ -140,7 +159,7 @@ export default function CommandSearch({
                 title: 'New Report',
                 subtitle: 'Create a new daily report',
                 path: '',
-                action: () => { setIsOpen(false); onNewReport(); },
+                action: () => { setIsActuallyOpen(false); onNewReport(); },
             });
             actions.push({
                 id: 'qa-new-project',
@@ -148,7 +167,7 @@ export default function CommandSearch({
                 title: 'New Project',
                 subtitle: 'Create a new project',
                 path: '',
-                action: () => { setIsOpen(false); onNewProject(); },
+                action: () => { setIsActuallyOpen(false); onNewProject(); },
             });
         }
         if (['Tech', 'Supervisor'].includes(userRole)) {
@@ -304,7 +323,7 @@ export default function CommandSearch({
             }
             navigate(item.path);
         }
-        setIsOpen(false);
+        setIsActuallyOpen(false);
     };
 
     // ── Scroll active item into view ──────────────────────────────────────────
@@ -325,25 +344,27 @@ export default function CommandSearch({
     // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <>
-            {/* Trigger Button */}
-            <button
-                id="command-search-trigger"
-                onClick={() => setIsOpen(true)}
-                className="relative flex items-center gap-3 w-full max-w-md px-4 h-10 bg-gray-50 border border-gray-200 rounded-xl text-gray-400 text-sm hover:border-brand-teal/40 hover:bg-white transition-all duration-200 group hidden lg:flex"
-            >
-                <Search size={16} className="text-gray-400 group-hover:text-brand-teal transition-colors shrink-0" />
-                <span className="flex-1 text-left">Search projects, people, reports...</span>
-                <kbd className="hidden xl:flex items-center gap-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono text-gray-400 shadow-sm">
-                    <span className="text-[9px]">⌘</span>K
-                </kbd>
-            </button>
+            {/* Trigger Button - only shown on desktop if requested */}
+            {showButton && (
+                <button
+                    id="command-search-trigger"
+                    onClick={() => setIsActuallyOpen(true)}
+                    className="relative flex items-center gap-3 w-full max-w-md px-4 h-10 bg-gray-50 border border-gray-200 rounded-xl text-gray-400 text-sm hover:border-brand-teal/40 hover:bg-white transition-all duration-200 group hidden lg:flex"
+                >
+                    <Search size={16} className="text-gray-400 group-hover:text-brand-teal transition-colors shrink-0" />
+                    <span className="flex-1 text-left">Search projects, people, reports...</span>
+                    <kbd className="hidden xl:flex items-center gap-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono text-gray-400 shadow-sm">
+                        <span className="text-[9px]">⌘</span>K
+                    </kbd>
+                </button>
+            )}
 
             {/* Overlay */}
-            {isOpen && (
+            {showModal && isActuallyOpen && (
                 <div
                     className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh]"
                     style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15,23,42,0.45)' }}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => setIsActuallyOpen(false)}
                 >
                     <div
                         className="w-full max-w-2xl mx-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"

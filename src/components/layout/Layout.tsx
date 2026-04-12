@@ -43,7 +43,7 @@ export default function Layout() {
     const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
 
     // Command Search
-    const [mobileSearchTrigger, setMobileSearchTrigger] = useState(false);
+    const [isSearchPaletteOpen, setIsSearchPaletteOpen] = useState(false);
 
     // Form States
     const [newCustomerName, setNewCustomerName] = useState('');
@@ -333,7 +333,17 @@ export default function Layout() {
                 {/* Desktop Top Bar */}
                 <header className="hidden md:flex bg-white h-[64px] min-h-[64px] shrink-0 border-b border-gray-100 items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
                     {/* Search placeholder for alignment */}
-                    <div className="flex items-center flex-1"></div>
+                    <div className="flex items-center flex-1">
+                        <CommandSearch
+                            onNewReport={() => setIsCreateReportOpen(true)}
+                            onNewProject={() => setIsCreateProjectOpen(true)}
+                            isOpen={isSearchPaletteOpen}
+                            onOpenChange={setIsSearchPaletteOpen}
+                            showButton={true}
+                            showModal={false}
+                            isGlobal={false}
+                        />
+                    </div>
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
@@ -521,7 +531,7 @@ export default function Layout() {
                         )}
                         {/* Search — opens command palette */}
                         <button
-                            onClick={() => setMobileSearchTrigger(true)}
+                            onClick={() => setIsSearchPaletteOpen(true)}
                             className="p-2 text-gray-500 hover:text-brand-teal rounded-full bg-gray-50 hover:bg-teal-50 transition-colors"
                             aria-label="Open search"
                         >
@@ -618,12 +628,15 @@ export default function Layout() {
                     <Outlet />
                 </div>
 
-                {/* Global Search Component - handles its own modal trigged by CMD+K or mobile trigger */}
+                {/* Global Search Component - handles its own modal triggered by CMD+K or mobile/header triggers */}
                 <CommandSearch
                     onNewReport={() => setIsCreateReportOpen(true)}
                     onNewProject={() => setIsCreateProjectOpen(true)}
-                    triggerOpen={mobileSearchTrigger}
-                    onTriggerConsumed={() => setMobileSearchTrigger(false)}
+                    isOpen={isSearchPaletteOpen}
+                    onOpenChange={setIsSearchPaletteOpen}
+                    showButton={false}
+                    showModal={true}
+                    isGlobal={true}
                 />
                 
                 {/* Global Footer (Desktop & Mobile) */}

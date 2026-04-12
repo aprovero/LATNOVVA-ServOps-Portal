@@ -364,6 +364,8 @@ interface AppState {
     timesheets: TimesheetEntry[];
     /** Returns the display name of the currently logged-in user (L-03). */
     getCurrentUserName: () => string;
+    /** Resolves the Personnel ID for the currently logged-in user. */
+    resolvePersonnelId: () => string | null;
     initDb: () => Promise<void>;
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
@@ -928,6 +930,18 @@ export const useStore = create<AppState>()(
                     return local.split(/[._-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                 }
                 return userId;
+            },
+            resolvePersonnelId: () => {
+                const { userId, userEmail, personnel } = get();
+                // 1. Direct ID match
+                const byId = personnel.find(p => p.id === userId);
+                if (byId) return byId.id;
+                // 2. Email match
+                if (userEmail) {
+                    const byEmail = personnel.find(p => p.email?.toLowerCase() === userEmail.toLowerCase());
+                    if (byEmail) return byEmail.id;
+                }
+                return null;
             },
             setAuthData: (id, email) => set({ userId: id, userEmail: email }),
             setUserRole: (role) => set({ userRole: role }),
