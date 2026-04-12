@@ -77,25 +77,25 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
             ref={containerRef}
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white"
         >
-            <div className="flex flex-col items-center w-full max-w-4xl px-8">
-                {/* Main Logo + Branding Container */}
-                <div className="flex items-center justify-center font-['Outfit'] w-full">
-                    {/* LATN letters container - flex-1 and justify-end makes the Logo the exact center */}
-                    <div className="flex-1 flex justify-end">
-                        <div className="flex">
-                            {['L', 'A', 'T', 'N'].map((char, i) => (
-                                <span 
-                                    key={`prefix-${i}`} 
-                                    className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[0.25em]"
-                                >
-                                    {char}
-                                </span>
-                            ))}
-                        </div>
+            {/* Wrapper that centers the entire block in the viewport */}
+            <div className="flex flex-col items-start">
+                
+                {/* Main Logo + Branding Line */}
+                <div className="flex items-center font-['Outfit']">
+                    {/* LATN letters - No more flex-1, just natural flow */}
+                    <div className="flex">
+                        {['L', 'A', 'T', 'N'].map((char, i) => (
+                            <span 
+                                key={`prefix-${i}`} 
+                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[0.25em]"
+                            >
+                                {char}
+                            </span>
+                        ))}
                     </div>
 
-                    {/* Concentric Circles (The "O") - Center gravity of the splash screen */}
-                    <div className="relative w-16 h-16 sm:w-28 sm:h-28 flex items-center justify-center p-1 bg-white rounded-full z-10 mx-1">
+                    {/* Concentric Circles (The "O") - Tight gap as requested */}
+                    <div className="relative w-14 h-14 sm:w-24 sm:h-24 flex items-center justify-center p-0.5 bg-white rounded-full z-10 -ml-1 sm:-ml-2">
                         <img 
                             id="rings-logo"
                             src="/latnovva-O-logo.png" 
@@ -104,24 +104,22 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                         />
                     </div>
 
-                    {/* VVA letters container - flex-1 and justify-start balances the LATN side */}
-                    <div className="flex-1 flex justify-start">
-                        <div className="flex">
-                            {['V', 'V', 'A'].map((char, i) => (
-                                <span 
-                                    key={`suffix-${i}`} 
-                                    className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[0.25em]"
-                                >
-                                    {char}
-                                </span>
-                            ))}
-                        </div>
+                    {/* VVA letters - Tight gap */}
+                    <div className="flex -ml-1 sm:-ml-2">
+                        {['V', 'V', 'A'].map((char, i) => (
+                            <span 
+                                key={`suffix-${i}`} 
+                                className="brand-letter text-4xl sm:text-7xl font-black text-brand-teal tracking-[0.25em]"
+                            >
+                                {char}
+                            </span>
+                        ))}
                     </div>
                 </div>
 
-                {/* Subtitle - Exact horizontal alignment with the Logo */}
-                <div className="brand-subtitle mt-8 text-xs sm:text-base font-semibold tracking-[0.4em] text-accent-greyLight uppercase opacity-80 font-['Outfit'] relative">
-                    <span className="pl-[0.4em]">Service Operations</span>
+                {/* Subtitle - Now vertically aligned with the "L" of LATN */}
+                <div className="brand-subtitle mt-4 sm:mt-6 text-xs sm:text-base font-semibold tracking-[0.4em] text-accent-greyLight uppercase opacity-80 font-['Outfit']">
+                    Service Operations
                 </div>
             </div>
         </div>
