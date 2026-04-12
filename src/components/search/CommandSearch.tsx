@@ -85,6 +85,7 @@ export default function CommandSearch({
     onNewReport,
     onNewProject,
     triggerOpen,
+    onTriggerConsumed,
     showButton = true,
     showModal = true,
     isOpen: controlledIsOpen,
