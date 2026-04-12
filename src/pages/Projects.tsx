@@ -108,7 +108,13 @@ export default function Projects() {
             filtered = filtered.filter(p => p.clientId === clientId);
         } else if (userRole === 'Tech') {
             const currentPersonnelId = useStore.getState().resolvePersonnelId();
-            filtered = filtered.filter(p => p.status === 'Active' && currentPersonnelId && p.assignedPersonnel?.includes(currentPersonnelId));
+            if (currentPersonnelId) {
+                filtered = filtered.filter(p => p.status === 'Active' && p.assignedPersonnel?.includes(currentPersonnelId));
+            } else {
+                // Return empty if we can't find the tech, as they shouldn't see anything they aren't assigned to.
+                // We handle the UI warning in the render section below.
+                filtered = [];
+            }
         }
 
         if (filterCustomer !== 'All') {
@@ -320,8 +326,16 @@ export default function Projects() {
                                             <tr>
                                                 <td colSpan={6} className="p-12 text-center text-gray-500">
                                                     <FolderGit2 size={48} className="mx-auto mb-4 text-gray-300" />
-                                                    <p className="text-lg font-medium text-accent-greyDark">{t('projects.empty.title', 'No projects found')}</p>
-                                                    <p className="text-sm mt-1">{t('projects.empty.subtitle', 'There are no active projects to display.')}</p>
+                                                    <p className="text-lg font-bold text-accent-greyDark leading-tight">
+                                                        {userRole === 'Tech' && !useStore.getState().resolvePersonnelId() 
+                                                            ? "Identity Unresolved" 
+                                                            : t('projects.empty.title', 'No projects found')}
+                                                    </p>
+                                                    <p className="text-sm mt-2 text-gray-400 max-w-xs mx-auto">
+                                                        {userRole === 'Tech' && !useStore.getState().resolvePersonnelId() 
+                                                            ? "Your account email is not mapped to a personnel record. Please contact administration to link your profile." 
+                                                            : t('projects.empty.subtitle', 'There are no active projects to display for the current filters.')}
+                                                    </p>
                                                 </td>
                                             </tr>
                                         )}

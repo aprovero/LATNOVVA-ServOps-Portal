@@ -480,15 +480,15 @@ export default function ProjectDetail() {
             {/* Dashboard Stats Bar */}
             <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-4 md:p-6 mb-6">
                 <div className="flex flex-wrap items-center justify-between gap-6">
-                    <div className="flex items-center gap-6 flex-1 min-w-max">
+                    <div className="grid grid-cols-2 lg:flex lg:items-center gap-x-8 gap-y-6 flex-1">
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{t('projects.stats.progress', 'Overall Progress')}</span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 px-0.5">{t('projects.stats.progress', 'Progress')}</span>
                             <div className="flex items-center gap-3">
-                                <span className="text-2xl font-black text-brand-teal">{overallProgress}%</span>
+                                <span className="text-xl md:text-2xl font-black text-brand-teal">{overallProgress}%</span>
                                 {!project.hasNoDefinedScope && (
-                                    <div className="w-24 bg-gray-100 rounded-full h-2 hidden sm:block">
+                                    <div className="w-16 md:w-24 bg-gray-100 rounded-full h-1.5 md:h-2 hidden sm:block">
                                         <div
-                                            className="bg-brand-teal h-2 rounded-full transition-all duration-700"
+                                            className="bg-brand-teal h-full rounded-full transition-all duration-700"
                                             style={{ width: `${overallProgress}%` }}
                                         />
                                     </div>
@@ -496,26 +496,26 @@ export default function ProjectDetail() {
                             </div>
                         </div>
 
-                        <div className="h-10 w-px bg-gray-100 hidden sm:block" />
+                        <div className="h-8 w-px bg-gray-100 hidden lg:block" />
 
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{t('projects.stats.hours', 'Hours Logged')}</span>
-                            <span className="text-2xl font-black text-accent-greyDark">{projectHours}</span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 px-0.5">{t('projects.stats.hours', 'Hours')}</span>
+                            <span className="text-xl md:text-2xl font-black text-accent-greyDark">{projectHours}</span>
                         </div>
 
-                        <div className="h-10 w-px bg-gray-100 hidden sm:block" />
+                        <div className="h-8 w-px bg-gray-100 hidden lg:block" />
 
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{t('projects.stats.reports', 'Reports')}</span>
-                            <span className="text-2xl font-black text-brand-teal">{projectReports.length}</span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 px-0.5">{t('projects.stats.reports', 'Reports')}</span>
+                            <span className="text-xl md:text-2xl font-black text-brand-teal">{projectReports.length}</span>
                         </div>
                         
                         {!project.hasNoDefinedScope && (
                             <>
-                                <div className="h-10 w-px bg-gray-100 hidden sm:block" />
+                                <div className="h-8 w-px bg-gray-100 hidden lg:block" />
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">{t('projects.stats.activities', 'Activities')}</span>
-                                    <span className="text-2xl font-black text-accent-greyDark">{completedActs}/{allActs.length}</span>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 px-0.5">{t('projects.stats.activities', 'Activities')}</span>
+                                    <span className="text-xl md:text-2xl font-black text-accent-greyDark">{completedActs}/{allActs.length}</span>
                                 </div>
                             </>
                         )}
@@ -536,24 +536,24 @@ export default function ProjectDetail() {
             {/* Main Tabbed Content Area */}
             <Tabs defaultValue="reports" onValueChange={handleTabChange} className="space-y-6">
                 <div className="overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-                    <TabsList className="bg-white border border-gray-100 p-1 rounded-2xl h-12 shadow-sm">
+                    <TabsList className="bg-white border border-gray-100 p-1 rounded-2xl h-11 shadow-sm w-max md:w-auto">
                         <TabsTrigger 
                             value="reports" 
-                            className="rounded-xl px-6 data-[state=active]:bg-brand-teal data-[state=active]:text-white font-bold text-xs gap-2 transition-all duration-300"
+                            className="rounded-xl px-4 md:px-6 data-[state=active]:bg-brand-teal data-[state=active]:text-white font-bold text-[10px] md:text-xs transition-all duration-300"
                         >
-                            <FileText size={16} /> {t('reports.title', 'Reports Feed')}
+                            {t('reports.title', 'Reports Feed')}
                         </TabsTrigger>
                         <TabsTrigger 
                             value="resources" 
-                            className="rounded-xl px-6 data-[state=active]:bg-brand-teal data-[state=active]:text-white font-bold text-xs gap-2 transition-all duration-300"
+                            className="rounded-xl px-4 md:px-6 data-[state=active]:bg-brand-teal data-[state=active]:text-white font-bold text-[10px] md:text-xs transition-all duration-300"
                         >
-                            <Users size={16} /> {t('projects.resources', 'Team & Equipment')}
+                            {t('projects.resources', 'Team & Equipment')}
                         </TabsTrigger>
                         <TabsTrigger 
                             value="wbs" 
-                            className="rounded-xl px-6 data-[state=active]:bg-brand-teal data-[state=active]:text-white font-bold text-xs gap-2 transition-all duration-300"
+                            className="rounded-xl px-4 md:px-6 data-[state=active]:bg-brand-teal data-[state=active]:text-white font-bold text-[10px] md:text-xs transition-all duration-300"
                         >
-                            <Network size={16} /> {t('projects.scope_wbs', 'Scope & WBS')}
+                            {t('projects.scope_wbs', 'Scope & WBS')}
                         </TabsTrigger>
                     </TabsList>
                 </div>

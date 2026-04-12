@@ -8,14 +8,14 @@ import { useStore } from '../../store/useStore';
 // Works in bypass mode (email is seeded) AND real auth (aprovero logs in).
 // Everyone else sees a normal interface with no God Mode UI.
 // ───────────────────────────────────────────────────────────────────────────────
-export const GOD_MODE_ADMIN_EMAIL = 'andres.provero@latnovva.com';
+export const GOD_MODE_ADMIN_EMAIL = 'aprovero@latnovva.com';
 
 export const GOD_MODE_PERSONAS = {
-    Manager:    { userId: 'GM-ANDRES', userEmail: 'andres.provero@latnovva.com',  displayName: 'Andres Provero' },
-    Supervisor: { userId: 'GM-MARIN',  userEmail: 'marin.ledezma@latnovva.com',   displayName: 'Marin Ledezma' },
-    Tech:       { userId: 'GM-JOSHUA', userEmail: 'joshua.sanchez@latnovva.com',  displayName: 'Joshua Sanchez' },
+    Manager:    { userId: 'PERS-GOD',  userEmail: 'aprovero@latnovva.com',        displayName: 'Andres Provero' },
+    Supervisor: { userId: 'PERS-BY2',  userEmail: 'msalaya@latnovva.com',         displayName: 'Marin Ledezma' },
+    Tech:       { userId: 'PERS-BF7',  userEmail: 'jsanchez@latnovva.com',        displayName: 'Joshua Sanchez' },
     Customer:   { userId: 'GM-CUST',   userEmail: 'customer@greensol.com',        displayName: 'Greensol' },
-    HR:         { userId: 'GM-ALICIA', userEmail: 'alicia.mendez@latnovva.com',   displayName: 'Alicia Mendez' },
+    HR:         { userId: 'PERS-HR1',  userEmail: 'amendez@latnovva.com',         displayName: 'Alicia Mendez' },
 } as const;
 
 export const AuthRoute: React.FC = () => {
