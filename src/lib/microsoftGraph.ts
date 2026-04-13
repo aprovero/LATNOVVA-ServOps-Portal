@@ -49,7 +49,7 @@ export const graphConfig = {
 
 let isInitialized = false;
 
-async function ensureInitialized() {
+export async function ensureInitialized() {
     if (!isInitialized) {
         await msalInstance.initialize();
         isInitialized = true;

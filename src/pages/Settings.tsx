@@ -4,7 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS } from '../components/auth/AuthRoute';
 import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { msalInstance, loginRequest, getMeDrive } from '../lib/microsoftGraph';
+import { 
+    msalInstance, 
+    loginRequest, 
+    ensureInitialized,
+    getMeDrive
+} from '../lib/microsoftGraph';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -18,6 +23,25 @@ export default function Settings() {
         sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth, language, setLanguage
     } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
+    
+    // Auto-detect existing Microsoft session on mount
+    useEffect(() => {
+        const detectSession = async () => {
+            try {
+                await ensureInitialized();
+                const accounts = msalInstance.getAllAccounts();
+                if (accounts.length > 0 && !microsoftAuth.isAuthenticated) {
+                    setMicrosoftAuth({
+                        isAuthenticated: true,
+                        userEmail: accounts[0].username
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to detect MS session:', err);
+            }
+        };
+        detectSession();
+    }, [microsoftAuth.isAuthenticated, setMicrosoftAuth]);
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
@@ -65,7 +89,18 @@ export default function Settings() {
     const handleLinkAccount = async () => {
         setIsLinking(true);
         try {
-            await msalInstance.initialize();
+            await ensureInitialized();
+            
+            // If we already have an account, just use it
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                setMicrosoftAuth({ 
+                    isAuthenticated: true, 
+                    userEmail: accounts[0].username 
+                });
+                return;
+            }
+
             const response = await msalInstance.loginPopup(loginRequest);
             setMicrosoftAuth({ 
                 isAuthenticated: true, 
@@ -73,7 +108,7 @@ export default function Settings() {
             });
         } catch (error: any) {
             console.error('MS auth error:', error);
-            if (error.name !== 'BrowserAuthError') {
+            if (error.name !== 'BrowserAuthError' && !error.message.includes('popup_window_error')) {
                 alert('Authentication failed: ' + error.message);
             }
         } finally {

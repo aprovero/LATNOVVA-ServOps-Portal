@@ -452,13 +452,13 @@ export default function Layout() {
                                     <>
                                         <DropdownMenuLabel className="text-[10px] text-gray-400 font-bold uppercase tracking-wider px-2 py-1.5">{t('auth.admin', 'Admin')}</DropdownMenuLabel>
                                         
-                                        {(userRole === 'Manager' || isGodMode) && (
+                                        {userRole === 'Manager' && (
                                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/settings')}>
                                                 <Settings size={14} className="text-gray-400" /> {t('nav.settings')}
                                             </DropdownMenuItem>
                                         )}
                                         
-                                        {(['Manager', 'Supervisor'].includes(userRole) || isGodMode) && (
+                                        {['Manager', 'Supervisor'].includes(userRole) && (
                                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
                                                 <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
                                             </DropdownMenuItem>
