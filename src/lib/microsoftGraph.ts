@@ -8,29 +8,20 @@ export const msalConfig: Configuration = {
         clientId: CLIENT_ID,
         authority: `https://login.microsoftonline.com/${TENANT_ID}`,
         redirectUri: window.location.origin,
+        navigateToLoginRequestUrl: false // Prevents the app from reloading itself inside the popup
     },
     cache: {
-        cacheLocation: 'sessionStorage',
+        cacheLocation: 'localStorage', // Changed from sessionStorage for more reliable session persistence
+        storeAuthStateInCookie: true,   // Recommended for IE11/Edge but helps in all browsers with loops
     },
     system: {
         loggerOptions: {
             loggerCallback: (level, message, containsPii) => {
                 if (containsPii) return;
-                switch (level) {
-                    case LogLevel.Error:
-                        console.error(message);
-                        return;
-                    case LogLevel.Info:
-                        console.info(message);
-                        return;
-                    case LogLevel.Verbose:
-                        console.debug(message);
-                        return;
-                    case LogLevel.Warning:
-                        console.warn(message);
-                        return;
-                }
-            }
+                // Log all MSAL messages for debugging the popup issue
+                console.log(`[MSAL] ${message}`);
+            },
+            logLevel: LogLevel.Verbose // High detail to find the redirect issue
         }
     }
 };
