@@ -100,12 +100,13 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
             const blob = await response.blob();
             
             // Generate semantic filename: Project_Date_Description_ID.jpg
-            const sanitizedDesc = item.description.replace(/[^a-z0-9]/gi, '_');
+            const descriptionString = item.description || 'photo';
+            const sanitizedDesc = descriptionString.replace(/[^a-z0-9]/gi, '_');
             const reportIdShort = report.id.substring(0, 8);
             const projectIdSlug = report.projectId.replace(/[^a-z0-9]/gi, '_');
             
             // ISO Filename: [ProjectID]_[Date]_[ReportID]_[Description]_[Seq].jpg
-            const filename = `${projectIdSlug}_${report.date}_${reportIdShort}_${sanitizedDesc}_${item.id.substring(-6)}.jpg`;
+            const filename = `${projectIdSlug}_${report.date}_${reportIdShort}_${sanitizedDesc}_${item.id.slice(-6)}.jpg`;
             
             // ISO Structure: ROOT/[ProjectID]/[Date]/[ReportID]/[Filename]
             const folderPath = sharepointConfig.folderPath 

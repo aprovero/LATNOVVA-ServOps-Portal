@@ -11,8 +11,7 @@ export const msalConfig: Configuration = {
         navigateToLoginRequestUrl: false // Prevents the app from reloading itself inside the popup
     },
     cache: {
-        cacheLocation: 'localStorage', // Changed from sessionStorage for more reliable session persistence
-        storeAuthStateInCookie: true,   // Recommended for IE11/Edge but helps in all browsers with loops
+        cacheLocation: 'sessionStorage',
     },
     system: {
         loggerOptions: {
