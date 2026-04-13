@@ -41,6 +41,8 @@ const HomeRedirect = () => {
     return <Navigate to={to} replace />;
 };
 
+import { ensureInitialized } from './lib/microsoftGraph';
+
 function App() {
     const { initDb } = useStore();
 
@@ -48,6 +50,9 @@ function App() {
         // Initialize mock DB / offline storage on startup
         initDb();
         useStore.getState().initializeGlobalTemplates();
+        
+        // Initialize MSAL and handle any pending redirects
+        ensureInitialized().catch(err => console.error('[App] MSAL Init failed:', err));
     }, [initDb]);
 
     return (

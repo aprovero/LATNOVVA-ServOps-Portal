@@ -1,4 +1,4 @@
-import { PublicClientApplication, Configuration, LogLevel } from '@azure/msal-browser';
+import { PublicClientApplication, Configuration, LogLevel, EventType, AuthenticationResult } from '@azure/msal-browser';
 
 const CLIENT_ID = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '';
 const TENANT_ID = import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common';
@@ -25,6 +25,24 @@ export const msalConfig: Configuration = {
 
 export const msalInstance = new PublicClientApplication(msalConfig);
 
+import { useStore } from '../store/useStore';
+
+export const msalInstance = new PublicClientApplication(msalConfig);
+
+// Add event callback to handle results globally (including redirects in popups)
+msalInstance.addEventCallback((event) => {
+    if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
+        const payload = event.payload as AuthenticationResult;
+        console.log('[MSAL] Global Login Success:', payload.account.username);
+        
+        // Update the store directly
+        useStore.getState().setMicrosoftAuth({
+            isAuthenticated: true,
+            userEmail: payload.account.username
+        });
+    }
+});
+
 export const loginRequest = {
     scopes: ['User.Read', 'Files.ReadWrite']
 };
@@ -40,15 +58,17 @@ let isInitialized = false;
 export async function ensureInitialized() {
     if (!isInitialized) {
         await msalInstance.initialize();
-        // Crucial: Handle the redirect promise to clear the hash and handle the response
+        
+        // Always handle redirect promise on init to clear hash
         try {
-            const redirectResult = await msalInstance.handleRedirectPromise();
-            if (redirectResult) {
-                console.log('[MSAL] Handle redirect success:', redirectResult.account?.username);
+            const response = await msalInstance.handleRedirectPromise();
+            if (response) {
+                console.log('[MSAL] Initialization handled redirect result for:', response.account.username);
             }
         } catch (err) {
-            console.error('[MSAL] Handle redirect error:', err);
+            console.error('[MSAL] Handle redirect during init failed:', err);
         }
+        
         isInitialized = true;
     }
 }
