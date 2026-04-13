@@ -48,10 +48,19 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
             }
         });
 
-        // 1. Circles appearance (The "O" from official source)
-        tl.fromTo("#rings-logo", 
+        // 1. Circles appearance (Staggered ring-by-ring)
+        tl.fromTo(".logo-ring", 
             { scale: 0, opacity: 0 }, 
-            { scale: 1, opacity: 1, duration: 1.2, ease: "back.out(1.2)" }
+            { 
+                scale: 1, 
+                opacity: 1, 
+                duration: 1.0, 
+                stagger: {
+                    each: 0.15,
+                    from: "end" // Animates inner to outer
+                }, 
+                ease: "back.out(1.2)" 
+            }
         );
 
         // 2. Letters "LATN" and "VVA" fade in and slide out
@@ -94,14 +103,28 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                         ))}
                     </div>
 
-                    {/* Concentric Circles (The "O") - Tightened gap further to match VVA spacing (compensating for N's tracking) */}
+                    {/* 3-Ring Concentric SVG - Replaces static image for internal animation */}
                     <div className="relative w-14 h-14 sm:w-24 sm:h-24 flex items-center justify-center p-0.5 bg-white rounded-full z-10 -ml-2 sm:-ml-5">
-                        <img 
-                            id="rings-logo"
-                            src="/latnovva-O-logo.png" 
-                            alt="O" 
-                            className="w-full h-full object-contain"
-                        />
+                        <svg viewBox="0 0 100 100" className="w-full h-full">
+                            {/* Outer Ring */}
+                            <circle 
+                                className="logo-ring origin-center text-brand-teal" 
+                                cx="50" cy="50" r="42" 
+                                fill="none" stroke="currentColor" strokeWidth="8"
+                            />
+                            {/* Middle Ring */}
+                            <circle 
+                                className="logo-ring origin-center text-brand-teal" 
+                                cx="50" cy="50" r="28" 
+                                fill="none" stroke="currentColor" strokeWidth="8"
+                            />
+                            {/* Inner Ring */}
+                            <circle 
+                                className="logo-ring origin-center text-brand-teal" 
+                                cx="50" cy="50" r="14" 
+                                fill="none" stroke="currentColor" strokeWidth="8"
+                            />
+                        </svg>
                     </div>
 
                     {/* VVA letters - Adjusted gap to prevent logo overlap */}
