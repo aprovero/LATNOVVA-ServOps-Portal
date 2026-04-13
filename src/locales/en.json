@@ -38,9 +38,10 @@
     "export": "Export",
     "preparing_pdf": "Preparing PDF...",
     "download_pdf": "Download PDF",
-    "install": "Install app",
-    "install_title": "Install LATNOVVA Service Operations"
+    "install_title": "Install LATNOVVA Service Operations",
+    "add_comment_placeholder": "Add annotative comment..."
   },
+
   "nav": {
     "operations": "OPERATIONS",
     "resources": "RESOURCES",
@@ -208,8 +209,10 @@
       "confirm_submit": "A Tech or Supervisor signature is required before submitting the report for review.",
       "reject_reason": "Optional: Enter a reason for returning this report to Draft. This will be visible to the field team.",
       "rejected_toast": "Report returned to Draft.",
-      "customer_approval_toast": "Report sent to Customer for approval."
+      "customer_approval_toast": "Report sent to Customer for approval.",
+      "timesheets_created": "{{count}} timesheets created."
     },
+
     "back_to_list": "Back to List",
     "back_to_report": "Back to Report",
     "work_stream": "Work Stream",
@@ -223,17 +226,27 @@
     },
     "editor_sections": {
       "weather": "Weather",
-      "labor": "Labor",
-      "equipment": "Equipment",
-      "checklist": "Checklist",
-      "occurrences": "Occurrences",
+      "labor": "Workforce & Labor",
+      "equipment": "Equipment & Tools",
+      "checklist": "Safety Checklists",
+      "occurrences": "Field Issues & Occurrences",
       "signatures": "Signatures",
       "media": "Media & Attachments",
       "media_placeholder": "Attach PDFs, site photos, or client check-ins.",
       "site_lead": "Site Lead",
       "notes": "Field Notes & Observations",
-      "notes_placeholder": "Enter daily remarks, incidents, or completion notes..."
+      "notes_placeholder": "Enter daily remarks, incidents, or completion notes...",
+      "progress": "Project Progress / Scopes",
+      "custom_sections": "Custom Sections",
+      "new_custom_section": "New Custom Section",
+      "custom_title_placeholder": "Section Title (e.g. Daily Safety Talk)",
+      "custom_content_placeholder": "Section contents...",
+      "batch_log": "Batch Log Timesheets",
+
+
+      "site_lead_resp": "Site Lead Responsibility"
     },
+
     "statuses": {
       "review": "Review",
       "open": "Open",
@@ -254,18 +267,69 @@
       "title": "No reports found",
       "subtitle": "Create the first report for this project."
     },
-    "editor_sections": {
-      "labor": "Labor",
-      "equipment": "Equipment",
-      "checklist": "Checklist",
-      "occurrences": "Occurrences",
-      "signatures": "Signatures",
-      "media": "Media",
-      "weather": "Weather",
-      "site_lead": "Site Lead",
-      "progress": "Project Progress / Scopes"
+    "wbs_section": {
+      "title": "Today's Logged Activities",
+      "no_entries": "No activities have been logged for this report yet.",
+      "log_new": "Log New Activity",
+      "update_log": "Update Logged Activity",
+      "select_wbs": "Select from WBS",
+      "custom_task": "Custom/Ad-hoc Task",
+      "scope": "Scope",
+      "activity": "Activity",
+      "select_scope": "Select Scope...",
+      "select_activity": "Select Activity...",
+      "task_desc": "Task Description",
+      "task_desc_placeholder": "Enter ad-hoc task description...",
+      "added_today": "Added Today (%)",
+      "notes_optional": "Notes (Optional)",
+      "add_to_log": "Add to Log",
+      "update_entry": "Update Entry",
+      "new_total": "New Total",
+      "editing": "EDITING",
+      "keep_current": "Keep Current Selection",
+      "cancel_caps": "CANCEL",
+      "notes_placeholder": "Any additional notes..."
     },
+
+
     "labor_section": {
+      "workforce_title": "Workforce & Labor",
+      "batch_log_timesheets": "Batch Log Timesheets",
+      "site_lead_resp": "Site Lead Responsibility",
+      "batch_add_team": "Batch Add Team",
+      "add_on_the_fly": "Add Personnel on-the-fly",
+      "custom_entry": "Custom Entry",
+      "personnel_position_label": "Personnel & Position",
+      "change_worker": "Change",
+      "enter_name_manually": "Enter worker name manually",
+      "select_worker_placeholder": "-- Select Worker --",
+      "already_assigned": "[ALREADY ASSIGNED]",
+      "expired_certs_tag": "[EXPIRED CERTS]",
+      "time_in_label": "Time In",
+      "time_out_label": "Out",
+      "hours_label": "Hrs",
+      "on_site_label": "On Site",
+      "outsourced_label": "Outsourced",
+      "no_entries_shift": "No labor entries logged for this shift.",
+      "pending_certs_warning": "Pending certification records — HSE validation required before this worker can be confirmed on site.",
+      "batch_timesheet_log_title": "Timesheet Batch Log",
+      "batch_timesheet_log_success": "Successfully created {{count}} entries.",
+      "batch_timesheet_log_fail": "Skipped {{count}} entries (overlapping times or missing data).",
+      "batch_add_team_modal_title": "Batch Add Project Team",
+      "batch_add_team_desc": "Select personnel assigned to this project ({{name}}) to add them to the report automatically.",
+      "no_personnel_assigned": "No personnel assigned to this project yet.",
+      "add_workers_btn": "Add {{count}} Workers",
+      "quick_add_title": "Quick-Add Personnel",
+      "full_name_label": "Full Name",
+      "position_label": "Position",
+      "quick_add_help": "Newly added personnel will be added as \"Tech\" by default. Full profile details can be updated later in the Personnel menu.",
+      "add_select_btn": "Add & Select",
+      "digital_signature_title": "Digital Signature",
+      "supervisor_sig_required": "Supervisor Signature Required",
+      "click_to_sign": "Click to Sign or Tap to Draw",
+      "gps_verified": "Verified with GPS & Timestamp",
+      "certify_hours_text": "I hereby certify that the hours logged correctly reflect the work performed on this date ({{date}}).",
+      "confirm_identity_log": "Confirm Identity & Log",
       "add_entry": "Add Labor Entry",
       "edit_entry": "Edit Entry",
       "no_entries": "No labor recorded for this period.",
@@ -273,18 +337,120 @@
       "person": "Person",
       "hours": "Hours"
     },
+
     "occurrence_section": {
-      "add_entry": "Report Issue / Occurrence",
-      "no_entries": "No issues or occurrences reported.",
-      "category": "Category",
-      "impact": "Impact",
-      "impact_types": {
-        "schedule": "Schedule",
-        "productivity": "Productivity",
+      "field_issues_title": "Field Issues / Blockers",
+      "log_issue": "Log Issue",
+      "category_label": "Category (Mandatory)",
+      "start_time_label": "Start Time",
+      "duration_label": "Duration (Minutes)",
+      "description_label": "Description / Notes",
+      "description_placeholder": "Describe the delay, incident, or change...",
+      "impact_toggle": "Impact Toggle",
+      "no_shift_entries": "No occurrences or delays logged for this shift.",
+      "categories": {
+        "customer_delay": "Customer delay",
+        "equipment_failure": "Equipment failure",
+        "material_related": "Material Related",
+        "weather": "Weather",
+        "access": "Access",
+        "crew": "Crew",
         "safety": "Safety",
-        "visible": "Visible"
+        "other": "Other"
+      },
+      "impact_labels": {
+        "schedule": "Affected schedule",
+        "productivity": "Affected productivity",
+        "safety": "Safety concern",
+        "client_visible": "Client visible"
+      },
+      "supervisor_countersign": "Supervisor Countersign Required (Safety)",
+      "countersigned_by": "Countersigned by {{name}} at {{time}}",
+      "countersigned_generic": "Countersigned by Supervisor",
+      "awaiting_countersign": "Awaiting Supervisor countersign...",
+      "supervisor_name_placeholder": "Supervisor full name",
+      "draw_signature_help": "Draw signature above to countersign this safety occurrence.",
+      "enter_name_alert": "Enter your name before signing.",
+      "add_entry": "Report Issue / Occurrence",
+      "no_entries": "No issues or occurrences reported."
+    },
+    "checklist_section": {
+      "qa_title": "Quality Assurance Checklists",
+      "apply_template": "Apply Template...",
+      "add_checklist": "Add Checklist",
+      "no_checklists": "No checklists added for this report.",
+      "start_help": "Use \"Apply Template\" or \"Add Checklist\" to get started.",
+      "checklist_name_placeholder": "Checklist Name...",
+      "scan_attached": "Paper Scan Attached",
+      "upload_paper": "Upload Paper Checklist",
+      "complete": "Complete",
+      "locked": "Locked",
+      "no_points": "No inspection points yet.",
+      "point_placeholder": "Inspection point...",
+      "add_point": "Add Inspection Point",
+      "custom_checklist": "Custom Checklist",
+      "use_pass_fail": "Use: Pass / Fail / N/A",
+      "use_yes_no": "Use: Yes / No / N/A",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "move_up": "Move up",
+      "move_down": "Move down",
+      "unlock_checklist": "Unlock checklist",
+      "lock_checklist_title": "Lock checklist",
+      "remove_checklist": "Remove this checklist",
+      "add_evidence": "Add item evidence",
+      "status_types": {
+        "pass": "Pass",
+        "fail": "Fail",
+        "yes": "Yes",
+        "no": "No",
+        "na": "N/A"
       }
+    },
+    "media_section": {
+      "title": "Media Grid",
+      "upload_help": "Click or Drag & Drop site photos here",
+      "supports": "Supports JPG, PNG (Max 5MB)",
+      "uploading": "Uploading...",
+      "local_memo": "Local Memo",
+      "photo_desc": "Photo Description *",
+      "photo_desc_placeholder": "e.g. South Inverter Rack...",
+      "sync_sharepoint": "Sync to SharePoint",
+      "sharepoint_secured": "SharePoint Secured",
+      "add_caption": "Add caption...",
+      "no_photos": "No photos attached to this report.",
+      "sharepoint_config_error": "SharePoint not configured or account not linked. Please check Settings.",
+      "desc_required": "Please provide a description for the photo. This will be used in the filename.",
+      "upload_failed": "Failed to upload to SharePoint: {{error}}"
+    },
+    "signature_section": {
+      "title": "Signatures & Verification",
+      "supervisor": "Supervisor",
+      "management": "Management",
+      "customer": "Customer",
+      "approved": "Approved",
+      "waiting": "Waiting for signature",
+      "draw_tab": "Draw",
+      "upload_tab": "Upload Photo",
+      "clear": "Clear",
+      "sign": "Sign",
+      "retake": "Retake",
+      "use_this": "Use This",
+      "upload_help": "Sign on paper, take a photo, or choose an image",
+      "camera_file": "Camera / File"
+    },
+    "subreports_section": {
+      "title": "Attached Forms & Sub-Reports",
+      "add_form": "Add Form...",
+      "open_form": "Open Form",
+      "no_forms": "No forms or sub-reports attached.",
+      "fields_count": "{{count}} fields"
     }
+
+
+
+
+
   },
   "personnel": {
     "title": "Personnel",
@@ -300,8 +466,10 @@
       "role": "App Role",
       "contact": "Emergency Contact",
       "status": "Status",
-      "project": "Current Assignment"
+      "project": "Current Assignment",
+      "technician": "Technician"
     },
+
     "filters": {
       "search": "Search Directory",
       "search_placeholder": "Find by name, role or email...",
@@ -357,7 +525,11 @@
     "total_hours": "Total Hours Logged",
     "team_checkin": "Team Check-in",
     "log_time": "Log Time",
+    "batch_create": "Batch Create",
+    "batch_authorize": "Batch Authorize",
+    "batch_signature_required": "Signature required for manual batch entry",
     "modals": {
+
       "log_hours": "Log Hours",
       "edit_timesheet": "Edit Timesheet",
       "personnel": "Personnel",
@@ -442,6 +614,7 @@
       "lunch_in": "Back from Lunch",
       "clock_out": "Clock Out"
     },
+    "batch_create": "Batch Create",
     "status": {
       "approved": "Approved",
       "rejected": "Rejected",

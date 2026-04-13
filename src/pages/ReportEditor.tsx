@@ -62,8 +62,9 @@ export default function ReportEditor() {
             return {
                 id: `l-auto-${Date.now()}-${idx}`,
                 personnelId: persId,
-                role: person?.position || 'Technician',
+                role: person?.position || t('personnel.columns.technician'),
                 qty: 1,
+
                 timeIn: clockEntry?.timeIn || '08:00',
                 timeOut: clockEntry?.timeOut || '17:00',
                 type: 'On Site' as const,
@@ -188,8 +189,9 @@ export default function ReportEditor() {
     };
 
     const handleAddSection = () => {
-        setSections([...sections, { id: `sec-${Date.now()}`, title: 'New Custom Section', content: '' }]);
+        setSections([...sections, { id: `sec-${Date.now()}`, title: t('reports.editor_sections.new_custom_section'), content: '' }]);
     };
+
 
     const handleUpdateSection = (idx: number, field: 'title' | 'content', val: string) => {
         const newSecs = [...sections];
@@ -251,10 +253,10 @@ export default function ReportEditor() {
                         <h1 className="text-3xl font-bold text-accent-greyDark">{report.projectName}</h1>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest
                 ${report.state === 'Draft' ? 'bg-status-warning/10 text-status-warning' :
-                                report.state.includes('Review') || report.state === 'Approved' ? 'bg-brand-teal/10 text-brand-teal' :
                                     'bg-status-success/10 text-status-success'}`}>
-                            {report.state}
+                            {t(`reports.${report.state.toLowerCase().replace(/ /g, '_')}`)}
                         </span>
+
                     </div>
                     <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mt-1">
                         <p className="text-gray-500 font-mono text-sm">{t('reports.labels.id')}: {report.id} • {t('reports.labels.date')}: {report.date}</p>
@@ -392,11 +394,11 @@ export default function ReportEditor() {
                                                     signature: { name: userName, timestamp: new Date().toISOString(), blob: batchTsSignature }
                                                 } as any);
                                             });
-                                            setShowTimesheetCreator(false);
                                             setBatchTsSignature('');
                                             setBatchTsSignerName('');
-                                            showToast(`${missing.length} timesheets created.`, 'success');
+                                            showToast(t('reports.alerts.timesheets_created', { count: missing.length }), 'success');
                                         }}
+
                                         className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors"
                                     >
                                         {t('common.confirm')}
@@ -438,18 +440,20 @@ export default function ReportEditor() {
                         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">{t('reports.editor_sections.notes')}</h3>
                         <SectionCommentBubble
                             sectionKey="notes"
-                            sectionLabel="Field Notes"
+                            sectionLabel={t('reports.editor_sections.notes')}
                             comments={report.comments || []}
                             onAdd={submitSectionComment}
                             canComment={isManager || isSupervisor || isCustomer}
                         />
                     </div>
+
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         disabled={!canEditFields}
                         className="input-field min-h-[150px] resize-y text-base"
                         placeholder={t('reports.editor_sections.notes_placeholder')}
+
                     />
                 </div>
 
@@ -459,12 +463,14 @@ export default function ReportEditor() {
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
                         <Wrench className="text-brand-teal" size={24} /> {t('reports.editor_sections.equipment')}
                     </h2>
+
                     <div className="flex items-center gap-3">
                         {/* H-05: Scoped comment bubble on Equipment */}
                         <SectionCommentBubble
                             sectionKey="equipment"
-                            sectionLabel="Equipment & Tools"
+                            sectionLabel={t('reports.editor_sections.equipment')}
                             comments={report.comments || []}
+
                             onAdd={submitSectionComment}
                             canComment={isManager || isSupervisor}
                         />
@@ -523,8 +529,9 @@ export default function ReportEditor() {
                     <span />
                     <SectionCommentBubble
                         sectionKey="occurrences"
-                        sectionLabel="Field Issues & Occurrences"
+                        sectionLabel={t('reports.editor_sections.occurrences')}
                         comments={report.comments || []}
+
                         onAdd={submitSectionComment}
                         canComment={isManager || isSupervisor}
                     />
@@ -538,8 +545,9 @@ export default function ReportEditor() {
                     <span />
                     <SectionCommentBubble
                         sectionKey="checklists"
-                        sectionLabel="Safety Checklists"
+                        sectionLabel={t('reports.editor_sections.checklist')}
                         comments={report.comments || []}
+
                         onAdd={submitSectionComment}
                         canComment={isManager || isSupervisor}
                     />
@@ -632,8 +640,9 @@ export default function ReportEditor() {
             <div className="editor-fade card-container">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                        <Plus size={20} className="text-brand-teal" /> {t('common.add')}
+                        <Plus size={20} className="text-brand-teal" /> {t('reports.editor_sections.custom_sections')}
                     </h2>
+
                     {canEditFields && (
                         <button onClick={handleAddSection} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2">
                             <Plus size={16} /> {t('common.add')}
@@ -655,14 +664,16 @@ export default function ReportEditor() {
                                 onChange={(e) => handleUpdateSection(idx, 'title', e.target.value)}
                                 disabled={!canEditFields}
                                 className="w-full bg-transparent border-none font-bold text-accent-greyDark text-lg mb-2 outline-none focus:ring-0 px-0"
-                                placeholder="Section Title (e.g. Daily Safety Talk)"
+                                placeholder={t('reports.editor_sections.custom_title_placeholder')}
+
                             />
                             <textarea
                                 value={sec.content}
                                 onChange={(e) => handleUpdateSection(idx, 'content', e.target.value)}
                                 disabled={!canEditFields}
                                 className="input-field min-h-[100px] w-full"
-                                placeholder="Section contents..."
+                                placeholder={t('reports.editor_sections.custom_content_placeholder')}
+
                             />
                         </div>
                     ))}
@@ -702,7 +713,8 @@ export default function ReportEditor() {
                                 type="text"
                                 value={newComment}
                                 onChange={e => setNewComment(e.target.value)}
-                                placeholder="Add annotative comment..."
+                                placeholder={t('common.add_comment_placeholder')}
+
                                 className="input-field flex-1"
                                 onKeyDown={e => e.key === 'Enter' && submitComment()}
                             />

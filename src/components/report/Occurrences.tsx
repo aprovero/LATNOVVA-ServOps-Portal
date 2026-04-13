@@ -1,4 +1,6 @@
-import { AlertCircle, Plus, Trash2, Clock, Hourglass, Activity, Target, PenTool, CheckCircle } from 'lucide-react';
+ import { AlertCircle, Plus, Trash2, Clock, Hourglass, Activity, Target, PenTool, CheckCircle } from 'lucide-react';
+ import { useTranslation } from 'react-i18next';
+
 import { ReportOccurrence, useStore } from '../../store/useStore';
 import { SignatureCanvasBox } from './MultisignaturePad';
 
@@ -21,7 +23,9 @@ const CATEGORIES = [
 ];
 
 export default function Occurrences({ occurrences, onChange, readOnly, userRole }: OccurrenceSectionProps) {
+    const { t } = useTranslation();
     const { userRole: storeRole } = useStore();
+
     const role = userRole ?? storeRole;
     const isCustomer = role === 'Customer';
     const isSupervisor = role === 'Supervisor' || role === 'Manager';
@@ -69,12 +73,14 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
         <div className="card-container border-l-4 border-l-orange-400">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
                 <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                    <AlertCircle className="text-orange-500" size={20} /> Field Issues / Blockers
+                    <AlertCircle className="text-orange-500" size={20} /> {t('occurrence_section.field_issues_title')}
                 </h2>
+
                 {!readOnly && (
                     <button onClick={handleAdd} className="btn-secondary text-sm py-2 px-4 flex items-center justify-center gap-2 bg-white w-full sm:w-auto">
-                        <Plus size={16} /> Log Issue
+                        <Plus size={16} /> {t('occurrence_section.log_issue')}
                     </button>
+
                 )}
             </div>
 
@@ -91,15 +97,21 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
                             {/* Category Dropdown */}
                             <div className="w-full md:w-1/3 shrink-0">
                                 <label className="text-xs font-bold text-orange-500 uppercase flex items-center gap-1 mb-1.5">
-                                    <Target size={12} /> Category (Mandatory)
+                                    <Target size={12} /> {t('occurrence_section.category_label')}
                                 </label>
+
                                 <select
                                     value={entry.category || 'Other'}
                                     onChange={(e) => handleUpdate(entry.id, 'category', e.target.value)}
                                     disabled={readOnly}
                                     className="w-full bg-white border border-orange-200 focus:border-orange-500 outline-none rounded-xl px-3 py-2 text-sm disabled:opacity-70"
                                 >
-                                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    {CATEGORIES.map(cat => (
+                                        <option key={cat} value={cat}>
+                                            {t(`occurrence_section.categories.${cat.toLowerCase().replace(/\s+/g, '_')}`)}
+                                        </option>
+                                    ))}
+
                                 </select>
                             </div>
 
@@ -107,8 +119,9 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
                             <div className="flex flex-wrap items-center gap-3 w-full md:w-2/3 shrink-0">
                                 <div>
                                     <label className="text-xs font-bold text-orange-500 uppercase flex items-center gap-1 mb-1.5">
-                                        <Clock size={12} /> Start Time
+                                        <Clock size={12} /> {t('occurrence_section.start_time_label')}
                                     </label>
+
                                     <input
                                         type="time"
                                         value={entry.time}
@@ -119,8 +132,9 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
                                 </div>
                                 <div className="flex-1">
                                     <label className="text-xs font-bold text-orange-500 uppercase flex items-center gap-1 mb-1.5">
-                                        <Hourglass size={12} /> Duration (Minutes)
+                                        <Hourglass size={12} /> {t('occurrence_section.duration_label')}
                                     </label>
+
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="number"
@@ -151,28 +165,34 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
 
                         {/* Description */}
                         <div>
-                            <label className="text-xs font-bold text-orange-500 uppercase mb-1.5 block">Description / Notes</label>
+                            <label className="text-xs font-bold text-orange-500 uppercase mb-1.5 block">{t('occurrence_section.description_label')}</label>
                             <input
                                 type="text"
                                 value={entry.description}
                                 onChange={(e) => handleUpdate(entry.id, 'description', e.target.value)}
                                 disabled={readOnly}
-                                placeholder="Describe the delay, incident, or change..."
+                                placeholder={t('occurrence_section.description_placeholder')}
                                 className="w-full bg-white border border-orange-200 focus:border-orange-500 outline-none rounded-xl px-3 py-2 text-sm disabled:opacity-70"
                             />
                         </div>
 
+
                         {/* Impact Toggles */}
                         <div className="pt-2 border-t border-orange-200/50">
                             <label className="text-xs font-bold text-orange-500 uppercase flex items-center gap-1 mb-2">
-                                <Activity size={12} /> Impact Toggle
+                                <Activity size={12} /> {t('occurrence_section.impact_toggle')}
                             </label>
+
                             <div className="flex flex-wrap gap-4">
                                 {[
-                                    { id: 'schedule', label: 'Affected schedule' },
-                                    { id: 'productivity', label: 'Affected productivity' },
-                                    { id: 'safety', label: 'Safety concern' },
-                                    { id: 'clientVisible', label: 'Client visible' }
+                                    { id: 'schedule', label: t('occurrence_section.impact_labels.schedule') },
+
+                                    { id: 'productivity', label: t('occurrence_section.impact_labels.productivity') },
+
+                                    { id: 'safety', label: t('occurrence_section.impact_labels.safety') },
+
+                                    { id: 'clientVisible', label: t('occurrence_section.impact_labels.client_visible') }
+
                                 ].map((impactOption) => {
                                     const key = impactOption.id as keyof NonNullable<typeof entry.impact>;
                                     const isChecked = !!entry.impact?.[key];
@@ -199,29 +219,33 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
                         {entry.category === 'Safety' && entry.impact?.safety && (
                             <div className="pt-3 border-t-2 border-red-200 mt-1">
                                 <p className="text-xs font-bold text-red-600 uppercase flex items-center gap-1.5 mb-2">
-                                    <PenTool size={12} /> Supervisor Countersign Required (Safety)
+                                    <PenTool size={12} /> {t('occurrence_section.supervisor_countersign')}
                                 </p>
+
                                 {(entry as any).supervisorSignature ? (
                                     <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
                                         <CheckCircle size={14} />
                                         {!isCustomer && (
-                                            <span>Countersigned by <strong>{(entry as any).supervisorSignature.name}</strong> at {new Date((entry as any).supervisorSignature.timestamp).toLocaleTimeString()}</span>
+                                            <span>{t('occurrence_section.countersigned_by', { name: (entry as any).supervisorSignature.name, time: new Date((entry as any).supervisorSignature.timestamp).toLocaleTimeString() })}</span>
                                         )}
-                                        {isCustomer && <span>Countersigned by Supervisor</span>}
+                                        {isCustomer && <span>{t('occurrence_section.countersigned_generic')}</span>}
                                     </div>
+
                                 ) : isSupervisor && !readOnly ? (
                                     <div className="space-y-2">
                                         <input
                                             id={`sup-sig-name-${entry.id}`}
                                             type="text"
-                                            placeholder="Supervisor full name"
+                                            placeholder={t('occurrence_section.supervisor_name_placeholder')}
                                             className="input-field w-full text-sm"
                                         />
                                         <div className="h-20 border border-dashed border-red-300 rounded-xl overflow-hidden bg-white">
+
                                             <SignatureCanvasBox onSign={(blob) => {
                                                 const nameEl = document.getElementById(`sup-sig-name-${entry.id}`) as HTMLInputElement | null;
                                                 const name = nameEl?.value?.trim();
-                                                if (!name) { alert('Enter your name before signing.'); return; }
+                                                if (!name) { alert(t('occurrence_section.enter_name_alert')); return; }
+
                                                 handleUpdate(entry.id, 'supervisorSignature' as any, {
                                                     name,
                                                     blob,
@@ -229,11 +253,13 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
                                                 });
                                             }} />
                                         </div>
-                                        <p className="text-[10px] text-red-400">Draw signature above to countersign this safety occurrence.</p>
+                                        <p className="text-[10px] text-red-400">{t('occurrence_section.draw_signature_help')}</p>
                                     </div>
+
                                 ) : (
-                                    <p className="text-xs text-red-500 italic">⚠ Awaiting Supervisor countersign…</p>
+                                    <p className="text-xs text-red-500 italic">⚠ {t('occurrence_section.awaiting_countersign')}</p>
                                 )}
+
                             </div>
                         )}
 
@@ -242,9 +268,10 @@ export default function Occurrences({ occurrences, onChange, readOnly, userRole 
 
                 {occurrences.length === 0 && (
                     <div className="p-6 text-center text-orange-400 bg-orange-50/30 rounded-2xl border border-dashed border-orange-200">
-                        <p className="text-sm">No occurrences or delays logged for this shift.</p>
+                        <p className="text-sm">{t('occurrence_section.no_shift_entries')}</p>
                     </div>
                 )}
+
             </div>
         </div>
     );

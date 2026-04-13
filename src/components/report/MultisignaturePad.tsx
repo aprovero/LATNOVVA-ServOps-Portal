@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { PenTool, Lock } from 'lucide-react';
+ import { useState, useRef, useEffect } from 'react';
+ import { PenTool, Lock } from 'lucide-react';
+ import { useTranslation } from 'react-i18next';
+
 import { ReportSignature } from '../../store/useStore';
 
 interface SignaturePadProps {
@@ -10,13 +12,16 @@ interface SignaturePadProps {
 }
 
 export default function MultisignaturePad({ onSave, readOnly, existingSignatures = [], userRole }: SignaturePadProps) {
+    const { t } = useTranslation();
     const roles = ['Supervisor', 'Management', 'Customer'] as const;
+
 
     return (
         <div className="card-container">
             <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2 mb-6">
-                <PenTool className="text-brand-teal" size={20} /> Signatures & Verification
+                <PenTool className="text-brand-teal" size={20} /> {t('signature_section.title')}
             </h2>
+
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {roles.map(role => {
@@ -32,10 +37,11 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
                         <div key={role} className={`border rounded-2xl p-4 flex flex-col ${existing ? 'bg-gray-50 border-status-success/30' : 'bg-surface border-gray-200'}`}>
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-accent-greyDark text-xs uppercase tracking-widest">{role}</h3>
+                                    <h3 className="font-bold text-accent-greyDark text-xs uppercase tracking-widest">{t(`signature_section.${role.toLowerCase()}`)}</h3>
                                     {existing && role === 'Management' && (
-                                        <span className="text-[9px] font-bold text-white bg-brand-teal px-1.5 py-0.5 rounded-sm animate-pulse">Approved</span>
+                                        <span className="text-[9px] font-bold text-white bg-brand-teal px-1.5 py-0.5 rounded-sm animate-pulse">{t('signature_section.approved')}</span>
                                     )}
+
                                 </div>
                                 {existing && <Lock size={14} className="text-status-success shrink-0" />}
                             </div>
@@ -58,8 +64,9 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
                                 ) : (
                                     <div className="text-center text-gray-400">
                                         <PenTool size={24} className="mx-auto mb-2 opacity-50" />
-                                        <p className="text-xs font-semibold">Waiting for signature</p>
+                                        <p className="text-xs font-semibold">{t('signature_section.waiting')}</p>
                                     </div>
+
                                 )}
                             </div>
                         </div>
@@ -73,11 +80,13 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
 
 // Sub-component to handle canvas drawing logic per box
 export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void }) {
+    const { t } = useTranslation();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [mode, setMode] = useState<'draw' | 'photo'>('draw');
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
 
     useEffect(() => {
         if (mode !== 'draw') return;
@@ -177,14 +186,16 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                     onClick={() => setMode('draw')}
                     className={`flex-1 text-[10px] font-bold py-1 transition-colors ${mode === 'draw' ? 'text-brand-teal border-b-2 border-brand-teal' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    ✏️ Draw
+                    ✏️ {t('signature_section.draw_tab')}
                 </button>
+
                 <button
                     onClick={() => setMode('photo')}
                     className={`flex-1 text-[10px] font-bold py-1 transition-colors ${mode === 'photo' ? 'text-brand-teal border-b-2 border-brand-teal' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    📷 Upload Photo
+                    📷 {t('signature_section.upload_tab')}
                 </button>
+
             </div>
 
             {mode === 'draw' ? (
@@ -202,9 +213,10 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                         style={{ width: '100%', height: '100%' }}
                     />
                     <div className="absolute inset-x-0 bottom-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={handleClear} className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold shadow-sm border border-red-100">Clear</button>
-                        <button onClick={handleConfirmDraw} className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">Sign</button>
+                        <button onClick={handleClear} className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold shadow-sm border border-red-100">{t('signature_section.clear')}</button>
+                        <button onClick={handleConfirmDraw} className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">{t('signature_section.sign')}</button>
                     </div>
+
                     {/* Guide line */}
                     <div className="absolute bottom-6 left-4 right-4 border-b border-gray-200 pointer-events-none opacity-50"></div>
                 </div>
@@ -215,15 +227,17 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                             <img src={photoPreview} alt="Signature preview" className="max-h-16 object-contain rounded border border-gray-200" />
                             <div className="flex gap-2">
                                 <button onClick={() => { setPhotoPreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                                    className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-100">Retake</button>
+                                    className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-100">{t('signature_section.retake')}</button>
                                 <button onClick={handleConfirmPhoto}
-                                    className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold">Use This</button>
+                                    className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold">{t('signature_section.use_this')}</button>
                             </div>
+
                         </>
                     ) : (
                         <>
-                            <p className="text-[10px] text-gray-400 text-center">Sign on paper, take a photo, or choose an image</p>
+                            <p className="text-[10px] text-gray-400 text-center">{t('signature_section.upload_help')}</p>
                             <input
+
                                 ref={fileInputRef}
                                 type="file"
                                 accept="image/*"
@@ -234,8 +248,9 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                             />
                             <label htmlFor="sig-photo-upload"
                                 className="cursor-pointer bg-brand-teal/10 hover:bg-brand-teal/20 text-brand-teal px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors border border-brand-teal/20">
-                                📷 Camera / File
+                                📷 {t('signature_section.camera_file')}
                             </label>
+
                         </>
                     )}
                 </div>

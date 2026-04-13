@@ -39,8 +39,10 @@
     "preparing_pdf": "Preparando PDF...",
     "download_pdf": "Descargar PDF",
     "install": "Instalar aplicación",
-    "install_title": "Instalar LATNOVVA Service Operations"
+    "install_title": "Instalar LATNOVVA Service Operations",
+    "add_comment_placeholder": "Agregar comentario anotativo..."
   },
+
   "nav": {
     "operations": "OPERACIONES",
     "resources": "RECURSOS",
@@ -208,8 +210,10 @@
       "confirm_submit": "Se requiere la firma del Técnico o Supervisor antes de enviar el reporte a revisión.",
       "reject_reason": "Opcional: Ingrese un motivo para devolver este reporte a Borrador. Esto será visible para el personal de campo.",
       "rejected_toast": "Reporte devuelto a Borrador.",
-      "customer_approval_toast": "Reporte enviado al Cliente para aprobación."
+      "customer_approval_toast": "Reporte enviado al Cliente para aprobación.",
+      "timesheets_created": "{{count}} registros de horas creados."
     },
+
     "back_to_list": "Volver a la lista",
     "back_to_report": "Volver al reporte",
     "work_stream": "Línea de Trabajo",
@@ -223,17 +227,27 @@
     },
     "editor_sections": {
       "weather": "Clima",
-      "labor": "Mano de Obra",
-      "equipment": "Equipo",
-      "checklist": "Checklist",
-      "occurrences": "Ocurrencias",
+      "labor": "Mano de Obra y Personal",
+      "equipment": "Equipos y Herramientas",
+      "checklist": "Listas de Verificación de Seguridad",
+      "occurrences": "Incidencias y Bloqueos de Campo",
       "signatures": "Firmas",
       "media": "Multimedia y Adjuntos",
       "media_placeholder": "Adjuntar PDFs, fotos de sitio o documentos del cliente.",
       "site_lead": "Líder de Sitio",
       "notes": "Notas de Campo y Observaciones",
-      "notes_placeholder": "Ingrese observaciones diarias, incidentes o notas de finalización..."
+      "notes_placeholder": "Ingrese observaciones diarias, incidentes o notas de finalización...",
+      "progress": "Progreso del Proyecto / Alcances",
+      "custom_sections": "Secciones Personalizadas",
+      "new_custom_section": "Nueva Sección Personalizada",
+      "custom_title_placeholder": "Título de la Sección (ej. Charla Diaria de Seguridad)",
+      "custom_content_placeholder": "Contenido de la sección...",
+      "batch_log": "Registro de Horas por Lote",
+
+
+      "site_lead_resp": "Responsabilidad del Líder de Sitio"
     },
+
     "statuses": {
       "review": "Revisión",
       "open": "Abierto",
@@ -254,18 +268,69 @@
       "title": "No se encontraron reportes",
       "subtitle": "Crea el primer reporte para este proyecto."
     },
-    "editor_sections": {
-      "labor": "Personal",
-      "equipment": "Equipos",
-      "checklist": "Checklist",
-      "occurrences": "Incidencias / Eventos",
-      "signatures": "Firmas",
-      "media": "Multimedia",
-      "weather": "Clima",
-      "site_lead": "Líder de sitio",
-      "progress": "Progreso de Proyecto / Alcances"
+    "wbs_section": {
+      "title": "Actividades Registradas Hoy",
+      "no_entries": "Aún no se han registrado actividades para este reporte.",
+      "log_new": "Registrar Nueva Actividad",
+      "update_log": "Actualizar Actividad Registrada",
+      "select_wbs": "Seleccionar desde WBS",
+      "custom_task": "Tarea Personalizada / Ad-hoc",
+      "scope": "Alcance",
+      "activity": "Actividad",
+      "select_scope": "Seleccionar Alcance...",
+      "select_activity": "Seleccionar Actividad...",
+      "task_desc": "Descripción de la Tarea",
+      "task_desc_placeholder": "Ingrese la descripción de la tarea ad-hoc...",
+      "added_today": "Añadido Hoy (%)",
+      "notes_optional": "Notas (Opcional)",
+      "add_to_log": "Agregar al Registro",
+      "update_entry": "Actualizar Entrada",
+      "new_total": "Nuevo Total",
+      "editing": "EDITANDO",
+      "keep_current": "Mantener Selección Actual",
+      "cancel_caps": "CANCELAR",
+      "notes_placeholder": "Cualquier nota adicional..."
     },
+
+
     "labor_section": {
+      "workforce_title": "Mano de Obra y Personal",
+      "batch_log_timesheets": "Registrar Horas por Lote",
+      "site_lead_resp": "Responsabilidad del Líder de Sitio",
+      "batch_add_team": "Agregar Equipo por Lote",
+      "add_on_the_fly": "Agregar Personal al Vuelo",
+      "custom_entry": "Entrada Personalizada",
+      "personnel_position_label": "Personal y Puesto",
+      "change_worker": "Cambiar",
+      "enter_name_manually": "Ingrese el nombre del trabajador manualmente",
+      "select_worker_placeholder": "-- Seleccionar Trabajador --",
+      "already_assigned": "[YA ASIGNADO]",
+      "expired_certs_tag": "[CERT. VENCIDAS]",
+      "time_in_label": "Entrada",
+      "time_out_label": "Salida",
+      "hours_label": "Hrs",
+      "on_site_label": "En Sitio",
+      "outsourced_label": "Subcontratado",
+      "no_entries_shift": "No se registraron entradas de personal para este turno.",
+      "pending_certs_warning": "Registros de certificación pendientes — se requiere validación de HSE antes de que este trabajador pueda ser confirmado en el sitio.",
+      "batch_timesheet_log_title": "Registro por Lote de Timesheets",
+      "batch_timesheet_log_success": "Se crearon {{count}} entradas exitosamente.",
+      "batch_timesheet_log_fail": "Se omitieron {{count}} entradas (tiempos solapados o falta de datos).",
+      "batch_add_team_modal_title": "Agregar Equipo del Proyecto por Lote",
+      "batch_add_team_desc": "Seleccione al personal asignado a este proyecto ({{name}}) para agregarlos al reporte automáticamente.",
+      "no_personnel_assigned": "Aún no hay personal asignado a este proyecto.",
+      "add_workers_btn": "Agregar {{count}} Trabajadores",
+      "quick_add_title": "Agregar Personal Rápido",
+      "full_name_label": "Nombre Completo",
+      "position_label": "Puesto",
+      "quick_add_help": "El personal recién agregado se agregará como \"Tech\" por defecto. Los detalles completos del perfil se pueden actualizar más tarde en el menú de Personal.",
+      "add_select_btn": "Agregar y Seleccionar",
+      "digital_signature_title": "Firma Digital",
+      "supervisor_sig_required": "Se Requiere Firma del Supervisor",
+      "click_to_sign": "Haga clic para firmar o toque para dibujar",
+      "gps_verified": "Verificado con GPS y Marca de Tiempo",
+      "certify_hours_text": "Por la presente certifico que las horas registradas reflejan correctamente el trabajo realizado en esta fecha ({{date}}).",
+      "confirm_identity_log": "Confirmar Identidad y Registrar",
       "add_entry": "Agregar Entrada de Personal",
       "edit_entry": "Editar Entrada",
       "no_entries": "No se registró personal en este periodo.",
@@ -273,18 +338,120 @@
       "person": "Persona",
       "hours": "Horas"
     },
+
     "occurrence_section": {
-      "add_entry": "Reportar Incidencia / Evento",
-      "no_entries": "No se reportaron incidencias ni eventos.",
-      "category": "Categoría",
-      "impact": "Impacto",
-      "impact_types": {
-        "schedule": "Programa",
-        "productivity": "Productivity",
+      "field_issues_title": "Incidencias de Campo / Bloqueos",
+      "log_issue": "Registrar Incidencia",
+      "category_label": "Categoría (Obligatorio)",
+      "start_time_label": "Hora de Inicio",
+      "duration_label": "Duración (Minutos)",
+      "description_label": "Descripción / Notas",
+      "description_placeholder": "Describa el retraso, incidente o cambio...",
+      "impact_toggle": "Interruptor de Impacto",
+      "no_shift_entries": "No se registraron incidencias ni retrasos en este turno.",
+      "categories": {
+        "customer_delay": "Retraso del cliente",
+        "equipment_failure": "Falla de equipo",
+        "material_related": "Relacionado con materiales",
+        "weather": "Clima",
+        "access": "Acceso",
+        "crew": "Cuadrilla",
         "safety": "Seguridad",
-        "visible": "Visible"
+        "other": "Otro"
+      },
+      "impact_labels": {
+        "schedule": "Afecta el cronograma",
+        "productivity": "Afecta la productividad",
+        "safety": "Preocupación de seguridad",
+        "client_visible": "Visible para el cliente"
+      },
+      "supervisor_countersign": "Se Requiere Firma del Supervisor (Seguridad)",
+      "countersigned_by": "Firmado por {{name}} a las {{time}}",
+      "countersigned_generic": "Firmado por el Supervisor",
+      "awaiting_countersign": "Esperando firma del Supervisor...",
+      "supervisor_name_placeholder": "Nombre completo del Supervisor",
+      "draw_signature_help": "Dibuje la firma arriba para refrendar esta incidencia de seguridad.",
+      "enter_name_alert": "Ingrese su nombre antes de firmar.",
+      "add_entry": "Reportar Incidencia / Evento",
+      "no_entries": "No se reportaron incidencias ni eventos."
+    },
+    "checklist_section": {
+      "qa_title": "Listas de Control de Calidad",
+      "apply_template": "Aplicar Plantilla...",
+      "add_checklist": "Agregar Lista de Control",
+      "no_checklists": "No se han agregado listas de control para este reporte.",
+      "start_help": "Use \"Aplicar Plantilla\" o \"Agregar Lista de Control\" para comenzar.",
+      "checklist_name_placeholder": "Nombre de la Lista...",
+      "scan_attached": "Escaneo de Papel Adjunto",
+      "upload_paper": "Subir Lista de Control en Papel",
+      "complete": "Cerrado",
+      "locked": "Bloqueado",
+      "no_points": "No hay puntos de inspección aún.",
+      "point_placeholder": "Punto de inspección...",
+      "add_point": "Agregar Punto de Inspección",
+      "custom_checklist": "Lista de Control Personalizada",
+      "use_pass_fail": "Uso: Pasa / Falla / N/A",
+      "use_yes_no": "Uso: Sí / No / N/A",
+      "expand": "Expandir",
+      "collapse": "Contraer",
+      "move_up": "Subir",
+      "move_down": "Bajar",
+      "unlock_checklist": "Desbloquear lista",
+      "lock_checklist_title": "Bloquear lista",
+      "remove_checklist": "Eliminar esta lista",
+      "add_evidence": "Agregar evidencia",
+      "status_types": {
+        "pass": "Pasa",
+        "fail": "Falla",
+        "yes": "Sí",
+        "no": "No",
+        "na": "N/A"
       }
+    },
+    "media_section": {
+      "title": "Galería Multimedia",
+      "upload_help": "Haga clic o arrastre y suelte las fotos aquí",
+      "supports": "Soportes JPG, PNG (Máx 5MB)",
+      "uploading": "Subiendo...",
+      "local_memo": "Nota Local",
+      "photo_desc": "Descripción de la Foto *",
+      "photo_desc_placeholder": "ej. Bastidor del inversor sur...",
+      "sync_sharepoint": "Sincronizar con SharePoint",
+      "sharepoint_secured": "SharePoint Asegurado",
+      "add_caption": "Agregar leyenda...",
+      "no_photos": "No hay fotos adjuntas a este reporte.",
+      "sharepoint_config_error": "SharePoint no está configurado o la cuenta no está vinculada. Por favor, verifique la Configuración.",
+      "desc_required": "Por favor, proporcione una descripción para la foto. Esta se utilizará en el nombre del archivo.",
+      "upload_failed": "Falla al subir a SharePoint: {{error}}"
+    },
+    "signature_section": {
+      "title": "Firmas y Verificación",
+      "supervisor": "Supervisor",
+      "management": "Gerencia",
+      "customer": "Cliente",
+      "approved": "Aprobado",
+      "waiting": "Esperando firma",
+      "draw_tab": "Dibujar",
+      "upload_tab": "Subir Foto",
+      "clear": "Borrar",
+      "sign": "Firmar",
+      "retake": "Reintentar",
+      "use_this": "Usar esta",
+      "upload_help": "Firme en papel, tome una foto o elija una imagen",
+      "camera_file": "Cámara / Archivo"
+    },
+    "subreports_section": {
+      "title": "Formularios y Sub-Reportes Adjuntos",
+      "add_form": "Agregar Formulario...",
+      "open_form": "Abrir Formulario",
+      "no_forms": "No hay formularios ni sub-reportes adjuntos.",
+      "fields_count": "{{count}} campos"
     }
+
+
+
+
+
   },
   "personnel": {
     "title": "Personal",
@@ -300,8 +467,10 @@
       "role": "Rol en App",
       "contact": "Contacto de Emergencia",
       "status": "Estado",
-      "project": "Asignación Actual"
+      "project": "Asignación Actual",
+      "technician": "Técnico"
     },
+
     "filters": {
       "search": "Buscar Directorio",
       "search_placeholder": "Buscar por nombre, cargo o email...",
@@ -357,7 +526,11 @@
     "total_hours": "Total de Horas Registradas",
     "team_checkin": "Check-in de Equipo",
     "log_time": "Registrar Tiempo",
+    "batch_create": "Creación Masiva",
+    "batch_authorize": "Autorización Masiva",
+    "batch_signature_required": "Se requiere firma para el registro manual masivo",
     "modals": {
+
       "log_hours": "Registrar Horas",
       "edit_timesheet": "Editar Timesheet",
       "personnel": "Personal",
@@ -442,6 +615,7 @@
       "lunch_in": "Regreso de Almuerzo",
       "clock_out": "Clock Out"
     },
+    "batch_create": "Crear por Lote",
     "status": {
       "approved": "Aprobado",
       "rejected": "Rechazado",
