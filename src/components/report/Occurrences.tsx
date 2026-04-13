@@ -1,4 +1,4 @@
- import { AlertCircle, Plus, Trash2, Clock, Hourglass, Activity, Target, PenTool, CheckCircle } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Clock, Hourglass, Activity, Target, PenTool, CheckCircle } from 'lucide-react';
  import { useTranslation } from 'react-i18next';
 
 import { ReportOccurrence, useStore } from '../../store/useStore';

@@ -1,6 +1,6 @@
- import { useState, useRef, useEffect } from 'react';
- import { PenTool, Lock } from 'lucide-react';
- import { useTranslation } from 'react-i18next';
+import { useState, useRef, useEffect } from 'react';
+import { PenTool, Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { ReportSignature } from '../../store/useStore';
 

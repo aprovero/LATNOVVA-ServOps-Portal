@@ -1,6 +1,6 @@
- import { useState } from 'react';
- import { CheckSquare, Plus, Trash2, ShieldAlert, ListChecks, Lock, LockOpen, ChevronDown, ChevronUp, Paperclip, FileText, X, Camera } from 'lucide-react';
- import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
+import { CheckSquare, Plus, Trash2, ShieldAlert, ListChecks, Lock, LockOpen, ChevronDown, ChevronUp, Paperclip, FileText, X, Camera } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { ChecklistGroup, ReportChecklist, useStore } from '../../store/useStore';
 

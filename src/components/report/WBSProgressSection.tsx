@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { ClipboardList, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+
 import { useTranslation } from 'react-i18next';
 
 import { Project } from '../../store/useStore';

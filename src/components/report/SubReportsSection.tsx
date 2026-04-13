@@ -1,5 +1,5 @@
- import { FileText, Trash2, ExternalLink } from 'lucide-react';
- import { useTranslation } from 'react-i18next';
+import { FileText, Trash2, ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { SubReportInstance, useStore, Report } from '../../store/useStore';
 import { useNavigate } from 'react-router-dom';

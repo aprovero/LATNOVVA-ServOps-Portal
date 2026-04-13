@@ -1,6 +1,6 @@
- import { useState, useRef } from 'react';
- import { Image as ImageIcon, UploadCloud, X } from 'lucide-react';
- import { useTranslation } from 'react-i18next';
+import { useState, useRef } from 'react';
+import { Image as ImageIcon, UploadCloud, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { useStore, Report } from '../../store/useStore';
 import { uploadToSharePoint, getFileThumbnail } from '../../lib/microsoftGraph';
