@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
 import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS } from '../components/auth/AuthRoute';
-import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { 
     msalInstance, 
@@ -13,6 +13,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
     const { t } = useTranslation();
