@@ -877,7 +877,27 @@
     "english": "English",
     "spanish": "Español",
     "appearance": "Apariencia",
-    "notifications": "Notificaciones"
+    "notifications": "Notificaciones",
+    "cloud": {
+      "title": "Integración con SharePoint",
+      "description": "Configure el almacenamiento central para adjuntos de alta resolución.",
+      "site_url": "URL DEL SITIO DE SHAREPOINT",
+      "site_id": "ID DEL SITIO",
+      "drive_id": "ID DE UNIDAD (DOC LIBRARY)",
+      "folder_path": "RUTA DE CARPETA RAÍZ",
+      "discover": "Descubrir",
+      "link_account": "Vincular Cuenta",
+      "save_config": "Validar y Guardar Configuración",
+      "config_saved": "Configuración validada y guardada.",
+      "discovery_failed": "Fallo en el descubrimiento. Asegúrese de que la URL sea correcta y que haya iniciado sesión.",
+      "url_required": "Por favor, ingrese primero una URL de sitio de SharePoint.",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "accessing_tenant": "Accediendo al Tenant de Latnovva",
+      "storage_disabled": "El almacenamiento central está actualmente deshabilitado.",
+      "link_help": "Vincular Cuenta",
+      "disconnect": "Desconectar"
+    }
   },
   "notifications": {
     "tool_expired": "Herramienta Expirada",

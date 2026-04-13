@@ -876,7 +876,27 @@
     "english": "English",
     "spanish": "Español",
     "appearance": "Appearance",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "cloud": {
+      "title": "SharePoint Integration",
+      "description": "Configure central storage for high-resolution attachments.",
+      "site_url": "SHAREPOINT SITE URL",
+      "site_id": "SITE ID",
+      "drive_id": "DRIVE (DOC LIBRARY) ID",
+      "folder_path": "ROOT FOLDER PATH",
+      "discover": "Discover",
+      "link_account": "Link Account",
+      "save_config": "Validate & Save Configuration",
+      "config_saved": "Configuration validated and saved.",
+      "discovery_failed": "Discovery failed. Ensure the URL is correct and you are logged in.",
+      "url_required": "Please enter a SharePoint Site URL first.",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "accessing_tenant": "Accessing Latnovva Tenant",
+      "storage_disabled": "Central storage is currently disabled.",
+      "link_help": "Link Account",
+      "disconnect": "Disconnect"
+    }
   },
   "notifications": {
     "tool_expired": "Tool Expired",

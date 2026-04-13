@@ -46,10 +46,20 @@ export const graphConfig = {
     graphSitesEndpoint: 'https://graph.microsoft.com/v1.0/sites'
 };
 
+let isInitialized = false;
+
+async function ensureInitialized() {
+    if (!isInitialized) {
+        await msalInstance.initialize();
+        isInitialized = true;
+    }
+}
+
 /**
  * Returns a Graph Access Token for the signed-in user.
  */
 export async function getGraphToken() {
+    await ensureInitialized();
     const accounts = msalInstance.getAllAccounts();
     if (accounts.length === 0) {
         throw new Error('No active account! Please sign in.');

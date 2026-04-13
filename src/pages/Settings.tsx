@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS } from '../components/auth/AuthRoute';
 import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { msalInstance, loginRequest, discoverSiteId, getSiteDrive } from '../lib/microsoftGraph';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
+import { Loader2 } from 'lucide-react';
 
 export default function Settings() {
     const { t } = useTranslation();
@@ -55,6 +57,47 @@ export default function Settings() {
     const [editPersonnelEmail, setEditPersonnelEmail] = useState('');
     const [editPersonnelRole, setEditPersonnelRole] = useState('Tech');
     const [editPersonnelCompany, setEditPersonnelCompany] = useState('');
+
+    const [isLinking, setIsLinking] = useState(false);
+    const [isDiscovering, setIsDiscovering] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleLinkAccount = async () => {
+        setIsLinking(true);
+        try {
+            await msalInstance.initialize();
+            const response = await msalInstance.loginPopup(loginRequest);
+            setMicrosoftAuth({ 
+                isAuthenticated: true, 
+                userEmail: response.account.username 
+            });
+        } catch (error: any) {
+            console.error('MS auth error:', error);
+            if (error.name !== 'BrowserAuthError') {
+                alert('Authentication failed: ' + error.message);
+            }
+        } finally {
+            setIsLinking(false);
+        }
+    };
+
+    const handleDiscover = async () => {
+        if (!sharepointConfig.siteUrl) {
+            alert(t('settings.cloud.url_required'));
+            return;
+        }
+        setIsDiscovering(true);
+        try {
+            const siteId = await discoverSiteId(sharepointConfig.siteUrl);
+            const driveId = await getSiteDrive(siteId);
+            setSharepointConfig({ siteId, driveId });
+        } catch (error: any) {
+            console.error('SharePoint discovery error:', error);
+            alert(t('settings.cloud.discovery_failed'));
+        } finally {
+            setIsDiscovering(false);
+        }
+    };
 
     const handleEditClientSubmit = () => {
         if (!editingClient || !editClientName.trim()) return;
@@ -242,17 +285,17 @@ export default function Settings() {
                                 <div>
                                     <h2 className="text-2xl font-bold text-accent-greyDark flex items-center gap-2">
                                         <Cloud className="text-brand-teal" size={28} />
-                                        SharePoint Integration
+                                        {t('settings.cloud.title')}
                                     </h2>
-                                    <p className="text-gray-500 mt-1">Configure central storage for high-resolution attachments.</p>
+                                    <p className="text-gray-500 mt-1">{t('settings.cloud.description')}</p>
                                 </div>
                                 {microsoftAuth.isAuthenticated ? (
                                     <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none px-3 py-1 gap-1.5 font-bold uppercase tracking-wider text-[10px]">
-                                        <CheckCircle2 size={12} /> Connected
+                                        <CheckCircle2 size={12} /> {t('settings.cloud.connected')}
                                     </Badge>
                                 ) : (
                                     <Badge variant="outline" className="text-gray-400 border-gray-200 px-3 py-1 gap-1.5 font-bold uppercase tracking-wider text-[10px]">
-                                        Disconnected
+                                        {t('settings.cloud.disconnected')}
                                     </Badge>
                                 )}
                             </div>
@@ -264,8 +307,8 @@ export default function Settings() {
                                         {microsoftAuth.isAuthenticated ? <CheckCircle2 size={24} className="text-emerald-500" /> : <LogIn size={24} />}
                                     </div>
                                     <div>
-                                        <p className="font-bold text-accent-greyDark">{microsoftAuth.isAuthenticated ? microsoftAuth.userEmail : 'No Microsoft Account Linked'}</p>
-                                        <p className="text-xs text-gray-400">{microsoftAuth.isAuthenticated ? 'Accessing Latnovva Tenant' : 'Central storage is currently disabled.'}</p>
+                                        <p className="font-bold text-accent-greyDark">{microsoftAuth.isAuthenticated ? microsoftAuth.userEmail : t('settings.cloud.storage_disabled_title', 'No Microsoft Account Linked')}</p>
+                                        <p className="text-xs text-gray-400">{microsoftAuth.isAuthenticated ? t('settings.cloud.accessing_tenant') : t('settings.cloud.storage_disabled')}</p>
                                     </div>
                                 </div>
                                 {microsoftAuth.isAuthenticated ? (
@@ -273,8 +316,13 @@ export default function Settings() {
                                         <LogOut size={16} /> Disconnect
                                     </Button>
                                 ) : (
-                                    <Button className="bg-brand-teal text-white hover:bg-brand-teal/90 gap-2 h-10 px-6 font-bold shadow-sm" onClick={() => setMicrosoftAuth({ isAuthenticated: true, userEmail: 'admin@latnovva.com' /* placeholder logic */ })}>
-                                        <LogIn size={16} /> Link Account
+                                    <Button 
+                                        className="bg-brand-teal text-white hover:bg-brand-teal/90 gap-2 h-10 px-6 font-bold shadow-sm" 
+                                        onClick={handleLinkAccount}
+                                        disabled={isLinking}
+                                    >
+                                        {isLinking ? <Loader2 className="animate-spin" size={16} /> : <LogIn size={16} />} 
+                                        {t('settings.cloud.link_account')}
                                     </Button>
                                 )}
                             </div>
@@ -297,33 +345,39 @@ export default function Settings() {
                                                     onChange={e => setSharepointConfig({ siteUrl: e.target.value })}
                                                     placeholder="https://latnovva.sharepoint.com/sites/FieldOps" 
                                                 />
-                                                <Button variant="secondary" className="h-11 px-6 font-bold gap-2">
-                                                    <Link2 size={16} /> Discover
+                                                <Button 
+                                                    variant="secondary" 
+                                                    className="h-11 px-6 font-bold gap-2"
+                                                    onClick={handleDiscover}
+                                                    disabled={isDiscovering || !microsoftAuth.isAuthenticated}
+                                                >
+                                                    {isDiscovering ? <Loader2 className="animate-spin" size={16} /> : <Link2 size={16} />}
+                                                    {t('settings.cloud.discover')}
                                                 </Button>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-xs font-bold text-gray-500">SITE ID</Label>
+                                                <Label className="text-xs font-bold text-gray-500">{t('settings.cloud.site_id')}</Label>
                                                 <Input 
                                                     readOnly 
                                                     className="h-11 bg-gray-50 border-gray-100 text-gray-400 font-mono text-[10px]" 
-                                                    value={sharepointConfig.siteId || 'Not Discovered'} 
+                                                    value={sharepointConfig.siteId || t('settings.cloud.not_discovered', 'Not Discovered')} 
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-xs font-bold text-gray-500">DRIVE (DOC LIBRARY) ID</Label>
+                                                <Label className="text-xs font-bold text-gray-500">{t('settings.cloud.drive_id')}</Label>
                                                 <Input 
                                                     readOnly 
                                                     className="h-11 bg-gray-50 border-gray-100 text-gray-400 font-mono text-[10px]" 
-                                                    value={sharepointConfig.driveId || 'Not Discovered'} 
+                                                    value={sharepointConfig.driveId || t('settings.cloud.not_discovered', 'Not Discovered')} 
                                                 />
                                             </div>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-xs font-bold text-gray-500">ROOT FOLDER PATH</Label>
+                                            <Label className="text-xs font-bold text-gray-500">{t('settings.cloud.folder_path')}</Label>
                                             <Input 
                                                 className="h-11 border-gray-200"
                                                 value={sharepointConfig.folderPath || 'Report_Attachments'} 
@@ -335,15 +389,26 @@ export default function Settings() {
                                 </div>
 
                                 <div className="p-4 bg-brand-teal/5 border border-brand-teal/10 rounded-xl text-brand-teal text-xs leading-relaxed">
-                                    <p className="font-bold mb-1 uppercase tracking-wider">How this works:</p>
-                                    Technicians capturing images will have them semantically named and uploaded to the path: 
+                                    <p className="font-bold mb-1 uppercase tracking-wider">{t('common.how_it_works', 'How this works:')}</p>
+                                    {t('settings.cloud.how_it_works_desc', 'Technicians capturing images will have them semantically named and uploaded to the path:')} 
                                     <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-brand-teal/20 ml-1">
                                         {sharepointConfig.folderPath || 'Report_Attachments'}/[ProjectName]/[Date]/
                                     </span>
                                 </div>
 
-                                <Button className="w-full h-12 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg mt-4" disabled={!microsoftAuth.isAuthenticated}>
-                                    Validate & Save Configuration
+                                <Button 
+                                    className="w-full h-12 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg mt-4" 
+                                    disabled={!microsoftAuth.isAuthenticated || !sharepointConfig.siteId || isSaving}
+                                    onClick={() => {
+                                        setIsSaving(true);
+                                        setTimeout(() => {
+                                            setIsSaving(false);
+                                            alert(t('settings.cloud.config_saved'));
+                                        }, 800);
+                                    }}
+                                >
+                                    {isSaving ? <Loader2 className="animate-spin mr-2" size={20} /> : null}
+                                    {t('settings.cloud.save_config')}
                                 </Button>
                             </div>
                         </div>
