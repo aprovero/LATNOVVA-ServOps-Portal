@@ -2,24 +2,30 @@
 <html>
 <head>
     <title>Authenticating...</title>
-    <!-- Use MSAL-Browser from CDN for the bridge page to ensure it's lightweight -->
+    <!-- Use MSAL-Browser from CDN -->
     <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
 </head>
 <body>
     <script type="text/javascript">
-        // This page is a high-performance redirect bridge for popups.
+        // This is a high-performance redirect bridge for MSAL popups.
+        // It MUST use the same cacheLocation as the main app to enable the handshake.
         const msalConfig = {
             auth: {
                 clientId: "3ebc486a-848e-2e21077ac148", 
                 authority: "https://login.microsoftonline.com/02ab448a-5bf1-40cc-b813-14ffac28017d",
                 navigateToLoginRequestUrl: false
+            },
+            cache: {
+                cacheLocation: "localStorage" // Crucial for popup -> main window communication
             }
         };
         const msalInstance = new msal.PublicClientApplication(msalConfig);
-        msalInstance.handleRedirectPromise().then(() => {
-            // Once the hash is cleared and the redirect handled, the main window will hear the event.
+        msalInstance.handleRedirectPromise().then((response) => {
+            console.log("Auth Bridge: Redirect handled successfully");
+            // The main window's MSAL instance is watching for changes in localStorage.
+            // Once handleRedirectPromise processes the hash, the main window will take over.
         }).catch(err => {
-            console.error(err);
+            console.error("Auth Bridge Error:", err);
         });
     </script>
 </body>
