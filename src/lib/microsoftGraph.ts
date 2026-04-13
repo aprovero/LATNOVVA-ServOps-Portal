@@ -23,8 +23,6 @@ export const msalConfig: Configuration = {
     }
 };
 
-export const msalInstance = new PublicClientApplication(msalConfig);
-
 import { useStore } from '../store/useStore';
 
 export const msalInstance = new PublicClientApplication(msalConfig);
