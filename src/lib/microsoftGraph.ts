@@ -8,14 +8,13 @@ export const msalConfig: Configuration = {
         clientId: CLIENT_ID,
         authority: `https://login.microsoftonline.com/${TENANT_ID}`,
         redirectUri: window.location.origin,
-        navigateToLoginRequestUrl: false // Prevents the app from reloading itself inside the popup
     },
     cache: {
         cacheLocation: 'sessionStorage',
     },
     system: {
         loggerOptions: {
-            loggerCallback: (level, message, containsPii) => {
+            loggerCallback: (_level, message, containsPii) => {
                 if (containsPii) return;
                 // Log all MSAL messages for debugging the popup issue
                 console.log(`[MSAL] ${message}`);
