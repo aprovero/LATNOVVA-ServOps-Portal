@@ -257,7 +257,7 @@ export default function Projects() {
                                                         </Link>
                                                     )}
                                                     <span className="text-xs text-brand-teal font-mono font-bold mt-0.5 block">
-                                                        {proj.codeName || proj.id.split('-')[1] || proj.id.split('-')[0]} • {proj.type}
+                                                        {proj.codeName || proj.id.split('-')[1] || proj.id.split('-')[0]}
                                                     </span>
                                                     {proj.location && (
                                                         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">

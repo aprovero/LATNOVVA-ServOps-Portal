@@ -30,8 +30,16 @@ export default function Personnel() {
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const q = params.get('q');
-        if (q !== null) setSearchTerm(q);
-    }, [location.search]);
+        if (q !== null) {
+            setSearchTerm(q);
+            // If the query is a direct ID match, auto-select that person
+            const match = personnel.find(p => p.id.toLowerCase() === q.toLowerCase());
+            if (match) {
+                setSelectedPersonId(match.id);
+                setEditDraft({ ...match });
+            }
+        }
+    }, [location.search, personnel]);
 
     // Add modal state
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -112,6 +120,7 @@ export default function Personnel() {
         .filter(p =>
             p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             p.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (p.email && p.email.toLowerCase().includes(searchTerm.toLowerCase()))
         )
         .sort((a, b) => {
