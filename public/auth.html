@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authenticating...</title>
+    <!-- Use MSAL-Browser from CDN for the bridge page to ensure it's lightweight -->
+    <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+        // This page is a high-performance redirect bridge for popups.
+        const msalConfig = {
+            auth: {
+                clientId: "3ebc486a-848e-2e21077ac148", 
+                authority: "https://login.microsoftonline.com/02ab448a-5bf1-40cc-b813-14ffac28017d",
+                navigateToLoginRequestUrl: false
+            }
+        };
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+        msalInstance.handleRedirectPromise().then(() => {
+            // Once the hash is cleared and the redirect handled, the main window will hear the event.
+        }).catch(err => {
+            console.error(err);
+        });
+    </script>
+</body>
+</html>

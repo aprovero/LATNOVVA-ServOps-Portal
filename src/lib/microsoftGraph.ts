@@ -7,7 +7,7 @@ export const msalConfig: Configuration = {
     auth: {
         clientId: CLIENT_ID,
         authority: `https://login.microsoftonline.com/${TENANT_ID}`,
-        redirectUri: window.location.origin,
+        redirectUri: window.location.origin + '/auth.html',
     },
     cache: {
         cacheLocation: 'localStorage',
@@ -33,12 +33,19 @@ export const msalInstance = new PublicClientApplication(msalConfig);
 msalInstance.addEventCallback((event) => {
     if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
         const payload = event.payload as AuthenticationResult;
-        console.log('[MSAL] Global Login Success:', payload.account.username);
+        console.log('[MSAL] Global Login Success for:', payload.account.username);
         
-        // Update the store directly
+        // Use direct store access to update authentication state
         useStore.getState().setMicrosoftAuth({
             isAuthenticated: true,
             userEmail: payload.account.username
+        });
+    }
+    
+    if (event.eventType === EventType.LOGOUT_SUCCESS) {
+        useStore.getState().setMicrosoftAuth({
+            isAuthenticated: false,
+            userEmail: undefined
         });
     }
 });
@@ -53,24 +60,28 @@ export const graphConfig = {
     graphDrivesEndpoint: 'https://graph.microsoft.com/v1.0/drives'
 };
 
-let isInitialized = false;
+let initPromise: Promise<void> | null = null;
 
-export async function ensureInitialized() {
-    if (!isInitialized) {
-        await msalInstance.initialize();
-        
-        // Always handle redirect promise on init to clear hash
+export async function ensureInitialized(): Promise<void> {
+    if (initPromise) return initPromise;
+    
+    initPromise = (async () => {
         try {
+            await msalInstance.initialize();
+            
+            // handleRedirectPromise must be called to process the hash from Microsoft
             const response = await msalInstance.handleRedirectPromise();
             if (response) {
-                console.log('[MSAL] Initialization handled redirect result for:', response.account.username);
+                console.log('[MSAL] Init handled redirect result for:', response.account.username);
             }
         } catch (err) {
-            console.error('[MSAL] Handle redirect during init failed:', err);
+            console.error('[MSAL] Critical initialization failure:', err);
+            initPromise = null; // Allow retry on failure
+            throw err;
         }
-        
-        isInitialized = true;
-    }
+    })();
+    
+    return initPromise;
 }
 
 /**
