@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS } from '../components/auth/AuthRoute';
 import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { msalInstance, loginRequest, discoverSiteId, getSiteDrive, getMeDrive } from '../lib/microsoftGraph';
+import { msalInstance, loginRequest, getMeDrive } from '../lib/microsoftGraph';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
