@@ -37,7 +37,9 @@
     "spanish": "Spanish",
     "export": "Export",
     "preparing_pdf": "Preparing PDF...",
-    "download_pdf": "Download PDF"
+    "download_pdf": "Download PDF",
+    "install": "Install app",
+    "install_title": "Install LATNOVVA Service Operations"
   },
   "nav": {
     "operations": "OPERATIONS",
@@ -53,14 +55,18 @@
     "calendar": "Calendar",
     "settings": "Settings",
     "templates": "Templates",
-    "clock_in": "Clock In"
+    "clock_in": "Clock In",
+    "notifications": "Alerts & Notifications",
+    "preview_branding": "Preview Branding",
+    "my_profile": "My Profile"
   },
   "auth": {
     "logout": "Log out",
     "login": "Login",
     "role": "Role",
     "admin": "Admin",
-    "hr": "HR"
+    "hr": "HR",
+    "god_mode_switch": "God Mode — Switch Role"
   },
   "projects": {
     "title": "Projects",
@@ -113,6 +119,7 @@
     "scope_name_placeholder": "e.g. Civil Works, Commissioning...",
     "discipline": "Discipline",
     "add_scope": "Add Scope",
+    "manage_scopes_source": "Select Project Source...",
     "activities_to_add": "Activities to be added",
     "add_scope_template": "Add Scope from Template",
     "scope_name": "Scope Name",
@@ -125,7 +132,39 @@
     "new_step_placeholder": "New step...",
     "steps_completed": "steps completed",
     "confirm_delete_activity": "Delete activity \"{{title}}\"?",
-    "add_activity_placeholder": "Add an activity (e.g. Step 1: Excavation)..."
+    "add_activity_placeholder": "Add an activity (e.g. Step 1: Excavation)...",
+    "filters": {
+      "customer": "Filter Customer",
+      "status": "Status"
+    },
+    "no_recent_activity": "No recent activity.",
+    "labels": {
+      "customer_name": "Customer / Company Name",
+      "logo_thumbnail": "Company Logo Thumbnail",
+      "assign_team": "Assign Team & Leads",
+      "target_location": "Target Location"
+    },
+    "placeholders": {
+      "customer_example": "E.g., COR Solutions",
+      "search_personnel": "Search personnel..."
+    },
+    "assigned": "Assigned",
+    "assign": "Assign",
+    "mark_as_lead": "Mark as Site Lead",
+    "confirm_pin": "Confirm Pin on Map",
+    "adjust_location": "Adjust Location",
+    "confirm_pin_placement": "Confirm Pin Placement",
+    "search_projects": "Search projects...",
+    "alerts": {
+      "exists": "A report already exists for {{project}} on {{date}}. Open it instead?",
+      "company_saved": "Company {{name}} saved successfully!",
+      "invalid_gps": "Please enter valid GPS coordinates (lat, lng) or a full address.",
+      "gps_not_supported": "Geolocation is not supported by your browser",
+      "location_error": "getting location",
+      "unresolved_identity": "Identity Unresolved",
+      "unresolved_identity_desc": "Your account email is not mapped to a personnel record. Please contact administration to link your profile.",
+      "visualizing_location": "Visualizing location based on provided address/coordinates. Confirm current pin position is correct."
+    }
   },
   "disciplines": {
     "civil": "Civil",
@@ -156,6 +195,8 @@
       "daily": "Daily Reports",
       "forms": "Forms"
     },
+    "category": "Category",
+    "labor_entries_count": "entries",
     "alerts": {
       "exists": "A report already exists for {{project}} on {{date}}. Open it instead?",
       "delete_confirm": "Delete this {{type}} permanently? This cannot be undone.",
@@ -177,7 +218,8 @@
       "submit": "Submit for Review",
       "reject_return": "Reject & Return to Draft",
       "approve_send": "Approve & Send to Customer",
-      "approve_report": "Approve Report"
+      "approve_report": "Approve Report",
+      "review_now": "Review Now"
     },
     "editor_sections": {
       "weather": "Weather",
@@ -662,5 +704,54 @@
     "spanish": "Español",
     "appearance": "Appearance",
     "notifications": "Notifications"
+  },
+  "notifications": {
+    "tool_expired": "Tool Expired",
+    "tool_expiring": "Tool Expiring Soon",
+    "cert_expired": "Certification Expired",
+    "cert_expiring": "Certification Expiring",
+    "report_approval": "Report Approval Required",
+    "review_required": "Review Required",
+    "expired_desc": "has expired",
+    "expires_in_days": "expires in {{days}} days",
+    "awaiting_review": "is awaiting your review",
+    "pending_approval": "is pending your approval",
+    "empty": "No new notifications",
+    "title_badge": "Alerts & Notifications"
+  },
+  "search": {
+    "placeholder": "Search projects, reports, people, tools...",
+    "placeholder_short": "Search projects, people, reports...",
+    "no_results": "No results for \"{{query}}\"",
+    "no_results_subtitle": "Try a different keyword or use Quick Actions",
+    "recent": "Recent",
+    "clear": "Clear",
+    "quick_actions": "Quick Actions",
+    "categories": {
+      "project": "Projects",
+      "report": "Reports",
+      "personnel": "Personnel",
+      "tool": "Tools",
+      "action": "Quick Actions",
+      "recent": "Recent"
+    },
+    "actions": {
+      "new_report_sub": "Create a new daily report",
+      "new_project_sub": "Create a new project",
+      "clock_in_sub": "GPS-verified attendance punch",
+      "go_projects": "Go to Projects",
+      "go_projects_sub": "View all active projects",
+      "go_reports": "Go to Reports",
+      "go_reports_sub": "View all field reports",
+      "go_personnel": "Go to Personnel",
+      "go_personnel_sub": "View team directory",
+      "go_analysis": "Go to Analysis",
+      "go_analysis_sub": "Project intelligence"
+    },
+    "footer": {
+      "navigate": "navigate",
+      "open": "open",
+      "close": "close"
+    }
   }
 }

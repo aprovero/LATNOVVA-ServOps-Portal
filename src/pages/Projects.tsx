@@ -195,7 +195,7 @@ export default function Projects() {
                             
                             {['Manager', 'Supervisor'].includes(userRole) && (
                                 <div className="space-y-1.5 flex-[0.8] min-w-[200px]">
-                                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Building2 size={12} /> Filter Customer</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Building2 size={12} /> {t('projects.filters.customer', 'Filter Customer')}</label>
                                     <div className="relative">
                                         <select 
                                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer"
@@ -212,7 +212,7 @@ export default function Projects() {
 
                             {['Manager', 'Supervisor'].includes(userRole) && (
                                 <div className="space-y-1.5 flex-[0.8] min-w-[150px]">
-                                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> Status</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> {t('common.status')}</label>
                                     <div className="relative">
                                         <select 
                                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer"
@@ -256,8 +256,8 @@ export default function Projects() {
                                                             {proj.name}
                                                         </Link>
                                                     )}
-                                                    <span className="text-xs text-gray-500 font-mono mt-0.5 block">
-                                                        {proj.id} • {proj.type === 'Complete' ? 'Turnkey' : proj.type}
+                                                    <span className="text-xs text-brand-teal font-mono font-bold mt-0.5 block">
+                                                        {proj.codeName || proj.id.split('-')[1] || proj.id.split('-')[0]} • {proj.type}
                                                     </span>
                                                     {proj.location && (
                                                         <div className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
@@ -278,17 +278,17 @@ export default function Projects() {
                                                                   'bg-status-error/10 text-status-error border-transparent'}`}
                                                             value={proj.status}
                                                             onChange={(e) => {
-                                                                alert(`Mock Status Update: Set to ${e.target.value}`)
+                                                                alert(`${t('common.success')}: ${e.target.value}`)
                                                             }}
                                                         >
-                                                            <option value="Active">Active</option>
-                                                            <option value="On Hold">On Hold</option>
-                                                            <option value="Completed">Completed</option>
+                                                            <option value="Active">{t('common.active')}</option>
+                                                            <option value="On Hold">{t('common.on_hold')}</option>
+                                                            <option value="Completed">{t('common.completed')}</option>
                                                         </select>
                                                     ) : (
                                                         <Badge variant={proj.status === 'Active' ? 'default' : proj.status === 'Completed' ? 'secondary' : 'destructive'}
                                                             className={proj.status === 'Active' ? 'bg-status-success/10 text-status-success hover:bg-status-success/20 border-none' : ''}>
-                                                            {proj.status}
+                                                            {proj.status === 'Active' ? t('common.active') : proj.status === 'Completed' ? t('common.completed') : t('common.on_hold')}
                                                         </Badge>
                                                     )}
                                                 </td>
@@ -328,12 +328,12 @@ export default function Projects() {
                                                     <FolderGit2 size={48} className="mx-auto mb-4 text-gray-300" />
                                                     <p className="text-lg font-bold text-accent-greyDark leading-tight">
                                                         {userRole === 'Tech' && !useStore.getState().resolvePersonnelId() 
-                                                            ? "Identity Unresolved" 
+                                                            ? t('projects.alerts.unresolved_identity', 'Identity Unresolved') 
                                                             : t('projects.empty.title', 'No projects found')}
                                                     </p>
                                                     <p className="text-sm mt-2 text-gray-400 max-w-xs mx-auto">
                                                         {userRole === 'Tech' && !useStore.getState().resolvePersonnelId() 
-                                                            ? "Your account email is not mapped to a personnel record. Please contact administration to link your profile." 
+                                                            ? t('projects.alerts.unresolved_identity_desc', 'Your account email is not mapped to a personnel record. Please contact administration to link your profile.') 
                                                             : t('projects.empty.subtitle', 'There are no active projects to display for the current filters.')}
                                                     </p>
                                                 </td>
@@ -381,7 +381,7 @@ export default function Projects() {
                                                 
                                                 {/* Action needed indicator */}
                                                 {report.state === 'Pending Manager Review' && ['Manager'].includes(userRole) && (
-                                                    <Button size="sm" variant="outline" className="h-7 text-xs border-brand-teal text-brand-teal hover:bg-brand-teal/10 rounded-lg" onClick={() => window.location.href = `/reports/${report.id}`}>Review Now</Button>
+                                                    <Button size="sm" variant="outline" className="h-7 text-xs border-brand-teal text-brand-teal hover:bg-brand-teal/10 rounded-lg" onClick={() => window.location.href = `/reports/${report.id}`}>{t('reports.actions.review_now', 'Review Now')}</Button>
                                                 )}
                                             </div>
                                         </div>
@@ -389,7 +389,7 @@ export default function Projects() {
                                     {recentReports.length === 0 && (
                                         <div className="p-8 text-center text-gray-500">
                                             <Clock size={32} className="mx-auto mb-3 text-gray-300" />
-                                            <p className="text-sm">No recent activity.</p>
+                                            <p className="text-sm">{t('projects.no_recent_activity', 'No recent activity.')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -403,20 +403,20 @@ export default function Projects() {
             <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Edit Customer ({editingClient?.name})</DialogTitle>
+                        <DialogTitle>{t('common.edit')} {t('projects.table.customer')} ({editingClient?.name})</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="editCustomerName">Customer / Company Name</Label>
+                            <Label htmlFor="editCustomerName">{t('projects.labels.customer_name', 'Customer / Company Name')}</Label>
                             <Input
                                 id="editCustomerName"
                                 value={editClientName}
                                 onChange={(e) => setEditClientName(e.target.value)}
-                                placeholder="E.g., COR Solutions"
+                                placeholder={t('projects.placeholders.customer_example', 'E.g., COR Solutions')}
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label>Company Logo Thumbnail</Label>
+                            <Label>{t('projects.labels.logo_thumbnail', 'Company Logo Thumbnail')}</Label>
                             <div className="flex items-center gap-4 mt-2">
                                 <div className="w-16 h-16 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal overflow-hidden border border-gray-100 shrink-0">
                                     {editClientLogo ? (
@@ -444,8 +444,8 @@ export default function Projects() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditingClient(null)}>Cancel</Button>
-                        <Button onClick={handleEditClientSubmit}>Save Changes</Button>
+                        <Button variant="outline" onClick={() => setEditingClient(null)}>{t('common.cancel')}</Button>
+                        <Button onClick={handleEditClientSubmit}>{t('common.save')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -454,32 +454,32 @@ export default function Projects() {
                 <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto rounded-3xl p-0 border-none shadow-2xl">
                     <div className="bg-brand-teal p-6 text-white">
                         <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                            <FolderGit2 size={24} /> Create New Project
+                            <FolderGit2 size={24} /> {t('projects.new_project')}
                         </DialogTitle>
-                        <p className="text-white/70 text-sm mt-1">Initialize a new operations tracking environment.</p>
+                        <p className="text-white/70 text-sm mt-1">{t('projects.subtitle')}</p>
                     </div>
                     <div className="p-6 space-y-5">
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="sm:col-span-2 space-y-2">
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Project Name</Label>
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('common.name')}</Label>
                                 <Input placeholder="e.g. Solar Site Alpha" value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} className="h-11 rounded-xl" />
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Client / Customer</Label>
+                             <div className="space-y-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('projects.table.customer')}</Label>
                                 <select 
                                     className="w-full bg-white border border-gray-200 rounded-xl px-3 h-11 text-sm outline-none focus:ring-2 focus:ring-brand-teal transition-all"
                                     value={newProject.clientId || ''}
                                     onChange={e => setNewProject({...newProject, clientId: e.target.value})}
                                 >
-                                    <option value="" disabled>Select Client...</option>
+                                    <option value="" disabled>{t('common.all_customers')}...</option>
                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Location / Coordinates</Label>
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('projects.location')}</Label>
                                 <div className="flex gap-2">
                                     <Input 
-                                        placeholder="Address or lat,lng" 
+                                        placeholder={t('projects.location')} 
                                         value={newProject.location || ''} 
                                         onChange={e => setNewProject({...newProject, location: e.target.value})} 
                                         className="h-11 rounded-xl flex-1"
@@ -497,7 +497,7 @@ export default function Projects() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">System Type</Label>
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('projects.system_type')}</Label>
                                 <select 
                                     className="w-full bg-white border border-gray-200 rounded-xl px-3 h-11 text-sm outline-none focus:ring-2 focus:ring-brand-teal transition-all"
                                     value={newProject.systemType || 'Solar'}
@@ -506,18 +506,18 @@ export default function Projects() {
                                     <option value="Solar">Solar</option>
                                     <option value="BESS">BESS</option>
                                     <option value="Hybrid">Hybrid</option>
-                                    <option value="Other">{t('common.other', 'Other')}</option>
+                                    <option value="Other">{t('common.other')}</option>
                                 </select>
                             </div>
                        </div>
 
                        <div className="space-y-4 pt-4 border-t border-gray-100">
                             <div>
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Assign Team & Leads</Label>
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">{t('projects.labels.assign_team', 'Assign Team & Leads')}</Label>
                                 <div className="relative mb-3">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                     <Input 
-                                        placeholder="Search personnel..." 
+                                        placeholder={t('projects.placeholders.search_personnel', 'Search personnel...')} 
                                         value={personnelSearch}
                                         onChange={e => setPersonnelSearch(e.target.value)}
                                         className="pl-10 h-10 rounded-xl bg-gray-50/50 border-gray-100"
@@ -582,7 +582,7 @@ export default function Projects() {
                                                                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                                                                     isLead ? 'bg-status-success text-white' : 'bg-gray-100 text-gray-300 hover:bg-gray-200'
                                                                 }`}
-                                                                title="Mark as Site Lead"
+                                                                title={t('projects.mark_as_lead', 'Mark as Site Lead')}
                                                             >
                                                                 <Target size={14} />
                                                             </button>
@@ -612,7 +612,7 @@ export default function Projects() {
                                 setIsAddProjectOpen(false);
                             }}
                         >
-                            Create Project
+                            {t('projects.new_project')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -623,7 +623,7 @@ export default function Projects() {
                 <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
                     <div className="bg-brand-teal p-5 text-white flex items-center justify-between">
                         <DialogTitle className="flex items-center gap-3 text-xl font-bold">
-                            <MapPin className="w-6 h-6" /> Confirm Pin on Map
+                            <MapPin className="w-6 h-6" /> {t('projects.confirm_pin', 'Confirm Pin on Map')}
                         </DialogTitle>
                     </div>
                     <div className="p-6 bg-white space-y-5">
@@ -632,7 +632,7 @@ export default function Projects() {
                                 <Search size={20} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Target Location</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('projects.labels.target_location', 'Target Location')}</p>
                                 <p className="text-accent-greyDark font-bold text-base">{newProject.location}</p>
                             </div>
                         </div>
@@ -653,7 +653,7 @@ export default function Projects() {
                         </div>
                         
                         <p className="text-xs text-gray-400 text-center italic bg-gray-50 py-2 rounded-lg border border-dashed border-gray-200">
-                             Visualizing location based on provided address/coordinates. Confirm current pin position is correct.
+                             {t('projects.alerts.visualizing_location', 'Visualizing location based on provided address/coordinates. Confirm current pin position is correct.')}
                         </p>
 
                         <div className="flex gap-4">
@@ -662,7 +662,7 @@ export default function Projects() {
                                 className="flex-1 h-12 rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold gap-2 shadow-soft"
                                 onClick={() => setIsValidatingNewMap(false)}
                             >
-                                <Check size={18} /> Confirm Pin Placement
+                                <Check size={18} /> {t('projects.confirm_pin_placement', 'Confirm Pin Placement')}
                             </Button>
                         </div>
                     </div>

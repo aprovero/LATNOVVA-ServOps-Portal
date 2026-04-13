@@ -37,7 +37,9 @@
     "spanish": "Español",
     "export": "Exportar",
     "preparing_pdf": "Preparando PDF...",
-    "download_pdf": "Descargar PDF"
+    "download_pdf": "Descargar PDF",
+    "install": "Instalar aplicación",
+    "install_title": "Instalar LATNOVVA Service Operations"
   },
   "nav": {
     "operations": "OPERACIONES",
@@ -47,20 +49,24 @@
     "projects": "Proyectos",
     "reports": "Reportes",
     "personnel": "Personal",
-    "timesheets": "Timesheet",
+    "timesheets": "Registro de Horas",
     "tools": "Herramientas",
     "analysis": "Análisis de datos",
     "calendar": "Calendario",
     "settings": "Configuración",
     "templates": "Plantillas",
-    "clock_in": "Registrar entrada"
+    "clock_in": "Registrar entrada",
+    "notifications": "Alertas y Notificaciones",
+    "preview_branding": "Vista previa de marca",
+    "my_profile": "Mi Perfil"
   },
   "auth": {
     "logout": "Cerrar sesión",
     "login": "Iniciar sesión",
     "role": "Rol",
     "admin": "Administración",
-    "hr": "RRHH (HR)"
+    "hr": "RRHH (HR)",
+    "god_mode_switch": "God Mode — Cambiar Rol"
   },
   "projects": {
     "title": "Proyectos",
@@ -113,6 +119,7 @@
     "scope_name_placeholder": "ej. Obra Civil, Comisionamiento...",
     "discipline": "Disciplina",
     "add_scope": "Agregar alcance",
+    "manage_scopes_source": "Seleccionar fuente de proyecto...",
     "activities_to_add": "Actividades a agregar",
     "add_scope_template": "Agregar alcance desde plantilla",
     "scope_name": "Nombre del alcance",
@@ -125,7 +132,39 @@
     "new_step_placeholder": "Nuevo paso...",
     "steps_completed": "pasos completados",
     "confirm_delete_activity": "¿Eliminar actividad \"{{title}}\"?",
-    "add_activity_placeholder": "Agregar una actividad (ej. Paso 1: Excavación)..."
+    "add_activity_placeholder": "Agregar una actividad (ej. Paso 1: Excavación)...",
+    "filters": {
+      "customer": "Filtrar Cliente",
+      "status": "Estado"
+    },
+    "no_recent_activity": "Sin actividad reciente.",
+    "labels": {
+      "customer_name": "Nombre de Cliente / Empresa",
+      "logo_thumbnail": "Logotipo de la empresa",
+      "assign_team": "Asignar Equipo y Líderes",
+      "target_location": "Ubicación de Destino"
+    },
+    "placeholders": {
+      "customer_example": "Ej., COR Solutions",
+      "search_personnel": "Buscar personal..."
+    },
+    "assigned": "Asignado",
+    "assign": "Asignar",
+    "mark_as_lead": "Marcar como Líder de Sitio",
+    "confirm_pin": "Confirmar Pin en el Mapa",
+    "adjust_location": "Ajustar ubicación",
+    "confirm_pin_placement": "Confirmar Colocación de Pin",
+    "search_projects": "Buscar proyectos...",
+    "alerts": {
+      "exists": "Ya existe un reporte para {{project}} en {{date}}. ¿Abrir ese en su lugar?",
+      "company_saved": "¡Empresa {{name}} guardada con éxito!",
+      "invalid_gps": "Ingrese coordenadas GPS válidas (lat, lng) o una dirección completa.",
+      "gps_not_supported": "La geolocalización no es soportada por su navegador",
+      "location_error": "obteniendo ubicación",
+      "unresolved_identity": "Identidad no Resuelta",
+      "unresolved_identity_desc": "Su correo electrónico no está vinculado a un registro de personal. Contacte a administración.",
+      "visualizing_location": "Visualizando ubicación basada en dirección/coordenadas. Confirme que la posición es correcta."
+    }
   },
   "disciplines": {
     "civil": "Obra Civil",
@@ -156,6 +195,8 @@
       "daily": "Reportes Diarios",
       "forms": "Formularios"
     },
+    "category": "Categoría",
+    "labor_entries_count": "entradas",
     "alerts": {
       "exists": "Ya existe un reporte para {{project}} el {{date}}. ¿Desea abrirlo?",
       "delete_confirm": "¿Eliminar este {{type}} permanentemente? Esta acción no se puede deshacer.",
@@ -177,7 +218,8 @@
       "submit": "Enviar a Revisión",
       "reject_return": "Rechazar y Devolver a Borrador",
       "approve_send": "Aprobar y Enviar al Cliente",
-      "approve_report": "Aprobar Reporte"
+      "approve_report": "Aprobar Reporte",
+      "review_now": "Revisar Ahora"
     },
     "editor_sections": {
       "weather": "Clima",
@@ -662,5 +704,54 @@
     "spanish": "Español",
     "appearance": "Apariencia",
     "notifications": "Notificaciones"
+  },
+  "notifications": {
+    "tool_expired": "Herramienta Expirada",
+    "tool_expiring": "Herramienta por Expirar",
+    "cert_expired": "Certificación Expirada",
+    "cert_expiring": "Certificación por Expirar",
+    "report_approval": "Aprobación de Reporte Requerida",
+    "review_required": "Revisión Requerida",
+    "expired_desc": "ha expirado",
+    "expires_in_days": "expira en {{days}} días",
+    "awaiting_review": "está esperando su revisión",
+    "pending_approval": "está pendiente de su aprobación",
+    "empty": "No hay notificaciones nuevas",
+    "title_badge": "Alertas y Notificaciones"
+  },
+  "search": {
+    "placeholder": "Buscar proyectos, reportes, personas, herramientas...",
+    "placeholder_short": "Buscar proyectos, personas, reportes...",
+    "no_results": "Sin resultados para \"{{query}}\"",
+    "no_results_subtitle": "Intente con otra palabra clave o use Acciones Rápidas",
+    "recent": "Reciente",
+    "clear": "Limpiar",
+    "quick_actions": "Acciones Rápidas",
+    "categories": {
+      "project": "Proyectos",
+      "report": "Reportes",
+      "personnel": "Personal",
+      "tool": "Herramientas",
+      "action": "Acciones Rápidas",
+      "recent": "Reciente"
+    },
+    "actions": {
+      "new_report_sub": "Crear un nuevo reporte diario",
+      "new_project_sub": "Crear un nuevo proyecto",
+      "clock_in_sub": "Marcaje de asistencia con GPS",
+      "go_projects": "Ir a Proyectos",
+      "go_projects_sub": "Ver todos los proyectos activos",
+      "go_reports": "Ir a Reportes",
+      "go_reports_sub": "Ver todos los reportes de campo",
+      "go_personnel": "Ir a Personal",
+      "go_personnel_sub": "Ver directorio del equipo",
+      "go_analysis": "Ir a Análisis",
+      "go_analysis_sub": "Inteligencia de proyectos"
+    },
+    "footer": {
+      "navigate": "navegar",
+      "open": "abrir",
+      "close": "cerrar"
+    }
   }
 }

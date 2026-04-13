@@ -320,7 +320,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                     <button 
                                                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                                                         onClick={() => {
-                                                            if (window.confirm(t('projects.confirm_delete_scope', { name: scope.name, defaultValue: `Are you sure you want to delete the scope "{{name}}" and all its activities?` }))) {
+                                                            if (window.confirm(t('projects.confirm_delete_scope', { name: scope.name }))) {
                                                                 deleteProjectScope(currentProject.id, scope.id);
                                                             }
                                                         }}
@@ -370,7 +370,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                         </div>
                                                                         
                                                                         <div className="space-y-1.5 pl-2">
-                                                                            <Label className="text-[10px] font-bold text-gray-400 uppercase">{t('reports.checklist', 'Checklist')} {t('reports.table.id', 'Steps')}</Label>
+                                                                            <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('reports.checklist', 'Checklist')} {t('reports.labels.id', 'ID')}</Label>
                                                                             <div className="space-y-1">
                                                                                 {editActivitySteps.map((step, idx) => (
                                                                                     <div key={idx} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-xs border border-gray-100">
@@ -424,7 +424,7 @@ export function ManageScopesModal({ open, onOpenChange, project }: ManageScopesM
                                                                         <button 
                                                                             className="p-1 text-gray-400 hover:text-red-500 rounded"
                                                                             onClick={() => {
-                                                                                if (window.confirm(t('projects.confirm_delete_activity', { title: act.title, defaultValue: `Delete activity "{{title}}"?` }))) {
+                                                                                if (window.confirm(t('projects.confirm_delete_activity', { title: act.title }))) {
                                                                                     deleteProjectActivity(currentProject.id, scope.id, act.id);
                                                                                 }
                                                                             }}

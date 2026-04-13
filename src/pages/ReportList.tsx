@@ -215,7 +215,7 @@ export default function ReportList() {
                                         value={newReportProject}
                                         onChange={e => setNewReportProject(e.target.value)}
                                     >
-                                        <option value="" disabled>{t('projects.manage_scopes.source')}</option>
+                                        <option value="" disabled>{t('projects.manage_scopes_source', 'Select Project Source...')}</option>
                                         {clients.map(client => {
                                             const cp = projects.filter(p => p.clientId === client.id && p.status === 'Active');
                                             if (!cp.length) return null;
@@ -251,7 +251,7 @@ export default function ReportList() {
                     </div>
                 </div>
                 <div className="space-y-1.5 min-w-[140px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><FileText size={12} /> {t('reports.category')}</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><FileText size={12} /> {t('reports.category', 'Category')}</label>
                     <div className="relative">
                         <select className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none" value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}>
                             <option value="All">{t('common.all')}</option>
@@ -285,7 +285,7 @@ export default function ReportList() {
                     {isProjectDropdownOpen && (
                         <div className="absolute top-full left-0 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                             <div className="p-2 border-b border-gray-100">
-                                <input type="text" placeholder={t('projects.manage_scopes.source')} className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-teal/50" value={projectSearchDropdown} onChange={e => setProjectSearchDropdown(e.target.value)} onClick={e => e.stopPropagation()} autoFocus />
+                                <input type="text" placeholder={t('projects.search_projects', 'Search projects...')} className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-teal/50" value={projectSearchDropdown} onChange={e => setProjectSearchDropdown(e.target.value)} onClick={e => e.stopPropagation()} autoFocus />
                             </div>
                             <div className="max-h-[240px] overflow-y-auto p-1">
                                 <div className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold ${projectFilter === 'All' ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`} onClick={() => { setProjectFilter('All'); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}>{t('projects.all_projects')}</div>

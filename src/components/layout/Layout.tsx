@@ -70,9 +70,9 @@ export default function Layout() {
             if (!tool.certificationExpiry) return;
             const daysLeft = differenceInDays(parseISO(tool.certificationExpiry), new Date());
             if (daysLeft < 0) {
-                notifications.push({ id: `t-exp-${tool.id}`, title: 'Tool Expired', message: `${tool.name} (${tool.serialNumber}) certification has expired.`, type: 'error', link: `/tools?q=${encodeURIComponent(tool.serialNumber)}` });
+                notifications.push({ id: `t-exp-${tool.id}`, title: t('notifications.tool_expired', 'Tool Expired'), message: `${tool.name} (${tool.serialNumber}) ${t('notifications.expired_desc', 'certification has expired')}.`, type: 'error', link: `/tools?q=${encodeURIComponent(tool.serialNumber)}` });
             } else if (daysLeft <= 30) {
-                notifications.push({ id: `t-warn-${tool.id}`, title: 'Tool Expiring Soon', message: `${tool.name} (${tool.serialNumber}) expires in ${daysLeft} days.`, type: 'warning', link: `/tools?q=${encodeURIComponent(tool.serialNumber)}` });
+                notifications.push({ id: `t-warn-${tool.id}`, title: t('notifications.tool_expiring', 'Tool Expiring Soon'), message: `${tool.name} (${tool.serialNumber}) ${t('notifications.expires_in_days', 'expires in {{days}} days', { days: daysLeft })}.`, type: 'warning', link: `/tools?q=${encodeURIComponent(tool.serialNumber)}` });
             }
         });
 
@@ -87,9 +87,9 @@ export default function Layout() {
                 if (!cert.expirationDate) return;
                 const daysLeft = differenceInDays(parseISO(cert.expirationDate), new Date());
                 if (daysLeft < 0) {
-                    notifications.push({ id: `p-exp-${person.id}-${cert.name}`, title: 'Certification Expired', message: `${person.name}'s ${cert.name} has expired.`, type: 'error', link: `/personnel?q=${encodeURIComponent(person.name)}` });
+                    notifications.push({ id: `p-exp-${person.id}-${cert.name}`, title: t('notifications.cert_expired', 'Certification Expired'), message: `${person.name}'s ${cert.name} ${t('notifications.expired_desc', 'has expired')}.`, type: 'error', link: `/personnel?q=${encodeURIComponent(person.name)}` });
                 } else if (daysLeft <= 30) {
-                    notifications.push({ id: `p-warn-${person.id}-${cert.name}`, title: 'Certification Expiring', message: `${person.name}'s ${cert.name} expires in ${daysLeft} days.`, type: 'warning', link: `/personnel?q=${encodeURIComponent(person.name)}` });
+                    notifications.push({ id: `p-warn-${person.id}-${cert.name}`, title: t('notifications.cert_expiring', 'Certification Expiring'), message: `${person.name}'s ${cert.name} ${t('notifications.expires_in_days', 'expires in {{days}} days', { days: daysLeft })}.`, type: 'warning', link: `/personnel?q=${encodeURIComponent(person.name)}` });
                 }
             });
         });
@@ -99,8 +99,8 @@ export default function Layout() {
             pendingReports.forEach(r => {
                 notifications.push({
                     id: `rep-mgr-${r.id}`,
-                    title: 'Report Approval Required',
-                    message: `Report ${r.id} (${r.projectName}) is awaiting your review.`,
+                    title: t('notifications.report_approval', 'Report Approval Required'),
+                    message: `${t('reports.report')} ${r.id} (${r.projectName}) ${t('notifications.awaiting_review', 'is awaiting your review')}.`,
                     type: 'warning',
                     link: `/reports/${r.id}`
                 });
@@ -111,8 +111,8 @@ export default function Layout() {
         pendingReports.forEach(r => {
             notifications.push({
                 id: `rep-cust-${r.id}`,
-                title: 'Review Required',
-                message: `Report ${r.id} for project ${r.projectName} is pending your approval.`,
+                title: t('notifications.review_required', 'Review Required'),
+                message: `${t('reports.report')} ${r.id} ${t('common.for')} ${t('projects.table.project')} ${r.projectName} ${t('notifications.pending_approval', 'is pending your approval')}.`,
                 type: 'warning',
                 link: `/reports/${r.id}`
             });
@@ -167,7 +167,7 @@ export default function Layout() {
         setIsCreateCustomerOpen(false);
         setNewCustomerName('');
         setNewCustomerLogo('');
-        alert(`Company ${newCustomerName} saved successfully!`);
+        alert(t('projects.alerts.company_saved', 'Company {{name}} saved successfully!', { name: newCustomerName }));
     };
 
     const handleCreateProject = () => {
@@ -177,7 +177,7 @@ export default function Layout() {
         if (newProjectLocation) {
             const isCoord = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(newProjectLocation.trim());
             if (!isCoord && newProjectLocation.trim().length < 5) {
-                setLocationError("Please enter valid GPS coordinates (lat, lng) or a full address.");
+                setLocationError(t('projects.alerts.invalid_gps', 'Please enter valid GPS coordinates (lat, lng) or a full address.'));
                 return;
             }
         }
@@ -212,7 +212,7 @@ export default function Layout() {
 
     const handleGetGPS = () => {
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser');
+            alert(t('projects.alerts.gps_not_supported', 'Geolocation is not supported by your browser'));
             return;
         }
         navigator.geolocation.getCurrentPosition(
@@ -220,7 +220,7 @@ export default function Layout() {
                 setNewProjectLocation(`${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`);
             },
             (error) => {
-                alert(`Error getting location: ${error.message}`);
+                alert(`${t('common.error')} ${t('projects.alerts.location_error', 'getting location')}: ${error.message}`);
             }
         );
     };
@@ -324,7 +324,7 @@ export default function Layout() {
                                     ? (GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole)
                                     : useStore.getState().getCurrentUserName()}
                             </p>
-                            <p className="text-xs text-gray-400">{userRole}</p>
+                            <p className="text-xs text-gray-400 capitalize">{t(`auth.${userRole.toLowerCase()}`, userRole)}</p>
                         </div>
                     </div>
                 </div>
@@ -359,7 +359,7 @@ export default function Layout() {
                                 title="Install LATNOVVA Service Operations as an app"
                             >
                                 <Download size={13} className="shrink-0 group-hover:translate-y-0.5 transition-transform" />
-                                <span className="text-xs font-semibold">Install App</span>
+                                <span className="text-xs font-semibold">{t('common.install', 'Install App')}</span>
                             </button>
                         )}
 
@@ -379,7 +379,7 @@ export default function Layout() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52 rounded-xl border-amber-100 shadow-xl">
                                 <DropdownMenuLabel className="flex items-center gap-2 text-amber-700">
-                                    <Zap size={12} className="text-amber-500" /> God Mode — Switch Role
+                                    <Zap size={12} className="text-amber-500" /> {t('auth.god_mode_switch', 'God Mode — Switch Role')}
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {(Object.entries(GOD_MODE_PERSONAS) as [keyof typeof GOD_MODE_PERSONAS, typeof GOD_MODE_PERSONAS[keyof typeof GOD_MODE_PERSONAS]][]).map(([role, persona]) => (
@@ -409,10 +409,10 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-80 rounded-xl border-gray-100 shadow-xl max-h-[400px] overflow-y-auto">
-                                <DropdownMenuLabel>Alerts & Notifications</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t('notifications.title_badge', 'Alerts & Notifications')}</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {notifications.length === 0 ? (
-                                    <div className="p-4 text-center text-sm text-gray-500">No new notifications</div>
+                                    <div className="p-4 text-center text-sm text-gray-500">{t('notifications.empty', 'No new notifications')}</div>
                                 ) : (
                                     notifications.map(n => (
                                         <div 
@@ -455,12 +455,17 @@ export default function Layout() {
                                         </DropdownMenuItem>
                                         {isGodMode && (
                                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
-                                                <Play size={14} className="text-brand-teal" /> Preview Branding
+                                                <Play size={14} className="text-brand-teal" /> {t('nav.preview_branding', 'Preview Branding')}
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuSeparator />
                                     </>
                                 )}
+
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${userId}`)}>
+                                    <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
 
                                 <DropdownMenuItem 
                                     className="cursor-pointer flex items-center justify-center p-0 hover:bg-transparent focus:bg-transparent" 
@@ -507,7 +512,7 @@ export default function Layout() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-52 rounded-xl border-amber-100 shadow-xl">
                                     <DropdownMenuLabel className="flex items-center gap-2 text-amber-700">
-                                        <Zap size={12} className="text-amber-500" /> God Mode — Switch Role
+                                        <Zap size={12} className="text-amber-500" /> {t('auth.god_mode_switch', 'God Mode — Switch Role')}
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {(Object.entries(GOD_MODE_PERSONAS) as [keyof typeof GOD_MODE_PERSONAS, typeof GOD_MODE_PERSONAS[keyof typeof GOD_MODE_PERSONAS]][]).map(([role, persona]) => (
@@ -530,8 +535,8 @@ export default function Layout() {
                                 id="pwa-install-btn-mobile"
                                 onClick={() => triggerInstall()}
                                 className="p-2 text-brand-teal rounded-full bg-brand-teal/10 hover:bg-brand-teal/20 transition-colors"
-                                aria-label="Install app"
-                                title="Install LATNOVVA Service Operations"
+                                aria-label={t('common.install')}
+                                title={t('common.install_title', 'Install LATNOVVA Service Operations')}
                             >
                                 <Download size={18} />
                             </button>
@@ -555,10 +560,10 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-80 rounded-xl border-gray-100 shadow-xl max-h-[400px] overflow-y-auto">
-                                <DropdownMenuLabel>Alerts & Notifications</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t('nav.notifications', 'Alerts & Notifications')}</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {notifications.length === 0 ? (
-                                    <div className="p-4 text-center text-sm text-gray-500">No new notifications</div>
+                                    <div className="p-4 text-center text-sm text-gray-500">{t('notifications.empty', 'No new notifications')}</div>
                                 ) : (
                                     notifications.map(n => (
                                         <div 
@@ -603,9 +608,13 @@ export default function Layout() {
                                         </DropdownMenuItem>
                                         {isGodMode && (
                                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
-                                                <Play size={14} className="text-brand-teal" /> Preview Branding
+                                                <Play size={14} className="text-brand-teal" /> {t('nav.preview_branding', 'Preview Branding')}
                                             </DropdownMenuItem>
                                         )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${userId}`)}>
+                                            <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
+                                        </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                     </>
                                 )}

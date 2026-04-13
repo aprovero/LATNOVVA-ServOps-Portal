@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import Fuse from 'fuse.js';
 import {
@@ -56,14 +57,14 @@ function clearRecent() {
 
 // ─── Category Config ─────────────────────────────────────────────────────────
 
-const CATEGORY_CONFIG: Record<ResultCategory, { label: string; icon: React.ElementType; color: string; bg: string }> = {
-    project:   { label: 'Projects',     icon: Folder,   color: 'text-blue-600',    bg: 'bg-blue-50' },
-    report:    { label: 'Reports',      icon: FileText, color: 'text-violet-600',  bg: 'bg-violet-50' },
-    personnel: { label: 'Personnel',    icon: User,     color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    tool:      { label: 'Tools',        icon: Wrench,   color: 'text-amber-600',   bg: 'bg-amber-50' },
-    action:    { label: 'Quick Actions',icon: Zap,      color: 'text-brand-teal',  bg: 'bg-teal-50' },
-    recent:    { label: 'Recent',       icon: Clock,    color: 'text-gray-500',    bg: 'bg-gray-100' },
-};
+const CATEGORY_CONFIG: (t: any) => Record<ResultCategory, { label: string; icon: React.ElementType; color: string; bg: string }> = (t) => ({
+    project:   { label: t('search.categories.project', 'Projects'),     icon: Folder,   color: 'text-blue-600',    bg: 'bg-blue-50' },
+    report:    { label: t('search.categories.report', 'Reports'),      icon: FileText, color: 'text-violet-600',  bg: 'bg-violet-50' },
+    personnel: { label: t('search.categories.personnel', 'Personnel'),    icon: User,     color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    tool:      { label: t('search.categories.tool', 'Tools'),        icon: Wrench,   color: 'text-amber-600',   bg: 'bg-amber-50' },
+    action:    { label: t('search.categories.action', 'Quick Actions'),icon: Zap,      color: 'text-brand-teal',  bg: 'bg-teal-50' },
+    recent:    { label: t('search.categories.recent', 'Recent'),       icon: Clock,    color: 'text-gray-500',    bg: 'bg-gray-100' },
+});
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -92,8 +93,10 @@ export default function CommandSearch({
     onOpenChange,
     isGlobal = false,
 }: CommandSearchProps) {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { projects, reports, personnel, tools, clients, userRole } = useStore();
+    const config = CATEGORY_CONFIG(t);
 
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     
@@ -157,16 +160,16 @@ export default function CommandSearch({
             actions.push({
                 id: 'qa-new-report',
                 category: 'action',
-                title: 'New Report',
-                subtitle: 'Create a new daily report',
+                title: t('reports.new_report'),
+                subtitle: t('search.actions.new_report_sub'),
                 path: '',
                 action: () => { setIsActuallyOpen(false); onNewReport(); },
             });
             actions.push({
                 id: 'qa-new-project',
                 category: 'action',
-                title: 'New Project',
-                subtitle: 'Create a new project',
+                title: t('projects.new_project'),
+                subtitle: t('search.actions.new_project_sub'),
                 path: '',
                 action: () => { setIsActuallyOpen(false); onNewProject(); },
             });
@@ -175,19 +178,19 @@ export default function CommandSearch({
             actions.push({
                 id: 'qa-clock-in',
                 category: 'action',
-                title: 'Clock In',
-                subtitle: 'GPS-verified attendance punch',
+                title: t('attendance.labels.my_checkin'),
+                subtitle: t('search.actions.clock_in_sub'),
                 path: '/clock-in',
             });
         }
         actions.push(
-            { id: 'qa-projects',  category: 'action', title: 'Go to Projects',  subtitle: 'View all active projects', path: '/projects' },
-            { id: 'qa-reports',   category: 'action', title: 'Go to Reports',   subtitle: 'View all field reports',   path: '/reports' },
+            { id: 'qa-projects',  category: 'action', title: t('search.actions.go_projects'),  subtitle: t('search.actions.go_projects_sub'), path: '/projects' },
+            { id: 'qa-reports',   category: 'action', title: t('search.actions.go_reports'),   subtitle: t('search.actions.go_reports_sub'),   path: '/reports' },
         );
         if (['Supervisor', 'Manager'].includes(userRole)) {
             actions.push(
-                { id: 'qa-personnel', category: 'action', title: 'Go to Personnel', subtitle: 'View team directory', path: '/personnel' },
-                { id: 'qa-analysis',  category: 'action', title: 'Go to Analysis',  subtitle: 'Project intelligence', path: '/analysis' },
+                { id: 'qa-personnel', category: 'action', title: t('search.actions.go_personnel'), subtitle: t('search.actions.go_personnel_sub'), path: '/personnel' },
+                { id: 'qa-analysis',  category: 'action', title: t('search.actions.go_analysis'),  subtitle: t('search.actions.go_analysis_sub'), path: '/analysis' },
             );
         }
         return actions;
@@ -353,7 +356,7 @@ export default function CommandSearch({
                     className="relative flex items-center gap-3 w-full max-w-md px-4 h-10 bg-gray-50 border border-gray-200 rounded-xl text-gray-400 text-sm hover:border-brand-teal/40 hover:bg-white transition-all duration-200 group hidden lg:flex"
                 >
                     <Search size={16} className="text-gray-400 group-hover:text-brand-teal transition-colors shrink-0" />
-                    <span className="flex-1 text-left">Search projects, people, reports...</span>
+                    <span className="flex-1 text-left">{t('search.placeholder_short')}</span>
                     <kbd className="hidden xl:flex items-center gap-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono text-gray-400 shadow-sm">
                         <span className="text-[9px]">⌘</span>K
                     </kbd>
@@ -385,7 +388,7 @@ export default function CommandSearch({
                                 value={query}
                                 onChange={e => setQuery(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Search projects, reports, people, tools..."
+                                placeholder={t('search.placeholder')}
                                 className="flex-1 text-base text-gray-800 placeholder-gray-400 outline-none bg-transparent font-medium"
                                 autoComplete="off"
                                 spellCheck={false}
@@ -409,16 +412,16 @@ export default function CommandSearch({
                                     {recent.length > 0 && (
                                         <div className="pt-2 pb-1">
                                             <div className="flex items-center justify-between px-4 py-1.5">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Recent</span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('search.recent')}</span>
                                                 <button
                                                     onClick={() => { clearRecent(); setRecent([]); }}
                                                     className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
                                                 >
-                                                    Clear
+                                                    {t('search.clear')}
                                                 </button>
                                             </div>
                                             {recent.map((item, idx) => {
-                                                const cfg = CATEGORY_CONFIG[item.category];
+                                                const cfg = config[item.category];
                                                 const Icon = cfg.icon;
                                                 const flatIdx = idx;
                                                 return (
@@ -441,7 +444,7 @@ export default function CommandSearch({
                                     {/* Quick Actions */}
                                     <div className="pt-2 pb-3">
                                         <div className="px-4 py-1.5">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quick Actions</span>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('search.quick_actions')}</span>
                                         </div>
                                         {quickActions().map((item, idx) => {
                                             const flatIdx = recent.length + idx;
@@ -468,8 +471,8 @@ export default function CommandSearch({
                                 <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
                                     <Hash size={32} className="text-gray-200" />
                                     <div className="text-center">
-                                        <p className="text-sm font-semibold text-gray-500">No results for "{query}"</p>
-                                        <p className="text-xs mt-1">Try a different keyword or use Quick Actions</p>
+                                        <p className="text-sm font-semibold text-gray-500">{t('search.no_results', { query })}</p>
+                                        <p className="text-xs mt-1">{t('search.no_results_subtitle')}</p>
                                     </div>
                                 </div>
                             )}
@@ -482,7 +485,7 @@ export default function CommandSearch({
                                 return order.map(cat => {
                                     const items = groups[cat];
                                     if (items.length === 0) return null;
-                                    const cfg = CATEGORY_CONFIG[cat];
+                                    const cfg = config[cat];
                                     const Icon = cfg.icon;
 
                                     return (
@@ -515,9 +518,9 @@ export default function CommandSearch({
                         {/* Footer */}
                         <div className="px-4 py-2.5 border-t border-gray-100 flex items-center justify-between bg-gray-50/60">
                             <div className="flex items-center gap-3 text-[11px] text-gray-400 font-medium">
-                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">↑↓</kbd> navigate</span>
-                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">↵</kbd> open</span>
-                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">esc</kbd> close</span>
+                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">↑↓</kbd> {t('search.footer.navigate')}</span>
+                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">↵</kbd> {t('search.footer.open')}</span>
+                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">esc</kbd> {t('search.footer.close')}</span>
                             </div>
                             <span className="text-[10px] text-gray-300 font-mono">⌘K</span>
                         </div>
