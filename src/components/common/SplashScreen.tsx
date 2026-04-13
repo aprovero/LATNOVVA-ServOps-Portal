@@ -94,8 +94,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                         ))}
                     </div>
 
-                    {/* Concentric Circles (The "O") - Tight gap as requested */}
-                    <div className="relative w-14 h-14 sm:w-24 sm:h-24 flex items-center justify-center p-0.5 bg-white rounded-full z-10 -ml-1 sm:-ml-2">
+                    {/* Concentric Circles (The "O") - Tightened gap further to match VVA spacing (compensating for N's tracking) */}
+                    <div className="relative w-14 h-14 sm:w-24 sm:h-24 flex items-center justify-center p-0.5 bg-white rounded-full z-10 -ml-2 sm:-ml-5">
                         <img 
                             id="rings-logo"
                             src="/latnovva-O-logo.png" 
@@ -117,8 +117,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
                 </div>
 
-                {/* Subtitle - Now vertically aligned with the "L" of LATN */}
-                <div className="brand-subtitle mt-4 sm:mt-6 text-xs sm:text-base font-semibold tracking-[0.4em] text-accent-greyLight uppercase opacity-80 font-['Outfit']">
+                {/* Subtitle - 25% larger and moved closer to the logo line */}
+                <div className="brand-subtitle mt-2 sm:mt-3 text-[0.95rem] sm:text-xl font-semibold tracking-[0.4em] text-accent-greyLight uppercase opacity-80 font-['Outfit']">
                     Service Operations
                 </div>
             </div>
