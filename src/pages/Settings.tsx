@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
 import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS } from '../components/auth/AuthRoute';
