@@ -25,22 +25,31 @@ export default function Settings() {
     
     // Auto-detect existing Microsoft session on mount
     useEffect(() => {
+        let isMounted = true;
         const detectSession = async () => {
             try {
+                // Ensure MSAL is initialized and any redirects are handled
                 await ensureInitialized();
+                
+                if (!isMounted) return;
+
                 const accounts = msalInstance.getAllAccounts();
-                if (accounts.length > 0 && !microsoftAuth.isAuthenticated) {
-                    setMicrosoftAuth({
-                        isAuthenticated: true,
-                        userEmail: accounts[0].username
-                    });
+                if (accounts.length > 0) {
+                    // Update store if not already set or if email changed
+                    if (!microsoftAuth.isAuthenticated || microsoftAuth.userEmail !== accounts[0].username) {
+                        setMicrosoftAuth({
+                            isAuthenticated: true,
+                            userEmail: accounts[0].username
+                        });
+                    }
                 }
             } catch (err) {
                 console.error('Failed to detect MS session:', err);
             }
         };
         detectSession();
-    }, [microsoftAuth.isAuthenticated, setMicrosoftAuth]);
+        return () => { isMounted = false; };
+    }, [setMicrosoftAuth, microsoftAuth.isAuthenticated, microsoftAuth.userEmail]);
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
@@ -86,28 +95,37 @@ export default function Settings() {
     const [isSaving, setIsSaving] = useState(false);
 
     const handleLinkAccount = async () => {
+        if (isLinking) return;
         setIsLinking(true);
         try {
             await ensureInitialized();
             
-            // If we already have an account, just use it
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
+            // Check if account already exists
+            const currentAccounts = msalInstance.getAllAccounts();
+            if (currentAccounts.length > 0) {
                 setMicrosoftAuth({ 
                     isAuthenticated: true, 
-                    userEmail: accounts[0].username 
+                    userEmail: currentAccounts[0].username 
                 });
                 return;
             }
 
-            const response = await msalInstance.loginPopup(loginRequest);
-            setMicrosoftAuth({ 
-                isAuthenticated: true, 
-                userEmail: response.account.username 
+            // Start login flow
+            const response = await msalInstance.loginPopup({
+                ...loginRequest,
+                prompt: 'select_account' // Force account selection to avoid auto-login-loop
             });
+            
+            if (response && response.account) {
+                setMicrosoftAuth({ 
+                    isAuthenticated: true, 
+                    userEmail: response.account.username 
+                });
+            }
         } catch (error: any) {
             console.error('MS auth error:', error);
-            if (error.name !== 'BrowserAuthError' && !error.message.includes('popup_window_error')) {
+            // Ignore popup closed errors
+            if (error.name !== 'BrowserAuthError' && !error.message.includes('user_cancelled')) {
                 alert('Authentication failed: ' + error.message);
             }
         } finally {

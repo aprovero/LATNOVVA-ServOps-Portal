@@ -10,16 +10,15 @@ export const msalConfig: Configuration = {
         redirectUri: window.location.origin,
     },
     cache: {
-        cacheLocation: 'sessionStorage',
+        cacheLocation: 'localStorage',
     },
     system: {
         loggerOptions: {
             loggerCallback: (_level, message, containsPii) => {
                 if (containsPii) return;
-                // Log all MSAL messages for debugging the popup issue
                 console.log(`[MSAL] ${message}`);
             },
-            logLevel: LogLevel.Verbose // High detail to find the redirect issue
+            logLevel: LogLevel.Info 
         }
     }
 };
@@ -41,6 +40,15 @@ let isInitialized = false;
 export async function ensureInitialized() {
     if (!isInitialized) {
         await msalInstance.initialize();
+        // Crucial: Handle the redirect promise to clear the hash and handle the response
+        try {
+            const redirectResult = await msalInstance.handleRedirectPromise();
+            if (redirectResult) {
+                console.log('[MSAL] Handle redirect success:', redirectResult.account?.username);
+            }
+        } catch (err) {
+            console.error('[MSAL] Handle redirect error:', err);
+        }
         isInitialized = true;
     }
 }
