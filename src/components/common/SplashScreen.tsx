@@ -104,8 +104,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                         />
                     </div>
 
-                    {/* VVA letters - Tight gap */}
-                    <div className="flex -ml-1 sm:-ml-2">
+                    {/* VVA letters - Adjusted gap to prevent logo overlap */}
+                    <div className="flex -ml-0.5 sm:-ml-1">
                         {['V', 'V', 'A'].map((char, i) => (
                             <span 
                                 key={`suffix-${i}`} 

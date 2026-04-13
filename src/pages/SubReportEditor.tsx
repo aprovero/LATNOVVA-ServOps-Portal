@@ -83,7 +83,7 @@ export default function SubReportEditor() {
                 <div className="flex items-center gap-3">
                     <PDFDownloadLink
                         document={<PrintableSubReportTemplate subReport={subReport} />}
-                        fileName={`Form_${subReport.templateName.replace(/\s+/g, '_')}_${subReport.id}.pdf`}
+                        fileName={`${parentReport.projectId}_${parentReport.date}_Form_${subReport.templateName.replace(/\s+/g, '_')}_${subReport.id.substring(0, 8)}.pdf`}
                     >
                         {/* @ts-ignore */}
                         {({ loading }) => (

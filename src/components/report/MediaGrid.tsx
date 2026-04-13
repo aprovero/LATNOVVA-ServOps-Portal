@@ -3,7 +3,7 @@ import { Image as ImageIcon, UploadCloud, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useStore, Report } from '../../store/useStore';
-import { uploadToSharePoint, getFileThumbnail } from '../../lib/microsoftGraph';
+import { uploadToDrive, getFileThumbnail } from '../../lib/microsoftGraph';
 
 interface MediaItem {
     id: string;
@@ -100,27 +100,31 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
             const blob = await response.blob();
             
             // Generate semantic filename: Project_Date_Description_ID.jpg
-            const sanitizedProj = report.projectName.replace(/[^a-z0-9]/gi, '_');
             const sanitizedDesc = item.description.replace(/[^a-z0-9]/gi, '_');
-            const filename = `${sanitizedProj}_${report.date}_${sanitizedDesc}_${item.id.substr(-6)}.jpg`;
+            const reportIdShort = report.id.substring(0, 8);
+            const projectIdSlug = report.projectId.replace(/[^a-z0-9]/gi, '_');
             
+            // ISO Filename: [ProjectID]_[Date]_[ReportID]_[Description]_[Seq].jpg
+            const filename = `${projectIdSlug}_${report.date}_${reportIdShort}_${sanitizedDesc}_${item.id.substring(-6)}.jpg`;
+            
+            // ISO Structure: ROOT/[ProjectID]/[Date]/[ReportID]/[Filename]
             const folderPath = sharepointConfig.folderPath 
-                ? `${sharepointConfig.folderPath}/${sanitizedProj}/${report.date}`
-                : `${sanitizedProj}/${report.date}`;
-
-            const uploadResult = await uploadToSharePoint(
-                sharepointConfig.siteId,
+                ? `${sharepointConfig.folderPath}/${projectIdSlug}/${report.date}/${reportIdShort}`
+                : `${projectIdSlug}/${report.date}/${reportIdShort}`;
+            
+            const uploadResult = await uploadToDrive(
                 sharepointConfig.driveId,
                 folderPath,
                 filename,
-                blob
+                blob,
+                sharepointConfig.siteId || undefined
             );
 
             // Fetch thumbnail
             const thumbUrl = await getFileThumbnail(
-                sharepointConfig.siteId,
                 sharepointConfig.driveId,
-                uploadResult.id
+                uploadResult.id,
+                sharepointConfig.siteId || undefined
             );
 
             // Update item with SharePoint info and clear local storage

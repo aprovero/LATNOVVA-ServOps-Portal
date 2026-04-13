@@ -38,12 +38,13 @@ export const msalConfig: Configuration = {
 export const msalInstance = new PublicClientApplication(msalConfig);
 
 export const loginRequest = {
-    scopes: ['User.Read', 'Files.ReadWrite.All', 'Sites.ReadWrite.All']
+    scopes: ['User.Read', 'Files.ReadWrite']
 };
 
 export const graphConfig = {
     graphMeEndpoint: 'https://graph.microsoft.com/v1.0/me',
-    graphSitesEndpoint: 'https://graph.microsoft.com/v1.0/sites'
+    graphSitesEndpoint: 'https://graph.microsoft.com/v1.0/sites',
+    graphDrivesEndpoint: 'https://graph.microsoft.com/v1.0/drives'
 };
 
 let isInitialized = false;
@@ -100,6 +101,20 @@ export async function discoverSiteId(siteUrl: string) {
 }
 
 /**
+ * Fetches the primary Drive ID for the currently signed-in user (Personal/Business OneDrive).
+ */
+export async function getMeDrive() {
+    const token = await getGraphToken();
+    const response = await fetch(`${graphConfig.graphMeEndpoint}/drive`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!response.ok) throw new Error('Failed to fetch OneDrive ID');
+    const data = await response.json();
+    return data.id;
+}
+
+/**
  * Fetches the default Drive (Document Library) for a Site.
  */
 export async function getSiteDrive(siteId: string) {
@@ -114,21 +129,24 @@ export async function getSiteDrive(siteId: string) {
 }
 
 /**
- * Uploads a file to SharePoint.
+ * Uploads a file to a Microsoft Graph Drive (SharePoint or OneDrive).
  */
-export async function uploadToSharePoint(
-    siteId: string, 
+export async function uploadToDrive(
     driveId: string, 
     folderPath: string, 
     filename: string, 
-    file: File | Blob
+    file: File | Blob,
+    siteId?: string
 ) {
     const token = await getGraphToken();
-    
-    // SharePoint uses /document/path:/content for small file uploads (<4MB)
-    // For larger files, an upload session should be created, but for photos <5MB, simple upload is usually fine.
     const encodedPath = encodeURIComponent(folderPath ? `${folderPath}/${filename}` : filename);
-    const uploadUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${encodedPath}:/content`;
+    
+    // Use site-specific or generic drive endpoint
+    const baseUrl = siteId 
+        ? `${graphConfig.graphSitesEndpoint}/${siteId}/drives/${driveId}`
+        : `${graphConfig.graphDrivesEndpoint}/${driveId}`;
+        
+    const uploadUrl = `${baseUrl}/root:/${encodedPath}:/content`;
     
     const response = await fetch(uploadUrl, {
         method: 'PUT',
@@ -141,23 +159,28 @@ export async function uploadToSharePoint(
     
     if (!response.ok) {
         const err = await response.json();
-        throw new Error(`SharePoint upload failed: ${err.error?.message || response.statusText}`);
+        throw new Error(`Upload failed: ${err.error?.message || response.statusText}`);
     }
     
-    return await response.json(); // Returns the DriveItem object with webUrl and id
+    return await response.json();
 }
 
 /**
  * Fetches a thumbnail URL for a DriveItem.
  */
-export async function getFileThumbnail(siteId: string, driveId: string, itemId: string) {
+export async function getFileThumbnail(driveId: string, itemId: string, siteId?: string) {
     const token = await getGraphToken();
-    const url = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${itemId}/thumbnails/0/large/url`;
+    
+    const baseUrl = siteId 
+        ? `${graphConfig.graphSitesEndpoint}/${siteId}/drives/${driveId}`
+        : `${graphConfig.graphDrivesEndpoint}/${driveId}`;
+        
+    const url = `${baseUrl}/items/${itemId}/thumbnails/0/large/url`;
     
     const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
     });
     
     if (!response.ok) return null;
-    return await response.text(); // Returns the raw thumbnail URL
+    return await response.text();
 }

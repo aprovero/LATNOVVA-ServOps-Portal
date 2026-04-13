@@ -745,7 +745,7 @@ export default function ReportEditor() {
                     </div>
                     <PDFDownloadLink 
                         document={<PrintableReportTemplate report={report} />} 
-                        fileName={`${project?.codeName ? `${project.codeName.replace(/\s+/g, '_')}_` : ''}LATNOVVA_Report_${report.id}.pdf`}
+                        fileName={`${report.projectId}_${report.date}_${report.id.substring(0, 8)}_FINAL.pdf`}
                     >
                         {({ loading }) => (
                             <button className="bg-white/10 hover:bg-white/20 text-white py-2 px-6 rounded-xl font-semibold transition-colors flex items-center gap-2" disabled={loading}>
@@ -761,7 +761,7 @@ export default function ReportEditor() {
                 <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                     <PDFDownloadLink 
                         document={<PrintableReportTemplate report={report} />} 
-                        fileName={`${project?.codeName ? `${project.codeName.replace(/\s+/g, '_')}_` : ''}LATNOVVA_Report_${report.state.replace(/\s+/g, '_')}_${report.id}.pdf`}
+                        fileName={`${report.projectId}_${report.date}_${report.id.substring(0, 8)}_${report.state.replace(/\s+/g, '_')}.pdf`}
                     >
                         {({ loading }) => (
                             <button className="w-full md:w-auto btn-secondary text-brand-teal border-brand-teal/20 bg-brand-teal/5 hover:bg-brand-teal/10 flex items-center justify-center gap-2" disabled={loading}>

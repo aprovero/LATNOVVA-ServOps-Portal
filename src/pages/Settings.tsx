@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS } from '../components/auth/AuthRoute';
 import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { msalInstance, loginRequest, discoverSiteId, getSiteDrive } from '../lib/microsoftGraph';
+import { msalInstance, loginRequest, discoverSiteId, getSiteDrive, getMeDrive } from '../lib/microsoftGraph';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -82,17 +82,13 @@ export default function Settings() {
     };
 
     const handleDiscover = async () => {
-        if (!sharepointConfig.siteUrl) {
-            alert(t('settings.cloud.url_required'));
-            return;
-        }
         setIsDiscovering(true);
         try {
-            const siteId = await discoverSiteId(sharepointConfig.siteUrl);
-            const driveId = await getSiteDrive(siteId);
-            setSharepointConfig({ siteId, driveId });
+            // For Personal OneDrive, we just fetch the user's primary drive
+            const driveId = await getMeDrive();
+            setSharepointConfig({ siteId: '', driveId });
         } catch (error: any) {
-            console.error('SharePoint discovery error:', error);
+            console.error('OneDrive discovery error:', error);
             alert(t('settings.cloud.discovery_failed'));
         } finally {
             setIsDiscovering(false);
@@ -327,24 +323,25 @@ export default function Settings() {
                                 )}
                             </div>
 
-                            {/* SharePoint Config */}
+                            {/* OneDrive Config */}
                             <div className="space-y-6 pt-2">
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2">
                                         <Globe size={18} className="text-brand-teal" />
-                                        <h3 className="font-bold text-accent-greyDark uppercase tracking-widest text-xs">Site Configuration</h3>
+                                        <h3 className="font-bold text-accent-greyDark uppercase tracking-widest text-xs">OneDrive Configuration</h3>
                                     </div>
                                     
                                     <div className="grid gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-xs font-bold text-gray-500">SHAREPOINT SITE URL</Label>
+                                            <Label className="text-xs font-bold text-gray-500">ONEDRIVE SETUP</Label>
                                             <div className="flex gap-2">
-                                                <Input 
-                                                    className="h-11 font-mono text-sm border-gray-200"
-                                                    value={sharepointConfig.siteUrl || ''} 
-                                                    onChange={e => setSharepointConfig({ siteUrl: e.target.value })}
-                                                    placeholder="https://latnovva.sharepoint.com/sites/FieldOps" 
-                                                />
+                                                <div className="relative flex-1">
+                                                   <Input 
+                                                       readOnly
+                                                       className="h-11 bg-gray-50 border-gray-100 text-gray-400 text-sm"
+                                                       value={microsoftAuth.isAuthenticated ? (sharepointConfig.driveId ? "OneDrive Selected" : "Connected: Ready to Discover") : "Please link account first"}
+                                                   />
+                                                </div>
                                                 <Button 
                                                     variant="secondary" 
                                                     className="h-11 px-6 font-bold gap-2"
