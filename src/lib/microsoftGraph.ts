@@ -31,12 +31,12 @@ export const msalInstance = new PublicClientApplication(msalConfig);
 msalInstance.addEventCallback((event) => {
     if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
         const payload = event.payload as AuthenticationResult;
-        console.log('[MSAL] Global Login Success for:', payload.account.username);
+        console.log('[MSAL] Global Login Success for:', payload.account?.username);
         
         // Use direct store access to update authentication state
         useStore.getState().setMicrosoftAuth({
             isAuthenticated: true,
-            userEmail: payload.account.username
+            userEmail: payload.account?.username || ''
         });
     }
     
@@ -70,7 +70,7 @@ export async function ensureInitialized(): Promise<void> {
             // handleRedirectPromise must be called to process the hash from Microsoft
             const response = await msalInstance.handleRedirectPromise();
             if (response) {
-                console.log('[MSAL] Init handled redirect result for:', response.account.username);
+                console.log('[MSAL] Init handled redirect result for:', response.account?.username);
             }
         } catch (err) {
             console.error('[MSAL] Critical initialization failure:', err);
