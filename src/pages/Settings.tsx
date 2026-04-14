@@ -447,7 +447,7 @@ export default function Settings() {
 
                                 <Button 
                                     className="w-full h-12 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg mt-4" 
-                                    disabled={!microsoftAuth.isAuthenticated || !sharepointConfig.siteId || isSaving}
+                                    disabled={!microsoftAuth.isAuthenticated || (!sharepointConfig.siteId && !sharepointConfig.driveId) || isSaving}
                                     onClick={() => {
                                         setIsSaving(true);
                                         setTimeout(() => {
