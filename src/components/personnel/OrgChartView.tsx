@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { useStore, Personnel } from '../../store/useStore';
-import { User, ChevronRight, UserMinus, Check, Users, Briefcase } from 'lucide-react';
+import { User, ChevronRight, UserMinus, Check, Users, Briefcase, Plus } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 
 export default function OrgChartView() {
     const { personnel, projects, updateProject } = useStore();
@@ -75,21 +83,43 @@ export default function OrgChartView() {
                     <UserMinus size={14} />
                 </button>
             ) : (
-                <div className="relative">
-                    <select
-                        className="appearance-none bg-gray-50 border border-gray-100 text-[10px] font-bold text-gray-600 rounded-lg px-2 py-1 pr-6 focus:ring-2 focus:ring-brand-teal outline-none cursor-pointer hover:bg-gray-100 uppercase tracking-wider max-w-[120px] truncate"
-                        value="bench"
-                        onChange={(e) => handleAssignToProject(member.id, e.target.value === 'bench' ? null : e.target.value)}
-                    >
-                        <option value="bench">Assign to...</option>
-                        <optgroup label="Active Projects">
-                            {activeProjects.map(p => (
-                                <option key={p.id} value={p.id}>{p.codeName || p.name}</option>
-                            ))}
-                        </optgroup>
-                    </select>
-                    <ChevronRight size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button 
+                            className="p-1.5 bg-gray-50 border border-gray-100 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-all outline-none"
+                            title="Assign to Project"
+                        >
+                            <Plus size={14} />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl border-gray-100">
+                        <DropdownMenuLabel className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1.5">
+                            Assign to Project
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {activeProjects.length > 0 ? (
+                            activeProjects.map(p => (
+                                <DropdownMenuItem 
+                                    key={p.id} 
+                                    onClick={() => handleAssignToProject(member.id, p.id)}
+                                    className="cursor-pointer gap-2 py-2"
+                                >
+                                    <div className="w-6 h-6 rounded bg-brand-teal/10 flex items-center justify-center shrink-0">
+                                        <Briefcase size={12} className="text-brand-teal" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold truncate">{p.name}</p>
+                                        <p className="text-[9px] text-gray-400 font-mono">{p.codeName || p.id}</p>
+                                    </div>
+                                </DropdownMenuItem>
+                            ))
+                        ) : (
+                            <div className="px-2 py-3 text-center text-xs text-gray-400 italic">
+                                No active projects
+                            </div>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             )}
         </div>
     );

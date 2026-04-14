@@ -266,8 +266,9 @@
     "empty": {
       "title": "No reports found",
       "subtitle": "Create the first report for this project."
-    },
-    "wbs_section": {
+    }
+  },
+  "wbs_section": {
       "title": "Today's Logged Activities",
       "no_entries": "No activities have been logged for this report yet.",
       "log_new": "Log New Activity",
@@ -445,12 +446,6 @@
       "open_form": "Open Form",
       "no_forms": "No forms or sub-reports attached.",
       "fields_count": "{{count}} fields"
-    }
-
-
-
-
-
   },
   "personnel": {
     "title": "Personnel",

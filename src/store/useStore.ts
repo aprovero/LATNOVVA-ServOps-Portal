@@ -490,6 +490,7 @@ export const useStore = create<AppState>()(
             projects: [],
             tools: [],
             personnel: [...GOD_MODE_PERSONNEL],
+            dismissedNotifications: [],
 
             templates: [
                 {
@@ -882,7 +883,10 @@ export const useStore = create<AppState>()(
                             // Merge God Mode records to ensure they are ALWAYS present even if missing from DB
                             const merged = [...dbRecords];
                             GOD_MODE_PERSONNEL.forEach(seed => {
-                                if (!merged.find(p => p.id === seed.id)) {
+                                if (!merged.find(p => 
+                                    p.id === seed.id || 
+                                    (p.email && seed.email && p.email.toLowerCase() === seed.email.toLowerCase())
+                                )) {
                                     merged.push(seed);
                                 }
                             });
@@ -959,6 +963,12 @@ export const useStore = create<AppState>()(
                     console.error('Failed to init DB from Supabase', error);
                 }
             },
+            dismissNotification: (id) => set((state) => ({
+                dismissedNotifications: [...state.dismissedNotifications, id]
+            })),
+            clearNotifications: (ids) => set((state) => ({
+                dismissedNotifications: [...state.dismissedNotifications, ...ids]
+            })),
             resetDb: () => {
                 set(() => ({
                     clients: [],

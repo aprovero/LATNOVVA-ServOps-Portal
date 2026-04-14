@@ -558,7 +558,7 @@ export default function Settings() {
                 })}
             </div>
                 
-                {Object.values(GOD_MODE_PERSONAS).some((p: any) => p.userEmail === userEmail || p.userId === userId) && (
+                {(userEmail === GOD_MODE_ADMIN_EMAIL || Object.values(GOD_MODE_PERSONAS).some((p: any) => p.userEmail === userEmail || p.userId === userId)) && (
                     <div className="mt-12 bg-purple-50 border border-purple-100 rounded-2xl p-8 max-w-2xl relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-4 relative z-10">
                             <Shield className="text-purple-600" size={24} />

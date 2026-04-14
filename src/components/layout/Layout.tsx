@@ -76,10 +76,11 @@ export default function Layout() {
             }
         });
 
+        const resolvedId = useStore.getState().resolvePersonnelId();
         personnel.forEach(person => {
             // Techs only see their own personnel warnings
             if (userRole === 'Tech') {
-                const isCurrentUser = person.id === useStore.getState().userId;
+                const isCurrentUser = person.id === resolvedId;
                 if (!isCurrentUser) return;
             }
 
@@ -315,10 +316,17 @@ export default function Layout() {
 
                 <div className="p-6 border-t border-gray-100">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gray-100 rounded-lg text-accent-greyDark">
-                            <User size={18} />
+                        <div className="w-9 h-9 border border-gray-100 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden shrink-0">
+                            {(() => {
+                                const resId = useStore.getState().resolvePersonnelId();
+                                const person = personnel.find(p => p.id === resId);
+                                if (person?.image) {
+                                    return <img src={person.image} alt={person.name} className="w-full h-full object-cover" />;
+                                }
+                                return <User size={18} className="text-accent-greyDark" />;
+                            })()}
                         </div>
-                        <div className="text-sm">
+                        <div className="text-sm min-w-0">
                             <p className="font-bold text-accent-greyDark truncate">
                                 {isGodMode
                                     ? (GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole)
@@ -443,7 +451,7 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
-                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${userId}`)}>
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${useStore.getState().resolvePersonnelId() || userId}`)}>
                                     <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -603,7 +611,7 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
-                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${userId}`)}>
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${useStore.getState().resolvePersonnelId() || userId}`)}>
                                     <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
