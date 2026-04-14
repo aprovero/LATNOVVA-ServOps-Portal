@@ -603,25 +603,32 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
-                                {['Manager', 'Supervisor', 'HR'].includes(userRole) && (
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${userId}`)}>
+                                    <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+
+                                {(['Manager', 'Supervisor', 'HR'].includes(userRole) || isGodMode) && (
                                     <>
-                                        <DropdownMenuLabel>{t('auth.admin', 'Admin')}</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/settings')}>
-                                            <Settings size={14} className="text-gray-400" /> {t('nav.settings')}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
-                                            <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
-                                        </DropdownMenuItem>
+                                        <DropdownMenuLabel className="text-[10px] text-gray-400 font-bold uppercase tracking-wider px-2 py-1.5">{t('auth.admin', 'Admin')}</DropdownMenuLabel>
+                                        
+                                        {userRole === 'Manager' && (
+                                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/settings')}>
+                                                <Settings size={14} className="text-gray-400" /> {t('nav.settings')}
+                                            </DropdownMenuItem>
+                                        )}
+                                        
+                                        {['Manager', 'Supervisor'].includes(userRole) && (
+                                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
+                                                <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
+                                            </DropdownMenuItem>
+                                        )}
+                                        
                                         {isGodMode && (
                                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
                                                 <Play size={14} className="text-brand-teal" /> {t('nav.preview_branding', 'Preview Branding')}
                                             </DropdownMenuItem>
                                         )}
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${userId}`)}>
-                                            <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
-                                        </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                     </>
                                 )}

@@ -1,32 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Authenticating...</title>
-    <!-- Use MSAL-Browser from CDN -->
-    <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
 </head>
 <body>
-    <script type="text/javascript">
-        // This is a high-performance redirect bridge for MSAL popups.
-        // It MUST use the same cacheLocation as the main app to enable the handshake.
-        const msalConfig = {
-            auth: {
-                clientId: "3ebc486a-848e-2e21077ac148", 
-                authority: "https://login.microsoftonline.com/02ab448a-5bf1-40cc-b813-14ffac28017d",
-                navigateToLoginRequestUrl: false
-            },
-            cache: {
-                cacheLocation: "localStorage" // Crucial for popup -> main window communication
-            }
-        };
-        const msalInstance = new msal.PublicClientApplication(msalConfig);
-        msalInstance.handleRedirectPromise().then((response) => {
-            console.log("Auth Bridge: Redirect handled successfully");
-            // The main window's MSAL instance is watching for changes in localStorage.
-            // Once handleRedirectPromise processes the hash, the main window will take over.
-        }).catch(err => {
-            console.error("Auth Bridge Error:", err);
-        });
+    <script type="module">
+        // MSAL v5 uses BroadcastChannel for inter-window communication.
+        // This bridge ONLY broadcasts the response back to the main app and closes.
+        // We use esm.sh to load the specific redirect-bridge helper for v5.
+        import { broadcastResponseToMainFrame } from "https://esm.sh/@azure/msal-browser@5/redirect-bridge";
+        
+        try {
+            console.log("Auth Bridge: Attempting to broadcast response...");
+            broadcastResponseToMainFrame();
+            console.log("Auth Bridge: Success. Window should close automatically.");
+        } catch (error) {
+            console.error("Auth Bridge: Broadcast failed:", error);
+            // Fallback: If broadcasting fails, the main app might be blocked. 
+            // We'll close after a short delay so the user isn't stuck.
+            setTimeout(() => window.close(), 2000);
+        }
     </script>
 </body>
 </html>
