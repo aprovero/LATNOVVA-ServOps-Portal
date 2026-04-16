@@ -51,7 +51,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
     const handleAddCustomGroup = () => {
         const newGroup: ChecklistGroup = {
             id: `grp-${Date.now()}`,
-            title: t('checklist_section.custom_checklist'),
+            title: t('reports.checklist_section.custom_checklist'),
             locked: false,
             items: [],
         };
@@ -137,7 +137,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
         <div className="card-container">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                    <CheckSquare className="text-brand-teal" size={20} /> {t('checklist_section.qa_title')}
+                    <CheckSquare className="text-brand-teal" size={20} /> {t('reports.checklist_section.qa_title')}
                 </h2>
 
                 {!readOnly && (
@@ -155,7 +155,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                     }}
                                     value=""
                                 >
-                                    <option value="" disabled>{t('checklist_section.apply_template')}</option>
+                                    <option value="" disabled>{t('reports.checklist_section.apply_template')}</option>
 
                                     {templates.map(t => (
                                         <option key={t.id} value={t.id}>{t.name}</option>
@@ -164,7 +164,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                             </div>
                         )}
                         <button onClick={handleAddCustomGroup} className="btn-secondary text-sm py-2 px-4 flex items-center justify-center gap-2 shrink-0">
-                            <Plus size={16} /> {t('checklist_section.add_checklist')}
+                            <Plus size={16} /> {t('reports.checklist_section.add_checklist')}
                         </button>
 
                     </div>
@@ -175,8 +175,8 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                 {checklists.length === 0 && (
                     <div className="p-6 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center">
                         <ShieldAlert size={32} className="mb-2 opacity-50" />
-                        <p className="text-sm font-medium">{t('checklist_section.no_checklists')}</p>
-                        <p className="text-xs mt-1">{t('checklist_section.start_help')}</p>
+                        <p className="text-sm font-medium">{t('reports.checklist_section.no_checklists')}</p>
+                        <p className="text-xs mt-1">{t('reports.checklist_section.start_help')}</p>
                     </div>
 
                 )}
@@ -201,7 +201,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                     <button
                                         onClick={() => toggleCollapse(group.id)}
                                         className="text-gray-400 hover:text-accent-grey transition-colors shrink-0"
-                                        title={isCollapsed ? t('checklist_section.expand') : t('checklist_section.collapse')}
+                                        title={isCollapsed ? t('reports.checklist_section.expand') : t('reports.checklist_section.collapse')}
                                     >
 
                                         {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
@@ -212,13 +212,13 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                             <button
                                                 onClick={() => handleMoveGroup(group.id, 'up')}
                                                 className="text-gray-300 hover:text-brand-teal transition-colors leading-none p-0.5"
-                                                title={t('checklist_section.move_up')}
+                                                title={t('reports.checklist_section.move_up')}
                                             >&#9650;</button>
 
                                             <button
                                                 onClick={() => handleMoveGroup(group.id, 'down')}
                                                 className="text-gray-300 hover:text-brand-teal transition-colors leading-none p-0.5"
-                                                title={t('checklist_section.move_down')}
+                                                title={t('reports.checklist_section.move_down')}
                                             >&#9660;</button>
 
                                         </div>
@@ -229,7 +229,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                         value={group.title}
                                         onChange={(e) => handleUpdateGroupTitle(group.id, e.target.value)}
                                         disabled={!isGroupEditable}
-                                        placeholder={t('checklist_section.checklist_name_placeholder')}
+                                        placeholder={t('reports.checklist_section.checklist_name_placeholder')}
                                         className="flex-1 bg-transparent border-none outline-none font-bold text-accent-greyDark text-base disabled:opacity-80 focus:ring-0 px-0"
                                     />
 
@@ -239,7 +239,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                     {group.attachmentUrl ? (
                                         <div className="flex items-center gap-2 bg-brand-teal/5 px-3 py-1.5 rounded-lg border border-brand-teal/20">
                                             <FileText size={14} className="text-brand-teal" />
-                                            <span className="text-[10px] font-bold text-brand-teal uppercase">{t('checklist_section.scan_attached')}</span>
+                                            <span className="text-[10px] font-bold text-brand-teal uppercase">{t('reports.checklist_section.scan_attached')}</span>
 
                                             {!readOnly && !isLocked && (
                                                 <button onClick={() => onChange(checklists.map(g => g.id === group.id ? { ...g, attachmentUrl: undefined } : g))}>
@@ -260,7 +260,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                     onClick={() => document.getElementById(`group-file-${group.id}`)?.click()}
                                                     className="text-[10px] font-bold text-gray-400 hover:text-brand-teal flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg transition-all hover:border-brand-teal/30"
                                                 >
-                                                    <Camera size={12} /> {t('checklist_section.upload_paper')}
+                                                    <Camera size={12} /> {t('reports.checklist_section.upload_paper')}
                                                 </button>
 
                                             </>
@@ -269,13 +269,13 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
 
                                     {allDone && !isLocked && (
                                         <span className="text-[10px] font-bold text-status-success bg-status-success/10 px-2 py-1 rounded-full uppercase tracking-wider">
-                                            {t('checklist_section.complete')}
+                                            {t('reports.checklist_section.complete')}
                                         </span>
 
                                     )}
                                     {isLocked && (
                                         <span className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                                            <Lock size={10} /> {t('checklist_section.locked')}
+                                            <Lock size={10} /> {t('reports.checklist_section.locked')}
                                         </span>
 
                                     )}
@@ -286,7 +286,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                 ? 'text-brand-teal bg-brand-teal/10 hover:bg-brand-teal/20'
                                                 : 'text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10'
                                                 }`}
-                                            title={isLocked ? t('checklist_section.unlock_checklist') : t('checklist_section.lock_checklist_title')}
+                                            title={isLocked ? t('reports.checklist_section.unlock_checklist') : t('reports.checklist_section.lock_checklist_title')}
                                         >
 
                                             {isLocked ? <LockOpen size={16} /> : <Lock size={16} />}
@@ -296,7 +296,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                         <button
                                             onClick={() => handleRemoveGroup(group.id)}
                                             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                            title={t('checklist_section.remove_checklist')}
+                                            title={t('reports.checklist_section.remove_checklist')}
                                         >
 
                                             <Trash2 size={16} />
@@ -310,7 +310,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                 <div className="p-3 space-y-2 bg-white/30">
                                     {group.items.length === 0 && (
                                         <p className="text-xs text-center text-gray-400 py-3 italic">
-                                            {t('checklist_section.no_points')}
+                                            {t('reports.checklist_section.no_points')}
                                         </p>
 
                                     )}
@@ -323,7 +323,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                         value={chk.item}
                                                         onChange={(e) => handleUpdateItem(group.id, chk.id, 'item', e.target.value)}
                                                         disabled={!isGroupEditable}
-                                                        placeholder={t('checklist_section.point_placeholder')}
+                                                        placeholder={t('reports.checklist_section.point_placeholder')}
                                                         className="w-full bg-transparent border-b border-gray-100 focus:border-brand-teal outline-none py-1 font-medium text-accent-greyDark disabled:opacity-70 text-sm transition-colors"
                                                     />
 
@@ -355,7 +355,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                                 <button
                                                                     onClick={() => document.getElementById(`item-file-${chk.id}`)?.click()}
                                                                     className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5 transition-all"
-                                                                    title={t('checklist_section.add_evidence')}
+                                                                    title={t('reports.checklist_section.add_evidence')}
                                                                 >
 
                                                                     <Paperclip size={14} />
@@ -374,8 +374,8 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                             }}
                                                             className="text-[9px] uppercase font-bold text-gray-400 bg-transparent border-none outline-none cursor-pointer hover:text-brand-teal p-0 pr-4 mr-2"
                                                         >
-                                                            <option value="Pass/Fail">{t('checklist_section.status_types.pass')} / {t('checklist_section.status_types.fail')}</option>
-                                                            <option value="Yes/No">{t('checklist_section.status_types.yes')} / {t('checklist_section.status_types.no')}</option>
+                                                            <option value="Pass/Fail">{t('reports.checklist_section.status_types.pass')} / {t('reports.checklist_section.status_types.fail')}</option>
+                                                            <option value="Yes/No">{t('reports.checklist_section.status_types.yes')} / {t('reports.checklist_section.status_types.no')}</option>
                                                         </select>
 
                                                     )}
@@ -389,7 +389,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                                 : statusColors['Unchecked']
                                                                 } disabled:opacity-50 disabled:cursor-not-allowed min-w-[50px]`}
                                                         >
-                                                            {t(`checklist_section.status_types.${s.toLowerCase().replace('/', '')}`)}
+                                                            {t(`reports.checklist_section.status_types.${s.toLowerCase().replace('/', '')}`)}
                                                         </button>
 
                                                     ))}
@@ -414,8 +414,8 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                         }}
                                                         className="w-full text-xs font-bold text-gray-500 bg-gray-50 border border-gray-200 rounded-lg py-1.5 px-2 outline-none cursor-pointer"
                                                     >
-                                                        <option value="Pass/Fail">{t('checklist_section.use_pass_fail')}</option>
-                                                        <option value="Yes/No">{t('checklist_section.use_yes_no')}</option>
+                                                        <option value="Pass/Fail">{t('reports.checklist_section.use_pass_fail')}</option>
+                                                        <option value="Yes/No">{t('reports.checklist_section.use_yes_no')}</option>
                                                     </select>
 
                                                 )}
@@ -430,7 +430,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                                                 : statusColors['Unchecked']
                                                                 } disabled:opacity-50`}
                                                         >
-                                                            {t(`checklist_section.status_types.${s.toLowerCase().replace('/', '')}`)}
+                                                            {t(`reports.checklist_section.status_types.${s.toLowerCase().replace('/', '')}`)}
                                                         </button>
 
                                                     ))}
@@ -452,7 +452,7 @@ export default function Checklists({ checklists, onChange, readOnly }: Checklist
                                             onClick={() => handleAddItem(group.id)}
                                             className="w-full mt-2 py-3 text-xs font-bold text-gray-400 hover:text-brand-teal border border-dashed border-gray-200 hover:border-brand-teal/40 rounded-xl transition-all flex items-center justify-center gap-1.5 bg-gray-50/30 hover:bg-brand-teal/5"
                                         >
-                                            <Plus size={14} /> {t('checklist_section.add_point')}
+                                            <Plus size={14} /> {t('reports.checklist_section.add_point')}
                                         </button>
 
                                     )}

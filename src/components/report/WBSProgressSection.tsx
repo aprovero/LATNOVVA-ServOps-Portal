@@ -107,7 +107,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
         <div className="card-container">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                    <ClipboardList className="text-brand-teal" size={20} /> {t('wbs_section.title')}
+                    <ClipboardList className="text-brand-teal" size={20} /> {t('reports.wbs_section.title')}
                 </h2>
 
             </div>
@@ -116,7 +116,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
             <div className="space-y-3 mb-6">
                 {activityLogs.length === 0 ? (
                     <div className="text-center p-6 bg-surface-alt rounded-2xl border border-dashed border-gray-300 text-gray-400 text-sm">
-                        {t('wbs_section.no_entries')}
+                        {t('reports.wbs_section.no_entries')}
                     </div>
 
                 ) : (
@@ -132,7 +132,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                                         <h4 className="font-bold text-accent-greyDark">
                                             {log.customTaskName ? log.customTaskName : act?.title || t('reports.unknown_state')}
                                         </h4>
-                                        {editIndex === i && <span className="text-[10px] font-bold bg-brand-teal text-white px-1.5 py-0.5 rounded">{t('wbs_section.editing')}</span>}
+                                        {editIndex === i && <span className="text-[10px] font-bold bg-brand-teal text-white px-1.5 py-0.5 rounded">{t('reports.wbs_section.editing')}</span>}
 
                                     </div>
                                     {!log.customTaskName && scope && (
@@ -142,7 +142,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                                 </div>
                                 <div className="flex items-center gap-4 shrink-0">
                                     <div className="text-right">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('wbs_section.new_total')}</div>
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.wbs_section.new_total')}</div>
                                         <div className="text-sm font-bold text-brand-teal">
                                             {totalProgress}% 
                                             <span className="text-gray-400 font-medium ml-1">
@@ -176,11 +176,11 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                 <div className={`p-4 rounded-xl border transition-all ${editIndex !== null ? 'bg-brand-teal/5 border-brand-teal shadow-md' : 'bg-gray-50 border-gray-200'}`}>
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-sm text-accent-greyDark">
-                            {editIndex !== null ? t('wbs_section.update_log') : t('wbs_section.log_new')}
+                            {editIndex !== null ? t('reports.wbs_section.update_log') : t('reports.wbs_section.log_new')}
                         </h3>
                         {editIndex !== null && (
                             <Button variant="ghost" size="sm" onClick={resetForm} className="h-7 text-gray-500 hover:text-gray-700 font-bold">
-                                <X size={14} className="mr-1" /> {t('wbs_section.cancel_caps')}
+                                <X size={14} className="mr-1" /> {t('reports.wbs_section.cancel_caps')}
                             </Button>
                         )}
 
@@ -194,7 +194,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                             onClick={() => setIsCustom(false)}
                             disabled={editIndex !== null && !!activityLogs[editIndex].customTaskName}
                         >
-                            {t('wbs_section.select_wbs')}
+                            {t('reports.wbs_section.select_wbs')}
                         </Button>
                         <Button 
                             variant={isCustom ? 'default' : 'outline'} 
@@ -203,7 +203,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                             onClick={() => setIsCustom(true)}
                             disabled={editIndex !== null && !!activityLogs[editIndex].scopeId}
                         >
-                            {t('wbs_section.custom_task')}
+                            {t('reports.wbs_section.custom_task')}
                         </Button>
 
                     </div>
@@ -212,14 +212,14 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                         {!isCustom ? (
                             <>
                                 <div className="space-y-2">
-                                    <Label>{t('wbs_section.scope')}</Label>
+                                    <Label>{t('reports.wbs_section.scope')}</Label>
                                     <select 
                                         className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-brand-teal"
                                         value={selectedScope}
                                         onChange={e => setSelectedScope(e.target.value)}
                                         disabled={editIndex !== null}
                                     >
-                                        <option value="">{t('wbs_section.select_scope')}</option>
+                                        <option value="">{t('reports.wbs_section.select_scope')}</option>
 
                                         {availableScopes.map(s => (
                                             <option key={s.id} value={s.id}>{s.name}</option>
@@ -227,20 +227,20 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>{t('wbs_section.activity')}</Label>
+                                    <Label>{t('reports.wbs_section.activity')}</Label>
                                     <select 
                                         className="w-full h-10 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-brand-teal"
                                         value={selectedActivity}
                                         onChange={e => setSelectedActivity(e.target.value)}
                                         disabled={!selectedScope || editIndex !== null}
                                     >
-                                        <option value="">{t('wbs_section.select_activity')}</option>
+                                        <option value="">{t('reports.wbs_section.select_activity')}</option>
 
                                         {availableActivities.map(a => (
                                             <option key={a.id} value={a.id}>{a.title} ({a.progress}% current)</option>
                                         ))}
                                         {editIndex !== null && selectedActivity && (
-                                            <option value={selectedActivity}>{t('wbs_section.keep_current')}</option>
+                                            <option value={selectedActivity}>{t('reports.wbs_section.keep_current')}</option>
                                         )}
 
                                     </select>
@@ -248,9 +248,9 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                             </>
                         ) : (
                             <div className="space-y-2 md:col-span-2">
-                                <Label>{t('wbs_section.task_desc')}</Label>
+                                <Label>{t('reports.wbs_section.task_desc')}</Label>
                                 <Input 
-                                    placeholder={t('wbs_section.task_desc_placeholder')} 
+                                    placeholder={t('reports.wbs_section.task_desc_placeholder')} 
 
                                     value={customTaskName}
                                     onChange={e => setCustomTaskName(e.target.value)}
@@ -260,7 +260,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                         )}
 
                         <div className="space-y-2">
-                            <Label>{t('wbs_section.added_today')}</Label>
+                            <Label>{t('reports.wbs_section.added_today')}</Label>
 
                             <Input 
                                 type="number" 
@@ -272,9 +272,9 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>{t('wbs_section.notes_optional')}</Label>
+                            <Label>{t('reports.wbs_section.notes_optional')}</Label>
                             <Input 
-                                placeholder={t('wbs_section.notes_placeholder')} 
+                                placeholder={t('reports.wbs_section.notes_placeholder')} 
 
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
@@ -288,9 +288,9 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                         disabled={isCustom ? !customTaskName.trim() : (!selectedScope || !selectedActivity)}
                     >
                         {editIndex !== null ? (
-                            <><Check size={16} className="mr-2"/> {t('wbs_section.update_entry')}</>
+                            <><Check size={16} className="mr-2"/> {t('reports.wbs_section.update_entry')}</>
                         ) : (
-                            <><Plus size={16} className="mr-2"/> {t('wbs_section.add_to_log')}</>
+                            <><Plus size={16} className="mr-2"/> {t('reports.wbs_section.add_to_log')}</>
                         )}
 
                     </Button>

@@ -19,7 +19,7 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
     return (
         <div className="card-container">
             <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2 mb-6">
-                <PenTool className="text-brand-teal" size={20} /> {t('signature_section.title')}
+                <PenTool className="text-brand-teal" size={20} /> {t('reports.signature_section.title')}
             </h2>
 
 
@@ -37,9 +37,9 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
                         <div key={role} className={`border rounded-2xl p-4 flex flex-col ${existing ? 'bg-gray-50 border-status-success/30' : 'bg-surface border-gray-200'}`}>
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-accent-greyDark text-xs uppercase tracking-widest">{t(`signature_section.${role.toLowerCase()}`)}</h3>
+                                    <h3 className="font-bold text-accent-greyDark text-xs uppercase tracking-widest">{t(`reports.signature_section.${role.toLowerCase()}`)}</h3>
                                     {existing && role === 'Management' && (
-                                        <span className="text-[9px] font-bold text-white bg-brand-teal px-1.5 py-0.5 rounded-sm animate-pulse">{t('signature_section.approved')}</span>
+                                        <span className="text-[9px] font-bold text-white bg-brand-teal px-1.5 py-0.5 rounded-sm animate-pulse">{t('reports.signature_section.approved')}</span>
                                     )}
 
                                 </div>
@@ -64,7 +64,7 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
                                 ) : (
                                     <div className="text-center text-gray-400">
                                         <PenTool size={24} className="mx-auto mb-2 opacity-50" />
-                                        <p className="text-xs font-semibold">{t('signature_section.waiting')}</p>
+                                        <p className="text-xs font-semibold">{t('reports.signature_section.waiting')}</p>
                                     </div>
 
                                 )}
@@ -186,14 +186,14 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                     onClick={() => setMode('draw')}
                     className={`flex-1 text-[10px] font-bold py-1 transition-colors ${mode === 'draw' ? 'text-brand-teal border-b-2 border-brand-teal' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    ✏️ {t('signature_section.draw_tab')}
+                    ✏️ {t('reports.signature_section.draw_tab')}
                 </button>
 
                 <button
                     onClick={() => setMode('photo')}
                     className={`flex-1 text-[10px] font-bold py-1 transition-colors ${mode === 'photo' ? 'text-brand-teal border-b-2 border-brand-teal' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    📷 {t('signature_section.upload_tab')}
+                    📷 {t('reports.signature_section.upload_tab')}
                 </button>
 
             </div>
@@ -213,8 +213,8 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                         style={{ width: '100%', height: '100%' }}
                     />
                     <div className="absolute inset-x-0 bottom-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={handleClear} className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold shadow-sm border border-red-100">{t('signature_section.clear')}</button>
-                        <button onClick={handleConfirmDraw} className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">{t('signature_section.sign')}</button>
+                        <button onClick={handleClear} className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold shadow-sm border border-red-100">{t('reports.signature_section.clear')}</button>
+                        <button onClick={handleConfirmDraw} className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">{t('reports.signature_section.sign')}</button>
                     </div>
 
                     {/* Guide line */}
@@ -227,15 +227,15 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                             <img src={photoPreview} alt="Signature preview" className="max-h-16 object-contain rounded border border-gray-200" />
                             <div className="flex gap-2">
                                 <button onClick={() => { setPhotoPreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                                    className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-100">{t('signature_section.retake')}</button>
+                                    className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-100">{t('reports.signature_section.retake')}</button>
                                 <button onClick={handleConfirmPhoto}
-                                    className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold">{t('signature_section.use_this')}</button>
+                                    className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold">{t('reports.signature_section.use_this')}</button>
                             </div>
 
                         </>
                     ) : (
                         <>
-                            <p className="text-[10px] text-gray-400 text-center">{t('signature_section.upload_help')}</p>
+                            <p className="text-[10px] text-gray-400 text-center">{t('reports.signature_section.upload_help')}</p>
                             <input
 
                                 ref={fileInputRef}
@@ -248,7 +248,7 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                             />
                             <label htmlFor="sig-photo-upload"
                                 className="cursor-pointer bg-brand-teal/10 hover:bg-brand-teal/20 text-brand-teal px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors border border-brand-teal/20">
-                                📷 {t('signature_section.camera_file')}
+                                📷 {t('reports.signature_section.camera_file')}
                             </label>
 
                         </>

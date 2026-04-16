@@ -1,4 +1,5 @@
 import { ClipboardCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ReportChecklist } from '../../store/useStore';
 
 interface ChecklistSectionProps {
@@ -8,6 +9,8 @@ interface ChecklistSectionProps {
 }
 
 export default function ChecklistSection({ checklists, onChange, readOnly }: ChecklistSectionProps) {
+    const { t } = useTranslation();
+
     if (checklists.length === 0 && readOnly) return null;
 
     const handleStatusChange = (id: string, status: ReportChecklist['status']) => {
@@ -18,7 +21,7 @@ export default function ChecklistSection({ checklists, onChange, readOnly }: Che
     return (
         <div className="card-container">
             <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2 mb-6">
-                <ClipboardCheck className="text-brand-teal" size={20} /> Inspections & Checklists
+                <ClipboardCheck className="text-brand-teal" size={20} /> {t('reports.checklist_section.qa_title')}
             </h2>
             <div className="space-y-3">
                 {checklists.map((chk) => (
@@ -38,14 +41,14 @@ export default function ChecklistSection({ checklists, onChange, readOnly }: Che
                                                     : 'bg-gray-400 text-white shadow-md')
                                             : 'bg-transparent text-gray-400 hover:bg-gray-50'}`}
                                 >
-                                    {opt}
+                                    {t(`reports.checklist_section.status_types.${opt.toLowerCase().replace('/', '')}`)}
                                 </button>
                             ))}
                         </div>
                     </div>
                 ))}
                 {checklists.length === 0 && (
-                    <p className="text-sm text-gray-400 text-center py-6 border border-dashed rounded-xl">No checklist items defined.</p>
+                    <p className="text-sm text-gray-400 text-center py-6 border border-dashed rounded-xl">{t('reports.checklist_section.no_checklists')}</p>
                 )}
             </div>
         </div>

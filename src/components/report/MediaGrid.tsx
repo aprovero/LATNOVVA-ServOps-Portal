@@ -81,13 +81,13 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
 
     const handleUploadToSharePoint = async (item: MediaItem) => {
         if (!microsoftAuth.isAuthenticated || !sharepointConfig.siteId || !sharepointConfig.driveId) {
-            alert(t('media_section.sharepoint_config_error'));
+            alert(t('reports.media_section.sharepoint_config_error'));
             return;
         }
 
 
         if (!item.description?.trim()) {
-            alert(t('media_section.desc_required'));
+            alert(t('reports.media_section.desc_required'));
             return;
         }
 
@@ -141,7 +141,7 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
             // In a real app, we'd also clear the local IndexedDB record here
         } catch (error: any) {
             console.error('SharePoint Upload Error:', error);
-            alert(t('media_section.upload_failed', { error: error.message }));
+            alert(t('reports.media_section.upload_failed', { error: error.message }));
         } finally {
 
             setUploadingIds(prev => prev.filter((id: string) => id !== item.id));
@@ -163,7 +163,7 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
     return (
         <div className="card-container">
             <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2 mb-6">
-                <ImageIcon className="text-brand-teal" size={20} /> {t('media_section.title')}
+                <ImageIcon className="text-brand-teal" size={20} /> {t('reports.media_section.title')}
             </h2>
 
 
@@ -177,8 +177,8 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
                     onClick={() => fileInputRef.current?.click()}
                 >
                     <UploadCloud size={40} className="text-gray-400 mb-3" />
-                    <p className="font-bold text-accent-greyDark text-sm">{t('media_section.upload_help')}</p>
-                    <p className="text-xs text-gray-500 mt-1">{t('media_section.supports')}</p>
+                    <p className="font-bold text-accent-greyDark text-sm">{t('reports.media_section.upload_help')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('reports.media_section.supports')}</p>
 
                     <input
                         type="file"
@@ -204,13 +204,13 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
                                     {isUploading && (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                                             <div className="w-10 h-10 border-4 border-brand-teal border-t-transparent rounded-full animate-spin" />
-                                            <p className="text-[10px] font-bold text-brand-teal uppercase tracking-widest">{t('media_section.uploading')}</p>
+                                            <p className="text-[10px] font-bold text-brand-teal uppercase tracking-widest">{t('reports.media_section.uploading')}</p>
                                         </div>
 
                                     )}
                                     {isLocal && !isUploading && (
                                         <div className="absolute top-2 left-2 px-2 py-0.5 bg-orange-500 text-white text-[9px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-                                            {t('media_section.local_memo')}
+                                            {t('reports.media_section.local_memo')}
                                         </div>
 
                                     )}
@@ -226,13 +226,13 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
                                 <div className="p-4 space-y-3">
                                     {isLocal ? (
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('media_section.photo_desc')}</label>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t('reports.media_section.photo_desc')}</label>
                                             <input
                                                 type="text"
                                                 value={item.description}
                                                 onChange={(e) => handleDescriptionChange(item.id, e.target.value)}
                                                 disabled={readOnly || isUploading}
-                                                placeholder={t('media_section.photo_desc_placeholder')}
+                                                placeholder={t('reports.media_section.photo_desc_placeholder')}
                                                 className="w-full text-sm bg-white border border-orange-100 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500"
                                             />
                                             <button 
@@ -240,14 +240,14 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
                                                 disabled={!item.description?.trim()}
                                                 className="w-full py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
                                             >
-                                                {t('media_section.sync_sharepoint')}
+                                                {t('reports.media_section.sync_sharepoint')}
                                             </button>
                                         </div>
 
                                     ) : (
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block flex items-center gap-1">
-                                                <div className="w-1 h-1 bg-emerald-500 rounded-full" /> {t('media_section.sharepoint_secured')}
+                                                <div className="w-1 h-1 bg-emerald-500 rounded-full" /> {t('reports.media_section.sharepoint_secured')}
                                             </label>
 
                                             <input
@@ -255,7 +255,7 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
                                                 value={item.caption}
                                                 onChange={(e) => handleCaptionChange(item.id, e.target.value)}
                                                 disabled={readOnly}
-                                                placeholder={t('media_section.add_caption')}
+                                                placeholder={t('reports.media_section.add_caption')}
                                                 className="w-full text-sm font-medium bg-transparent border-none outline-none focus:ring-0 px-0 text-accent-greyDark"
                                             />
 
@@ -271,7 +271,7 @@ export default function MediaGrid({ media, onChange, readOnly, report }: MediaGr
             {media.length === 0 && readOnly && (
                 <div className="p-12 text-center text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                     <ImageIcon size={48} className="mx-auto mb-4 opacity-20" />
-                    <p className="text-sm font-medium">{t('media_section.no_photos')}</p>
+                    <p className="text-sm font-medium">{t('reports.media_section.no_photos')}</p>
                 </div>
 
             )}

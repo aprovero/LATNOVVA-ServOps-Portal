@@ -262,14 +262,13 @@
       "author": "Creado por",
       "labor": "Entradas de Personal",
       "summary": "Resumen del Reporte",
-      "last_updated": "Última actualización"
-    },
-    "empty": {
+      "last_updated": "Última actualización",
+      "empty": {
       "title": "No se encontraron reportes",
       "subtitle": "Crea el primer reporte para este proyecto."
-    }
-  },
-  "wbs_section": {
+    },
+    },
+    "wbs_section": {
       "title": "Actividades Registradas Hoy",
       "no_entries": "Aún no se han registrado actividades para este reporte.",
       "log_new": "Registrar Nueva Actividad",
@@ -287,13 +286,11 @@
       "add_to_log": "Agregar al Registro",
       "update_entry": "Actualizar Entrada",
       "new_total": "Nuevo Total",
-      "editing": "EDITANDO",
+      "editing": "EDITING",
       "keep_current": "Mantener Selección Actual",
       "cancel_caps": "CANCELAR",
       "notes_placeholder": "Cualquier nota adicional..."
     },
-
-
     "labor_section": {
       "workforce_title": "Mano de Obra y Personal",
       "batch_log_timesheets": "Registrar Horas por Lote",
@@ -339,7 +336,6 @@
       "person": "Persona",
       "hours": "Horas"
     },
-
     "occurrence_section": {
       "field_issues_title": "Incidencias de Campo / Bloqueos",
       "log_issue": "Registrar Incidencia",
@@ -447,6 +443,7 @@
       "open_form": "Abrir Formulario",
       "no_forms": "No hay formularios ni sub-reportes adjuntos.",
       "fields_count": "{{count}} campos"
+    }
   },
   "personnel": {
     "title": "Personal",
@@ -898,6 +895,8 @@
     "expires_in_days": "expira en {{days}} días",
     "awaiting_review": "está esperando su revisión",
     "pending_approval": "está pendiente de su aprobación",
+    "long_shift_title": "¡HEY!",
+    "long_shift_desc": "¿Olvidaste marcar salida? Has estado trabajando por más de 8 horas.",
     "empty": "No hay notificaciones nuevas",
     "title_badge": "Alertas y Notificaciones"
   },

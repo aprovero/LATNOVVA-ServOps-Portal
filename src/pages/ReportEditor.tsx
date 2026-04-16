@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, ReportState, ChecklistGroup } from '../store/useStore';
 import { ChevronLeft, Lock, Save, Ban, MessageSquare, Plus, Trash2, PenTool, FileText, Wrench, MapPin, FilePlus, CheckCircle, AlertTriangle, Users } from 'lucide-react';
 import gsap from 'gsap';
+import { formatTime } from '../lib/utils';
 
 import WeatherWidget from '../components/weather/WeatherWidget';
 import LaborSection from '../components/report/LaborSection';
@@ -348,7 +349,7 @@ export default function ReportEditor() {
                                 <div key={i} className="text-sm text-red-700">
                                     <span className="font-semibold">{c.text.replace('[REJECTED] ', '')}</span>
                                     <span className="text-red-400 text-xs ml-2">
-                                        &mdash; {new Date(c.timestamp).toLocaleString()}
+                                        &mdash; {formatTime(c.timestamp)}
                                     </span>
                                 </div>
                             ))}
@@ -740,7 +741,7 @@ export default function ReportEditor() {
                                         {personnel.find(p => p.id === c.userId)?.name || c.userId}
                                         <span className="text-xs font-normal text-gray-500 ml-1">({c.role})</span>
                                     </span>
-                                    <span className="text-xs text-gray-400 font-mono">{new Date(c.timestamp).toLocaleTimeString()}</span>
+                                    <span className="text-xs text-gray-400 font-mono">{formatTime(c.timestamp)}</span>
                                 </div>
                                 <p className="text-sm text-accent-grey">{c.text}</p>
                             </div>
@@ -778,7 +779,7 @@ export default function ReportEditor() {
                                 {report.signatures.map(sig => (
                                     <div key={sig.role} className="flex gap-2 items-center">
                                         <span className="bg-white/10 px-2 py-0.5 rounded text-xs font-mono">{sig.role}</span>
-                                        <span>{sig.signedBy} • {new Date(sig.timestamp).toLocaleString()}</span>
+                                        <span>{sig.signedBy} • {formatTime(sig.timestamp)}</span>
                                     </div>
                                 ))}
                             </div>

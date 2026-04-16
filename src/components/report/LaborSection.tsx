@@ -309,8 +309,8 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                 </div>
 
                             )}
-                            <div className="flex flex-wrap items-start gap-4">
-                                        <div className="flex-[2] min-w-[200px]">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                <div className="md:col-span-6 lg:col-span-7">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.personnel_position_label')}</label>
 
                                     <div className="flex items-center gap-3 mt-1 py-1">
@@ -398,39 +398,38 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-24 shrink-0">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.time_in_label')}</label>
-
-                                    <input
-                                        type="time"
-                                        value={entry.timeIn || '08:00'}
-                                        onChange={(e) => handleUpdate(entry.id, 'timeIn', e.target.value)}
-                                        disabled={readOnly}
-                                        className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 text-center disabled:opacity-70 text-sm"
-                                    />
-                                </div>
-                                <div className="w-24 shrink-0">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.time_out_label')}</label>
-
-                                    <input
-                                        type="time"
-                                        value={entry.timeOut || '17:00'}
-                                        onChange={(e) => handleUpdate(entry.id, 'timeOut', e.target.value)}
-                                        disabled={readOnly}
-                                        className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 text-center disabled:opacity-70 text-sm"
-                                    />
-                                </div>
-                                <div className="w-16 shrink-0">
-                                    <label className="text-[10px] font-bold text-brand-teal uppercase tracking-wider">{t('reports.labor_section.hours_label')}</label>
-
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.5"
-                                        value={entry.hours}
-                                        disabled
-                                        className="w-full bg-transparent border-b border-transparent text-brand-teal outline-none py-1 mt-1 text-center font-bold text-sm"
-                                    />
+                                <div className="grid grid-cols-3 gap-2 sm:gap-3 md:col-span-6 lg:col-span-5 w-full">
+                                    <div className="min-w-0">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.time_in_label')}</label>
+                                        <input
+                                            type="time"
+                                            value={entry.timeIn || '08:00'}
+                                            onChange={(e) => handleUpdate(entry.id, 'timeIn', e.target.value)}
+                                            disabled={readOnly}
+                                            className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 text-center disabled:opacity-70 text-sm"
+                                        />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.time_out_label')}</label>
+                                        <input
+                                            type="time"
+                                            value={entry.timeOut || '17:00'}
+                                            onChange={(e) => handleUpdate(entry.id, 'timeOut', e.target.value)}
+                                            disabled={readOnly}
+                                            className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 text-center disabled:opacity-70 text-sm"
+                                        />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <label className="text-[10px] font-bold text-brand-teal uppercase tracking-wider">{t('reports.labor_section.hours_label')}</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.5"
+                                            value={entry.hours}
+                                            disabled
+                                            className="w-full bg-transparent border-b border-transparent text-brand-teal outline-none py-1 mt-1 text-center font-bold text-sm"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             

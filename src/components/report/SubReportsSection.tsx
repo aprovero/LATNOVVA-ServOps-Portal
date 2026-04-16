@@ -46,7 +46,7 @@ export default function SubReportsSection({ currentReport, subReportIds = [], on
         <div className="card-container">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                    <FileText className="text-brand-teal" size={20} /> {t('subreports_section.title')}
+                    <FileText className="text-brand-teal" size={20} /> {t('reports.subreports_section.title')}
                 </h2>
 
                 {!readOnly && subReportTemplates?.length > 0 && (
@@ -62,7 +62,7 @@ export default function SubReportsSection({ currentReport, subReportIds = [], on
                             }}
                             value=""
                         >
-                            <option value="" disabled>{t('subreports_section.add_form')}</option>
+                            <option value="" disabled>{t('reports.subreports_section.add_form')}</option>
 
                             {subReportTemplates.map(t => (
                                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -86,7 +86,7 @@ export default function SubReportsSection({ currentReport, subReportIds = [], on
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-accent-greyDark text-lg">{sr.templateName}</h3>
-                                    <p className="text-sm text-gray-500 font-mono mt-0.5">ID: {sr.id} • {t('subreports_section.fields_count', { count: template?.fields.length || 0 })}</p>
+                                    <p className="text-sm text-gray-500 font-mono mt-0.5">ID: {sr.id} • {t('reports.subreports_section.fields_count', { count: template?.fields.length || 0 })}</p>
                                 </div>
 
                             </div>
@@ -99,7 +99,7 @@ export default function SubReportsSection({ currentReport, subReportIds = [], on
                                     }} 
                                     className="btn-primary hover:bg-brand-teal/90 text-sm py-2 px-4 flex items-center gap-2 rounded-xl h-10"
                                 >
-                                    <ExternalLink size={16} /> {t('subreports_section.open_form')}
+                                    <ExternalLink size={16} /> {t('reports.subreports_section.open_form')}
                                 </button>
 
                                 {!readOnly && (
@@ -118,7 +118,7 @@ export default function SubReportsSection({ currentReport, subReportIds = [], on
                 {subReportIds.length === 0 && (
                     <div className="p-8 text-center text-gray-400 bg-surface-alt rounded-2xl border border-dashed border-gray-200 flex flex-col items-center">
                         <FileText size={32} className="mb-3 opacity-50 text-gray-400" />
-                        <p className="text-sm font-medium">{t('subreports_section.no_forms')}</p>
+                        <p className="text-sm font-medium">{t('reports.subreports_section.no_forms')}</p>
                     </div>
 
                 )}

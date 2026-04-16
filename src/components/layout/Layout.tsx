@@ -120,6 +120,27 @@ export default function Layout() {
         });
     }
 
+    // ── Proactive Shift Check (H-01) ──
+    const myPersonId = useStore.getState().resolvePersonnelId();
+    if (myPersonId && ['Tech', 'Supervisor'].includes(userRole)) {
+        const activeSession = useStore.getState().timesheets.find(t => t.personnelId === myPersonId && t.timeIn && !t.timeOut);
+        if (activeSession && activeSession.punches) {
+            const inPunch = activeSession.punches.find(p => p.type === 'clockIn');
+            if (inPunch) {
+                const hours = (new Date().getTime() - new Date(inPunch.timestamp).getTime()) / 3600000;
+                if (hours >= 8) {
+                    notifications.push({
+                        id: `long-shift-${myPersonId}`,
+                        title: t('notifications.long_shift_title', 'HEY!'),
+                        message: t('notifications.long_shift_desc', "Did you forget to check out? You've been working for more than 8 hours."),
+                        type: 'warning',
+                        link: '/clock-in'
+                    });
+                }
+            }
+        }
+    }
+
     // Filter out dismissed notifications
     const activeNotifications = notifications.filter(n => !dismissedNotifications.includes(n.id));
 

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, X } from 'lucide-react';
 import { ReportComment } from '../../store/useStore';
+import { formatTime } from '../../lib/utils';
 
 interface SectionCommentBubbleProps {
     sectionKey: string;          // e.g. 'labor', 'checklists', 'notes', 'occurrences'
@@ -97,7 +98,7 @@ export default function SectionCommentBubble({
                                         </span>
                                         {c.role && <span className="text-gray-400 text-[10px]">({c.role})</span>}
                                         <span className="text-gray-300 text-[10px] ml-auto">
-                                            {new Date(c.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                            {formatTime(c.timestamp)}
                                         </span>
                                     </div>
                                     <p className="text-gray-600 leading-relaxed pl-1 border-l-2 border-blue-200">{c.text}</p>

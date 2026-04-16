@@ -1,5 +1,5 @@
-import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
 import { Report, useStore } from '../../store/useStore';
+import { formatTime } from '../../lib/utils';
 
 // Register fonts if needed (using default for now, but good practice for branding)
 Font.register({
@@ -202,11 +202,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
 
   const formatDateTime = (isoString?: string) => {
     if (!isoString) return 'N/A';
-    try {
-        return new Date(isoString).toLocaleString();
-    } catch (e) {
-        return isoString;
-    }
+    return formatTime(isoString, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   const documentTitle = `${project?.codeName ? `${project.codeName} - ` : ''}LATNOVVA Report ${report.id}`;

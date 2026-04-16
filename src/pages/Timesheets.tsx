@@ -12,6 +12,7 @@ import {
 } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { formatTime } from '../lib/utils';
 
 const calculateHours = (inTime: string, outTime: string) => {
     if (!inTime || !outTime) return 0;
@@ -27,7 +28,7 @@ const punchDotColor: Record<string, string> = {
     clockOut: '#EF4444',
 };
 
-const formatPunchTime = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+const formatPunchTime = (iso: string) => formatTime(iso);
 
 export default function Timesheets() {
     const { t } = useTranslation();

@@ -261,14 +261,13 @@
       "author": "Created By",
       "labor": "Labor Entries",
       "summary": "Report Summary",
-      "last_updated": "Last updated"
-    },
-    "empty": {
+      "last_updated": "Last updated",
+      "empty": {
       "title": "No reports found",
       "subtitle": "Create the first report for this project."
-    }
-  },
-  "wbs_section": {
+    },
+    },
+    "wbs_section": {
       "title": "Today's Logged Activities",
       "no_entries": "No activities have been logged for this report yet.",
       "log_new": "Log New Activity",
@@ -291,8 +290,6 @@
       "cancel_caps": "CANCEL",
       "notes_placeholder": "Any additional notes..."
     },
-
-
     "labor_section": {
       "workforce_title": "Workforce & Labor",
       "batch_log_timesheets": "Batch Log Timesheets",
@@ -338,7 +335,6 @@
       "person": "Person",
       "hours": "Hours"
     },
-
     "occurrence_section": {
       "field_issues_title": "Field Issues / Blockers",
       "log_issue": "Log Issue",
@@ -446,6 +442,7 @@
       "open_form": "Open Form",
       "no_forms": "No forms or sub-reports attached.",
       "fields_count": "{{count}} fields"
+    }
   },
   "personnel": {
     "title": "Personnel",
@@ -897,6 +894,8 @@
     "expires_in_days": "expires in {{days}} days",
     "awaiting_review": "is awaiting your review",
     "pending_approval": "is pending your approval",
+    "long_shift_title": "HEY!",
+    "long_shift_desc": "Did you forget to check out? You've been working for more than 8 hours.",
     "empty": "No new notifications",
     "title_badge": "Alerts & Notifications"
   },

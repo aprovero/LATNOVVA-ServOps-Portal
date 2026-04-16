@@ -4,6 +4,7 @@ import {
     LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, PenLine, Trash2, UserPlus, Clock, UserCheck
 } from 'lucide-react';
 import { useStore, ClockPunch, Personnel } from '../store/useStore';
+import { formatTime } from '../lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,14 +49,16 @@ function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'dev
 
 /** Derives punch step for ANY person from persisted timesheets — works on reload */
 function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
+    // 1. Look for any active session (in with no out) across any date (H-01 Persistence)
+    const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+    if (openEntry) return 'clocked-in';
+    
+    // 2. Otherwise, check if they finished today
     const today = getLocalDate();
-    const entry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today);
-    const punches: ClockPunch[] = entry?.punches ?? [];
-    const hasIn = punches.some(p => p.type === 'clockIn');
-    const hasOut = punches.some(p => p.type === 'clockOut');
-    if (!hasIn) return 'idle';
-    if (hasOut) return 'clocked-out';
-    return 'clocked-in';
+    const finishedToday = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut);
+    if (finishedToday) return 'clocked-out';
+    
+    return 'idle';
 }
 
 const getStepMeta = (t: any): Record<PunchStep, { label: string; dot: string; bg: string; text: string }> => ({
@@ -73,8 +76,7 @@ const punchColor: Record<ClockPunch['type'], string> = {
     clockIn: '#00B4A6', clockOut: '#EF4444',
 };
 
-const formatShort = (iso: string, language: string) =>
-    new Date(iso).toLocaleTimeString(language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+const formatShort = (iso: string) => formatTime(iso);
 
 // ─── GpsBadge ─────────────────────────────────────────────────────────────────
 
@@ -552,7 +554,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             names.push(entry.name);
         });
         const finalAction = entries[0]?.action ?? 'clockIn';
-        setLastBatch({ names, action: getPunchLabel(t)[finalAction], time: formatShort(timestamp, i18n.language) });
+        setLastBatch({ names, action: getPunchLabel(t)[finalAction], time: formatShort(timestamp) });
         setShowConfirm(false);
         setSelectedIds(new Set());
         setScreen('success');
@@ -1105,7 +1107,7 @@ export default function ClockIn() {
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t('attendance.labels.field_tracker')}</span>
                 </div>
                 <div className="font-mono text-5xl md:text-6xl font-bold tracking-tight tabular-nums text-white drop-shadow-lg">
-                    {displayTime.toLocaleTimeString(i18n.language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                    {formatTime(displayTime, { second: '2-digit' })}
                 </div>
                 <p className="mt-1 text-gray-400 text-sm">
                     {displayTime.toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
