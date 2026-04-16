@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, Filter, Search, X, Check, AlertTriangle, Edit2, Info,
+    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, PenLine, Trash2, UserPlus, Clock, UserCheck
 } from 'lucide-react';
 import { useStore, ClockPunch, Personnel } from '../store/useStore';
 
@@ -1123,13 +1123,11 @@ export default function ClockIn() {
                     viewMode === 'batch' ? 'bg-purple-50 text-purple-700' :
                     myStep === 'idle' ? 'bg-gray-100 text-gray-600' :
                     myStep === 'clocked-in' ? 'bg-teal-50 text-teal-700' :
-                    myStep === 'lunch-out' ? 'bg-amber-50 text-amber-700' :
                     'bg-green-50 text-green-700'
                 }`}>
                     {viewMode === 'batch' && <><Users size={14} className="inline mr-1 -mt-0.5" /> {t('attendance.labels.team_batch_mode')}</>}
                     {viewMode === 'individual' && myStep === 'idle' && `○ ${t('attendance.status.not_in')}`}
                     {viewMode === 'individual' && myStep === 'clocked-in' && `● ${t('attendance.status.on_site')}`}
-                    {viewMode === 'individual' && myStep === 'lunch-out' && `● ${t('attendance.status.lunch')}`}
                     {viewMode === 'individual' && myStep === 'clocked-out' && `✓ ${t('attendance.status.done')}`}
                 </div>
 

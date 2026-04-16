@@ -820,9 +820,6 @@ export default function Timesheets() {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        {entry.lunchSkipped && (
-                                                            <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">☕ {t('timesheets.table.no_lunch')}</p>
-                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

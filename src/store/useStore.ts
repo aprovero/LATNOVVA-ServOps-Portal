@@ -1461,8 +1461,7 @@ export const useStore = create<AppState>()(
                     approved_by: timesheet.approvedBy,
                     signature: timesheet.signature,
                     punches: timesheet.punches,
-                    gps_verified: timesheet.gpsVerified,
-                    lunch_skipped: timesheet.lunchSkipped
+                    gps_verified: timesheet.gpsVerified
                 };
                 await supabase.from('timesheets').insert(dbPayload);
             },
@@ -1485,7 +1484,6 @@ export const useStore = create<AppState>()(
                 if (updates.signature !== undefined) dbPayload.signature = updates.signature;
                 if (updates.punches !== undefined) dbPayload.punches = updates.punches;
                 if (updates.gpsVerified !== undefined) dbPayload.gps_verified = updates.gpsVerified;
-                if (updates.lunchSkipped !== undefined) dbPayload.lunch_skipped = updates.lunchSkipped;
                 if (updates.source !== undefined) dbPayload.source = updates.source;             // M-04
                 if (updates.manualReason !== undefined) dbPayload.manual_reason = updates.manualReason; // M-04
                 if (Object.keys(dbPayload).length > 0) {
