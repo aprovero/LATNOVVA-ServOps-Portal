@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download, Play } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download, Play, X } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useTranslation } from 'react-i18next';
@@ -33,7 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId } = useStore();
+    const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications } = useStore();
     const isGodMode = userEmail === GOD_MODE_ADMIN_EMAIL || 
                       userId?.startsWith('GM-') || 
                       Object.values(GOD_MODE_PERSONAS).some(p => p.userEmail === userEmail || p.userId === userId);
@@ -119,6 +119,9 @@ export default function Layout() {
             });
         });
     }
+
+    // Filter out dismissed notifications
+    const activeNotifications = notifications.filter(n => !dismissedNotifications.includes(n.id));
 
     useEffect(() => {
         // Reveal animation
@@ -409,37 +412,63 @@ export default function Layout() {
                             <DropdownMenuTrigger asChild>
                                 <button className="outline-none relative p-2 text-gray-500 hover:text-brand-teal transition-colors rounded-full hover:bg-gray-100">
                                     <Bell size={20} />
-                                    {notifications.length > 0 && (
+                                    {activeNotifications.length > 0 && (
                                         <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[9px] text-white flex items-center justify-center font-bold">
-                                            {notifications.length}
+                                            {activeNotifications.length}
                                         </span>
                                     )}
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-80 rounded-xl border-gray-100 shadow-xl max-h-[400px] overflow-y-auto">
-                                <DropdownMenuLabel>{t('notifications.title_badge', 'Alerts & Notifications')}</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {notifications.length === 0 ? (
-                                    <div className="p-4 text-center text-sm text-gray-500">{t('notifications.empty', 'No new notifications')}</div>
-                                ) : (
-                                    notifications.map(n => (
-                                        <div 
-                                            key={n.id} 
-                                            onClick={() => {
-                                                if (n.link) navigate(n.link);
-                                            }}
-                                            className={`p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors flex gap-3 items-start ${n.link ? 'cursor-pointer' : ''}`}
+                            <DropdownMenuContent align="end" className="w-80 rounded-xl border-gray-100 shadow-xl overflow-hidden flex flex-col max-h-[480px]">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                                    <DropdownMenuLabel className="p-0 font-bold text-accent-greyDark">{t('notifications.title_badge', 'Alerts & Notifications')}</DropdownMenuLabel>
+                                    {activeNotifications.length > 0 && (
+                                        <button 
+                                            onClick={() => clearNotifications(activeNotifications.map((n: any) => n.id))}
+                                            className="text-[10px] font-bold text-brand-teal hover:text-brand-teal/80 uppercase tracking-widest"
                                         >
-                                            <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${n.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                <AlertTriangle size={14} />
+                                            {t('common.clear_all', 'Clear All')}
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="overflow-y-auto">
+                                    {activeNotifications.length === 0 ? (
+                                        <div className="p-10 text-center text-sm text-gray-500 flex flex-col items-center gap-3">
+                                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                                                <Bell size={24} />
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-accent-greyDark">{n.title}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                                            </div>
+                                            <p>{t('notifications.empty', 'No new notifications')}</p>
                                         </div>
-                                    ))
-                                )}
+                                    ) : (
+                                        activeNotifications.map((n: any) => (
+                                            <div 
+                                                key={n.id} 
+                                                className={`p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors flex gap-3 items-start relative group outline-none`}
+                                            >
+                                                <div 
+                                                    className={`mt-0.5 p-1.5 rounded-full shrink-0 ${n.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}
+                                                    onClick={() => n.link && navigate(n.link)}
+                                                >
+                                                    <AlertTriangle size={14} />
+                                                </div>
+                                                <div className="flex-1 min-w-0" onClick={() => n.link && navigate(n.link)}>
+                                                    <p className="text-sm font-bold text-accent-greyDark leading-tight">{n.title}</p>
+                                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{n.message}</p>
+                                                </div>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        dismissNotification(n.id);
+                                                    }}
+                                                    className="p-1 text-gray-300 hover:text-gray-500 hover:bg-gray-100 rounded-md transition-all opacity-0 group-hover:opacity-100"
+                                                    title="Dismiss"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
 
@@ -569,35 +598,61 @@ export default function Layout() {
                             <DropdownMenuTrigger asChild>
                                 <button className="relative p-2 text-gray-500 rounded-full bg-gray-50 outline-none">
                                     <Bell size={18} />
-                                    {notifications.length > 0 && (
+                                    {activeNotifications.length > 0 && (
                                         <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                                     )}
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-80 rounded-xl border-gray-100 shadow-xl max-h-[400px] overflow-y-auto">
-                                <DropdownMenuLabel>{t('nav.notifications', 'Alerts & Notifications')}</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {notifications.length === 0 ? (
-                                    <div className="p-4 text-center text-sm text-gray-500">{t('notifications.empty', 'No new notifications')}</div>
-                                ) : (
-                                    notifications.map(n => (
-                                        <div 
-                                            key={n.id} 
-                                            onClick={() => {
-                                                if (n.link) navigate(n.link);
-                                            }}
-                                            className={`p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors flex gap-3 items-start ${n.link ? 'cursor-pointer' : ''}`}
+                            <DropdownMenuContent align="end" className="w-80 rounded-xl border-gray-100 shadow-xl overflow-hidden flex flex-col max-h-[400px]">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                                    <DropdownMenuLabel className="p-0 font-bold text-accent-greyDark">{t('nav.notifications', 'Alerts & Notifications')}</DropdownMenuLabel>
+                                    {activeNotifications.length > 0 && (
+                                        <button 
+                                            onClick={() => clearNotifications(activeNotifications.map((n: any) => n.id))}
+                                            className="text-[10px] font-bold text-brand-teal hover:text-brand-teal/80 uppercase tracking-widest"
                                         >
-                                            <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${n.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                <AlertTriangle size={14} />
+                                            {t('common.clear_all', 'Clear All')}
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="overflow-y-auto">
+                                    {activeNotifications.length === 0 ? (
+                                        <div className="p-8 text-center text-sm text-gray-500 flex flex-col items-center gap-3">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                                                <Bell size={20} />
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-accent-greyDark">{n.title}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                                            </div>
+                                            <p>{t('notifications.empty', 'No new notifications')}</p>
                                         </div>
-                                    ))
-                                )}
+                                    ) : (
+                                        activeNotifications.map((n: any) => (
+                                            <div 
+                                                key={n.id} 
+                                                className={`p-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors flex gap-3 items-start relative group outline-none`}
+                                            >
+                                                <div 
+                                                    className={`mt-0.5 p-1.5 rounded-full shrink-0 ${n.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}
+                                                    onClick={() => n.link && navigate(n.link)}
+                                                >
+                                                    <AlertTriangle size={14} />
+                                                </div>
+                                                <div className="flex-1 min-w-0" onClick={() => n.link && navigate(n.link)}>
+                                                    <p className="text-sm font-bold text-accent-greyDark leading-tight">{n.title}</p>
+                                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{n.message}</p>
+                                                </div>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        dismissNotification(n.id);
+                                                    }}
+                                                    className="p-1 text-gray-300 hover:text-gray-500 hover:bg-gray-100 rounded-md transition-all opacity-0 group-hover:opacity-100"
+                                                    title="Dismiss"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
 

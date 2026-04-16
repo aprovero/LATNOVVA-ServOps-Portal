@@ -40,8 +40,17 @@ export default function ReportEditor() {
         _toastTimeout = setTimeout(() => setToast(null), 4500);
     };
 
+    console.log('[ReportEditor] Initial render with ID:', id);
     const report = reports.find(r => r.id === id);
     const project = projects.find(p => p.id === report?.projectId);
+    
+    console.log('[ReportEditor] Data state:', { 
+        id, 
+        hasReport: !!report, 
+        hasProject: !!project, 
+        reportProjectId: report?.projectId,
+        totalProjects: projects.length 
+    });
     const [notes, setNotes] = useState('');
 
     const [weatherState, setWeatherState] = useState(report?.weather || null);
@@ -96,11 +105,19 @@ export default function ReportEditor() {
 
     useEffect(() => {
         if (report) {
-            setNotes(report.notes);
+            setNotes(report.notes || '');
             setWeatherState(report.weather);
             setLocationState(report.location);
             setSections(report.customSections || []);
-            setLabor(report.labor || []);
+            
+            // Sync labor: if empty, try to build defaults from project
+            const reportLabor = report.labor || [];
+            if (reportLabor.length === 0) {
+                setLabor(buildDefaultLabor());
+            } else {
+                setLabor(reportLabor);
+            }
+
             setMedia(report.media || []);
             setOccurrences(report.occurrences || []);
             setChecklists(report.checklists || []);
@@ -111,7 +128,7 @@ export default function ReportEditor() {
             setDiscipline(report.discipline || (project?.disciplines?.length === 1 ? project.disciplines[0] : ''));
             setSignatureBlob(report.signatures?.find(s => s.role === userRole)?.blob || '');
         }
-    }, [report]);
+    }, [report, project?.id]); // Also depend on project.id to re-build defaults if project loads later
 
     // M-01: Dirty-state guard — warn on accidental browser close/refresh
     // Note: canEditFields is derived after the early return, so we re-derive inline here
@@ -133,7 +150,31 @@ export default function ReportEditor() {
     }, []);
 
     if (!report) {
-        return <div className="p-8 text-center text-gray-500">{t('reports.not_found')}</div>;
+        console.warn('[ReportEditor] Report not found:', id);
+        return (
+            <div className="p-8 text-center flex flex-col items-center justify-center min-h-[50vh] gap-4">
+                <AlertTriangle size={48} className="text-gray-300" />
+                <p className="text-gray-500 font-medium">{t('reports.not_found')}</p>
+                <button onClick={() => navigate('/reports')} className="btn-secondary">{t('common.back')}</button>
+            </div>
+        );
+    }
+
+    if (!project) {
+        console.warn('[ReportEditor] Project not found for report:', report.projectId);
+        return (
+            <div className="p-8 text-center flex flex-col items-center justify-center min-h-[50vh] gap-4">
+                <AlertTriangle size={48} className="text-amber-400" />
+                <h2 className="text-xl font-bold">{t('reports.project_not_found_title', 'Missing Project Context')}</h2>
+                <p className="text-gray-500 max-w-md mx-auto">
+                    {t('reports.project_not_found_desc', 'The project associated with this report could not be loaded. This may happen during initial synchronization.')}
+                </p>
+                <div className="flex gap-3">
+                    <button onClick={() => navigate('/projects')} className="btn-secondary">{t('projects.back_to_projects')}</button>
+                    <button onClick={() => window.location.reload()} className="btn-secondary bg-gray-100">{t('common.refresh', 'Reload')}</button>
+                </div>
+            </div>
+        );
     }
 
     // Access Controls

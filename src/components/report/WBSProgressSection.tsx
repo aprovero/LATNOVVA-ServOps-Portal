@@ -36,7 +36,7 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
     const [notes, setNotes] = useState('');
     const [editIndex, setEditIndex] = useState<number | null>(null);
 
-    const availableScopes = (project.scopes || []).filter(s => 
+    const availableScopes = (project?.scopes || []).filter(s => 
         !discipline || s.discipline === discipline || s.discipline === 'Other'
     );
     const availableActivities = availableScopes.find(s => s.id === selectedScope)?.activities.filter(a => (a.progress || 0) < 100) || [];

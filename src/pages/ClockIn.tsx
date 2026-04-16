@@ -1,15 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-    MapPin, Clock, CheckCircle, AlertTriangle, Wifi, WifiOff,
-    Coffee, LogIn, LogOut, ChevronDown, X, Edit2, Zap,
-    Users, UserCheck, PenLine, UserPlus, Check, Trash2,
+    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, Filter, Search, X, Check, AlertTriangle, Edit2, Info,
 } from 'lucide-react';
 import { useStore, ClockPunch, Personnel } from '../store/useStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PunchStep = 'idle' | 'clocked-in' | 'lunch-out' | 'clocked-out';
+type PunchStep = 'idle' | 'clocked-in' | 'clocked-out';
 type ViewMode = 'individual' | 'batch';
 type BatchScreen = 'list' | 'success';
 
@@ -54,31 +52,25 @@ function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
     const entry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today);
     const punches: ClockPunch[] = entry?.punches ?? [];
     const hasIn = punches.some(p => p.type === 'clockIn');
-    const hasLunchOut = punches.some(p => p.type === 'lunchOut');
-    const hasLunchIn = punches.some(p => p.type === 'lunchIn');
     const hasOut = punches.some(p => p.type === 'clockOut');
     if (!hasIn) return 'idle';
     if (hasOut) return 'clocked-out';
-    if (hasLunchOut && !hasLunchIn) return 'lunch-out';
     return 'clocked-in';
 }
 
 const getStepMeta = (t: any): Record<PunchStep, { label: string; dot: string; bg: string; text: string }> => ({
     idle:        { label: t('attendance.status.not_in'),   dot: '○', bg: 'bg-gray-100',    text: 'text-gray-500' },
     'clocked-in':{ label: t('attendance.status.on_site'),  dot: '●', bg: 'bg-teal-50',     text: 'text-teal-700' },
-    'lunch-out': { label: t('attendance.status.lunch'),    dot: '●', bg: 'bg-amber-50',    text: 'text-amber-700'},
     'clocked-out':{ label: t('attendance.status.done'),     dot: '✓', bg: 'bg-green-50',    text: 'text-green-700'},
 });
 
 const getPunchLabel = (t: any): Record<ClockPunch['type'], string> => ({
     clockIn: t('attendance.punches.clockIn'), 
-    lunchOut: t('attendance.punches.lunchOut'),
-    lunchIn: t('attendance.punches.lunchIn'), 
     clockOut: t('attendance.punches.clockOut'),
 });
 
 const punchColor: Record<ClockPunch['type'], string> = {
-    clockIn: '#00B4A6', lunchOut: '#F59E0B', lunchIn: '#F59E0B', clockOut: '#EF4444',
+    clockIn: '#00B4A6', clockOut: '#EF4444',
 };
 
 const formatShort = (iso: string, language: string) =>
@@ -291,8 +283,6 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
 
     const actionLabel: Record<ClockPunch['type'], { label: string; color: string }> = {
         clockIn:  { label: t('attendance.punches.action_in'),        color: 'text-teal-700 bg-teal-50' },
-        lunchOut: { label: t('attendance.punches.action_lunch_out'),  color: 'text-amber-700 bg-amber-50' },
-        lunchIn:  { label: t('attendance.punches.action_lunch_in'),   color: 'text-amber-700 bg-amber-50' },
         clockOut: { label: t('attendance.punches.action_out'),       color: 'text-red-700 bg-red-50' },
     };
 
@@ -503,15 +493,14 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const getNextAction = (id: string): ClockPunch['type'] => {
         const step = getPunchStep(timesheets, id);
         if (step === 'idle') return 'clockIn';
-        if (step === 'clocked-in') return 'clockOut'; // simplified: batch out
-        if (step === 'lunch-out') return 'lunchIn';
-        return 'clockIn'; // clocked-out — shouldn't normally be selected
+        if (step === 'clocked-in') return 'clockOut';
+        return 'clockIn';
     };
 
     // Determine dominant action for selected people (majority vote)
     const dominantAction = useCallback((): ClockPunch['type'] => {
         const list = [...selectedIds];
-        const counts: Record<string, number> = { clockIn: 0, clockOut: 0, lunchIn: 0, lunchOut: 0 };
+        const counts: Record<string, number> = { clockIn: 0, clockOut: 0 };
         list.forEach(id => { const a = getNextAction(id); counts[a] = (counts[a] || 0) + 1; });
         outsourcedList.filter(o => selectedIds.has(o.tempId)).forEach(() => { counts['clockIn']++; });
         return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'clockIn') as ClockPunch['type'];
@@ -534,6 +523,19 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
     const commitBatch = useCallback((sigBlob: string) => {
         const entries = buildEntries();
+        const action = dominantAction();
+        
+        // Safety check: if we are doing a mass "clockIn" but some people are already "clocked-in", confirm first
+        if (action === 'clockIn') {
+            const alreadyIn = entries.filter(e => getPunchStep(timesheets, e.id) === 'clocked-in');
+            if (alreadyIn.length > 0) {
+                const names = alreadyIn.map(e => e.name).join(', ');
+                if (!window.confirm(t('attendance.batch.confirm_already_in', { names }))) {
+                    return;
+                }
+            }
+        }
+
         const best = getBestTimestampISO(gps);
         const timestamp = best.iso;
         const names: string[] = [];
@@ -549,8 +551,8 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             doPunch(entry.isOutsourced ? `OUT-${entry.id.replace('OUT-', '')}` : entry.id, punch, selectedProject || undefined);
             names.push(entry.name);
         });
-        const action = entries[0]?.action ?? 'clockIn';
-        setLastBatch({ names, action: getPunchLabel(t)[action], time: formatShort(timestamp, i18n.language) });
+        const finalAction = entries[0]?.action ?? 'clockIn';
+        setLastBatch({ names, action: getPunchLabel(t)[finalAction], time: formatShort(timestamp, i18n.language) });
         setShowConfirm(false);
         setSelectedIds(new Set());
         setScreen('success');
@@ -594,7 +596,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
     // Count how many selected people need clock-in vs clock-out for the warning banner
     const actionCounts = (() => {
-        const counts: Record<string, number> = { clockIn: 0, clockOut: 0, lunchIn: 0, lunchOut: 0 };
+        const counts: Record<string, number> = { clockIn: 0, clockOut: 0 };
         [...selectedIds].forEach(id => {
             if (outsourcedList.some(o => o.tempId === id)) { counts.clockIn++; return; }
             const a = getNextAction(id);
@@ -699,11 +701,9 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                             const labelMap = {
                                                 clockIn: t('attendance.punches.will_in'),
                                                 clockOut: t('attendance.punches.will_out'),
-                                                lunchOut: t('attendance.punches.will_lunch_out'),
-                                                lunchIn: t('attendance.punches.will_lunch_in'),
                                             };
                                             const label = labelMap[nextA];
-                                            const color = nextA === 'clockIn' ? 'text-teal-500' : nextA === 'clockOut' ? 'text-red-400' : 'text-amber-500';
+                                            const color = nextA === 'clockIn' ? 'text-teal-500' : 'text-red-400';
                                             return <span className={`text-[10px] font-semibold mt-0.5 ${color}`}>{label}</span>;
                                         })()}
                                         {/* Warn if already clocked-in but selected in a check-in batch */}
@@ -783,7 +783,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                             {hasMixedActions ? (
                                 <p className="text-amber-400 text-xs font-semibold">
                                     {t('attendance.batch.mixed_warning', { 
-                                        counts: `${actionCounts.clockIn > 0 ? `${actionCounts.clockIn} ${t('attendance.punches.action_in').toLowerCase()}` : ''}${actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}${actionCounts.clockOut > 0 ? `${actionCounts.clockOut} ${t('attendance.punches.action_out').toLowerCase()}` : ''}${actionCounts.lunchIn > 0 ? `, ${actionCounts.lunchIn} ${t('attendance.punches.action_lunch_in').toLowerCase()}` : ''}`
+                                        counts: `${actionCounts.clockIn > 0 ? `${actionCounts.clockIn} ${t('attendance.punches.action_in').toLowerCase()}` : ''}${actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}${actionCounts.clockOut > 0 ? `${actionCounts.clockOut} ${t('attendance.punches.action_out').toLowerCase()}` : ''}`
                                     })}
                                 </p>
                             ) : (
@@ -802,8 +802,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                 const labelMap = {
                                     clockIn: t('attendance.punches.action_in'),
                                     clockOut: t('attendance.punches.action_out'),
-                                    lunchOut: t('attendance.punches.action_lunch_out'),
-                                    lunchIn: t('attendance.punches.action_lunch_in'),
                                 };
                                 return labelMap[a];
                             })()} {selCount}
@@ -876,22 +874,6 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
         };
         doPunch(personnelId, punch, selectedProject || undefined);
-    };
-
-    const handleSkipLunch = () => {
-        // M-05: If GPS is denied, use manual modal fallback for the lunch-out punch
-        if (gpsDenied) {
-            setManualModal('lunchOut');
-            return;
-        }
-        const best = getBestTimestampISO(gps);
-        const base: ClockPunch = {
-            timestamp: best.iso, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
-            accuracy: gps.accuracy ?? 9999, type: 'lunchOut', timeSource: best.source,
-            manualAdjustment: true, adjustmentNote: 'Lunch skipped – no break taken',
-        };
-        doPunch(personnelId, base, selectedProject || undefined, true);
-        setTimeout(() => doPunch(personnelId, { ...base, type: 'lunchIn' }, selectedProject || undefined, true), 100);
     };
 
     return (
@@ -990,67 +972,24 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
             {step === 'clocked-in' && (
                 <div className="space-y-3">
-                    {/* C-02: GPS denied fallback for Lunch Out */}
-                    {gpsDenied ? (
-                        <>
-                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
-                                <AlertTriangle size={16} className="shrink-0" />
-                                <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
-                            </div>
-                            <button onClick={() => setManualModal('lunchOut')}
-                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                                <Coffee size={22} /> LUNCH OUT (Manual)
-                            </button>
-                        </>
-                    ) : (
-                        <button onClick={() => executePunch('lunchOut')} disabled={!gpsReady}
-                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                            <Coffee size={22} /> {t('attendance.punches.action_lunch_out')}
-                        </button>
-                    )}
-                    <button onClick={handleSkipLunch}
-                        className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-600 text-sm font-semibold flex items-center justify-center hover:bg-gray-50 transition-colors">
-                        {t('attendance.labels.skip_lunch')}
-                    </button>
                     {/* C-02: GPS denied fallback for Clock Out */}
                     {gpsDenied ? (
-                        <button onClick={() => setManualModal('clockOut')}
-                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-400 to-red-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                            <LogOut size={22} /> {t('attendance.punches.action_out')} ({t('common.other')})
-                        </button>
-                    ) : (
-                        <button onClick={() => executePunch('clockOut')} disabled={!gpsReady}
-                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                            <LogOut size={22} /> {t('attendance.punches.action_out')}
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {step === 'lunch-out' && (
-                <div className="space-y-3">
-                    {/* C-02: GPS denied fallback for Back from Lunch */}
-                    {gpsDenied ? (
                         <>
                             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
                                 <AlertTriangle size={16} className="shrink-0" />
                                 <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
                             </div>
-                            <button onClick={() => setManualModal('lunchIn')}
-                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                                <Coffee size={22} /> {t('attendance.punches.action_lunch_in')} ({t('common.other')})
+                            <button onClick={() => setManualModal('clockOut')}
+                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                <LogOut size={26} /> {t('attendance.punches.action_out')} ({t('common.other')})
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => executePunch('lunchIn')} disabled={!gpsReady}
-                            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 active:scale-[0.98]">
-                            <Coffee size={22} /> {t('attendance.punches.action_lunch_in')}
+                        <button onClick={() => executePunch('clockOut')} disabled={!gpsReady}
+                            className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
+                            <LogOut size={26} /> {t('attendance.punches.action_out')}
                         </button>
                     )}
-                    <button onClick={() => setManualModal('lunchIn')}
-                        className="w-full py-3 rounded-2xl border-2 border-amber-200 text-amber-600 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-amber-50 transition-colors">
-                        <Edit2 size={14} /> {t('attendance.labels.forgot_punch')}
-                    </button>
                 </div>
             )}
 

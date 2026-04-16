@@ -578,7 +578,6 @@
       "review": "Review",
       "view_gps": "Click to view GPS punch trail",
       "audit_trail": "GPS Punch Audit Trail",
-      "no_lunch": "No lunch break taken",
       "no_gps": "No GPS data",
       "manual_adj": "Manual Adj."
     },
@@ -790,23 +789,16 @@
     "status": {
       "not_in": "Not In",
       "on_site": "On Site",
-      "lunch": "Lunch",
-      "done": "Done",
-      "already_on_site": "Already on site"
+      "already_on_site": "Already on site",
+      "done": "Done"
     },
     "punches": {
       "clockIn": "Clocked In",
-      "lunchOut": "Lunch Out",
-      "lunchIn": "Back from Lunch",
-      "clockOut": "Clocked Out",
-      "action_in": "Check In",
-      "action_out": "Check Out",
-      "action_lunch_out": "Lunch Out",
-      "action_lunch_in": "Back from Lunch",
+      "clockOut": "Clock Out",
+      "action_in": "Clock In",
+      "action_out": "Clock Out",
       "will_in": "↳ Will Clock In",
-      "will_out": "↳ Will Clock Out",
-      "will_lunch_out": "↳ Lunch Out",
-      "will_lunch_in": "↳ Back from Lunch"
+      "will_out": "↳ Will Clock Out"
     },
     "gps": {
       "acquiring": "Acquiring GPS...",
@@ -830,14 +822,15 @@
       "add_to_list": "Add to List"
     },
     "batch": {
-      "confirm_title": "Confirm Batch Punch",
-      "count_label_singular": "1 person — confirm each action",
+      "confirm_title": "Confirm Batch Action",
+      "count_label_singular": "1 person — confirm action",
       "count_label_plural": "{{count}} people — confirm each action",
       "mixed_warning": "⚠ Mixed — {{counts}} — review before signing",
       "success_title": "✓ {{action}}",
       "at_time": "at {{time}}",
-      "back_to_team": "Back to Team",
-      "return_countdown": "Returning to list in {{count}}s…"
+      "back_to_team": "Back to Team List",
+      "return_countdown": "Returning to list in {{count}}s...",
+      "confirm_already_in": "The following personnel are already clocked in:\n\n{{names}}\n\nDo you want to proceed with checking them in again? (This will create a new entry)"
     },
     "manual": {
       "title": "Manual Time Entry",

@@ -24,8 +24,6 @@ const calculateHours = (inTime: string, outTime: string) => {
 
 const punchDotColor: Record<string, string> = {
     clockIn: '#00B4A6',
-    lunchOut: '#F59E0B',
-    lunchIn: '#F59E0B',
     clockOut: '#EF4444',
 };
 
@@ -38,8 +36,6 @@ export default function Timesheets() {
 
     const punchLabel: Record<string, string> = {
         clockIn: t('timesheets.punches.clock_in'),
-        lunchOut: t('timesheets.punches.lunch_out'),
-        lunchIn: t('timesheets.punches.lunch_in'),
         clockOut: t('timesheets.punches.clock_out'),
     };
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);

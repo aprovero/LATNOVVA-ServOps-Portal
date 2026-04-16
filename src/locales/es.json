@@ -579,7 +579,6 @@
       "review": "Revisar",
       "view_gps": "Clic para ver rastro de punch GPS",
       "audit_trail": "Registro de Auditoría GPS",
-      "no_lunch": "Sin pausa de almuerzo",
       "no_gps": "Sin datos de GPS",
       "manual_adj": "Ajuste Manual"
     },
@@ -791,23 +790,16 @@
     "status": {
       "not_in": "Sin Entrada",
       "on_site": "En Sitio",
-      "lunch": "Almuerzo",
-      "done": "Finalizado",
-      "already_on_site": "Ya en sitio"
+      "already_on_site": "Ya en sitio",
+      "done": "Finalizado"
     },
     "punches": {
       "clockIn": "Entrada Registrada",
-      "lunchOut": "Salida a Almuerzo",
-      "lunchIn": "Regreso de Almuerzo",
       "clockOut": "Salida Registrada",
       "action_in": "Entrada",
       "action_out": "Salida",
-      "action_lunch_out": "Almuerzo",
-      "action_lunch_in": "Volver de Almuerzo",
       "will_in": "↳ Marcara Entrada",
-      "will_out": "↳ Marcara Salida",
-      "will_lunch_out": "↳ Marcara Almuerzo",
-      "will_lunch_in": "↳ Volver de Almuerzo"
+      "will_out": "↳ Marcara Salida"
     },
     "gps": {
       "acquiring": "Adquiriendo GPS...",
@@ -832,13 +824,14 @@
     },
     "batch": {
       "confirm_title": "Confirmar Registro Grupal",
-      "count_label_singular": "1 persona — confirme cada acción",
+      "count_label_singular": "1 persona — confirme la acción",
       "count_label_plural": "{{count}} personas — confirme cada acción",
       "mixed_warning": "⚠ Mixto — {{counts}} — revise antes de firmar",
       "success_title": "✓ {{action}}",
       "at_time": "a las {{time}}",
-      "back_to_team": "Volver al Equipo",
-      "return_countdown": "Volviendo a la lista en {{count}}s…"
+      "back_to_team": "Volver a la Lista de Equipo",
+      "return_countdown": "Volviendo a la lista en {{count}}s...",
+      "confirm_already_in": "El siguiente personal ya tiene entrada registrada:\n\n{{names}}\n\n¿Desea proceder con el registro? (Esto creará una nueva entrada)"
     },
     "manual": {
       "title": "Entrada de Tiempo Manual",

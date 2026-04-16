@@ -303,7 +303,7 @@ export interface ClockPunch {
     lat: number;
     lng: number;
     accuracy: number;    // GPS accuracy in meters
-    type: 'clockIn' | 'lunchOut' | 'lunchIn' | 'clockOut';
+    type: 'clockIn' | 'clockOut';
     timeSource: 'gps' | 'device'; // gps = satellite atomic clock, device = system clock
     manualAdjustment?: boolean; // true if time was entered retroactively
     adjustmentNote?: string;
@@ -333,7 +333,6 @@ export interface TimesheetEntry {
     };
     punches?: ClockPunch[];     // GPS audit trail from clock-in system
     gpsVerified?: boolean;      // true when all punches have accuracy <= 50m
-    lunchSkipped?: boolean;     // true when tech explicitly skipped lunch
     source?: 'gps' | 'manual'; // H-04: explicit audit flag
     manualReason?: string;      // H-04: required justification for manual entries
 }
@@ -461,6 +460,10 @@ interface AppState {
     addActivityToScope: (projectId: string, scopeId: string, activity: ProjectActivity) => void;
     deleteProjectActivity: (projectId: string, scopeId: string, activityId: string) => void;
     updateActivityProgress: (projectId: string, scopeId: string, activityId: string, updates: Partial<ProjectActivity>) => void;
+    // Notifications Clearing
+    dismissedNotifications: string[];
+    dismissNotification: (id: string) => void;
+    clearNotifications: (ids: string[]) => void;
     // Cloud Storage & Auth
     sharepointConfig: {
         siteId?: string;
@@ -942,7 +945,6 @@ export const useStore = create<AppState>()(
                                 signature: t.signature,
                                 punches: t.punches || [],
                                 gpsVerified: t.gps_verified,
-                                lunchSkipped: t.lunch_skipped,
                                 source: (t as any).source || 'manual',
                                 manualReason: (t as any).manual_reason,
                             }))
@@ -1513,49 +1515,50 @@ export const useStore = create<AppState>()(
                 }));
                 await supabase.from('timesheets').update({ status: 'Rejected', approved_by: approverId }).eq('id', id);
             },
-            clockPunch: async (personnelId, punch, projectId, lunchSkipped) => {
-                // C-01: Use LOCAL date so timezone differences don't cause wrong-day lookups
+            clockPunch: async (personnelId, punch, projectId) => {
                 const _d = new Date();
                 const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
 
-                // C-01 FIX: Convert ISO timestamp to LOCAL HH:mm (not UTC slice)
                 const toHHMM = (iso: string) => {
                     const d = new Date(iso);
                     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
                 };
 
                 set((state) => {
-                    const existing = state.timesheets.find(
+                    // C-01 IMPROVEMENT: For check-out, find the most recent OPEN entry (no timeOut), regardless of date.
+                    // This handles midnight crossings and missing records for "today".
+                    let existing = state.timesheets.find(
                         t => t.personnelId === personnelId && t.date === today
                     );
+
+                    if (punch.type === 'clockOut' && (!existing || existing.timeOut)) {
+                        // Look for any open entry for this person
+                        const openEntry = [...state.timesheets]
+                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                            .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+                        if (openEntry) existing = openEntry;
+                    }
 
                     const updatedPunches = [...(existing?.punches ?? []), punch];
                     const allAccurate = updatedPunches.every(p => p.accuracy <= 50);
 
-                    // Compute timeIn / timeOut / hours from punches
                     const clockIn = updatedPunches.find(p => p.type === 'clockIn');
                     const clockOut = updatedPunches.find(p => p.type === 'clockOut');
-                    const lunchOut = updatedPunches.find(p => p.type === 'lunchOut');
-                    const lunchIn = updatedPunches.find(p => p.type === 'lunchIn');
 
                     let computedHours = 0;
                     if (clockIn && clockOut) {
                         const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
-                        let lunchMs = 0;
-                        if (lunchOut && lunchIn) {
-                            lunchMs = new Date(lunchIn.timestamp).getTime() - new Date(lunchOut.timestamp).getTime();
-                        }
-                        computedHours = Math.round(((totalMs - lunchMs) / 3600000) * 100) / 100;
+                        computedHours = Math.round((totalMs / 3600000) * 100) / 100;
                     }
 
                     const entryUpdates: Partial<TimesheetEntry> = {
                         punches: updatedPunches,
                         gpsVerified: allAccurate,
+                        source: 'gps', // H-04: explicit audit flag
                         ...(clockIn ? { timeIn: toHHMM(clockIn.timestamp) } : {}),
                         ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
                         ...(computedHours > 0 ? { hours: computedHours } : {}),
                         ...(projectId ? { projectId } : {}),
-                        ...(lunchSkipped !== undefined ? { lunchSkipped } : {}),
                     };
 
                     if (existing) {
@@ -1578,11 +1581,12 @@ export const useStore = create<AppState>()(
                     }
                 });
 
-                // H-01: Persist GPS punch to Supabase so other devices see live data
                 try {
+                    // Find the actual updated entry from the new state
                     const updated = get().timesheets.find(
-                        t => t.personnelId === personnelId && t.date === today
+                        t => t.personnelId === personnelId && (t.date === today || (punch.type === 'clockOut' && !t.timeOut))
                     );
+                    
                     if (updated) {
                         await supabase.from('timesheets').upsert({
                             id: updated.id,
@@ -1596,11 +1600,12 @@ export const useStore = create<AppState>()(
                             status: updated.status,
                             punches: updated.punches,
                             gps_verified: updated.gpsVerified,
-                            lunch_skipped: updated.lunchSkipped,
+                            source: updated.source,
+                            manual_reason: (updated as any).manualReason || null,
                         });
                     }
                 } catch (e) {
-                    console.warn('[clockPunch] Supabase upsert failed — punch is saved locally:', e);
+                    console.warn('[clockPunch] Supabase upsert failed:', e);
                 }
             },
             assignSupervisor: (personnelId, supervisorId, managerId) =>
