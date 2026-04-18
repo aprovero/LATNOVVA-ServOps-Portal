@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download, Play, X } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
+import { useAuthStore } from '../../lib/authStore';
 import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS, GOD_MODE_ADMIN_EMAIL } from '../auth/AuthRoute';
 import { AddScopeModal } from '../project/AddScopeModal';
@@ -38,6 +39,7 @@ export default function Layout() {
                       userId?.startsWith('GM-') || 
                       Object.values(GOD_MODE_PERSONAS).some(p => p.idAlias === userId);
     const { canInstall, triggerInstall } = usePWAInstall();
+    const { signOut } = useAuthStore();
 
     // Dialog States
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -549,7 +551,11 @@ export default function Layout() {
                                     </div>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => { setAuthData('', ''); navigate('/login'); }}>
+                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={async () => { 
+                                    setAuthData('', ''); 
+                                    await signOut();
+                                    navigate('/login'); 
+                                }}>
                                     {t('auth.logout')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
