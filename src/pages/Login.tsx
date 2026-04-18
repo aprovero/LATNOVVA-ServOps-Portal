@@ -41,7 +41,7 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen w-full flex bg-[#F8FAFC] relative overflow-hidden font-jakarta">
+        <div className="min-h-[100dvh] w-full flex bg-[#F8FAFC] relative font-jakarta">
             {/* Global Noise Overlay Texture (Subtle) */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-50 mix-blend-overlay"
                 style={{ backgroundImage: 'radial-gradient(#424242 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
