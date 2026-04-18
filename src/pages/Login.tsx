@@ -3,7 +3,7 @@ import { Lock, Mail, ArrowRight, ShieldCheck, Component } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 
 export const Login: React.FC = () => {
-    const { signInWithEmail, loading, error } = useAuthStore();
+    const { signInWithEmail, signInWithOtp, loading, error } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [localError, setLocalError] = useState<string | null>(null);
@@ -20,6 +20,20 @@ export const Login: React.FC = () => {
             // On success, the auth listener in Layout or App will automatically redirect
         } catch (err: any) {
             setLocalError(err.message || 'Failed to authenticate');
+        }
+    };
+
+    const handleMagicLink = async () => {
+        setLocalError(null);
+        if (!email) {
+            setLocalError('Please enter your email to receive a magic link.');
+            return;
+        }
+        try {
+            await signInWithOtp(email);
+            setLocalError('Magic link sent! Check your inbox.');
+        } catch (err: any) {
+            setLocalError(err.message || 'Failed to send magic link');
         }
     };
 
@@ -112,7 +126,6 @@ export const Login: React.FC = () => {
                                 </div>
                                 <input
                                     type="password"
-                                    required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="block w-full pl-11 pr-4 py-4 border border-slate-200 bg-slate-50 rounded-2xl text-slate-900 focus:ring-2 focus:ring-[#0097A7]/20 focus:border-[#0097A7] focus:bg-white transition-all shadow-sm outline-none font-mono text-sm placeholder:font-sans placeholder:text-slate-400"
@@ -121,22 +134,35 @@ export const Login: React.FC = () => {
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`w-full group relative flex items-center justify-center gap-2 py-4 px-4 border border-transparent rounded-2xl text-white font-semibold shadow-soft hover:shadow-float transition-all ${
-                                loading ? 'bg-[#424242] cursor-not-allowed opacity-70' : 'bg-[#0097A7] hover:bg-[#008695]'
-                            }`}
-                        >
-                            {loading ? (
-                                <span className="font-mono text-sm">AUTHENTICATING...</span>
-                            ) : (
-                                <>
-                                    <span>Establish Secure Uplink</span>
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </>
-                            )}
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`w-full group relative flex items-center justify-center gap-2 py-4 px-4 border border-transparent rounded-2xl text-white font-semibold shadow-soft hover:shadow-float transition-all ${
+                                    loading ? 'bg-[#424242] cursor-not-allowed opacity-70' : 'bg-[#0097A7] hover:bg-[#008695]'
+                                }`}
+                            >
+                                {loading ? (
+                                    <span className="font-mono text-sm">AUTHENTICATING...</span>
+                                ) : (
+                                    <>
+                                        <span>Sign In Account</span>
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                            
+                            <button
+                                type="button"
+                                disabled={loading}
+                                onClick={handleMagicLink}
+                                className={`w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 border-2 border-slate-200 rounded-2xl text-slate-600 font-semibold transition-all ${
+                                    loading ? 'cursor-not-allowed opacity-70' : 'hover:border-[#0097A7] hover:text-[#0097A7] bg-white hover:bg-slate-50'
+                                }`}
+                            >
+                                <span>Send Magic Link</span>
+                            </button>
+                        </div>
                     </form>
                     
                     <div className="mt-8 text-center text-sm font-mono text-slate-400 space-y-1">

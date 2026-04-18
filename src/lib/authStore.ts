@@ -14,6 +14,7 @@ interface AuthState {
     error: string | null;
     initializeAuth: () => void;
     signInWithEmail: (email: string, password: string) => Promise<void>;
+    signInWithOtp: (email: string) => Promise<void>;
     signOut: () => Promise<void>;
 }
 
@@ -98,6 +99,24 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (error: any) {
             set({ error: error.message, loading: false });
             throw error; // Rethrow to handle in UI
+        }
+    },
+
+    signInWithOtp: async (email) => {
+        set({ loading: true, error: null });
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: window.location.origin,
+                },
+            });
+            if (error) throw error;
+        } catch (error: any) {
+            set({ error: error.message, loading: false });
+            throw error;
+        } finally {
+            set({ loading: false });
         }
     },
 

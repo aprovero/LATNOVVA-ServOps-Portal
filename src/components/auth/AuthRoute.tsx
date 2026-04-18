@@ -1,75 +1,67 @@
 import React, { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import { useAuthStore } from '../../lib/authStore';
 
-
-// ─── GOD MODE ──────────────────────────────────────────────────────────────────
-// Set GOD_MODE_ADMIN_EMAIL to the Supabase email that gets God Mode access.
-// Works in bypass mode (email is seeded) AND real auth (aprovero logs in).
-// Everyone else sees a normal interface with no God Mode UI.
-// ───────────────────────────────────────────────────────────────────────────────
+// ─── GOD MODE CONSTANTS ──────────────────────────────────────────────────────────
 export const GOD_MODE_ADMIN_EMAIL = 'aprovero@latnovva.com';
 
+// We map generic aliases since real UUIDs will be resolved dynamically
 export const GOD_MODE_PERSONAS = {
-    Manager:    { userId: 'PERS-GOD',  userEmail: 'aprovero@latnovva.com',        displayName: 'Andres Provero' },
-    Supervisor: { userId: 'PERS-BY2',  userEmail: 'msalaya@latnovva.com',         displayName: 'Marin Ledezma' },
-    Tech:       { userId: 'PERS-BF7',  userEmail: 'jsanchez@latnovva.com',        displayName: 'Joshua Sanchez' },
-    Customer:   { userId: 'GM-CUST',   userEmail: 'customer@greensol.com',        displayName: 'Greensol' },
-    HR:         { userId: 'PERS-HR1',  userEmail: 'amendez@latnovva.com',         displayName: 'Alicia Mendez' },
+    Manager:    { idAlias: 'GM-Manager',    role: 'Manager',    searchName: 'Andres',   displayName: 'Andres Provero' },
+    Supervisor: { idAlias: 'GM-Supervisor', role: 'Supervisor', searchName: 'Marin',    displayName: 'Marin Ledezma' },
+    Tech:       { idAlias: 'GM-Tech',       role: 'Tech',       searchName: 'Joshua',   displayName: 'Joshua Sanchez' },
+    Customer:   { idAlias: 'GM-Customer',   role: 'Customer',   searchName: 'Greensol', displayName: 'Customer Admin' },
+    HR:         { idAlias: 'GM-HR',         role: 'HR',         searchName: 'Alicia',   displayName: 'Alicia Mendez' },
 } as const;
 
 export const AuthRoute: React.FC = () => {
-    const { setAuthData, setUserRole, userRole, initDb, setClientId } = useStore();
+    const { session, loading } = useAuthStore();
+    const { userRole, setAuthData, setClientId } = useStore();
 
-    // God Mode bootstrap — runs on first launch (unseeded store) or when
-    // the logged-in user is the designated admin. This way:
-    //   • Bypass mode: seeds aprovero's email on first run → God Mode UI appears.
-    //   • Real auth: only aprovero's login email triggers this → others see nothing.
-    useEffect(() => {
-        const storedEmail  = useStore.getState().userEmail;
-        const storedUserId = useStore.getState().userId;
-        const isFirstRun       = !storedEmail || storedEmail === '';
-        const isAdminEmail     = storedEmail === GOD_MODE_ADMIN_EMAIL;
-        
-        // Include any email/ID from the God Mode personas list
-        const isPersonaMatch = Object.values(GOD_MODE_PERSONAS).some(p => p.userEmail === storedEmail || p.userId === storedUserId);
-        const isGodModeSession = storedUserId?.startsWith('GM-') || isPersonaMatch;
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+                <div className="flex flex-col items-center gap-4">
+                    <img src="/cor-logo.png" alt="Loading" className="h-8 animate-pulse opacity-50" />
+                    <div className="w-6 h-6 border-2 border-[#0097A7] border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+        );
+    }
 
-        if (!isFirstRun && !isAdminEmail && !isGodModeSession) return;
-
-        const currentRole = useStore.getState().userRole;
-        const resolvedRole = (currentRole && currentRole in GOD_MODE_PERSONAS)
-            ? currentRole as keyof typeof GOD_MODE_PERSONAS
-            : 'Manager';
-        const persona = GOD_MODE_PERSONAS[resolvedRole];
-        setAuthData(persona.userId, persona.userEmail);
-        setUserRole(resolvedRole);
-
-        // Re-fetch all data. After load, auto-assign clientId for Customer persona.
-        initDb().then(() => {
-            if (resolvedRole === 'Customer') {
-                const clients = useStore.getState().clients;
-                const greensol = clients.find(c => c.name.toLowerCase().includes('greensol'));
-                if (greensol) setClientId(greensol.id);
-            }
-        });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    if (!session) {
+        return <Navigate to="/login" replace />;
+    }
 
     // Keep identity pill + clientId in sync when role changes via the switcher.
+    // If God Mode is active and switching personas, use dynamic lookup to find true personnel IDs.
     useEffect(() => {
+        const isGodModeActivated = useAuthStore.getState().user?.email === GOD_MODE_ADMIN_EMAIL;
+        if (!isGodModeActivated) return;
+
         const persona = GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS];
         if (persona) {
-            setAuthData(persona.userId, persona.userEmail);
-            // For Customer persona, resolve and set Greensol's real clientId.
+            const allPersonnel = useStore.getState().personnel;
+            const targetUser = allPersonnel.find(p => p.name.toLowerCase().includes(persona.searchName.toLowerCase()));
+            
+            if (targetUser) {
+                setAuthData(targetUser.id, targetUser.email || '');
+            } else {
+                setAuthData(persona.idAlias, GOD_MODE_ADMIN_EMAIL);
+            }
+
+            // Keep the clientId synced if customer is picked.
             if (userRole === 'Customer') {
-                const clients = useStore.getState().clients;
-                const greensol = clients.find(c => c.name.toLowerCase().includes('greensol'));
-                if (greensol) setClientId(greensol.id);
+                 const clients = useStore.getState().clients;
+                 const greensol = clients.find(c => c.name.toLowerCase().includes('greensol'));
+                 if (greensol && useStore.getState().clientId !== greensol.id) {
+                     setClientId(greensol.id);
+                 }
             }
         }
     }, [userRole, setAuthData, setClientId]);
 
-    // God Mode: always authenticated — no redirect.
+    // Pass the wall smoothly.
     return <Outlet />;
 };

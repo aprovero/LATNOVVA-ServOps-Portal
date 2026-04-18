@@ -2,52 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 
-// ─── GOD MODE DATA SEEDING ──────────────────────────────────────────────────
-// These records are hardcoded to ensure that even with an empty DB or 
-// stale localStorage, the main developers can always find their profiles.
-// ─────────────────────────────────────────────────────────────────────────────
-export const GOD_MODE_PERSONNEL: Personnel[] = [
-    {
-        id: 'PERS-GOD',
-        name: 'Andres Provero',
-        position: 'Project Manager',
-        employeeNumber: 'EMP-001',
-        email: 'aprovero@latnovva.com',
-        status: 'Active',
-        appRole: 'Manager',
-        certifications: []
-    },
-    {
-        id: 'PERS-BY2',
-        name: 'Marin Ledezma',
-        position: 'Field Supervisor',
-        employeeNumber: 'EMP-002',
-        email: 'msalaya@latnovva.com',
-        status: 'Active',
-        appRole: 'Supervisor',
-        certifications: []
-    },
-    {
-        id: 'PERS-BF7',
-        name: 'Joshua Sanchez',
-        position: 'Lead Technician',
-        employeeNumber: 'EMP-003',
-        email: 'jsanchez@latnovva.com',
-        status: 'Active',
-        appRole: 'Tech',
-        certifications: []
-    },
-    {
-        id: 'PERS-HR1',
-        name: 'Alicia Mendez',
-        position: 'HR Manager',
-        employeeNumber: 'EMP-004',
-        email: 'amendez@latnovva.com',
-        status: 'Active',
-        appRole: 'HR',
-        certifications: []
-    }
-];
+export const GOD_MODE_PERSONNEL: Personnel[] = [];
 
 export type ReportState = 'Draft' | 'Pending Manager Review' | 'Pending Customer Review' | 'Approved' | 'Closed';
 
@@ -883,17 +838,7 @@ export const useStore = create<AppState>()(
                                 }))
                                 : state.personnel;
 
-                            // Merge God Mode records to ensure they are ALWAYS present even if missing from DB
-                            const merged = [...dbRecords];
-                            GOD_MODE_PERSONNEL.forEach(seed => {
-                                if (!merged.find(p => 
-                                    p.id === seed.id || 
-                                    (p.email && seed.email && p.email.toLowerCase() === seed.email.toLowerCase())
-                                )) {
-                                    merged.push(seed);
-                                }
-                            });
-                            return merged;
+                            return dbRecords;
                         })(),
                         reports: reportsDB?.length
                             ? reportsDB.map(r => ({
@@ -976,7 +921,7 @@ export const useStore = create<AppState>()(
                     clients: [],
                     projects: [],
                     reports: [],
-                    personnel: [...GOD_MODE_PERSONNEL],
+                    personnel: [],
                     tools: [],
                     timesheets: [],
                 }));

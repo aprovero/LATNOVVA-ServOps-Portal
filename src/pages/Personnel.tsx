@@ -11,6 +11,7 @@ import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { supabase } from '../lib/supabase';
 
 export default function Personnel() {
     const { t } = useTranslation();
@@ -64,39 +65,59 @@ export default function Personnel() {
     };
 
     // Add new person
-    const handleAdd = () => {
-        if (!newPerson?.name || !newPerson?.position) return;
-        const created: PersonnelType = {
-            id: `usr-${Date.now()}`,
-            name: newPerson.name,
-            position: newPerson.position,
-            employeeNumber: newPerson.employeeNumber || `EMP-${Math.floor(Math.random() * 1000)}`,
-            phoneNumber: newPerson.phoneNumber,
-            email: newPerson.email,
-            image: newPerson.image,
-            status: newPerson.status || 'Active',
-            sharedFolderLink: newPerson.sharedFolderLink,
-            certifications: newPerson.certifications || [],
-            appRole: newPerson.appRole || 'Tech',
-            prevailingWage: newPerson.prevailingWage || false,
-            emergencyContact: newPerson.emergencyContact,
-            onboardingDate: newPerson.onboardingDate,
-            regularRate: newPerson.regularRate,
-            rainyDayRate: newPerson.rainyDayRate,
-            overtimeRate: newPerson.overtimeRate,
-            mealAllowance: newPerson.mealAllowance,
-            gasAllowance: newPerson.gasAllowance,
-            truckAllowance: newPerson.truckAllowance,
-            leadPay: newPerson.leadPay,
-            deductions: newPerson.deductions,
-            totalPerdiem: newPerson.totalPerdiem,
-        };
-        addPersonnel(created);
-        setIsAddModalOpen(false);
-        setNewPerson(null);
-        // Auto-select newly created person
-        setSelectedPersonId(created.id);
-        setEditDraft({ ...created });
+    const handleAdd = async () => {
+        if (!newPerson?.name || !newPerson?.position || !newPerson?.email) {
+            alert(t('personnel.alerts.email_required', 'Name, Position, and Email are absolutely required to explicitly invite a new user to the secure system.'));
+            return;
+        }
+
+        try {
+            // First, trigger the secure backend RPC to create physical Supabase Auth user & linked Profile Trigger
+            const { data: newUserId, error } = await supabase.rpc('admin_create_user', {
+                user_email: newPerson.email,
+                user_name: newPerson.name,
+                user_role: newPerson.appRole || 'Tech'
+            });
+
+            if (error) throw error;
+
+            const created: PersonnelType = {
+                id: newUserId,
+                name: newPerson.name,
+                position: newPerson.position,
+                employeeNumber: newPerson.employeeNumber || `EMP-${Math.floor(Math.random() * 1000)}`,
+                phoneNumber: newPerson.phoneNumber,
+                email: newPerson.email,
+                image: newPerson.image,
+                status: newPerson.status || 'Active',
+                sharedFolderLink: newPerson.sharedFolderLink,
+                certifications: newPerson.certifications || [],
+                appRole: newPerson.appRole || 'Tech',
+                prevailingWage: newPerson.prevailingWage || false,
+                emergencyContact: newPerson.emergencyContact,
+                onboardingDate: newPerson.onboardingDate,
+                regularRate: newPerson.regularRate,
+                rainyDayRate: newPerson.rainyDayRate,
+                overtimeRate: newPerson.overtimeRate,
+                mealAllowance: newPerson.mealAllowance,
+                gasAllowance: newPerson.gasAllowance,
+                truckAllowance: newPerson.truckAllowance,
+                leadPay: newPerson.leadPay,
+                deductions: newPerson.deductions,
+                totalPerdiem: newPerson.totalPerdiem,
+            };
+            
+            // Sync locally & backend via zustand trigger updates
+            addPersonnel(created);
+            setIsAddModalOpen(false);
+            setNewPerson(null);
+            
+            // Auto-select newly created person
+            setSelectedPersonId(created.id);
+            setEditDraft({ ...created });
+        } catch (err: any) {
+            alert(`Failed to seamlessly invite user: ${err.message}`);
+        }
     };
 
     const handleAddCert = (draft: Partial<PersonnelType>, setter: (d: Partial<PersonnelType>) => void) => {

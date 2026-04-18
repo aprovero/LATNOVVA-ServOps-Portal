@@ -15,7 +15,7 @@ import Templates from './pages/Templates';
 import Calendar from './pages/Calendar';
 import Layout from './components/layout/Layout';
 import { AuthRoute } from './components/auth/AuthRoute';
-import { Login } from './components/auth/Login';
+import { Login } from './pages/Login';
 
 import Personnel from './pages/Personnel';
 import Timesheets from './pages/Timesheets';
@@ -48,6 +48,11 @@ function App() {
         // Initialize mock DB / offline storage on startup
         initDb();
         useStore.getState().initializeGlobalTemplates();
+        
+        // Initialize Auth gracefully on app boot
+        import('./lib/authStore').then(module => {
+            module.useAuthStore.getState().initializeAuth();
+        });
     }, [initDb]);
 
     return (

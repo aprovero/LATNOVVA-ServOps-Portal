@@ -36,7 +36,7 @@ export default function Layout() {
     const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications } = useStore();
     const isGodMode = userEmail === GOD_MODE_ADMIN_EMAIL || 
                       userId?.startsWith('GM-') || 
-                      Object.values(GOD_MODE_PERSONAS).some(p => p.userEmail === userEmail || p.userId === userId);
+                      Object.values(GOD_MODE_PERSONAS).some(p => p.idAlias === userId);
     const { canInstall, triggerInstall } = usePWAInstall();
 
     // Dialog States
