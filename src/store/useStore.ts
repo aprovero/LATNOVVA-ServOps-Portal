@@ -167,6 +167,7 @@ export interface Personnel {
     position: string;
     employeeNumber: string;
     email?: string;
+    password?: string; // transient field
     image?: string; // Profile picture URL or base64
     status: 'Active' | 'Inactive';
     sharedFolderLink?: string; // Link to certifications folder

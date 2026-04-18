@@ -57,11 +57,26 @@ export default function Personnel() {
     };
 
     // Save edits inline
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!editDraft?.id) return;
-        updatePersonnel(editDraft.id, editDraft);
-        setIsSaved(true);
-        setTimeout(() => setIsSaved(false), 2000);
+        
+        try {
+            // Sycn auth layer first completely bypassing RLS securely
+            const { error } = await supabase.rpc('admin_update_user', {
+                target_user_id: editDraft.id,
+                new_email: editDraft.email || '',
+                new_role: editDraft.appRole || 'Tech',
+                new_password: editDraft.password || ''
+            });
+
+            if (error) throw error;
+            
+            updatePersonnel(editDraft.id, editDraft);
+            setIsSaved(true);
+            setTimeout(() => setIsSaved(false), 2000);
+        } catch(err: any) {
+            alert('Failed to sync auth credentials to backend: ' + err.message);
+        }
     };
 
     // Add new person
@@ -76,7 +91,8 @@ export default function Personnel() {
             const { data: newUserId, error } = await supabase.rpc('admin_create_user', {
                 user_email: newPerson.email,
                 user_name: newPerson.name,
-                user_role: newPerson.appRole || 'Tech'
+                user_role: newPerson.appRole || 'Tech',
+                user_password: newPerson.password || ''
             });
 
             if (error) throw error;
@@ -241,6 +257,10 @@ export default function Personnel() {
                                     <Input type="email" placeholder="john.doe@latnovva.com" value={newPerson?.email || ''} onChange={e => setNewPerson({ ...newPerson, email: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-accent-greyDark">Password (Optional)</label>
+                                    <Input type="text" placeholder="Leaves as magic link if blank" value={newPerson?.password || ''} onChange={e => setNewPerson({ ...newPerson, password: e.target.value })} />
+                                </div>
+                                <div className="space-y-2 col-span-2">
                                     <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.phone')}</label>
                                     <Input placeholder="e.g. 956-280-8290" value={newPerson?.phoneNumber || ''} onChange={e => setNewPerson({ ...newPerson, phoneNumber: e.target.value })} />
                                 </div>
@@ -616,6 +636,10 @@ export default function Personnel() {
                                             <Input type="email" value={editDraft.email || ''} onChange={e => setEditDraft(d => d ? { ...d, email: e.target.value } : d)} />
                                         </div>
                                         <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">Reset Password (Optional)</label>
+                                            <Input type="text" placeholder="Enter new password to override" value={editDraft.password || ''} onChange={e => setEditDraft(d => d ? { ...d, password: e.target.value } : d)} />
+                                        </div>
+                                        <div className="space-y-2 col-span-2">
                                             <label className="text-sm font-semibold text-accent-greyDark">Phone Number</label>
                                             <Input value={editDraft.phoneNumber || ''} onChange={e => setEditDraft(d => d ? { ...d, phoneNumber: e.target.value } : d)} />
                                         </div>

@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
+import { supabase } from '../lib/supabase';
 
 export default function Settings() {
     const { t } = useTranslation();
@@ -53,31 +54,47 @@ export default function Settings() {
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
+    const [invitePassword, setInvitePassword] = useState('');
     const [inviteRole, setInviteRole] = useState<'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR'>('Tech');
     const [inviteCompany, setInviteCompany] = useState('');
+    const [userSearch, setUserSearch] = useState('');
 
-    const handleInviteUser = () => {
+    const handleInviteUser = async () => {
         if (!inviteEmail) return;
         if (inviteRole === 'Customer' && !inviteCompany) {
             alert('Please select an assigned company for this customer.');
             return;
         }
         
-        addPersonnel({
-            id: `usr-${Date.now()}`,
-            name: inviteEmail.split('@')[0],
-            email: inviteEmail,
-            position: inviteRole === 'Customer' ? 'Customer Contact' : 'Invited User',
-             employeeNumber: `EMP-${Math.floor(Math.random() * 1000)}`,
-            status: 'Active',
-            certifications: [],
-            appRole: inviteRole,
-            clientId: inviteRole === 'Customer' ? inviteCompany : undefined
-        });
-        setIsInviteModalOpen(false);
-        setInviteEmail('');
-        setInviteRole('Tech');
-        setInviteCompany('');
+        try {
+            const { data: newUserId, error } = await supabase.rpc('admin_create_user', {
+                user_email: inviteEmail,
+                user_name: inviteEmail.split('@')[0],
+                user_role: inviteRole,
+                user_password: invitePassword || ''
+            });
+
+            if (error) throw error;
+
+            addPersonnel({
+                id: newUserId,
+                name: inviteEmail.split('@')[0],
+                email: inviteEmail,
+                position: inviteRole === 'Customer' ? 'Customer Contact' : 'Invited User',
+                employeeNumber: `EMP-${Math.floor(Math.random() * 1000)}`,
+                status: 'Active',
+                certifications: [],
+                appRole: inviteRole,
+                clientId: inviteRole === 'Customer' ? inviteCompany : undefined
+            });
+            setIsInviteModalOpen(false);
+            setInviteEmail('');
+            setInvitePassword('');
+            setInviteRole('Tech');
+            setInviteCompany('');
+        } catch (err: any) {
+            alert(`Failed to create user securely: ${err.message}`);
+        }
     };
 
     const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -87,6 +104,7 @@ export default function Settings() {
     const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
     const [editPersonnelName, setEditPersonnelName] = useState('');
     const [editPersonnelEmail, setEditPersonnelEmail] = useState('');
+    const [editPersonnelPassword, setEditPersonnelPassword] = useState('');
     const [editPersonnelRole, setEditPersonnelRole] = useState('Tech');
     const [editPersonnelCompany, setEditPersonnelCompany] = useState('');
 
@@ -244,14 +262,22 @@ export default function Settings() {
                     ) : activeTab === 'users' ? (
                         (['Manager', 'HR'].includes(userRole)) ? (
                         <div className="bg-white border flex flex-col border-gray-100 rounded-2xl shadow-sm overflow-hidden text-left">
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 gap-4">
                                 <div>
                                     <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2"><Users className="text-brand-teal" size={24}/> User Management</h2>
                                     <p className="text-sm text-gray-500 mt-1">Manage global access and invite new users by email.</p>
                                 </div>
-                                <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-semibold shadow-sm" onClick={() => setIsInviteModalOpen(true)}>
-                                    <Plus size={16} /> Invite User
-                                </Button>
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <Input 
+                                        placeholder="Search users..." 
+                                        value={userSearch} 
+                                        onChange={(e) => setUserSearch(e.target.value)}
+                                        className="h-10 bg-white min-w-[200px]"
+                                    />
+                                    <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-semibold shadow-sm h-10 shrink-0 border-none" onClick={() => setIsInviteModalOpen(true)}>
+                                        <Plus size={16} /> Invite User
+                                    </Button>
+                                </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm text-gray-500">
@@ -263,7 +289,11 @@ export default function Settings() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {personnel.map(user => (
+                                        {personnel.filter(u => 
+                                            u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
+                                            (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) || 
+                                            (u.appRole || '').toLowerCase().includes(userSearch.toLowerCase())
+                                        ).map(user => (
                                             <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
@@ -293,6 +323,7 @@ export default function Settings() {
                                                         setEditingPersonnel(user);
                                                         setEditPersonnelName(user.name);
                                                         setEditPersonnelEmail(user.email || '');
+                                                        setEditPersonnelPassword('');
                                                         setEditPersonnelRole(user.appRole || 'Tech');
                                                         setEditPersonnelCompany(user.clientId || '');
                                                     }} className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors mr-2">
@@ -304,7 +335,11 @@ export default function Settings() {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {personnel.length === 0 && (
+                                        {personnel.filter(u => 
+                                            u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
+                                            (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) || 
+                                            (u.appRole || '').toLowerCase().includes(userSearch.toLowerCase())
+                                        ).length === 0 && (
                                             <tr>
                                                 <td colSpan={3} className="px-6 py-8 text-center text-gray-400">No users found.</td>
                                             </tr>
@@ -657,6 +692,16 @@ export default function Settings() {
                             />
                         </div>
                         <div className="grid gap-2">
+                            <Label htmlFor="invitePassword">Password (Optional)</Label>
+                            <Input
+                                id="invitePassword"
+                                type="text"
+                                value={invitePassword}
+                                onChange={(e) => setInvitePassword(e.target.value)}
+                                placeholder="Leaves as magic-link only if blank"
+                            />
+                        </div>
+                        <div className="grid gap-2">
                             <Label>Access Role</Label>
                             <select
                                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
@@ -718,6 +763,16 @@ export default function Settings() {
                             />
                         </div>
                         <div className="grid gap-2">
+                            <Label htmlFor="editUserPassword">Reset Password (Optional)</Label>
+                            <Input
+                                id="editUserPassword"
+                                type="text"
+                                value={editPersonnelPassword}
+                                onChange={(e) => setEditPersonnelPassword(e.target.value)}
+                                placeholder="Enter a new password here to overwrite."
+                            />
+                        </div>
+                        <div className="grid gap-2">
                             <Label htmlFor="editUserRole">App Role</Label>
                             <select
                                 id="editUserRole"
@@ -750,8 +805,21 @@ export default function Settings() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setEditingPersonnel(null)}>Cancel</Button>
-                        <Button className="bg-brand-teal text-white" onClick={() => {
+                        <Button className="bg-brand-teal text-white" onClick={async () => {
                             if (editingPersonnel) {
+                                // 1. Dispatch update to actual Supabase Auth database
+                                const { error } = await supabase.rpc('admin_update_user', {
+                                    target_user_id: editingPersonnel.id,
+                                    new_email: editPersonnelEmail,
+                                    new_role: editPersonnelRole,
+                                    new_password: editPersonnelPassword || ''
+                                });
+
+                                if (error) {
+                                    alert('Failed to sync auth credentials to backend: ' + error.message);
+                                }
+
+                                // 2. Dispatch purely cosmetic updates to the profile component table (local store also sends to db)
                                 updatePersonnel(editingPersonnel.id, {
                                     name: editPersonnelName,
                                     email: editPersonnelEmail,
