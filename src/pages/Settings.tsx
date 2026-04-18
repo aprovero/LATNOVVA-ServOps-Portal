@@ -304,7 +304,7 @@ export default function Settings() {
                                                         <div>
                                                             <div className="flex items-center gap-2">
                                                                 <p className="text-sm font-bold text-accent-greyDark">{user.name}</p>
-                                                                {user.hasPassword && <Key size={12} className="text-amber-500" title="Password configured" />}
+                                                                {user.hasPassword && <span title="Password configured"><Key size={12} className="text-amber-500" /></span>}
                                                             </div>
                                                             <p className="text-xs text-gray-400">{user.email || 'No email provided'}</p>
                                                         </div>
