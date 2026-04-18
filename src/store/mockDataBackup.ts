@@ -45,14 +45,14 @@ export const mockPersonnel: Personnel[] = [
     { id: 'PERS-AL2', name: 'ADRIAN RASCON', position: 'TECHNICIAN', employeeNumber: 'EMP-AL02', appRole: 'Tech', status: 'Active', certifications: [] },
     { id: 'PERS-PR1', name: 'JAIME VAZQUEZ', position: 'SUPERVISOR', employeeNumber: 'EMP-PR01', appRole: 'Supervisor', status: 'Active', certifications: [] },
     { id: 'PERS-BY1', name: 'MILDRED BAYARD BOLANOS', position: 'ASSEMBLER', employeeNumber: 'EMP-BY01', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BY2', name: 'MARIN LEDEZMA SALAYA', position: 'OPERATION LEADER', employeeNumber: 'EMP-BY02', appRole: 'Supervisor', status: 'Active', certifications: [], email: 'mledezma@latnovva.com' },
+    { id: 'PERS-BY2', name: 'MARIN LEDEZMA SALAYA', position: 'OPERATION LEADER', employeeNumber: 'EMP-BY02', appRole: 'Supervisor', status: 'Active', certifications: [], email: 'mledezma@latnovva.com', hasPassword: true },
     { id: 'PERS-MR1', name: 'JUAN MANUEL RUBIO', position: 'PROJECT MANAGER', employeeNumber: 'EMP-MR01', appRole: 'Manager', status: 'Active', certifications: [] },
     { id: 'PERS-RG1', name: 'ROSARIO GONZALEZ', position: 'INSPECTOR', employeeNumber: 'EMP-RG01', appRole: 'Tech', status: 'Active', certifications: [] },
     { id: 'PERS-NEW1', name: 'FERNANDO ASENSIO', position: 'MANAGER', employeeNumber: 'EMP-NEW01', appRole: 'Manager', status: 'Active', certifications: [], email: 'fasensio@latnovva.com' },
     { id: 'PERS-NEW2', name: 'JESUS REINA', position: 'MANAGER', employeeNumber: 'EMP-NEW02', appRole: 'Manager', status: 'Active', certifications: [], email: 'jreina@latnovva.com' },
     { id: 'PERS-NEW3', name: 'JUAN MARIA DIAZ', position: 'MANAGER', employeeNumber: 'EMP-NEW03', appRole: 'Manager', status: 'Active', certifications: [], email: 'jmdiaz@latnovva.com' },
     { id: 'PERS-HR1', name: 'ALICIA MENDEZ', position: 'HR MANAGER', employeeNumber: 'EMP-HR01', appRole: 'HR', status: 'Active', certifications: [], email: 'amendez@latnovva.com' },
-    { id: 'PERS-GOD', name: 'Andres Provero', position: 'MANAGER', employeeNumber: 'EMP-GOD', appRole: 'Manager', status: 'Active', certifications: [], email: 'aprovero@latnovva.com' },
+    { id: 'PERS-GOD', name: 'Andres Provero', position: 'MANAGER', employeeNumber: 'EMP-GOD', appRole: 'Manager', status: 'Active', certifications: [], email: 'aprovero@latnovva.com', hasPassword: true },
 ];
 
 export const mockProjects: Project[] = [

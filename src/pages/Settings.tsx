@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
 import { useTranslation } from 'react-i18next';
 import { GOD_MODE_PERSONAS, GOD_MODE_ADMIN_EMAIL } from '../components/auth/AuthRoute';
-import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2, Key } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { 
     msalInstance, 
@@ -85,7 +85,8 @@ export default function Settings() {
                 status: 'Active',
                 certifications: [],
                 appRole: inviteRole,
-                clientId: inviteRole === 'Customer' ? inviteCompany : undefined
+                clientId: inviteRole === 'Customer' ? inviteCompany : undefined,
+                hasPassword: !!invitePassword
             });
             setIsInviteModalOpen(false);
             setInviteEmail('');
@@ -301,7 +302,10 @@ export default function Settings() {
                                                             {user.name.charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <p className="text-sm font-bold text-accent-greyDark">{user.name}</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-sm font-bold text-accent-greyDark">{user.name}</p>
+                                                                {user.hasPassword && <Key size={12} className="text-amber-500" title="Password configured" />}
+                                                            </div>
                                                             <p className="text-xs text-gray-400">{user.email || 'No email provided'}</p>
                                                         </div>
                                                     </div>
@@ -824,7 +828,8 @@ export default function Settings() {
                                     name: editPersonnelName,
                                     email: editPersonnelEmail,
                                     appRole: editPersonnelRole as any,
-                                    clientId: editPersonnelRole === 'Customer' ? editPersonnelCompany : undefined
+                                    clientId: editPersonnelRole === 'Customer' ? editPersonnelCompany : undefined,
+                                    hasPassword: editPersonnelPassword ? true : (editingPersonnel.hasPassword || false)
                                 });
                                 setEditingPersonnel(null);
                             }

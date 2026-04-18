@@ -193,6 +193,7 @@ export interface Personnel {
     totalPerdiem?: number;
     /** If true, this person appears in project/report selectors but never on the Deployments bench. */
     benchExempt?: boolean;
+    hasPassword?: boolean;
 }
 
 export interface ChecklistTemplate {
