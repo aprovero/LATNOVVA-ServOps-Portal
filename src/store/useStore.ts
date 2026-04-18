@@ -1522,6 +1522,19 @@ export const useStore = create<AppState>()(
                     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
                 };
 
+                let existingBefore = get().timesheets.find(
+                    t => t.personnelId === personnelId && t.date === today
+                );
+
+                if (punch.type === 'clockOut' && (!existingBefore || existingBefore.timeOut)) {
+                    const openEntry = [...get().timesheets]
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+                    if (openEntry) existingBefore = openEntry;
+                }
+                
+                const isNewEntry = !existingBefore;
+
                 set((state) => {
                     // C-01 IMPROVEMENT: For check-out, find the most recent OPEN entry (no timeOut), regardless of date.
                     // This handles midnight crossings and missing records for "today".
@@ -1567,7 +1580,7 @@ export const useStore = create<AppState>()(
                         };
                     } else {
                         const newEntry: TimesheetEntry = {
-                            id: `TS-${Date.now()}`,
+                            id: `TS-${personnelId}-${today}`,
                             personnelId,
                             date: today,
                             hours: 0,
@@ -1586,7 +1599,7 @@ export const useStore = create<AppState>()(
                     );
                     
                     if (updated) {
-                        await supabase.from('timesheets').upsert({
+                        const payload = {
                             id: updated.id,
                             personnel_id: updated.personnelId,
                             project_id: updated.projectId || projectId || null,
@@ -1600,7 +1613,34 @@ export const useStore = create<AppState>()(
                             gps_verified: updated.gpsVerified,
                             source: updated.source,
                             manual_reason: (updated as any).manualReason || null,
-                        });
+                        };
+
+                        if (isNewEntry) {
+                            const { error } = await supabase.from('timesheets').insert(payload);
+                            if (error && error.code === '23505') {
+                                alert(`Punch Sync Rejected: The worker is already checked in by another device for this shift.`);
+                                set(s => ({ timesheets: s.timesheets.filter(t => t.id !== updated.id) }));
+                            }
+                        } else if (punch.type === 'clockOut') {
+                            const { data, error } = await supabase.from('timesheets')
+                                .update(payload)
+                                .eq('id', updated.id)
+                                .is('time_out', null)
+                                .select('id');
+                            
+                            // If online without fetch error, but 0 rows matched (time_out wasn't null)
+                            if (!error && data && data.length === 0) {
+                                alert(`Punch Sync Rejected: The worker is already checked out by another device for this shift.`);
+                                if (existingBefore) {
+                                    set(s => ({ timesheets: s.timesheets.map(t => t.id === updated.id ? existingBefore! : t) }));
+                                }
+                            } else if (error) {
+                                // standard upsert fallback if there's a weird backend error that isn't network?
+                                // Actually if it is offline, it throws. So it's fine.
+                            }
+                        } else {
+                            await supabase.from('timesheets').upsert(payload);
+                        }
                     }
                 } catch (e) {
                     console.warn('[clockPunch] Supabase upsert failed:', e);

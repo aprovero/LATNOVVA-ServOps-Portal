@@ -658,6 +658,18 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                         const isAssigned = assignedIds.includes(person.id);
                         const isSelf = person.id === supervisorId;
                         const doneFoDay = step === 'clocked-out';
+
+                        let displayLabel = meta.label;
+                        if (step === 'clocked-in') {
+                            const activeSession = timesheets.find((ts: any) => ts.personnelId === person.id && ts.timeIn && !ts.timeOut);
+                            if (activeSession && activeSession.projectId) {
+                                const activeProject = projects.find((p: any) => p.id === activeSession.projectId);
+                                if (activeProject) {
+                                    displayLabel = `${displayLabel} @ ${activeProject.name}`;
+                                }
+                            }
+                        }
+
                         return (
                             <div
                                 key={person.id}
@@ -716,8 +728,11 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                 </div>
 
                                 {/* Status badge */}
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${meta.bg} ${meta.text}`}>
-                                    {meta.dot} {meta.label}
+                                <span 
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 max-w-[120px] truncate ${meta.bg} ${meta.text}`}
+                                    title={displayLabel}
+                                >
+                                    {meta.dot} {displayLabel}
                                 </span>
                             </div>
                         );
