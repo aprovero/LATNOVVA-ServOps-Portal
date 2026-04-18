@@ -120,17 +120,11 @@ export const useAuthStore = create<AuthState>((set) => {
         },
 
         signOut: async () => {
-            set({ loading: true });
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                // onAuthStateChange will fire SIGNED_OUT and clear session.
-                // We also clear here immediately for instant UI response.
-                set({ session: null, user: null, profile: null, loading: false });
-                useStore.getState().setAuthData('', '');
-            } catch (error: any) {
-                set({ error: error.message, loading: false });
-            }
+            // Clear session immediately — AuthRoute will redirect to /login at once.
+            set({ session: null, user: null, profile: null, loading: false });
+            useStore.getState().setAuthData('', '');
+            // Revoke Supabase token in the background (fire-and-forget).
+            supabase.auth.signOut().catch(() => {/* ignore — already locally signed out */});
         },
     };
 });
