@@ -66,7 +66,7 @@ export default function Layout() {
     const notifications: { id: string; title: string; message: string; type: 'warning' | 'error', link?: string }[] = [];
 
     if (userRole !== 'Customer') {
-        tools.forEach(tool => {
+        (tools || []).forEach(tool => {
             if (!tool.certificationExpiry) return;
             const daysLeft = differenceInDays(parseISO(tool.certificationExpiry), new Date());
             if (daysLeft < 0) {
@@ -84,7 +84,7 @@ export default function Layout() {
                 if (!isCurrentUser) return;
             }
 
-            person.certifications.forEach(cert => {
+            (person.certifications || []).forEach(cert => {
                 if (!cert.expirationDate) return;
                 const daysLeft = differenceInDays(parseISO(cert.expirationDate), new Date());
                 if (daysLeft < 0) {
@@ -96,7 +96,7 @@ export default function Layout() {
         });
 
         if (userRole === 'Manager' || userRole === 'Supervisor') {
-            const pendingReports = reports.filter(r => r.state === 'Pending Manager Review');
+            const pendingReports = (reports || []).filter(r => r.state === 'Pending Manager Review');
             pendingReports.forEach(r => {
                 notifications.push({
                     id: `rep-mgr-${r.id}`,
@@ -108,7 +108,7 @@ export default function Layout() {
             });
         }
     } else {
-        const pendingReports = reports.filter(r => r.clientId === clientId && r.state === 'Pending Customer Review');
+        const pendingReports = (reports || []).filter(r => r.clientId === clientId && r.state === 'Pending Customer Review');
         pendingReports.forEach(r => {
             notifications.push({
                 id: `rep-cust-${r.id}`,
