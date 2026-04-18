@@ -47,7 +47,7 @@ const ROLE_MAP: Record<string, { role: string; personnel_id: string }> = {
     [generateEmail('MAYLENE TORRES MALDONADO')]:   { role: 'Supervisor', personnel_id: 'PERS-TW1'  },
     [generateEmail('SEBASTIAN YANCA')]:            { role: 'Supervisor', personnel_id: 'PERS-BF1'  },
     [generateEmail('JAIME VAZQUEZ')]:              { role: 'Supervisor', personnel_id: 'PERS-PR1'  },
-    [generateEmail('MARIN LEDEZMA SALAYA')]:       { role: 'Supervisor', personnel_id: 'PERS-BY2'  },
+    'mledezma@latnovva.com':                       { role: 'Supervisor', personnel_id: 'PERS-BY2'  },
 
     // ── Managers ─────────────────────────────────────────────────────────────
     [generateEmail('JUAN MANUEL RUBIO')]:          { role: 'Manager',    personnel_id: 'PERS-MR1'  },

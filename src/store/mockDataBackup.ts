@@ -45,7 +45,7 @@ export const mockPersonnel: Personnel[] = [
     { id: 'PERS-AL2', name: 'ADRIAN RASCON', position: 'TECHNICIAN', employeeNumber: 'EMP-AL02', appRole: 'Tech', status: 'Active', certifications: [] },
     { id: 'PERS-PR1', name: 'JAIME VAZQUEZ', position: 'SUPERVISOR', employeeNumber: 'EMP-PR01', appRole: 'Supervisor', status: 'Active', certifications: [] },
     { id: 'PERS-BY1', name: 'MILDRED BAYARD BOLANOS', position: 'ASSEMBLER', employeeNumber: 'EMP-BY01', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BY2', name: 'MARIN LEDEZMA SALAYA', position: 'OPERATION LEADER', employeeNumber: 'EMP-BY02', appRole: 'Supervisor', status: 'Active', certifications: [], email: 'msalaya@latnovva.com' },
+    { id: 'PERS-BY2', name: 'MARIN LEDEZMA SALAYA', position: 'OPERATION LEADER', employeeNumber: 'EMP-BY02', appRole: 'Supervisor', status: 'Active', certifications: [], email: 'mledezma@latnovva.com' },
     { id: 'PERS-MR1', name: 'JUAN MANUEL RUBIO', position: 'PROJECT MANAGER', employeeNumber: 'EMP-MR01', appRole: 'Manager', status: 'Active', certifications: [] },
     { id: 'PERS-RG1', name: 'ROSARIO GONZALEZ', position: 'INSPECTOR', employeeNumber: 'EMP-RG01', appRole: 'Tech', status: 'Active', certifications: [] },
     { id: 'PERS-NEW1', name: 'FERNANDO ASENSIO', position: 'MANAGER', employeeNumber: 'EMP-NEW01', appRole: 'Manager', status: 'Active', certifications: [], email: 'fasensio@latnovva.com' },
