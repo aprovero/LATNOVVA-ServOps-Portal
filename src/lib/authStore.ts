@@ -96,6 +96,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 password,
             });
             if (error) throw error;
+            set({ loading: false });
         } catch (error: any) {
             set({ error: error.message, loading: false });
             throw error; // Rethrow to handle in UI
