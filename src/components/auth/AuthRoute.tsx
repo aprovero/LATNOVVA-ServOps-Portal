@@ -21,7 +21,7 @@ export const AuthRoute: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+            <div className="min-h-[100dvh] flex items-center justify-center bg-[#F8FAFC]">
                 <div className="flex flex-col items-center gap-4">
                     <img src="/cor-logo.png" alt="Loading" className="h-8 animate-pulse opacity-50" />
                     <div className="w-6 h-6 border-2 border-[#0097A7] border-t-transparent rounded-full animate-spin"></div>
