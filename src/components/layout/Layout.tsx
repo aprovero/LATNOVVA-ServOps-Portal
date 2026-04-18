@@ -45,6 +45,7 @@ export default function Layout() {
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
     const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
+    const [isOfflineLogoutWarningOpen, setIsOfflineLogoutWarningOpen] = useState(false);
 
     // Command Search
     const [isSearchPaletteOpen, setIsSearchPaletteOpen] = useState(false);
@@ -551,11 +552,17 @@ export default function Layout() {
                                     </div>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={async () => { 
-                                    setAuthData('', ''); 
-                                    await signOut();
-                                    navigate('/login'); 
-                                }}>
+                                <DropdownMenuItem
+                                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2"
+                                    onClick={() => {
+                                        if (!navigator.onLine) {
+                                            setIsOfflineLogoutWarningOpen(true);
+                                        } else {
+                                            setAuthData('', '');
+                                            signOut();
+                                        }
+                                    }}
+                                >
                                     {t('auth.logout')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1056,6 +1063,46 @@ export default function Layout() {
                             </div>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* ── Offline Logout Warning ─────────────────────────────────────── */}
+            <Dialog open={isOfflineLogoutWarningOpen} onOpenChange={setIsOfflineLogoutWarningOpen}>
+                <DialogContent className="max-w-sm rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-amber-600">
+                            <AlertTriangle size={18} className="shrink-0" />
+                            You're offline
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                        Your device has no internet connection. Any changes you made since going offline
+                        may <strong>not</strong> have been saved to the server yet.
+                    </p>
+                    <p className="text-sm text-gray-500">
+                        If you log out now, those unsaved changes could be lost. We recommend staying
+                        signed in until your connection is restored.
+                    </p>
+                    <DialogFooter className="flex gap-2 mt-2">
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setIsOfflineLogoutWarningOpen(false)}
+                        >
+                            Stay Signed In
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={() => {
+                                setIsOfflineLogoutWarningOpen(false);
+                                setAuthData('', '');
+                                signOut();
+                            }}
+                        >
+                            Log Out Anyway
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
