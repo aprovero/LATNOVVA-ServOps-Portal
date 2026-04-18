@@ -426,7 +426,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     clockPunch: (...args: any[]) => void;
     supervisorId: string;
 }) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const [selectedProject, setSelectedProject] = useState(() => {
         const assigned = projects.find(p => p.status === 'Active' && p.assignedPersonnel?.includes(supervisorId));
         return assigned?.id ?? '';
@@ -859,7 +859,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     timesheets: any[];
     clockPunch: (...args: any[]) => void;
 }) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const today = getLocalDate(getBestDate(gps));
     const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today);
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
@@ -1024,7 +1024,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-bold text-gray-800">{(getPunchLabel(t) as any)[p.type]}</span>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp, i18n.language)}</span>
+                                            <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp)}</span>
                                             {p.timeSource === 'gps' && (
                                                 <span className="text-[9px] px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full font-bold border border-yellow-200 flex items-center gap-0.5">
                                                     <Zap size={8} /> GPS

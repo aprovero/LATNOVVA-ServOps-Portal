@@ -265,7 +265,7 @@
       "empty": {
       "title": "No reports found",
       "subtitle": "Create the first report for this project."
-    },
+    }
     },
     "wbs_section": {
       "title": "Today's Logged Activities",

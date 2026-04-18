@@ -1,5 +1,6 @@
 import { Report, useStore } from '../../store/useStore';
 import { formatTime } from '../../lib/utils';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
 // Register fonts if needed (using default for now, but good practice for branding)
 Font.register({
