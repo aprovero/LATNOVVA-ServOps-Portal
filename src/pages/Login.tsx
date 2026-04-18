@@ -7,10 +7,12 @@ export const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [localError, setLocalError] = useState<string | null>(null);
+    const [localSuccess, setLocalSuccess] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLocalError(null);
+        setLocalSuccess(null);
         if (!email || !password) {
             setLocalError('Please enter both email and password.');
             return;
@@ -25,13 +27,14 @@ export const Login: React.FC = () => {
 
     const handleMagicLink = async () => {
         setLocalError(null);
+        setLocalSuccess(null);
         if (!email) {
             setLocalError('Please enter your email to receive a magic link.');
             return;
         }
         try {
             await signInWithOtp(email);
-            setLocalError('Magic link sent! Check your inbox.');
+            setLocalSuccess('Magic link sent! Check your inbox.');
         } catch (err: any) {
             setLocalError(err.message || 'Failed to send magic link');
         }
@@ -49,10 +52,10 @@ export const Login: React.FC = () => {
                 <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl" />
                 <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#000000]/10 rounded-[3rem] rotate-12 blur-2xl" />
 
-                <div className="relative z-10 flex items-center gap-6 bg-white/10 backdrop-blur-md p-4 rounded-full w-max shadow-float border border-white/20">
-                    <img src="/cor-logo.png" alt="COR Solutions" className="h-8 object-contain drop-shadow-md" />
-                    <div className="w-px h-8 bg-white/30" />
-                    <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-6 object-contain drop-shadow-md" />
+                <div className="relative z-10 flex items-center gap-6 bg-white p-4 rounded-full w-max shadow-float border border-white/20">
+                    <img src="/cor-logo.png" alt="COR Solutions" className="h-8 object-contain" />
+                    <div className="w-px h-8 bg-slate-200" />
+                    <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-6 object-contain" />
                 </div>
 
                 <div className="relative z-10 mb-20">
@@ -96,6 +99,12 @@ export const Login: React.FC = () => {
                             <span className="text-sm font-medium">{localError || error}</span>
                         </div>
                     )}
+                    {localSuccess && (
+                        <div className="mb-6 animate-in slide-in-from-top-2 p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-start gap-3 text-emerald-600">
+                            <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <span className="text-sm font-medium">{localSuccess}</span>
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-1.5">
@@ -117,7 +126,7 @@ export const Login: React.FC = () => {
 
                         <div className="space-y-1.5">
                             <div className="flex items-center justify-between ml-1">
-                                <label className="text-sm font-semibold text-slate-700">Passphrase</label>
+                                <label className="text-sm font-semibold text-slate-700">Password</label>
                                 <a href="#" className="text-sm font-medium text-[#0097A7] hover:text-[#007A88] transition-colors">Recover Access?</a>
                             </div>
                             <div className="relative group">
