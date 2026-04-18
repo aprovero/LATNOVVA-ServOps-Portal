@@ -72,6 +72,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Force new service worker to activate immediately — no waiting for tabs to close
+        skipWaiting: true,
+        clientsClaim: true,
         // Cache everything up to 5 MB
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // Pre-cache all core assets

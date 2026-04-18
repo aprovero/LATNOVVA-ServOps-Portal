@@ -18,64 +18,85 @@ interface AuthState {
     signOut: () => Promise<void>;
 }
 
-// Helper: fetch profile and sync identity into the main store
+// Helper: fetch profile and sync identity into the main store.
+// Never throws — always returns null on any error.
 async function syncSessionToStore(session: Session | null): Promise<PersonnelRow | null> {
     if (!session?.user) {
         useStore.getState().setAuthData('', '');
         return null;
     }
 
-    const { data } = await supabase
-        .from('personnel')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+    try {
+        const { data } = await supabase
+            .from('personnel')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-    const profile = (data as PersonnelRow | null) ?? null;
-
-    useStore.getState().setAuthData(session.user.id, session.user.email ?? '');
-    const appRole = profile?.app_role;
-    if (appRole) {
-        useStore.getState().setUserRole(appRole as any);
+        const profile = (data as PersonnelRow | null) ?? null;
+        useStore.getState().setAuthData(session.user.id, session.user.email ?? '');
+        const appRole = profile?.app_role;
+        if (appRole) {
+            useStore.getState().setUserRole(appRole as any);
+        }
+        return profile;
+    } catch {
+        // Profile row may not exist yet for new users — still sync identity
+        useStore.getState().setAuthData(session.user.id, session.user.email ?? '');
+        return null;
     }
-
-    return profile;
 }
 
 export const useAuthStore = create<AuthState>((set) => {
     // ── Register the listener ONE TIME when the store is created ─────────────
-    // This is the single source of truth for all auth state changes.
-    // It handles: first load, login, logout, token refresh, and tab resume.
+    // This handles: initial page load, login, logout, token refresh, tab resume.
+    // Use the subscription's data.session for the initial call to avoid
+    // an extra round-trip on every reload.
     supabase.auth.onAuthStateChange(async (_event, newSession) => {
-        const newProfile = await syncSessionToStore(newSession);
-        set({
-            session: newSession,
-            user: newSession?.user ?? null,
-            profile: newProfile,
-            loading: false,
-        });
+        try {
+            const newProfile = await syncSessionToStore(newSession);
+            set({
+                session: newSession,
+                user: newSession?.user ?? null,
+                profile: newProfile,
+                loading: false,
+            });
+        } catch {
+            // Should never reach here since syncSessionToStore is safe, but
+            // always ensure loading is cleared so the UI doesn't freeze.
+            set({ session: newSession, user: newSession?.user ?? null, loading: false });
+        }
     });
 
     return {
         session: null,
         user: null,
         profile: null,
-        loading: true, // start as true — onAuthStateChange fires immediately on load and clears this
+        // Start as true — onAuthStateChange fires immediately on load with
+        // the current session (INITIAL_SESSION event) and sets this to false.
+        loading: true,
         error: null,
 
-        initializeAuth: () => {
-            // The onAuthStateChange listener above fires automatically with the
-            // current session on page load. We don't need to do anything here
-            // anymore, but we keep this method so callers don't break.
-            // It will be a no-op going forward.
-        },
+        // No-op: kept for API compatibility. The listener above handles everything.
+        initializeAuth: () => {},
 
         signInWithEmail: async (email, password) => {
             set({ loading: true, error: null });
             try {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                // loading: false is set by onAuthStateChange after session is confirmed
+                // Proactively sync state immediately rather than waiting for the
+                // onAuthStateChange event, to eliminate any UI delay.
+                if (data.session) {
+                    const profile = await syncSessionToStore(data.session);
+                    set({
+                        session: data.session,
+                        user: data.session.user,
+                        profile,
+                        loading: false,
+                        error: null,
+                    });
+                }
             } catch (error: any) {
                 set({ error: error.message, loading: false });
                 throw error;
@@ -103,7 +124,10 @@ export const useAuthStore = create<AuthState>((set) => {
             try {
                 const { error } = await supabase.auth.signOut();
                 if (error) throw error;
-                // onAuthStateChange will fire with null session and set loading: false
+                // onAuthStateChange will fire SIGNED_OUT and clear session.
+                // We also clear here immediately for instant UI response.
+                set({ session: null, user: null, profile: null, loading: false });
+                useStore.getState().setAuthData('', '');
             } catch (error: any) {
                 set({ error: error.message, loading: false });
             }
