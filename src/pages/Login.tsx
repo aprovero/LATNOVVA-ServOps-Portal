@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, ShieldCheck, Component } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 
 export const Login: React.FC = () => {
+    const navigate = useNavigate();
     const { signInWithEmail, signInWithOtp, loading, error } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -19,7 +21,9 @@ export const Login: React.FC = () => {
         }
         try {
             await signInWithEmail(email, password);
-            // On success, the auth listener in Layout or App will automatically redirect
+            // Imperative navigation — fires exactly once after explicit user action.
+            // Cannot loop because it's not a reactive useEffect.
+            navigate('/', { replace: true });
         } catch (err: any) {
             setLocalError(err.message || 'Failed to authenticate');
         }
