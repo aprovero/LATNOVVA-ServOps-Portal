@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import { useStore } from './store/useStore';
+import { useAuthStore } from './lib/authStore';
 import Projects from './pages/Projects';
 import DataAnalysis from './pages/DataAnalysis';
 import Settings from './pages/Settings';
@@ -49,10 +50,9 @@ function App() {
         initDb();
         useStore.getState().initializeGlobalTemplates();
         
-        // Initialize Auth gracefully on app boot
-        import('./lib/authStore').then(module => {
-            module.useAuthStore.getState().initializeAuth();
-        });
+        // initializeAuth is now a no-op — onAuthStateChange in authStore fires automatically.
+        // We still call it to avoid breaking any callers that may depend on it.
+        useAuthStore.getState().initializeAuth();
     }, [initDb]);
 
     return (

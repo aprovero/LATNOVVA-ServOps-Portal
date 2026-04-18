@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Lock, Mail, ArrowRight, ShieldCheck, Component } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 
 export const Login: React.FC = () => {
-    const navigate = useNavigate();
-    const { session, signInWithEmail, signInWithOtp, loading, error } = useAuthStore();
+    const { signInWithEmail, signInWithOtp, loading, error } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [localError, setLocalError] = useState<string | null>(null);
     const [localSuccess, setLocalSuccess] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (session) {
-            navigate('/');
-        }
-    }, [session, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
