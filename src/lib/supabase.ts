@@ -11,7 +11,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // ── SINGLE shared Supabase client for the entire app ──────────────────────────
 // IMPORTANT: Only ONE createClient() call must exist. Multiple instances create
 // competing GoTrueClient locks that cause React error #310 and auth conflicts.
-const _client = createClient<Database>(supabaseUrl, supabaseAnonKey);
+const _client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        // Bypasses the Web Lock API that causes "Lock was released because another request stole it" errors
+        // specifically when multiple tabs or concurrent Vite renders fight over auth state.
+        lock: {
+            acquire: async () => ({ release: () => {} })
+        }
+    }
+});
 
 // Typed export — used by authStore for type-safe personnel queries.
 export const supabase = _client;

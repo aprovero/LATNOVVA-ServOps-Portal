@@ -66,14 +66,27 @@ export default function Settings() {
         }
         
         try {
-            const { data: newUserId, error } = await supabase.rpc('admin_create_user', {
-                user_email: inviteEmail,
-                user_name: inviteEmail.split('@')[0],
-                user_role: inviteRole,
-                user_password: invitePassword || ''
-            } as any);
+            // Internal helper to retry specifically on transient Auth Lock errors
+            const performRpc = async (retries = 1): Promise<string> => {
+                const { data, error } = await supabase.rpc('admin_create_user', {
+                    user_email: inviteEmail,
+                    user_name: inviteEmail.split('@')[0],
+                    user_role: inviteRole,
+                    user_password: invitePassword || ''
+                } as any);
 
-            if (error) throw error;
+                if (error) {
+                    // Detect if this is the "Lock stolen" error and retry once if so
+                    if (error.message?.includes('Lock') && retries > 0) {
+                        await new Promise(r => setTimeout(r, 500));
+                        return performRpc(retries - 1);
+                    }
+                    throw error;
+                }
+                return data as string;
+            };
+
+            const newUserId = await performRpc();
 
             addPersonnel({
                 id: newUserId,
