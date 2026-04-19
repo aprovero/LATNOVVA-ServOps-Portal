@@ -67,7 +67,7 @@ export default function Personnel() {
                 new_email: editDraft.email || '',
                 new_role: editDraft.appRole || 'Tech',
                 new_password: editDraft.password || ''
-            });
+            } as any);
 
             if (error) throw error;
             
@@ -93,7 +93,7 @@ export default function Personnel() {
                 user_name: newPerson.name,
                 user_role: newPerson.appRole || 'Tech',
                 user_password: newPerson.password || ''
-            });
+            } as any);
 
             if (error) throw error;
 

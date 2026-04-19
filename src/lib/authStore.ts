@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { useStore } from '../store/useStore';

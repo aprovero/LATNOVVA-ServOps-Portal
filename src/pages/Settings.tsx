@@ -72,7 +72,7 @@ export default function Settings() {
                 user_name: inviteEmail.split('@')[0],
                 user_role: inviteRole,
                 user_password: invitePassword || ''
-            });
+            } as any);
 
             if (error) throw error;
 
@@ -817,7 +817,7 @@ export default function Settings() {
                                     new_email: editPersonnelEmail,
                                     new_role: editPersonnelRole,
                                     new_password: editPersonnelPassword || ''
-                                });
+                                } as any);
 
                                 if (error) {
                                     alert('Failed to sync auth credentials to backend: ' + error.message);

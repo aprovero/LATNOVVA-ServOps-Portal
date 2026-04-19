@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase } from '../lib/supabase';
+import { supabaseUntyped as supabase } from '../lib/supabase';
 
 export const GOD_MODE_PERSONNEL: Personnel[] = [];
 
