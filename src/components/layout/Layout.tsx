@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Zap, Download, Play, X } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
 import { useTranslation } from 'react-i18next';
-import { GOD_MODE_PERSONAS, GOD_MODE_ADMIN_EMAIL } from '../auth/AuthRoute';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -34,10 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setUserRole, userId, userEmail, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications } = useStore();
-    const isGodMode = userEmail === GOD_MODE_ADMIN_EMAIL || 
-                      userId?.startsWith('GM-') || 
-                      Object.values(GOD_MODE_PERSONAS).some(p => p.idAlias === userId);
+    const { userRole, userId, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -355,9 +351,7 @@ export default function Layout() {
                         </div>
                         <div className="text-sm min-w-0">
                             <p className="font-bold text-accent-greyDark truncate">
-                                {isGodMode
-                                    ? (GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole)
-                                    : useStore.getState().getCurrentUserName()}
+                                {useStore.getState().getCurrentUserName()}
                             </p>
                             <p className="text-xs text-gray-400 capitalize">{t(`auth.${userRole.toLowerCase()}`, userRole)}</p>
                         </div>
@@ -396,40 +390,6 @@ export default function Layout() {
                                 <Download size={13} className="shrink-0 group-hover:translate-y-0.5 transition-transform" />
                                 <span className="text-xs font-semibold">{t('common.install', 'Install App')}</span>
                             </button>
-                        )}
-
-                        {/* God Mode role switcher — only visible to aprovero */}
-                        {isGodMode && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors outline-none">
-                                    <Zap size={13} className="text-amber-500 shrink-0" />
-                                    <span className="text-xs font-semibold text-amber-900">
-                                        {GOD_MODE_PERSONAS[userRole as keyof typeof GOD_MODE_PERSONAS]?.displayName ?? userRole}
-                                    </span>
-                                    <span className="text-[9px] font-bold text-white bg-amber-500 px-1.5 py-0.5 rounded uppercase tracking-wide">
-                                        {userRole}
-                                    </span>
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52 rounded-xl border-amber-100 shadow-xl">
-                                <DropdownMenuLabel className="flex items-center gap-2 text-amber-700">
-                                    <Zap size={12} className="text-amber-500" /> {t('auth.god_mode_switch', 'God Mode — Switch Role')}
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {(Object.entries(GOD_MODE_PERSONAS) as [keyof typeof GOD_MODE_PERSONAS, typeof GOD_MODE_PERSONAS[keyof typeof GOD_MODE_PERSONAS]][]).map(([role, persona]) => (
-                                    <DropdownMenuItem
-                                        key={role}
-                                        onClick={() => setUserRole(role as any)}
-                                        className={`cursor-pointer flex items-center gap-2 ${userRole === role ? 'bg-amber-50 text-amber-800 font-semibold' : ''}`}
-                                    >
-                                        {userRole === role && <Zap size={11} className="text-amber-500 shrink-0" />}
-                                        <span className={userRole === role ? '' : 'ml-[19px]'}>{persona.displayName}</span>
-                                        <span className="ml-auto text-[9px] text-gray-400 uppercase">{role}</span>
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                         )}
 
                         <DropdownMenu>
@@ -509,7 +469,7 @@ export default function Layout() {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
 
-                                {(['Manager', 'Supervisor', 'HR'].includes(userRole) || isGodMode) && (
+                                {(['Manager', 'Supervisor', 'HR'].includes(userRole)) && (
                                     <>
                                         <DropdownMenuLabel className="text-[10px] text-gray-400 font-bold uppercase tracking-wider px-2 py-1.5">{t('auth.admin', 'Admin')}</DropdownMenuLabel>
                                         
@@ -522,12 +482,6 @@ export default function Layout() {
                                         {['Manager', 'Supervisor'].includes(userRole) && (
                                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
                                                 <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
-                                            </DropdownMenuItem>
-                                        )}
-                                        
-                                        {isGodMode && (
-                                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
-                                                <Play size={14} className="text-brand-teal" /> {t('nav.preview_branding', 'Preview Branding')}
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuSeparator />
@@ -579,34 +533,6 @@ export default function Layout() {
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-4 object-contain" />
                     </div>
                     <div className="flex items-center gap-3">
-                        {/* God Mode switcher — mobile */}
-                        {isGodMode && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className="flex items-center gap-1 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg outline-none">
-                                        <Zap size={12} className="text-amber-500 shrink-0" />
-                                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">{userRole}</span>
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52 rounded-xl border-amber-100 shadow-xl">
-                                    <DropdownMenuLabel className="flex items-center gap-2 text-amber-700">
-                                        <Zap size={12} className="text-amber-500" /> {t('auth.god_mode_switch', 'God Mode — Switch Role')}
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {(Object.entries(GOD_MODE_PERSONAS) as [keyof typeof GOD_MODE_PERSONAS, typeof GOD_MODE_PERSONAS[keyof typeof GOD_MODE_PERSONAS]][]).map(([role, persona]) => (
-                                        <DropdownMenuItem
-                                            key={role}
-                                            onClick={() => setUserRole(role as any)}
-                                            className={`cursor-pointer flex items-center gap-2 ${userRole === role ? 'bg-amber-50 text-amber-800 font-semibold' : ''}`}
-                                        >
-                                            {userRole === role && <Zap size={11} className="text-amber-500 shrink-0" />}
-                                            <span className={userRole === role ? '' : 'ml-[19px]'}>{persona.displayName}</span>
-                                            <span className="ml-auto text-[9px] text-gray-400 uppercase">{role}</span>
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
                         {/* PWA Install — mobile */}
                         {canInstall && (
                             <button
@@ -705,7 +631,7 @@ export default function Layout() {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
 
-                                {(['Manager', 'Supervisor', 'HR'].includes(userRole) || isGodMode) && (
+                                {(['Manager', 'Supervisor', 'HR'].includes(userRole)) && (
                                     <>
                                         <DropdownMenuLabel className="text-[10px] text-gray-400 font-bold uppercase tracking-wider px-2 py-1.5">{t('auth.admin', 'Admin')}</DropdownMenuLabel>
                                         
@@ -718,12 +644,6 @@ export default function Layout() {
                                         {['Manager', 'Supervisor'].includes(userRole) && (
                                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
                                                 <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
-                                            </DropdownMenuItem>
-                                        )}
-                                        
-                                        {isGodMode && (
-                                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => window.dispatchEvent(new Event('preview-splash'))}>
-                                                <Play size={14} className="text-brand-teal" /> {t('nav.preview_branding', 'Preview Branding')}
                                             </DropdownMenuItem>
                                         )}
                                         <DropdownMenuSeparator />

@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabaseUntyped as supabase } from '../lib/supabase';
 
-export const GOD_MODE_PERSONNEL: Personnel[] = [];
-
 export type ReportState = 'Draft' | 'Pending Manager Review' | 'Pending Customer Review' | 'Approved' | 'Closed';
 
 export interface ToolHistoryEntry {
@@ -449,7 +447,7 @@ export const useStore = create<AppState>()(
             reports: [],
             projects: [],
             tools: [],
-            personnel: [...GOD_MODE_PERSONNEL],
+            personnel: [],
             dismissedNotifications: [],
 
             templates: [
