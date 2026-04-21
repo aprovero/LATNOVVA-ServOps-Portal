@@ -156,7 +156,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 // Sync with personnel table if user is personnel
                 const currentProfile = get().profile;
                 if (currentProfile) {
-                    const { error: dbError } = await supabase
+                    const { error: dbError } = await (supabase as any)
                         .from('personnel')
                         .update({ name })
                         .eq('id', currentProfile.id);

@@ -780,6 +780,7 @@ export default function Settings() {
                                 <option value="Customer">Customer</option>
                             </select>
                         </div>
+                        {editPersonnelRole === 'Customer' && (
                             <div className="grid gap-2">
                                 <Label>Assigned Company</Label>
                                 <select
