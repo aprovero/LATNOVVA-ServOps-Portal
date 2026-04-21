@@ -179,6 +179,7 @@ export interface Personnel {
     isApprentice?: boolean;
     emergencyContact?: string;
     onboardingDate?: string;
+    dbo?: string;
     // Financial Fields (HR/Manager Only)
     regularRate?: number;
     rainyDayRate?: number;
@@ -1261,7 +1262,8 @@ export const useStore = create<AppState>()(
                     client_id: person.clientId,
                     image: person.image,
                     prevailing_wage: person.prevailingWage || false,
-                    bench_exempt: person.benchExempt || false
+                    bench_exempt: person.benchExempt || false,
+                    dbo: person.dbo
                 };
                 await supabase.from('personnel').insert(dbPayload);
             },
@@ -1284,6 +1286,7 @@ export const useStore = create<AppState>()(
                 if (updates.image !== undefined) dbPayload.image = updates.image;
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
                 if (updates.benchExempt !== undefined) dbPayload.bench_exempt = updates.benchExempt;
+                if (updates.dbo !== undefined) dbPayload.dbo = updates.dbo;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('personnel').update(dbPayload).eq('id', id);
                 }

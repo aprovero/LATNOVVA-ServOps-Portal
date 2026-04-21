@@ -15,11 +15,12 @@ export default function PersonnelManager({ onBack }: PersonnelManagerProps) {
         name: '',
         position: '',
         employeeNumber: '',
+        dbo: '',
         certifications: []
     });
 
     const resetForm = () => {
-        setFormData({ name: '', position: '', employeeNumber: '', certifications: [] });
+        setFormData({ name: '', position: '', employeeNumber: '', dbo: '', certifications: [] });
         setIsEditing(null);
         setIsAdding(false);
     };
@@ -113,6 +114,16 @@ export default function PersonnelManager({ onBack }: PersonnelManagerProps) {
                             />
                         </div>
                     </div>
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">Date of Birth (DBO)</label>
+                        <input
+                            type="text"
+                            value={formData.dbo || ''}
+                            onChange={(e) => setFormData({ ...formData, dbo: e.target.value })}
+                            className="input-field mt-1"
+                            placeholder="e.g. 05/19/2003"
+                        />
+                    </div>
                 </div>
 
                 <div className="mb-8">
@@ -203,7 +214,10 @@ export default function PersonnelManager({ onBack }: PersonnelManagerProps) {
                         <div className="mb-4">
                             <h3 className="font-bold text-lg text-accent-greyDark">{person.name}</h3>
                             <p className="text-sm text-brand-teal font-semibold">{person.position}</p>
-                            <p className="text-xs text-gray-400 font-mono mt-1">{person.employeeNumber}</p>
+                            <div className="flex justify-between items-center mt-1">
+                                <p className="text-xs text-gray-400 font-mono">{person.employeeNumber}</p>
+                                {person.dbo && <p className="text-[10px] text-gray-400 font-medium bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">DBO: {person.dbo}</p>}
+                            </div>
                         </div>
 
                         <div className="space-y-2 mt-4 pt-4 border-t border-gray-100">

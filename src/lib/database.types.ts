@@ -120,6 +120,7 @@ export interface Database {
           supervisor_id: string | null
           manager_id: string | null
           client_id: string | null
+          dbo: string | null
         }
         Insert: {
           id?: string
@@ -137,6 +138,7 @@ export interface Database {
           supervisor_id?: string | null
           manager_id?: string | null
           client_id?: string | null
+          dbo?: string | null
         }
         Update: {
           id?: string
@@ -154,6 +156,7 @@ export interface Database {
           supervisor_id?: string | null
           manager_id?: string | null
           client_id?: string | null
+          dbo?: string | null
         }
       }
       reports: {

@@ -16,6 +16,7 @@ interface AuthState {
     signInWithEmail: (email: string, password: string) => Promise<void>;
     signInWithOtp: (email: string) => Promise<void>;
     signOut: () => Promise<void>;
+    updateAccount: (name: string, password?: string) => Promise<void>;
 }
 
 // Module-level guard to ensure the Supabase listener is only registered once
@@ -24,7 +25,7 @@ let isListenerRegistered = false;
 // Fetches the personnel profile in the BACKGROUND and syncs role into the main store.
 async function fetchProfileInBackground(userId: string): Promise<PersonnelRow | null> {
     try {
-        const { data } = await supabase
+        const { data } = await (supabase as any)
             .from('personnel')
             .select('*')
             .eq('id', userId)
@@ -133,6 +134,44 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 await supabase.auth.signOut();
             } catch {
                 // Ignore — session is already cleared locally
+            }
+        },
+
+        updateAccount: async (name, password) => {
+            set({ loading: true, error: null });
+            try {
+                const updateData: any = {
+                    data: { name }
+                };
+                if (password) updateData.password = password;
+
+                const { data, error: authError } = await supabase.auth.updateUser(updateData);
+                if (authError) throw authError;
+
+                // Update session state with new user metadata
+                if (data.user) {
+                    set({ user: data.user });
+                }
+
+                // Sync with personnel table if user is personnel
+                const currentProfile = get().profile;
+                if (currentProfile) {
+                    const { error: dbError } = await supabase
+                        .from('personnel')
+                        .update({ name })
+                        .eq('id', currentProfile.id);
+                    
+                    if (!dbError) {
+                        set({ profile: { ...currentProfile, name } });
+                        // Also update the main store personnel list to reflect name change globally
+                        useStore.getState().updatePersonnel(currentProfile.id, { name });
+                    }
+                }
+
+                set({ loading: false });
+            } catch (error: any) {
+                set({ error: error.message, loading: false });
+                throw error;
             }
         },
     };

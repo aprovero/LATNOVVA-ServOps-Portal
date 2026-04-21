@@ -120,6 +120,7 @@ export default function Settings() {
     const [editPersonnelPassword, setEditPersonnelPassword] = useState('');
     const [editPersonnelRole, setEditPersonnelRole] = useState('Tech');
     const [editPersonnelCompany, setEditPersonnelCompany] = useState('');
+    const [editPersonnelDbo, setEditPersonnelDbo] = useState('');
 
     const [isLinking, setIsLinking] = useState(false);
     const [isDiscovering, setIsDiscovering] = useState(false);
@@ -342,6 +343,7 @@ export default function Settings() {
                                                         setEditPersonnelPassword('');
                                                         setEditPersonnelRole(user.appRole || 'Tech');
                                                         setEditPersonnelCompany(user.clientId || '');
+                                                        setEditPersonnelDbo(user.dbo || '');
                                                     }} className="p-2 text-gray-400 hover:text-brand-teal hover:bg-brand-teal/10 rounded-lg transition-colors mr-2">
                                                         <Pencil size={16} />
                                                     </button>
@@ -778,7 +780,6 @@ export default function Settings() {
                                 <option value="Customer">Customer</option>
                             </select>
                         </div>
-                        {editPersonnelRole === 'Customer' && (
                             <div className="grid gap-2">
                                 <Label>Assigned Company</Label>
                                 <select
@@ -793,6 +794,15 @@ export default function Settings() {
                                 </select>
                             </div>
                         )}
+                        <div className="grid gap-2">
+                            <Label htmlFor="editUserDbo">Date of Birth (DBO)</Label>
+                            <Input
+                                id="editUserDbo"
+                                value={editPersonnelDbo}
+                                onChange={(e) => setEditPersonnelDbo(e.target.value)}
+                                placeholder="MM/DD/YYYY"
+                            />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setEditingPersonnel(null)}>Cancel</Button>
@@ -810,13 +820,14 @@ export default function Settings() {
                                     alert('Failed to sync auth credentials to backend: ' + error.message);
                                 }
 
-                                // 2. Dispatch purely cosmetic updates to the profile component table (local store also sends to db)
+                                // 2. Dispatch updates to the local store and database
                                 updatePersonnel(editingPersonnel.id, {
                                     name: editPersonnelName,
                                     email: editPersonnelEmail,
                                     appRole: editPersonnelRole as any,
                                     clientId: editPersonnelRole === 'Customer' ? editPersonnelCompany : undefined,
-                                    hasPassword: editPersonnelPassword ? true : (editingPersonnel.hasPassword || false)
+                                    hasPassword: editPersonnelPassword ? true : (editingPersonnel.hasPassword || false),
+                                    dbo: editPersonnelDbo
                                 });
                                 setEditingPersonnel(null);
                             }

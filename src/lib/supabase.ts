@@ -18,8 +18,8 @@ const _client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         detectSessionInUrl: true,
         // Bypasses the Web Lock API that causes "Lock was released because another request stole it" errors
         // specifically when multiple tabs or concurrent Vite renders fight over auth state.
-        lock: {
-            acquire: async () => ({ release: () => {} })
+        lock: async (name, acquire) => {
+            return await acquire();
         }
     }
 });

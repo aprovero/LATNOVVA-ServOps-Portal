@@ -33,7 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, userId, setAuthData, tools, personnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications } = useStore();
+    const { userRole, userId, setAuthData, tools, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -42,6 +42,11 @@ export default function Layout() {
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
     const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
     const [isOfflineLogoutWarningOpen, setIsOfflineLogoutWarningOpen] = useState(false);
+    const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+    const [accountName, setAccountName] = useState('');
+    const [accountPassword, setAccountPassword] = useState('');
+    const [accountDbo, setAccountDbo] = useState('');
+    const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
 
     // Command Search
     const [isSearchPaletteOpen, setIsSearchPaletteOpen] = useState(false);
@@ -275,6 +280,46 @@ export default function Layout() {
         navigate(`/reports/${reportId}`);
     };
 
+    const { updateAccount, user } = useAuthStore();
+
+    const handleAccountUpdate = async () => {
+        if (!accountName) return;
+        setIsUpdatingAccount(true);
+        try {
+            await updateAccount(accountName, accountPassword || undefined);
+            
+            // Also update the personnel record in the database
+            const resId = useStore.getState().resolvePersonnelId();
+            if (resId) {
+                await updatePersonnel(resId, {
+                    name: accountName,
+                    dbo: accountDbo
+                });
+            }
+
+            setIsAccountModalOpen(false);
+            setAccountPassword('');
+            alert(t('common.saved', 'Changes saved successfully!'));
+        } catch (err: any) {
+            alert(t('common.error_saving', 'Error saving changes') + ': ' + err.message);
+        } finally {
+            setIsUpdatingAccount(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isAccountModalOpen) {
+            if (user?.user_metadata?.name) {
+                setAccountName(user.user_metadata.name);
+            }
+            const resId = useStore.getState().resolvePersonnelId();
+            const person = personnel.find(p => p.id === resId);
+            if (person) {
+                setAccountDbo(person.dbo || '');
+            }
+        }
+    }, [isAccountModalOpen, user, personnel]);
+
     return (
         <div className="flex h-screen w-full bg-surface-alt font-sans overflow-hidden">
             {/* Sidebar */}
@@ -464,7 +509,7 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
-                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${useStore.getState().resolvePersonnelId() || userId}`)}>
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setIsAccountModalOpen(true)}>
                                     <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -626,7 +671,7 @@ export default function Layout() {
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
-                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/personnel?q=${useStore.getState().resolvePersonnelId() || userId}`)}>
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setIsAccountModalOpen(true)}>
                                     <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -1021,6 +1066,68 @@ export default function Layout() {
                             }}
                         >
                             Log Out Anyway
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* ── Account Settings Modal ─────────────────────────────────────── */}
+            <Dialog open={isAccountModalOpen} onOpenChange={setIsAccountModalOpen}>
+                <DialogContent className="sm:max-w-[425px] rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
+                            <User size={20} className="text-brand-teal" />
+                            {t('nav.my_profile', 'My Profile')}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold">{t('personnel.columns.name', 'Full Name')}</Label>
+                            <Input 
+                                value={accountName} 
+                                onChange={(e) => setAccountName(e.target.value)}
+                                placeholder="E.g. John Doe"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold opacity-50">{t('personnel.profile.email', 'Email Address')}</Label>
+                            <Input 
+                                value={user?.email || ''} 
+                                disabled 
+                                className="bg-gray-50 border-gray-100 opacity-60"
+                            />
+                            <p className="text-[10px] text-gray-400 italic">Email cannot be changed by the user.</p>
+                        </div>
+                        <div className="space-y-2 pt-2 border-t border-gray-50">
+                            <Label className="text-sm font-semibold">Change Password</Label>
+                            <Input 
+                                type="password" 
+                                value={accountPassword} 
+                                onChange={(e) => setAccountPassword(e.target.value)}
+                                placeholder="Enter new password to update"
+                            />
+                            <p className="text-[10px] text-gray-400">Leave blank to keep your current password.</p>
+                        </div>
+                        <div className="space-y-2 pt-2 border-t border-gray-50">
+                            <Label className="text-sm font-semibold">Date of Birth (DBO)</Label>
+                            <Input 
+                                value={accountDbo} 
+                                onChange={(e) => setAccountDbo(e.target.value)}
+                                placeholder="MM/DD/YYYY"
+                            />
+                            <p className="text-[10px] text-gray-400">Used for HR records and certifications.</p>
+                        </div>
+                    </div>
+                    <DialogFooter className="flex gap-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setIsAccountModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            className="flex-1 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold" 
+                            onClick={handleAccountUpdate}
+                            disabled={isUpdatingAccount || !accountName}
+                        >
+                            {isUpdatingAccount ? 'Saving...' : 'Save Changes'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
