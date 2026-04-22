@@ -52,27 +52,31 @@ export default function OrgChartView() {
         }
     };
 
-    const renderPersonnelCard = (member: Personnel, currentProjectId: string | null, isLead: boolean = false) => (
-        <div key={member.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:border-brand-teal/30 group">
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-brand-teal/10 flex items-center justify-center text-xs font-bold text-brand-teal overflow-hidden shrink-0">
-                    {member.image ? <img src={member.image} className="w-full h-full object-cover" alt={member.name} /> : member.name.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                    <p className="text-sm font-bold text-accent-greyDark leading-none truncate">{member.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${member.appRole === 'Supervisor' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                            {member.appRole}
-                        </span>
-                        {isLead && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-status-success/10 text-status-success border border-status-success/20 uppercase tracking-wider">
-                                Lead
+    const renderPersonnelCard = (member: Personnel, currentProjectId: string | null, isLead: boolean = false) => {
+        // Limit name to ~22 characters for UI consistency as requested
+        const displayName = member.name.length > 22 ? member.name.substring(0, 20) + '...' : member.name;
+
+        return (
+            <div key={member.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:border-brand-teal/30 group h-[64px]">
+                <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                    <div className="w-8 h-8 rounded-full bg-brand-teal/10 flex items-center justify-center text-xs font-bold text-brand-teal overflow-hidden shrink-0">
+                        {member.image ? <img src={member.image} className="w-full h-full object-cover" alt={member.name} /> : member.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-accent-greyDark leading-none truncate" title={member.name}>{displayName}</p>
+                        <div className="flex items-center gap-2 mt-1 whitespace-nowrap overflow-hidden">
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0 ${member.appRole === 'Supervisor' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                {member.appRole}
                             </span>
-                        )}
-                        <p className="text-[10px] text-gray-400 font-semibold uppercase truncate">{member.position}</p>
+                            {isLead && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-status-success/10 text-status-success border border-status-success/20 uppercase tracking-wider shrink-0">
+                                    Lead
+                                </span>
+                            )}
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase truncate">{member.position}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
             {currentProjectId ? (
                 <button
@@ -121,8 +125,9 @@ export default function OrgChartView() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
-        </div>
-    );
+            </div>
+        );
+    };
 
     // Get team for selected project, sorted by lead > supervisor > tech
     const getTeamForProject = (project: typeof activeProjects[0]) => {

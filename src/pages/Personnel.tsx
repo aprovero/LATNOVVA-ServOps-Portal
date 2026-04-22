@@ -192,12 +192,16 @@ export default function Personnel() {
                             className="h-8 text-xs bg-white border-gray-200 mb-1.5"
                         />
                     </div>
-                    <div className="w-32 shrink-0">
+                    <div className="w-36 shrink-0 relative">
                         <Input
                             type="date"
                             value={cert.expirationDate}
                             onChange={e => handleUpdateCert(index, 'expirationDate', e.target.value, draft, setter)}
-                            className="h-8 text-xs bg-white border-gray-200"
+                            className="h-8 text-xs bg-white border-gray-200 pr-0"
+                            style={{ 
+                                colorScheme: 'light',
+                                paddingRight: '2px'
+                            }}
                         />
                     </div>
                 </div>

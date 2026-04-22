@@ -23,7 +23,55 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 
 const DRY_RUN = false;
 
+const PREVAILING_WAGE_NAMES = new Set([
+    "JOHN AGUILAR",
+    "WILLIAM GIL RODRIGUEZ",
+    "GEORDANIS RODRIGUEZ NEGRE",
+    "JUAN GONZALEZ",
+    "JOSE ASCENCIO LOPEZ",
+    "SEBASTIAN RODRIGO YANCA AGUILERA",
+    "ADRIAN RASCON",
+    "CHRISTIAN FURET HERNANDEZ",
+    "FRANCISCO MARTINEZ MARRERO",
+    "LUIS ANGEL GONZALEZ ROMEO",
+    "RICHARD RADAMEZ NUNEZ ROMEO",
+    "ALEJANDRO RODRIGUEZ GONZALEZ",
+    "ANABEL RODRIGUEZ VILATO",
+    "JESUS ROGELIO ORTEGA"
+]);
+
+function normalizeDate(dateStr: any): string | null {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const s = dateStr.trim();
+    if (!s) return null;
+    
+    // If already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    
+    // Handle MM/DD/YYYY or M/D/YY
+    const parts = s.split('/');
+    if (parts.length === 3) {
+        let m = parts[0].padStart(2, '0');
+        let d = parts[1].padStart(2, '0');
+        let y = parts[2];
+        if (y.length === 2) y = '20' + y;
+        if (y.length > 4) y = '2025'; // Fix for typos like 20206
+        return `${y}-${m}-${d}`;
+    }
+    
+    return s; // Fallback to raw string if unrecognized
+}
+
 const PERSONNEL_JSON = [
+    {
+        "name": "JAIME VAZQUEZ",
+        "STATUS": "ACTIVE",
+        "EMAIL": "jaimevazquez@example.com",
+        "POSITIONS": "TECHNICIAN",
+        "SITE": "AES PR",
+        "Employee ID": 10130,
+        "TOTAL PERDIEM AMOUNT": 250.0
+    },
     {
         "name": "PEDRO LUIS RAMIREZ MORENO",
         "STATUS": "ACTIVE",
@@ -40,14 +88,9 @@ const PERSONNEL_JSON = [
         "FORKLIFT": null,
         "Employee ID": 10056.0,
         "SITE": "SUN VALLEY",
-        "REGULAR RATE": 25.0,
-        "RAINY DAY RATE": 25.0,
-        "OVERTIME RATE": 37.5,
-        "MEAL ALLOWANCE": 60,
-        "GAS ALLOWANCE": 0,
-        "TRUCK": 0,
+        "TRUCK": 250,
         "LEAD": 0,
-        "TOTAL PERDIEM AMOUNT": 250.0
+        "TOTAL PERDIEM AMOUNT": 0
     },
     {
         "name": "LIETER MESA VELAZCO",
@@ -63,7 +106,7 @@ const PERSONNEL_JSON = [
         "FIRE E": "2026-04-03",
         "NFPA 70E": "8/23/2025",
         "FORKLIFT": null,
-        "Employee ID": null,
+        "Employee ID": "NA",
         "SITE": "SUN VALLEY",
         "REGULAR RATE": 20.0,
         "RAINY DAY RATE": 20.0,
@@ -90,14 +133,9 @@ const PERSONNEL_JSON = [
         "FORKLIFT": null,
         "Employee ID": 10081.0,
         "SITE": "SUN VALLEY",
-        "REGULAR RATE": 18.0,
-        "RAINY DAY RATE": 18.0,
-        "OVERTIME RATE": 27.0,
-        "MEAL ALLOWANCE": 60,
-        "GAS ALLOWANCE": 0,
-        "TRUCK": 0,
-        "LEAD": 0,
-        "TOTAL PERDIEM AMOUNT": 250.0
+        "TRUCK": 250,
+        "LEAD": 125,
+        "TOTAL PERDIEM AMOUNT": 0
     },
     {
         "name": "MILDRED BAYARD BOLANOS",
@@ -138,7 +176,7 @@ const PERSONNEL_JSON = [
         "FIRE E": "2026-05-03",
         "NFPA 70E": "9/24/2025",
         "FORKLIFT": null,
-        "Employee ID": null,
+        "Employee ID": "NA",
         "SITE": "BYNUM Solar (Cobra)",
         "REGULAR RATE": 20.0,
         "RAINY DAY RATE": 20.0,
@@ -158,6 +196,7 @@ const PERSONNEL_JSON = [
         "DBO": "09/06/1990",
         "OSHA 10": "01/23/25",
         "SITE": "BELLEFIELD II",
+        "Employee ID": "NA",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -177,6 +216,7 @@ const PERSONNEL_JSON = [
         "OSHA 10": "6/20/2024",
         "NFPA 70E": "09/24/2024",
         "SITE": "BELLEFIELD II",
+        "Employee ID": "NA",
         "REGULAR RATE": 16.0,
         "RAINY DAY RATE": 16.0,
         "OVERTIME RATE": 24.0,
@@ -200,6 +240,7 @@ const PERSONNEL_JSON = [
         "FIRE E": "2026-01-03",
         "NFPA 70E": "2026-01-03",
         "SITE": "BELLEFIELD II",
+        "Employee ID": "NA",
         "REGULAR RATE": 16.0,
         "RAINY DAY RATE": 16.0,
         "OVERTIME RATE": 24.0,
@@ -239,6 +280,7 @@ const PERSONNEL_JSON = [
         "LOTO": "2025-07-03",
         "NFPA 70E": "2024-07-06",
         "SITE": "BELLEFIELD II",
+        "Employee ID": "NA",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -254,20 +296,20 @@ const PERSONNEL_JSON = [
         "EMAIL": "syanca@latnovva.com",
         "POSITIONS": "LEADER",
         "phone number": "3467927900",
-        "DBO": "07/25/1980",
+        "DBO": "           07/25/1980",
         "OSHA 10": "12/28/2024",
         "FAC": "2025-01-07",
+        "WH/FP": null,
         "LOTO": "2025-07-03",
+        "FIRE E": null,
         "NFPA 70E": "12/28/2024",
+        "FORKLIFT": null,
+        "Employee ID": "NA",
         "SITE": "BELLEFIELD II",
-        "REGULAR RATE": 25.0,
-        "RAINY DAY RATE": 25.0,
-        "OVERTIME RATE": 37.5,
-        "MEAL ALLOWANCE": 60,
-        "GAS ALLOWANCE": 0,
-        "TRUCK": 0,
-        "LEAD": 0,
-        "TOTAL PERDIEM AMOUNT": 250.0
+        "TRUCK": null,
+        "LEAD": null,
+        "TOTAL PERDIEM AMOUNT": null,
+        "COMMENTS": "Prevailing wage "
     },
     {
         "name": "ADRIAN RASCON",
@@ -283,7 +325,7 @@ const PERSONNEL_JSON = [
         "FIRE E": "2026-04-03",
         "NFPA 70E": "2024-10-10",
         "Employee ID": 10004.0,
-        "SITE": "ALAMITO",
+        "SITE": "BELLEFIELD II",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -306,7 +348,8 @@ const PERSONNEL_JSON = [
         "LOTO": "2026-04-03",
         "FIRE E": "2026-04-03",
         "NFPA 70E": "5/26/2025",
-        "SITE": "ALAMITO",
+        "SITE": "ALAMITO II",
+        "Employee ID": "NA",
         "REGULAR RATE": 16.0,
         "RAINY DAY RATE": 16.0,
         "OVERTIME RATE": 24.0,
@@ -327,7 +370,7 @@ const PERSONNEL_JSON = [
         "FAC": "5/15/2025",
         "NFPA 70E": "4/15/2025",
         "Employee ID": 10117.0,
-        "SITE": "ALAMITO",
+        "SITE": "ALAMITO II",
         "REGULAR RATE": 16.0,
         "RAINY DAY RATE": 16.0,
         "OVERTIME RATE": 24.0,
@@ -350,7 +393,8 @@ const PERSONNEL_JSON = [
         "LOTO": "2026-05-03",
         "FIRE E": "2026-05-03",
         "NFPA 70E": "2025-03-07",
-        "SITE": "ALAMITO",
+        "SITE": "ALAMITO II",
+        "Employee ID": "NA",
         "REGULAR RATE": 16.0,
         "RAINY DAY RATE": 16.0,
         "OVERTIME RATE": 24.0,
@@ -373,7 +417,8 @@ const PERSONNEL_JSON = [
         "LOTO": "2026-03-03",
         "FIRE E": "2026-04-03",
         "NFPA 70E": "5/26/2025",
-        "SITE": "ALAMITO",
+        "SITE": "ALAMITO II",
+        "Employee ID": "NA",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -396,7 +441,8 @@ const PERSONNEL_JSON = [
         "LOTO": "2026-11-03",
         "FIRE E": "2026-01-03",
         "NFPA 70E": "2/28/2025",
-        "SITE": "ALAMITO",
+        "SITE": "ALAMITO II",
+        "Employee ID": "NA",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -419,7 +465,8 @@ const PERSONNEL_JSON = [
         "LOTO": "2026-04-03",
         "FIRE E": "2026-04-03",
         "NFPA 70E": "2026-06-03",
-        "SITE": "ALAMITO",
+        "SITE": "ALAMITO II",
+        "Employee ID": "NA",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -442,7 +489,8 @@ const PERSONNEL_JSON = [
         "LOTO": "2026-01-03",
         "FIRE E": "2026-01-03",
         "NFPA 70E": "2024-08-08",
-        "SITE": "ALAMITO",
+        "SITE": "ALAMITO II",
+        "Employee ID": "NA",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -466,15 +514,10 @@ const PERSONNEL_JSON = [
         "FIRE E": "2026-05-03",
         "NFPA 70E": "8/24/2024",
         "Employee ID": 10023.0,
-        "SITE": "ALAMITO",
-        "REGULAR RATE": 20.0,
-        "RAINY DAY RATE": 20.0,
-        "OVERTIME RATE": 30.0,
-        "MEAL ALLOWANCE": 60,
-        "GAS ALLOWANCE": 0,
-        "TRUCK": 0,
-        "LEAD": 0,
-        "TOTAL PERDIEM AMOUNT": 250.0
+        "SITE": "MURCH SOLAR",
+        "TRUCK": 250,
+        "LEAD": 125,
+        "TOTAL PERDIEM AMOUNT": 0
     },
     {
         "name": "ILIANIS MERLADETE",
@@ -482,6 +525,7 @@ const PERSONNEL_JSON = [
         "EMAIL": "Imerladet23@gmail.com",
         "POSITIONS": "HSE",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 22.0,
         "RAINY DAY RATE": 22.0,
         "OVERTIME RATE": 33.0,
@@ -511,9 +555,9 @@ const PERSONNEL_JSON = [
         "OVERTIME RATE": 22.5,
         "MEAL ALLOWANCE": 60,
         "GAS ALLOWANCE": 0,
-        "TRUCK": 0,
+        "TRUCK": 150,
         "LEAD": 0,
-        "TOTAL PERDIEM AMOUNT": 250.0
+        "TOTAL PERDIEM AMOUNT": 0
     },
     {
         "name": "JORGE LUIS CALDERON PEREZ",
@@ -575,6 +619,7 @@ const PERSONNEL_JSON = [
         "FIRE E": "2026-05-03",
         "NFPA 70E": "2025-11-04",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 15.0,
         "RAINY DAY RATE": 15.0,
         "OVERTIME RATE": 22.5,
@@ -595,6 +640,7 @@ const PERSONNEL_JSON = [
         "FAC": "2025-07-10",
         "NFPA 70E": "2025-11-06",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 15.0,
         "RAINY DAY RATE": 15.0,
         "OVERTIME RATE": 22.5,
@@ -618,6 +664,7 @@ const PERSONNEL_JSON = [
         "FIRE E": "2026-08-03",
         "NFPA 70E": "2025-01-02",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 15.0,
         "RAINY DAY RATE": 15.0,
         "OVERTIME RATE": 22.5,
@@ -682,6 +729,7 @@ const PERSONNEL_JSON = [
         "POSITIONS": "SUVERYOR",
         "phone number": "4199840356",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 18.0,
         "RAINY DAY RATE": 18.0,
         "OVERTIME RATE": 27.0,
@@ -697,6 +745,7 @@ const PERSONNEL_JSON = [
         "EMAIL": "davidface1010@gmail.com",
         "POSITIONS": "LABORER",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 15.0,
         "RAINY DAY RATE": 15.0,
         "OVERTIME RATE": 22.5,
@@ -713,6 +762,7 @@ const PERSONNEL_JSON = [
         "POSITIONS": "LABORER",
         "phone number": "5022604670",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 15.0,
         "RAINY DAY RATE": 15.0,
         "OVERTIME RATE": 22.5,
@@ -729,6 +779,7 @@ const PERSONNEL_JSON = [
         "POSITIONS": "LABORER",
         "phone number": "5613606333",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 15.0,
         "RAINY DAY RATE": 15.0,
         "OVERTIME RATE": 22.5,
@@ -744,6 +795,7 @@ const PERSONNEL_JSON = [
         "EMAIL": "janethloza.jl@gmail.com",
         "POSITIONS": "OPERADOR PD-10",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 20.0,
         "RAINY DAY RATE": 20.0,
         "OVERTIME RATE": 30.0,
@@ -759,6 +811,7 @@ const PERSONNEL_JSON = [
         "EMAIL": "mailobravobarcelo@gmail.com",
         "POSITIONS": "OPERADOR PD-10",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 20.0,
         "RAINY DAY RATE": 20.0,
         "OVERTIME RATE": 30.0,
@@ -775,6 +828,7 @@ const PERSONNEL_JSON = [
         "POSITIONS": "OPERADOR LASSER",
         "phone number": "3463071010",
         "SITE": "MURCH SOLAR",
+        "Employee ID": "NA",
         "REGULAR RATE": 20.0,
         "RAINY DAY RATE": 20.0,
         "OVERTIME RATE": 30.0,
@@ -794,15 +848,10 @@ const PERSONNEL_JSON = [
         "OSHA 10": "2023-10-09",
         "NFPA 70E": "2024-09-09",
         "Employee ID": 10059.0,
-        "SITE": "ALAMITO",
-        "REGULAR RATE": 25.0,
-        "RAINY DAY RATE": 25.0,
-        "OVERTIME RATE": 37.5,
-        "MEAL ALLOWANCE": 60,
-        "GAS ALLOWANCE": 0,
-        "TRUCK": 0,
-        "LEAD": 0,
-        "TOTAL PERDIEM AMOUNT": 250.0
+        "SITE": "",
+        "TRUCK": 207,
+        "LEAD": 250,
+        "TOTAL PERDIEM AMOUNT": 0
     },
     {
         "name": "ROSARIO GONZALEZ",
@@ -811,6 +860,7 @@ const PERSONNEL_JSON = [
         "POSITIONS": "OUTSOURCED",
         "phone number": "7373488215",
         "SITE": "BYNUM Solar (OCA)",
+        "Employee ID": "NA",
         "REGULAR RATE": 15.0,
         "RAINY DAY RATE": 15.0,
         "OVERTIME RATE": 22.5,
@@ -820,31 +870,6 @@ const PERSONNEL_JSON = [
         "LEAD": 0,
         "TOTAL PERDIEM AMOUNT": 0
     },
-    {
-        "name": "JAIME VAZQUEZ",
-        "STATUS": "ACTIVE",
-        "EMAIL": "jaime.vazquezsr@saft.com",
-        "POSITIONS": "SUPERVISOR",
-        "phone number": "9044343108",
-        "DBO": "11/22/1965",
-        "OSHA 10": "8/27/2024",
-        "FAC": "2026-07-03",
-        "WH/FP": "2026-08-03",
-        "LOTO": "2026-08-03",
-        "FIRE E": "2026-08-03",
-        "NFPA 70E": "8/27/2024",
-        "FORKLIFT": "2026-07-03",
-        "Employee ID": 10130.0,
-        "SITE": "AES PR",
-        "TRUCK": 250.0,
-        "LEAD": 0.0,
-        "TOTAL PERDIEM AMOUNT": 250.0,
-        "REGULAR RATE": 35.0,
-        "RAINY DAY RATE": 35.0,
-        "OVERTIME RATE": 52.5,
-        "MEAL ALLOWANCE": 60,
-        "GAS ALLOWANCE": 0
-    }
 ];
 
 const CERT_NAMES = ["OSHA 10", "FAC", "WH/FP", "LOTO", "FIRE E", "NFPA 70E", "FORKLIFT"];
@@ -873,8 +898,19 @@ async function runUpdate() {
     if (persErr) { console.error(`❌ Failed to fetch personnel: ${persErr.message}`); return; }
     const personnelMap = new Map(personnelDB.map(p => [p.email?.toLowerCase(), p.id]));
     
-    // Project identity map: Name -> Project Object
     const projectMap = new Map(projectsDB.map(p => [p.name.trim().toUpperCase(), p]));
+    
+    // Explicit shorthand map for site names used in field tables
+    const SITE_MAP: Record<string, string> = {
+        "MURCH SOLAR": "Murch Solar PV",
+        "BELLEFIELD II": "Bellefield II Solar",
+        "AES PR": "AES Guayama Power Complex",
+        "ALAMITO II": "Alamitos II",
+        "SUN VALLEY": "Sun Valley Solar",
+        "BYNUM SOLAR (COBRA)": "Bynum Solar (Grupo Cobra)",
+        "BYNUM SOLAR (OCA)": "Bynum Solar (OCA Global)"
+    };
+
     // Assignment tracker: ProjectID -> Set of Personnel IDs
     // We START with empty sets to "purge" any assignments not represented in this sync source of truth
     // OR we can keep them and just filter out invalid IDs.
@@ -889,8 +925,11 @@ async function runUpdate() {
         const email = p.EMAIL ? p.EMAIL.trim().toLowerCase() : `${name.toLowerCase().replace(/\s+/g, '.')}@temporary.com`;
         const position = p.POSITIONS ? p.POSITIONS.trim() : 'Technician';
         const phone = (p as any)["phone number"] || '';
-        const dbo = (p as any).DBO ? (p as any).DBO.trim() : '';
-        const empId = (p as any)["Employee ID"] ? String((p as any)["Employee ID"]) : '';
+        const dbo = normalizeDate((p as any).DBO);
+        let empId = (p as any)["Employee ID"];
+        if (empId === "NA") empId = "EMP-NEW";
+        else if (empId && typeof empId === 'number') empId = String(empId);
+        else if (!empId) empId = "";
 
         const personData = {
             name,
@@ -898,18 +937,19 @@ async function runUpdate() {
             status: p.STATUS.trim().toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive',
             position,
             phone_number: phone,
-            employee_number: empId,
+            employee_number: String(empId),
             dbo,
             app_role: (position.includes('LEAD') || position.includes('MANAGER') || position.includes('HSE') || position.includes('SUPERVISOR')) ? 'Supervisor' : 'Tech',
-            regular_rate: (p as any)["REGULAR RATE"] || null,
-            rainy_day_rate: (p as any)["RAINY DAY RATE"] || null,
-            overtime_rate: (p as any)["OVERTIME RATE"] || null,
-            meal_allowance: (p as any)["MEAL ALLOWANCE"] || null,
-            gas_allowance: (p as any)["GAS ALLOWANCE"] || null,
-            truck_allowance: (p as any)["TRUCK"] || null,
-            lead_pay: (p as any)["LEAD"] || null,
-            per_diem: (p as any)["TOTAL PERDIEM AMOUNT"] || null,
-            certifications: CERT_NAMES.map(c => ({ name: c, expirationDate: (p as any)[c] })).filter(c => !!c.expirationDate)
+            regular_rate: 0,
+            rainy_day_rate: 0,
+            overtime_rate: 0,
+            meal_allowance: (p as any)["MEAL ALLOWANCE"] || 0,
+            gas_allowance: (p as any)["GAS ALLOWANCE"] || 0,
+            truck_allowance: (p as any)["TRUCK"] || 0,
+            lead_pay: (p as any)["LEAD"] || 0,
+            per_diem: (p as any)["TOTAL PERDIEM AMOUNT"] || 0,
+            prevailing_wage: PREVAILING_WAGE_NAMES.has(name.toUpperCase()) || (p as any).COMMENTS?.toLowerCase().includes('prevailing wage'),
+            certifications: CERT_NAMES.map(c => ({ name: c, expirationDate: normalizeDate((p as any)[c]) })).filter(c => !!c.expirationDate)
         };
 
         // Identity Resolution: Try Auth Map, then Personnel Map, then Create
@@ -939,9 +979,13 @@ async function runUpdate() {
 
             // Intelligent Project Assignment
             if (p.SITE) {
-                const matchedProj = projectMap.get(p.SITE.trim().toUpperCase());
+                const siteRaw = p.SITE.trim().toUpperCase();
+                const officialName = SITE_MAP[siteRaw] || p.SITE.trim();
+                const matchedProj = projectMap.get(officialName.toUpperCase());
                 if (matchedProj) {
                     newAssignments.get(matchedProj.id)?.add(userId);
+                } else {
+                    console.warn(`   ⚠️ Warning: Could not match site "${p.SITE}" to any DB project.`);
                 }
             }
         }
