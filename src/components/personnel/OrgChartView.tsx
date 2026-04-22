@@ -17,9 +17,16 @@ export default function OrgChartView() {
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
         activeProjects.length > 0 ? activeProjects[0].id : null
     );
+    
+    const OFFICE_MANAGERS = ['ANDRES PROVERO', 'FERNANDO ASENSIO', 'JESUS REINA', 'JUAN MARIA'];
 
     // Only exclude inactive personnel and the current user from assignments.
-    const fieldPersonnel = personnel.filter(p => p.status !== 'Inactive' && p.id !== userId);
+    // Also exclude high-level office managers who should never be on the bench/projects.
+    const fieldPersonnel = personnel.filter(p => 
+        p.status !== 'Inactive' && 
+        p.id !== userId &&
+        !OFFICE_MANAGERS.includes(p.name.toUpperCase())
+    );
 
     const assignedPersonnelIds = new Set(projects.flatMap(p => p.assignedPersonnel || []));
     // Bench = active, assigned to no project, and NOT bench-exempt (e.g. Andres â€” occasional field visits)

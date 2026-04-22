@@ -40,6 +40,33 @@ const PREVAILING_WAGE_NAMES = new Set([
     "JESUS ROGELIO ORTEGA"
 ]);
 
+function normalizeName(name: string): string {
+    if (!name) return "";
+    return name
+        .trim()
+        .toLowerCase()
+        .replace(/(?:^|\s|-)\S/g, l => l.toUpperCase());
+}
+
+function normalizePhoneNumber(phone: any): string {
+    if (!phone) return "";
+    const digits = String(phone).replace(/\D/g, '');
+    if (digits.length === 0) return "";
+    
+    // Handle US numbers (prefix with 1 if 10 digits)
+    let finalDigits = digits;
+    if (digits.length === 10) finalDigits = '1' + digits;
+    
+    if (finalDigits.length === 11 && finalDigits.startsWith('1')) {
+        const area = finalDigits.slice(1, 4);
+        const mid = finalDigits.slice(4, 7);
+        const last = finalDigits.slice(7);
+        return `+1 (${area}) ${mid} ${last}`;
+    }
+    
+    return phone; // Fallback
+}
+
 function normalizeDate(dateStr: any): string | null {
     if (!dateStr || typeof dateStr !== 'string') return null;
     const s = dateStr.trim();
@@ -921,10 +948,10 @@ async function runUpdate() {
     let syncedCount = 0;
 
     for (const p of PERSONNEL_JSON) {
-        const name = p.name.trim();
+        const name = normalizeName(p.name);
         const email = p.EMAIL ? p.EMAIL.trim().toLowerCase() : `${name.toLowerCase().replace(/\s+/g, '.')}@temporary.com`;
         const position = p.POSITIONS ? p.POSITIONS.trim() : 'Technician';
-        const phone = (p as any)["phone number"] || '';
+        const phone = normalizePhoneNumber((p as any)["phone number"]);
         const dbo = normalizeDate((p as any).DBO);
         let empId = (p as any)["Employee ID"];
         if (empId === "NA") empId = "EMP-NEW";
