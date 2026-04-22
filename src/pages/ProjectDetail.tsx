@@ -211,11 +211,6 @@ export default function ProjectDetail() {
         ? Math.round(allActs.reduce((sum, a) => sum + a.progress, 0) / allActs.length)
         : 0; // Forced 0% to eliminate ghost progress
 
-    const statusColor = project.status === 'Active'
-        ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-        : project.status === 'On Hold'
-        ? 'bg-amber-100 text-amber-700 border-amber-200'
-        : 'bg-gray-100 text-gray-600 border-gray-200';
 
     const DISCIPLINE_OPTIONS = ['Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
 
@@ -239,17 +234,27 @@ export default function ProjectDetail() {
                             <div className="flex-1">
                                 <div className="flex flex-wrap items-center gap-3 mb-2">
                                     {client?.logo && (
-                                        <img src={client.logo} alt={client.name} className="h-8 w-8 rounded-full object-cover" />
+                                        <div className="h-14 w-14 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center p-1 overflow-hidden">
+                                            <img src={client.logo} alt={client.name} className="max-h-full max-w-full object-contain" />
+                                        </div>
                                     )}
-                                    <span className="text-sm font-semibold text-gray-500">{client?.name}</span>
-                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${statusColor}`}>
-                                        {project.status}
-                                    </span>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-semibold text-gray-500">{client?.name}</span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                project.status === 'Active' ? 'bg-brand-teal/5 text-brand-teal border-brand-teal/10' :
+                                                project.status === 'On Hold' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                'bg-gray-50 text-gray-400 border-gray-200'
+                                            }`}>
+                                                {project.status}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <h1 className="text-2xl md:text-3xl font-bold text-accent-greyDark mb-1 flex items-center gap-2">
                                     {project.name}
                                     {project.prevailingWage && (
-                                        <span className="text-[10px] bg-brand-teal/10 text-brand-teal border border-brand-teal/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/10 text-amber-600 border border-amber-400/20 shadow-sm animate-in fade-in zoom-in duration-500">
                                             <CheckCircle2 size={10} /> Prevailing Wage
                                         </span>
                                     )}
@@ -262,8 +267,8 @@ export default function ProjectDetail() {
                                 
                                 {project.siteLeadIds && project.siteLeadIds.length > 0 && (
                                     <div className="flex flex-wrap items-center gap-2 mb-4">
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-status-success/10 text-status-success border border-status-success/20 rounded-xl text-xs font-bold shadow-sm">
-                                            <Target size={14} />
+                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-teal/5 text-brand-teal border border-brand-teal/10 shadow-sm">
+                                            <Target size={12} />
                                             {t('projects.site_leads', 'Site Leads')}:
                                         </div>
                                         {project.siteLeadIds.map(leadId => {

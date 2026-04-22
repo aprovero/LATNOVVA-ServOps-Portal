@@ -159,7 +159,11 @@ export default function Personnel() {
     // Filter + sort: active first, inactive at bottom
     const filteredPersonnel = personnel
         .filter(p => p.appRole !== 'Customer')
-        .filter(p => filterRole === 'All' ? true : p.appRole === filterRole)
+        .filter(p => {
+            if (filterRole === 'All') return true;
+            if (filterRole === 'Prevailing Wage') return p.prevailingWage;
+            return p.appRole === filterRole;
+        })
         .filter(p =>
             p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             p.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -187,29 +191,37 @@ export default function Personnel() {
                 </Button>
             </div>
             {(draft.certifications || []).map((cert, index) => (
-                <div key={index} className="flex gap-2 p-2.5 bg-gray-50 border border-gray-100 rounded-xl relative group">
-                    <button onClick={() => handleRemoveCert(index, draft, setter)} className="absolute top-2 right-2 text-gray-300 hover:text-red-500 transition-colors">
-                        <Trash2 size={12} />
-                    </button>
-                    <div className="flex-1">
+                <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl group relative overflow-hidden">
+                    <div className="flex-1 space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{t('personnel.profile.cert_name')}</label>
                         <Input
-                            placeholder={`${t('personnel.profile.cert_name')} (e.g. OSHA 30)`}
+                            placeholder="e.g. OSHA 30"
                             value={cert.name}
                             onChange={e => handleUpdateCert(index, 'name', e.target.value, draft, setter)}
-                            className="h-8 text-xs bg-white border-gray-200 mb-1.5"
+                            className="h-9 text-sm bg-white border-gray-200"
                         />
                     </div>
-                    <div className="w-36 shrink-0 relative">
+                    <div className="w-36 shrink-0 space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Expiration Date</label>
                         <Input
                             type="date"
                             value={cert.expirationDate}
                             onChange={e => handleUpdateCert(index, 'expirationDate', e.target.value, draft, setter)}
-                            className="h-8 text-xs bg-white border-gray-200 pr-0"
+                            className="h-9 text-sm bg-white border-gray-200 pr-0"
                             style={{ 
                                 colorScheme: 'light',
                                 paddingRight: '2px'
                             }}
                         />
+                    </div>
+                    <div className="self-end pb-0.5">
+                        <button 
+                            onClick={() => handleRemoveCert(index, draft, setter)} 
+                            className="p-2.5 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition-all shadow-sm"
+                            title="Delete Certification"
+                        >
+                            <Trash2 size={16} />
+                        </button>
                     </div>
                 </div>
             ))}
@@ -401,7 +413,7 @@ export default function Personnel() {
                 </div>
 
                 <div className="space-y-1.5 flex-1 min-w-[150px]">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Shield size={12} /> {t('personnel.filters.role')}</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Shield size={12} /> {t('personnel.filters.title', 'FILTER')}</label>
                     <div className="relative">
                         <select
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer h-10"
@@ -412,6 +424,7 @@ export default function Personnel() {
                             <option value="Tech">Techs</option>
                             <option value="Supervisor">Supervisors</option>
                             <option value="Manager">Managers</option>
+                            <option value="Prevailing Wage">Prevailing Wage</option>
                         </select>
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                     </div>
@@ -482,7 +495,7 @@ export default function Personnel() {
                                                 {person.name}
                                             </p>
                                             {person.prevailingWage && (
-                                                <span className={`text-[10px] font-black shrink-0 ${isSelected ? 'text-white' : 'text-brand-teal'}`} title="Prevailing Wage">P</span>
+                                                <span className={`text-[10px] font-black shrink-0 ${isSelected ? 'text-white' : 'text-amber-500'}`} title="Prevailing Wage">P</span>
                                             )}
                                         </div>
                                         <p className={`text-[10px] font-semibold mt-0.5 truncate ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
@@ -544,15 +557,15 @@ export default function Personnel() {
                                                     <h2 className="text-xl font-bold text-accent-greyDark leading-tight">{selectedPerson.name}</h2>
                                                     <p className="text-sm text-brand-teal font-semibold mt-0.5">{selectedPerson.position}</p>
                                                     <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                                            selectedPerson.appRole === 'Supervisor' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                                                            selectedPerson.appRole === 'Manager' ? 'bg-brand-teal/10 text-brand-teal border-brand-teal/20' :
-                                                            'bg-gray-100 text-gray-500 border-gray-200'
+                                                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                            selectedPerson.appRole === 'Supervisor' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                            selectedPerson.appRole === 'Manager' ? 'bg-brand-teal/5 text-brand-teal border-brand-teal/10' :
+                                                            'bg-gray-50 text-gray-500 border-gray-100'
                                                         }`}>
                                                             {selectedPerson.appRole}
                                                         </span>
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                                                            selectedPerson.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'
+                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                            selectedPerson.status === 'Active' ? 'bg-brand-teal/5 text-brand-teal border-brand-teal/10' : 'bg-gray-50 text-gray-400 border-gray-200'
                                                         }`}>
                                                             {selectedPerson.status === 'Active' ? <CheckCircle2 size={10} /> : <CircleDashed size={10} />}
                                                             {selectedPerson.status}
@@ -561,8 +574,8 @@ export default function Personnel() {
                                                             #{selectedPerson.employeeNumber}
                                                         </span>
                                                         {selectedPerson.prevailingWage && (
-                                                            <span className="text-[10px] font-black text-emerald-600 px-1 py-0.5" title="Prevailing Wage">
-                                                                P
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/10 text-amber-600 border border-amber-400/20 shadow-sm">
+                                                                <Award size={10} /> Prevailing Wage
                                                             </span>
                                                         )}
                                                         {isHROrManager ? (
@@ -708,13 +721,13 @@ export default function Personnel() {
                                                     <option value="HR">HR</option>
                                                 </select>
                                             </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> {t('personnel.columns.status')}</label>
-                                            <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.status || 'Active'} onChange={e => setEditDraft(d => d ? { ...d, status: e.target.value as any } : d)}>
-                                                <option value="Active">Active</option>
-                                                <option value="Inactive">Inactive</option>
-                                            </select>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Activity size={14} className="text-brand-teal" /> {t('personnel.columns.status')}</label>
+                                                <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.status || 'Active'} onChange={e => setEditDraft(d => d ? { ...d, status: e.target.value as any } : d)}>
+                                                    <option value="Active">Active</option>
+                                                    <option value="Inactive">Inactive</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         </>
                                     )}
@@ -732,7 +745,7 @@ export default function Personnel() {
                                             <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
                                             <Input type="date" value={editDraft.onboardingDate || ''} onChange={e => setEditDraft(d => d ? { ...d, onboardingDate: e.target.value } : d)} />
                                         </div>
-                                        <div className="space-y-2 col-span-2">
+                                        <div className="space-y-2">
                                             <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo')}</label>
                                             <Input type="date" value={editDraft.dbo || ''} onChange={e => setEditDraft(d => d ? { ...d, dbo: e.target.value } : d)} />
                                         </div>

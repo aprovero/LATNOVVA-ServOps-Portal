@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useStore, Personnel } from '../../store/useStore';
 import { User, ChevronRight, UserMinus, Check, Users, Briefcase, Plus } from 'lucide-react';
 import {
@@ -11,7 +12,7 @@ import {
 } from '../ui/dropdown-menu';
 
 export default function OrgChartView() {
-    const { personnel, projects, updateProject, userId } = useStore();
+    const { personnel, projects, updateProject, userId, clients } = useStore();
 
     const activeProjects = projects.filter(p => p.status === 'Active');
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
@@ -177,7 +178,14 @@ export default function OrgChartView() {
                                 }`}
                             >
                                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${isSelected ? 'bg-white/20' : 'bg-brand-teal/10'}`}>
-                                    <img src="/latnovva-O-logo.png" alt="" className={`w-5 h-5 object-contain ${isSelected ? 'brightness-0 invert' : ''}`} />
+                                    {(() => {
+                                        const client = clients.find(c => c.id === project.clientId);
+                                        return client?.logo ? (
+                                            <img src={client.logo} alt="" className={`w-full h-full object-cover ${isSelected ? 'brightness-0 invert' : ''}`} />
+                                        ) : (
+                                            <img src="/latnovva-O-logo.png" alt="" className={`w-5 h-5 object-contain ${isSelected ? 'brightness-0 invert' : ''}`} />
+                                        );
+                                    })()}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className={`text-xs font-bold truncate leading-tight ${isSelected ? 'text-white' : 'text-accent-greyDark'}`}>
@@ -204,13 +212,23 @@ export default function OrgChartView() {
                                 {/* Project Header */}
                                 <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-brand-teal/5 to-transparent flex justify-between items-start shrink-0">
                                     <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <div className="bg-brand-teal p-1.5 rounded-lg">
-                                                <img src="/latnovva-O-logo.png" alt="" className="w-5 h-5 object-contain brightness-0 invert" />
+                                        <Link to={`/projects/${selectedProject.id}`} className="flex items-center gap-2 mb-1 group/title cursor-pointer">
+                                            <div className="bg-white border border-gray-100 p-1 rounded-lg w-10 h-10 flex items-center justify-center overflow-hidden shrink-0 shadow-sm group-hover/title:border-brand-teal/30 transition-all">
+                                                {(() => {
+                                                    const client = clients.find(c => c.id === selectedProject.clientId);
+                                                    return client?.logo ? (
+                                                        <img src={client.logo} alt="" className="w-full h-full object-contain" />
+                                                    ) : (
+                                                        <img src="/latnovva-O-logo.png" alt="" className="w-6 h-6 object-contain" />
+                                                    );
+                                                })()}
                                             </div>
-                                            <h2 className="text-lg font-bold text-accent-greyDark leading-tight">{selectedProject.name}</h2>
-                                        </div>
-                                        <p className="text-[10px] font-mono text-brand-teal font-bold ml-8">{selectedProject.codeName || selectedProject.id}</p>
+                                            <h2 className="text-lg font-bold text-accent-greyDark leading-tight group-hover/title:text-brand-teal transition-colors flex items-center gap-2">
+                                                {selectedProject.name}
+                                                <Briefcase size={14} className="opacity-0 group-hover/title:opacity-100 transition-opacity" />
+                                            </h2>
+                                        </Link>
+                                        <p className="text-[10px] font-mono text-brand-teal font-bold ml-12">{selectedProject.codeName || selectedProject.id}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border bg-white ${
