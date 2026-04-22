@@ -11,17 +11,15 @@ import {
 } from '../ui/dropdown-menu';
 
 export default function OrgChartView() {
-    const { personnel, projects, updateProject } = useStore();
+    const { personnel, projects, updateProject, userId } = useStore();
 
     const activeProjects = projects.filter(p => p.status === 'Active');
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
         activeProjects.length > 0 ? activeProjects[0].id : null
     );
 
-    // Only exclude inactive personnel.
-    // Office managers (Andres, Fernando, Jesus, Juan Maria) have no personnel row by design,
-    // so they never appear here. Any Manager WITH a personnel row (Marin, Rubio) is field-going.
-    const fieldPersonnel = personnel.filter(p => p.status !== 'Inactive');
+    // Only exclude inactive personnel and the current user from assignments.
+    const fieldPersonnel = personnel.filter(p => p.status !== 'Inactive' && p.id !== userId);
 
     const assignedPersonnelIds = new Set(projects.flatMap(p => p.assignedPersonnel || []));
     // Bench = active, assigned to no project, and NOT bench-exempt (e.g. Andres â€” occasional field visits)
