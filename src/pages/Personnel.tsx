@@ -15,7 +15,7 @@ import { supabase } from '../lib/supabase';
 
 export default function Personnel() {
     const { t } = useTranslation();
-    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects } = useStore();
+    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects, updateProject } = useStore();
     const location = useLocation();
 
     const [searchTerm, setSearchTerm] = useState(() => {
@@ -58,18 +58,24 @@ export default function Personnel() {
 
     // Save edits inline
     const handleSave = async () => {
-        if (!editDraft?.id) return;
+        if (!editDraft?.id || !selectedPerson) return;
         
         try {
-            // Sycn auth layer first completely bypassing RLS securely
-            const { error } = await supabase.rpc('admin_update_user', {
-                target_user_id: editDraft.id,
-                new_email: editDraft.email || '',
-                new_role: editDraft.appRole || 'Tech',
-                new_password: editDraft.password || ''
-            } as any);
+            // Optimization: Only update auth layer if core security fields changed
+            const emailChanged = editDraft.email !== selectedPerson.email;
+            const roleChanged = editDraft.appRole !== selectedPerson.appRole;
+            const passwordProvided = !!editDraft.password;
 
-            if (error) throw error;
+            if (emailChanged || roleChanged || passwordProvided) {
+                const { error } = await supabase.rpc('admin_update_user', {
+                    target_user_id: editDraft.id,
+                    new_email: editDraft.email || '',
+                    new_role: editDraft.appRole || 'Tech',
+                    new_password: editDraft.password || ''
+                } as any);
+
+                if (error) throw error;
+            }
             
             updatePersonnel(editDraft.id, editDraft);
             setIsSaved(true);
@@ -110,7 +116,8 @@ export default function Personnel() {
                 certifications: newPerson.certifications || [],
                 appRole: newPerson.appRole || 'Tech',
                 prevailingWage: newPerson.prevailingWage || false,
-                emergencyContact: newPerson.emergencyContact,
+                emergencyContactName: newPerson.emergencyContactName,
+                emergencyContactPhone: newPerson.emergencyContactPhone,
                 onboardingDate: newPerson.onboardingDate,
                 regularRate: newPerson.regularRate,
                 rainyDayRate: newPerson.rainyDayRate,
@@ -291,8 +298,12 @@ export default function Personnel() {
                                 <div className="space-y-4 pt-2">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact')}</label>
-                                            <Input placeholder="e.g. Jane Doe (956-...)" value={newPerson?.emergencyContact || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContact: e.target.value })} />
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_name')}</label>
+                                            <Input placeholder="e.g. Jane Doe" value={newPerson?.emergencyContactName || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContactName: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_phone')}</label>
+                                            <Input placeholder="e.g. 956-280-8290" value={newPerson?.emergencyContactPhone || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContactPhone: e.target.value })} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
@@ -471,7 +482,7 @@ export default function Personnel() {
                                                 {person.name}
                                             </p>
                                             {person.prevailingWage && (
-                                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelected ? 'bg-white' : 'bg-brand-teal'}`} title="Prevailing Wage" />
+                                                <span className={`text-[10px] font-black shrink-0 ${isSelected ? 'text-white' : 'text-brand-teal'}`} title="Prevailing Wage">P</span>
                                             )}
                                         </div>
                                         <p className={`text-[10px] font-semibold mt-0.5 truncate ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
@@ -550,11 +561,48 @@ export default function Personnel() {
                                                             #{selectedPerson.employeeNumber}
                                                         </span>
                                                         {selectedPerson.prevailingWage && (
-                                                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                                                                <Award size={10} /> {t('personnel.prevailing_wage')}
+                                                            <span className="text-[10px] font-black text-emerald-600 px-1 py-0.5" title="Prevailing Wage">
+                                                                P
                                                             </span>
                                                         )}
-                                                        {assignedProject && (
+                                                        {isHROrManager ? (
+                                                            <div className="relative">
+                                                                <select 
+                                                                    className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2 py-0.5 rounded-full border border-brand-teal/20 outline-none appearance-none cursor-pointer pr-5"
+                                                                    value={assignedProject?.id || ''}
+                                                                    onChange={(e) => {
+                                                                        const newProjectId = e.target.value;
+                                                                        // Logic to change project
+                                                                        const oldProject = projects.find(p => p.assignedPersonnel?.includes(selectedPerson.id));
+                                                                        if (oldProject) {
+                                                                            updateProject(oldProject.id, { 
+                                                                                assignedPersonnel: (oldProject.assignedPersonnel || []).filter(id => id !== selectedPerson.id) 
+                                                                            });
+                                                                        }
+                                                                        if (newProjectId) {
+                                                                            const p = projects.find(proj => proj.id === newProjectId);
+                                                                            if (p) {
+                                                                                updateProject(newProjectId, { 
+                                                                                    assignedPersonnel: [...(p.assignedPersonnel || []), selectedPerson.id],
+                                                                                    // Inherit Prevailing Wage if project has it
+                                                                                    prevailingWage: p.prevailingWage
+                                                                                });
+                                                                                // If project is prevailing wage, set personnel as well
+                                                                                if (p.prevailingWage) {
+                                                                                    updatePersonnel(selectedPerson.id, { prevailingWage: true });
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <option value="">Unassigned</option>
+                                                                    {projects.filter(p => p.status === 'Active').map(p => (
+                                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-brand-teal pointer-events-none" />
+                                                            </div>
+                                                        ) : assignedProject && (
                                                             <span className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2 py-0.5 rounded-full border border-brand-teal/20 flex items-center gap-1">
                                                                 <Briefcase size={10} /> {assignedProject.name}
                                                             </span>
@@ -673,8 +721,12 @@ export default function Personnel() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact')}</label>
-                                            <Input value={editDraft.emergencyContact || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContact: e.target.value } : d)} />
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_name')}</label>
+                                            <Input value={editDraft.emergencyContactName || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContactName: e.target.value } : d)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_phone')}</label>
+                                            <Input value={editDraft.emergencyContactPhone || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContactPhone: e.target.value } : d)} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>

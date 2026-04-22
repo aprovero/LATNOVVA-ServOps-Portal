@@ -20,6 +20,16 @@ export default function DataAnalysis() {
 
     const DISCIPLINE_OPTIONS = ['All', 'Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
 
+    useEffect(() => {
+        if (document.querySelector('.dash-stagger')) {
+            gsap.fromTo(
+                '.dash-stagger',
+                { y: 30, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power3.out' }
+            );
+        }
+    }, []);
+
     if (!['Manager', 'Supervisor', 'HR'].includes(userRole)) {
         return (
             <div className="flex flex-col items-center justify-center pt-24 text-gray-400">
@@ -29,14 +39,6 @@ export default function DataAnalysis() {
             </div>
         );
     }
-
-    useEffect(() => {
-        gsap.fromTo(
-            '.dash-stagger',
-            { y: 30, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power3.out' }
-        );
-    }, []);
 
     // 1. Overall Project Health metrics
     const overallProgress = useMemo(() => {

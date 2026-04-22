@@ -63,7 +63,12 @@ export default function OrgChartView() {
                         {member.image ? <img src={member.image} className="w-full h-full object-cover" alt={member.name} /> : member.name.charAt(0)}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-accent-greyDark leading-none truncate" title={member.name}>{displayName}</p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="text-sm font-bold text-accent-greyDark leading-none truncate flex-1" title={member.name}>{displayName}</p>
+                            {member.prevailingWage && (
+                                <span className="text-[10px] font-black text-emerald-600 shrink-0" title="Prevailing Wage">P</span>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2 mt-1 whitespace-nowrap overflow-hidden">
                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0 ${member.appRole === 'Supervisor' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                 {member.appRole}

@@ -66,8 +66,8 @@ const PERSONNEL_JSON = [
     {
         "name": "JAIME VAZQUEZ",
         "STATUS": "ACTIVE",
-        "EMAIL": "jaimevazquez@example.com",
-        "POSITIONS": "TECHNICIAN",
+        "EMAIL": "jaime.vazquezsr@saft.com",
+        "POSITIONS": "SUPERVISOR",
         "SITE": "AES PR",
         "Employee ID": 10130,
         "TOTAL PERDIEM AMOUNT": 250.0
@@ -959,7 +959,10 @@ async function runUpdate() {
             console.log(`⏳ Creating Auth: ${name}...`);
             try {
                 const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                    email, email_confirm: true, user_metadata: { name }
+                    email, 
+                    email_confirm: true, 
+                    user_metadata: { name },
+                    password: 'Latnovva2026!'
                 });
                 if (authError) throw authError;
                 userId = authUser.user.id;

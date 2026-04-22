@@ -501,6 +501,8 @@
       "expiry_date": "Expiration Date",
       "no_certs": "No certifications listed",
       "emergency_contact": "Emergency Contact",
+      "emergency_contact_name": "Emergency Contact Name",
+      "emergency_contact_phone": "Emergency Contact Phone Number",
       "dbo": "Date of Birth",
       "personal_details": "Personal Details",
       "address": "Home Address",

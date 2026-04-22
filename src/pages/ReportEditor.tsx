@@ -147,7 +147,9 @@ export default function ReportEditor() {
     }, [report?.state, userRole]);
 
     useEffect(() => {
-        gsap.fromTo('.editor-fade', { opacity: 0, y: 15 }, { opacity: 1, y: 0, stagger: 0.1, duration: 0.4, ease: 'power2.out' });
+        if (document.querySelector('.editor-fade')) {
+            gsap.fromTo('.editor-fade', { opacity: 0, y: 15 }, { opacity: 1, y: 0, stagger: 0.1, duration: 0.4, ease: 'power2.out' });
+        }
     }, []);
 
     if (!report) {

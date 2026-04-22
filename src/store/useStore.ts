@@ -177,7 +177,8 @@ export interface Personnel {
     phoneNumber?: string;
     prevailingWage?: boolean;
     isApprentice?: boolean;
-    emergencyContact?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
     onboardingDate?: string;
     dbo?: string;
     // Financial Fields (HR/Manager Only)
@@ -844,7 +845,9 @@ export const useStore = create<AppState>()(
                                     truckAllowance: p.truck_allowance,
                                     leadPay: p.lead_pay,
                                     totalPerdiem: p.per_diem,
-                                    dbo: p.dbo
+                                    dbo: p.dbo,
+                                    emergencyContactName: p.emergency_contact_name,
+                                    emergencyContactPhone: p.emergency_contact_phone
                                 }))
                                 : state.personnel;
 
@@ -1311,7 +1314,9 @@ export const useStore = create<AppState>()(
                     gas_allowance: person.gasAllowance,
                     truck_allowance: person.truckAllowance,
                     lead_pay: person.leadPay,
-                    per_diem: person.totalPerdiem
+                    per_diem: person.totalPerdiem,
+                    emergency_contact_name: person.emergencyContactName,
+                    emergency_contact_phone: person.emergencyContactPhone
                 };
                 await supabase.from('personnel').insert(dbPayload);
             },
@@ -1343,6 +1348,8 @@ export const useStore = create<AppState>()(
                 if (updates.truckAllowance !== undefined) dbPayload.truck_allowance = updates.truckAllowance;
                 if (updates.leadPay !== undefined) dbPayload.lead_pay = updates.leadPay;
                 if (updates.totalPerdiem !== undefined) dbPayload.per_diem = updates.totalPerdiem;
+                if (updates.emergencyContactName !== undefined) dbPayload.emergency_contact_name = updates.emergencyContactName;
+                if (updates.emergencyContactPhone !== undefined) dbPayload.emergency_contact_phone = updates.emergencyContactPhone;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('personnel').update(dbPayload).eq('id', id);
                 }

@@ -141,16 +141,20 @@ export default function Projects() {
     }, [projects, selectedClientId, filterCustomer, filterStatus, userRole, clientId]);
 
     useEffect(() => {
-        gsap.fromTo(
-            '.project-card',
-            { y: 20, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out' }
-        );
-        gsap.fromTo(
-            '.client-card',
-            { y: 20, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out' }
-        );
+        if (document.querySelector('.project-card')) {
+            gsap.fromTo(
+                '.project-card',
+                { y: 20, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out' }
+            );
+        }
+        if (document.querySelector('.client-card')) {
+            gsap.fromTo(
+                '.client-card',
+                { y: 20, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out' }
+            );
+        }
     }, [selectedClientId]);
 
 
@@ -247,7 +251,7 @@ export default function Projects() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                         {visibleProjects.map(proj => (
-                                            <tr key={proj.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <tr key={proj.id} className="project-card hover:bg-gray-50/50 transition-colors group">
                                                 <td className="p-4 align-middle">
                                                     {['Supervisor', 'Manager'].includes(userRole) ? (
                                                         <Link to={`/projects/${proj.id}`} className="font-bold text-accent-greyDark hover:text-brand-teal block">

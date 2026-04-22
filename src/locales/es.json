@@ -502,6 +502,8 @@
       "expiry_date": "Fecha de Vencimiento",
       "no_certs": "No hay certificaciones listadas",
       "emergency_contact": "Contacto de Emergencia",
+      "emergency_contact_name": "Nombre de Contacto de Emergencia",
+      "emergency_contact_phone": "Teléfono de Contacto de Emergencia",
       "dbo": "Fecha de Nacimiento",
       "personal_details": "Detalles Personales",
       "address": "Dirección",
