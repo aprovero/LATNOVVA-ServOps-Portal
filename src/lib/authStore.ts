@@ -6,10 +6,57 @@ import { useStore } from '../store/useStore';
 
 type PersonnelRow = Database['public']['Tables']['personnel']['Row'];
 
+interface IdentityProfile {
+    id: string;
+    name: string;
+    email: string | null;
+    role: string | null;
+    client_id: string | null;
+}
+
+// Fetches the identity profile and optionally the personnel data.
+async function fetchAccountData(userId: string): Promise<{ profile: IdentityProfile | null; personnel: PersonnelRow | null }> {
+    try {
+        // 1. Fetch the universal identity profile
+        const { data: profileData } = await (supabase as any)
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        const profile = (profileData as IdentityProfile | null) ?? null;
+        
+        if (profile?.role) {
+            useStore.getState().setUserRole(profile.role as any);
+        }
+        
+        if (profile?.client_id) {
+            useStore.getState().setClientId(profile.client_id);
+        }
+
+        // 2. If they are NOT a customer, fetch their heavy personnel data
+        let personnel: PersonnelRow | null = null;
+        if (profile && profile.role !== 'Customer') {
+            const { data: personnelData } = await (supabase as any)
+                .from('personnel')
+                .select('*')
+                .eq('id', userId)
+                .single();
+            personnel = (personnelData as PersonnelRow | null) ?? null;
+        }
+
+        return { profile, personnel };
+    } catch {
+        return { profile: null, personnel: null };
+    }
+}
+
+
 interface AuthState {
     session: Session | null;
     user: User | null;
-    profile: PersonnelRow | null;
+    identity: IdentityProfile | null;
+    profile: PersonnelRow | null; // Staff only
     loading: boolean;
     error: string | null;
     initializeAuth: () => void;
@@ -22,24 +69,7 @@ interface AuthState {
 // Module-level guard to ensure the Supabase listener is only registered once
 let isListenerRegistered = false;
 
-// Fetches the personnel profile in the BACKGROUND and syncs role into the main store.
-async function fetchProfileInBackground(userId: string): Promise<PersonnelRow | null> {
-    try {
-        const { data } = await (supabase as any)
-            .from('personnel')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-        const profile = (data as PersonnelRow | null) ?? null;
-        if (profile?.app_role) {
-            useStore.getState().setUserRole(profile.app_role as any);
-        }
-        return profile;
-    } catch {
-        return null;
-    }
-}
+// ... (fetchAccountData remains the same)
 
 export const useAuthStore = create<AuthState>((set, get) => {
     // ── AUTH HARDENING: IDEMPOTENT LISTENER ──────────────────────────────────
@@ -74,15 +104,16 @@ export const useAuthStore = create<AuthState>((set, get) => {
             useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
             set({ session: newSession, user: newSession.user, loading: false });
 
-            // ── STEP 2: Fetch profile in background ──────────────────────────
-            const profile = await fetchProfileInBackground(newSession.user.id);
-            set({ profile });
+            // ── STEP 2: Fetch account data in background ────────────────────
+            const { profile, personnel } = await fetchAccountData(newSession.user.id);
+            set({ identity: profile, profile: personnel });
         });
     }
 
     return {
         session: null,
         user: null,
+        identity: null,
         profile: null,
         loading: true,
         error: null,
@@ -100,7 +131,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 if (data.session) {
                     useStore.getState().setAuthData(data.session.user.id, data.session.user.email ?? '');
                     set({ session: data.session, user: data.session.user, loading: false, error: null });
-                    fetchProfileInBackground(data.session.user.id).then(profile => set({ profile }));
+                    fetchAccountData(data.session.user.id).then(({ profile, personnel }) => {
+                        set({ identity: profile, profile: personnel });
+                    });
                 }
             } catch (error: any) {
                 set({ error: error.message, loading: false });
@@ -126,7 +159,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
         signOut: async () => {
             // Immediate local clear to unblock UI
-            set({ session: null, user: null, profile: null, loading: false });
+            set({ session: null, user: null, identity: null, profile: null, loading: false });
             useStore.getState().setAuthData('', '');
             
             // Clear any lingering locks or state in background

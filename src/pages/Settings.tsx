@@ -72,7 +72,8 @@ export default function Settings() {
                     user_email: inviteEmail,
                     user_name: inviteEmail.split('@')[0],
                     user_role: inviteRole,
-                    user_password: invitePassword || ''
+                    user_password: invitePassword || '',
+                    user_client_id: inviteRole === 'Customer' ? inviteCompany : null
                 } as any);
 
                 if (error) {
