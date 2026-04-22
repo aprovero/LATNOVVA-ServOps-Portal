@@ -308,35 +308,35 @@ export default function Personnel() {
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.regularRate || ''} onChange={e => setNewPerson({ ...newPerson, regularRate: parseFloat(e.target.value) || 0 })} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.regularRate ?? 0} onChange={e => setNewPerson({ ...newPerson, regularRate: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.rainyDayRate || ''} onChange={e => setNewPerson({ ...newPerson, rainyDayRate: parseFloat(e.target.value) || 0 })} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.rainyDayRate ?? 0} onChange={e => setNewPerson({ ...newPerson, rainyDayRate: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.overtimeRate || ''} onChange={e => setNewPerson({ ...newPerson, overtimeRate: parseFloat(e.target.value) || 0 })} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.overtimeRate ?? 0} onChange={e => setNewPerson({ ...newPerson, overtimeRate: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.mealAllowance || ''} onChange={e => setNewPerson({ ...newPerson, mealAllowance: parseFloat(e.target.value) || 0 })} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.mealAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, mealAllowance: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.gasAllowance || ''} onChange={e => setNewPerson({ ...newPerson, gasAllowance: parseFloat(e.target.value) || 0 })} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.gasAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, gasAllowance: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.truckAllowance || ''} onChange={e => setNewPerson({ ...newPerson, truckAllowance: parseFloat(e.target.value) || 0 })} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.truckAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, truckAllowance: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.leadPay || ''} onChange={e => setNewPerson({ ...newPerson, leadPay: parseFloat(e.target.value) || 0 })} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.leadPay ?? 0} onChange={e => setNewPerson({ ...newPerson, leadPay: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                                 <div className="space-y-1 col-span-2">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.total_perdiem')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.totalPerdiem || ''} onChange={e => setNewPerson({ ...newPerson, totalPerdiem: parseFloat(e.target.value) || 0 })} />
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.per_diem', 'Per Diem')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.totalPerdiem ?? 0} onChange={e => setNewPerson({ ...newPerson, totalPerdiem: parseFloat(e.target.value) || 0 })} />
                                                 </div>
                                             </div>
                                         </div>
@@ -690,35 +690,35 @@ export default function Personnel() {
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.regularRate || ''} onChange={e => setEditDraft(d => d ? { ...d, regularRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.regularRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, regularRate: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.rainyDayRate || ''} onChange={e => setEditDraft(d => d ? { ...d, rainyDayRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.rainyDayRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, rainyDayRate: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.overtimeRate || ''} onChange={e => setEditDraft(d => d ? { ...d, overtimeRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.overtimeRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, overtimeRate: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.mealAllowance || ''} onChange={e => setEditDraft(d => d ? { ...d, mealAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.mealAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, mealAllowance: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.gasAllowance || ''} onChange={e => setEditDraft(d => d ? { ...d, gasAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.gasAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, gasAllowance: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.truckAllowance || ''} onChange={e => setEditDraft(d => d ? { ...d, truckAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.truckAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, truckAllowance: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.leadPay || ''} onChange={e => setEditDraft(d => d ? { ...d, leadPay: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.leadPay ?? 0} onChange={e => setEditDraft(d => d ? { ...d, leadPay: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                                 <div className="space-y-1 col-span-2">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.total_perdiem')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.totalPerdiem || ''} onChange={e => setEditDraft(d => d ? { ...d, totalPerdiem: parseFloat(e.target.value) || 0 } : d)} />
+                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.per_diem', 'Per Diem')}</label>
+                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.totalPerdiem ?? 0} onChange={e => setEditDraft(d => d ? { ...d, totalPerdiem: parseFloat(e.target.value) || 0 } : d)} />
                                                 </div>
                                             </div>
                                         </div>

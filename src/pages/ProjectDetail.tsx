@@ -84,7 +84,10 @@ export default function ProjectDetail() {
         return elsewhere;
     }, [projects, id]);
 
-    const assignedToThis = project?.assignedPersonnel || [];
+    const assignedToThis = useMemo(() => {
+        const ids = project?.assignedPersonnel || [];
+        return ids.filter(id => personnel.some(p => p.id === id));
+    }, [project?.assignedPersonnel, personnel]);
 
     const availablePersonnel = useMemo(() => {
         return personnel.filter(p => {
@@ -202,7 +205,7 @@ export default function ProjectDetail() {
     const completedActs = allActs.filter(a => a.status === 'Completed').length;
     const overallProgress = allActs.length > 0
         ? Math.round(allActs.reduce((sum, a) => sum + a.progress, 0) / allActs.length)
-        : project.progress || 0;
+        : 0; // Forced 0% to eliminate ghost progress
 
     const statusColor = project.status === 'Active'
         ? 'bg-emerald-100 text-emerald-700 border-emerald-200'

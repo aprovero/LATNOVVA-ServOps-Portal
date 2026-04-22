@@ -842,7 +842,8 @@ export const useStore = create<AppState>()(
                                     gasAllowance: p.gas_allowance,
                                     truckAllowance: p.truck_allowance,
                                     leadPay: p.lead_pay,
-                                    totalPerdiem: p.per_diem
+                                    totalPerdiem: p.per_diem,
+                                    dbo: p.dbo
                                 }))
                                 : state.personnel;
 

@@ -854,19 +854,33 @@ async function runUpdate() {
 
     // 1. Fetch current data for mapping
     console.log(`📦 Fetching current Auth user list...`);
-    const { data: authUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-    if (listErr) { console.error(`❌ Failed to fetch user list: ${listErr.message}`); return; }
-    const authMap = new Map(authUsers.users.map(u => [u.email?.toLowerCase(), u.id]));
+    let authMap = new Map<string, string>();
+    try {
+        const { data: authUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        if (listErr) throw listErr;
+        authMap = new Map(authUsers.users.map(u => [u.email?.toLowerCase() || '', u.id]));
+        console.log(`✅ Found ${authMap.size} auth users linked.`);
+    } catch (e: any) {
+        console.warn(`⚠️ Warning: Could not fetch auth user list (${e.message}). Proceeding with table sync only.`);
+    }
 
     console.log(`🏗️ Fetching projects for site assignment...`);
     const { data: projectsDB, error: projErr } = await supabaseAdmin.from('projects').select('id, name, assigned_personnel');
     if (projErr) { console.error(`❌ Failed to fetch projects: ${projErr.message}`); return; }
+
+    console.log(`👤 Fetching existing personnel for identity mapping...`);
+    const { data: personnelDB, error: persErr } = await supabaseAdmin.from('personnel').select('id, email');
+    if (persErr) { console.error(`❌ Failed to fetch personnel: ${persErr.message}`); return; }
+    const personnelMap = new Map(personnelDB.map(p => [p.email?.toLowerCase(), p.id]));
     
     // Project identity map: Name -> Project Object
     const projectMap = new Map(projectsDB.map(p => [p.name.trim().toUpperCase(), p]));
     // Assignment tracker: ProjectID -> Set of Personnel IDs
+    // We START with empty sets to "purge" any assignments not represented in this sync source of truth
+    // OR we can keep them and just filter out invalid IDs.
+    // Given the user wants to "purge ghosts", we will start FRESH for sites mentioned in the JSON.
     const newAssignments = new Map<string, Set<string>>();
-    projectsDB.forEach(p => newAssignments.set(p.id, new Set(p.assigned_personnel || [])));
+    projectsDB.forEach(p => newAssignments.set(p.id, new Set()));
 
     let syncedCount = 0;
 
@@ -898,15 +912,21 @@ async function runUpdate() {
             certifications: CERT_NAMES.map(c => ({ name: c, expirationDate: (p as any)[c] })).filter(c => !!c.expirationDate)
         };
 
-        // Identity Resolution
-        let userId = authMap.get(email);
+        // Identity Resolution: Try Auth Map, then Personnel Map, then Create
+        let userId = authMap.get(email) || personnelMap.get(email);
+        
         if (!userId) {
             console.log(`⏳ Creating Auth: ${name}...`);
-            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                email, email_confirm: true, user_metadata: { name }
-            });
-            if (authError) { console.error(`   ❌ Auth error for ${name}:`, authError.message); continue; }
-            userId = authUser.user.id;
+            try {
+                const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                    email, email_confirm: true, user_metadata: { name }
+                });
+                if (authError) throw authError;
+                userId = authUser.user.id;
+            } catch (authErr: any) {
+                console.error(`   ⚠️ Auth layer skipped for ${name}: ${authErr.message}. Person will be skipped if no existing ID found.`);
+                if (!userId) continue;
+            }
         }
 
         // Upsert Personnel
@@ -927,20 +947,23 @@ async function runUpdate() {
         }
     }
 
-    // Update Projects with new personnel assignments
-    console.log(`\n🔗 Updating Project Assignments...`);
+    // Update Projects with new personnel assignments and reset progress
+    console.log(`\n🔗 Updating Project Assignments & Resetting Progress...`);
     for (const [projId, personnelSet] of newAssignments.entries()) {
         const personnelArray = Array.from(personnelSet);
         const { error: updateErr } = await supabaseAdmin
             .from('projects')
-            .update({ assigned_personnel: personnelArray })
+            .update({ 
+                assigned_personnel: personnelArray,
+                progress: 0 // Resetting ghost progress as requested
+            })
             .eq('id', projId);
         
         if (updateErr) {
             console.error(`   ❌ Failed to update project ${projId}: ${updateErr.message}`);
         } else {
             const projName = projectsDB.find(p => p.id === projId)?.name;
-            console.log(`   ✅ Project "${projName}" now has ${personnelArray.length} workers assigned.`);
+            console.log(`   ✅ Project "${projName}" reset to 0% progress and updated with ${personnelArray.length} valid workers.`);
         }
     }
 

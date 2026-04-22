@@ -9,9 +9,15 @@ export function KPIRow() {
     // Only Managers and Supervisors see global KPIs
     if (userRole === 'Customer' || userRole === 'Tech') return null;
 
-    const activeProjects = projects.filter(p => p.status === 'Active').length;
+    const activeProjectsList = projects.filter(p => p.status === 'Active');
+    const activeProjects = activeProjectsList.length;
 
-    const techsDeployed = personnel.filter(p => p.status === 'Active' && (p.appRole === 'Tech' || p.appRole === 'Supervisor')).length;
+    const personnelIds = new Set(personnel.map(p => p.id));
+    const techsDeployed = new Set(
+        activeProjectsList
+            .flatMap(p => p.assignedPersonnel || [])
+            .filter(id => personnelIds.has(id))
+    ).size;
 
     const openReports = reports.filter(r => r.state !== 'Approved' && r.state !== 'Closed').length;
 

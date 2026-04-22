@@ -296,7 +296,7 @@ export default function Projects() {
                                                     <div className="flex items-center gap-3">
                                                         <CircularProgress size="sm" progress={(() => {
                                                             const allActs = proj.scopes?.flatMap(s => s.activities) || [];
-                                                            if (allActs.length === 0) return proj.progress || 0;
+                                                            if (allActs.length === 0) return 0; // Forced 0% for ghost progress elimination
                                                             const totalProgress = allActs.reduce((sum, act) => sum + act.progress, 0);
                                                             return Math.round(totalProgress / allActs.length);
                                                         })()} />
@@ -305,7 +305,7 @@ export default function Projects() {
                                                                 {(() => {
                                                                     const allActs = proj.scopes?.flatMap(s => s.activities) || [];
                                                                     const totalProgress = allActs.reduce((sum, act) => sum + act.progress, 0);
-                                                                    return allActs.length > 0 ? Math.round(totalProgress / allActs.length) : proj.progress || 0;
+                                                                    return allActs.length > 0 ? Math.round(totalProgress / allActs.length) : 0;
                                                                 })()}%
                                                             </p>
                                                             <p className="text-[10px] text-gray-400 font-medium">{t('projects.accomplished', 'Accomplished')}</p>
