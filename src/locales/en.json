@@ -479,8 +479,8 @@
       "gas_day": "Gas Day Allowance",
       "truck": "Truck Allowance",
       "lead_pay": "Lead Pay",
-      "deductions": "Deductions",
-      "total_perdiem": "Total Perdiem Amount",
+      "total_perdiem": "Per Diem",
+      "dbo": "Date of Birth",
       "is_apprentice": "Apprentice"
     },
     "certs_folder": "Certs Folder Link",
@@ -501,6 +501,7 @@
       "expiry_date": "Expiration Date",
       "no_certs": "No certifications listed",
       "emergency_contact": "Emergency Contact",
+      "dbo": "Date of Birth",
       "personal_details": "Personal Details",
       "address": "Home Address",
       "save": "Save Profile",

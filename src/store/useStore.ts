@@ -188,7 +188,6 @@ export interface Personnel {
     gasAllowance?: number;
     truckAllowance?: number;
     leadPay?: number;
-    deductions?: number;
     totalPerdiem?: number;
     /** If true, this person appears in project/report selectors but never on the Deployments bench. */
     benchExempt?: boolean;
@@ -835,7 +834,15 @@ export const useStore = create<AppState>()(
                                     clientId: p.client_id,
                                     image: p.image,
                                     prevailingWage: p.prevailing_wage || false,
-                                    benchExempt: p.bench_exempt || false
+                                    benchExempt: p.bench_exempt || false,
+                                    regularRate: p.regular_rate,
+                                    rainyDayRate: p.rainy_day_rate,
+                                    overtimeRate: p.overtime_rate,
+                                    mealAllowance: p.meal_allowance,
+                                    gasAllowance: p.gas_allowance,
+                                    truckAllowance: p.truck_allowance,
+                                    leadPay: p.lead_pay,
+                                    totalPerdiem: p.per_diem
                                 }))
                                 : state.personnel;
 
@@ -1263,7 +1270,15 @@ export const useStore = create<AppState>()(
                     image: person.image,
                     prevailing_wage: person.prevailingWage || false,
                     bench_exempt: person.benchExempt || false,
-                    dbo: person.dbo
+                    dbo: person.dbo,
+                    regular_rate: person.regularRate,
+                    rainy_day_rate: person.rainyDayRate,
+                    overtime_rate: person.overtimeRate,
+                    meal_allowance: person.mealAllowance,
+                    gas_allowance: person.gasAllowance,
+                    truck_allowance: person.truckAllowance,
+                    lead_pay: person.leadPay,
+                    per_diem: person.totalPerdiem
                 };
                 await supabase.from('personnel').insert(dbPayload);
             },
@@ -1287,6 +1302,14 @@ export const useStore = create<AppState>()(
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
                 if (updates.benchExempt !== undefined) dbPayload.bench_exempt = updates.benchExempt;
                 if (updates.dbo !== undefined) dbPayload.dbo = updates.dbo;
+                if (updates.regularRate !== undefined) dbPayload.regular_rate = updates.regularRate;
+                if (updates.rainyDayRate !== undefined) dbPayload.rainy_day_rate = updates.rainyDayRate;
+                if (updates.overtimeRate !== undefined) dbPayload.overtime_rate = updates.overtimeRate;
+                if (updates.mealAllowance !== undefined) dbPayload.meal_allowance = updates.mealAllowance;
+                if (updates.gasAllowance !== undefined) dbPayload.gas_allowance = updates.gasAllowance;
+                if (updates.truckAllowance !== undefined) dbPayload.truck_allowance = updates.truckAllowance;
+                if (updates.leadPay !== undefined) dbPayload.lead_pay = updates.leadPay;
+                if (updates.totalPerdiem !== undefined) dbPayload.per_diem = updates.totalPerdiem;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('personnel').update(dbPayload).eq('id', id);
                 }

@@ -121,6 +121,14 @@ export interface Database {
           manager_id: string | null
           client_id: string | null
           dbo: string | null
+          regular_rate: number | null
+          rainy_day_rate: number | null
+          overtime_rate: number | null
+          meal_allowance: number | null
+          gas_allowance: number | null
+          truck_allowance: number | null
+          lead_pay: number | null
+          per_diem: number | null
         }
         Insert: {
           id?: string
@@ -139,6 +147,14 @@ export interface Database {
           manager_id?: string | null
           client_id?: string | null
           dbo?: string | null
+          regular_rate?: number | null
+          rainy_day_rate?: number | null
+          overtime_rate?: number | null
+          meal_allowance?: number | null
+          gas_allowance?: number | null
+          truck_allowance?: number | null
+          lead_pay?: number | null
+          per_diem?: number | null
         }
         Update: {
           id?: string
@@ -157,6 +173,14 @@ export interface Database {
           manager_id?: string | null
           client_id?: string | null
           dbo?: string | null
+          regular_rate?: number | null
+          rainy_day_rate?: number | null
+          overtime_rate?: number | null
+          meal_allowance?: number | null
+          gas_allowance?: number | null
+          truck_allowance?: number | null
+          lead_pay?: number | null
+          per_diem?: number | null
         }
       }
       reports: {

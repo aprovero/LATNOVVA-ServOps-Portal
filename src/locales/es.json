@@ -480,8 +480,8 @@
       "gas_day": "Gasolina",
       "truck": "Camioneta",
       "lead_pay": "Lead",
-      "deductions": "Deducciones",
-      "total_perdiem": "Monto Total de Viáticos",
+      "total_perdiem": "Viáticos",
+      "dbo": "Fecha de Nacimiento",
       "is_apprentice": "Aprendiz"
     },
     "certs_folder": "Enlace a Carpeta de Certificados",
@@ -502,7 +502,8 @@
       "expiry_date": "Fecha de Vencimiento",
       "no_certs": "No hay certificaciones listadas",
       "emergency_contact": "Contacto de Emergencia",
-      "personal_details": "Datos Personales",
+      "dbo": "Fecha de Nacimiento",
+      "personal_details": "Detalles Personales",
       "address": "Dirección",
       "save": "Guardar Perfil",
       "delete_confirm": "¿Está seguro de eliminar a {{name}} del sistema?"
