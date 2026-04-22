@@ -334,8 +334,8 @@ export interface Project {
     pointOfContact?: string;
     notes?: string;
     siteLeadIds?: string[]; // Multiple leads per project
-    startDate?: string; // ISO yyyy-mm-dd
     expectedDuration?: string; // e.g., '12 Months', '4 Weeks'
+    prevailingWage?: boolean;
 }
 
 // Allowed report state transitions — prevents workflow bypass (C-03)
@@ -814,7 +814,8 @@ export const useStore = create<AppState>()(
                                 siteLeadIds: p.site_lead_ids || [],
                                 hasNoDefinedScope: p.has_no_defined_scope || false,
                                 disciplines: p.disciplines || [],
-                                scopes: p.scopes || []
+                                scopes: p.scopes || [],
+                                prevailingWage: p.prevailing_wage || false
                             }))
                             : state.projects,
                         personnel: (() => {
@@ -1007,9 +1008,20 @@ export const useStore = create<AppState>()(
                     assigned_personnel: project.assignedPersonnel || [],
                     site_lead_ids: project.siteLeadIds || [],
                     has_no_defined_scope: project.hasNoDefinedScope || false,
-                    disciplines: project.disciplines || []
+                    disciplines: project.disciplines || [],
+                    prevailing_wage: project.prevailingWage || false
                 };
                 await supabase.from('projects').insert(dbPayload);
+
+                // Initial propagation for people assigned during creation
+                if (project.prevailingWage && project.assignedPersonnel?.length) {
+                    set((state) => ({
+                        personnel: state.personnel.map(p => 
+                            project.assignedPersonnel?.includes(p.id) ? { ...p, prevailingWage: true } : p
+                        )
+                    }));
+                    await supabase.from('personnel').update({ prevailing_wage: true }).in('id', project.assignedPersonnel);
+                }
             },
             updateProject: async (id, updates) => {
                 const currentProject = get().projects.find(p => p.id === id);
@@ -1054,6 +1066,26 @@ export const useStore = create<AppState>()(
                     }
                 }
 
+                // SIDE EFFECT: Prevailing Wage Propagation (Two-Way)
+                const newPrevailingWage = updates.prevailingWage !== undefined ? updates.prevailingWage : currentProject?.prevailingWage;
+                const newAssignedList = updates.assignedPersonnel !== undefined ? updates.assignedPersonnel : currentProject?.assignedPersonnel;
+                const wageChanged = updates.prevailingWage !== undefined && updates.prevailingWage !== currentProject?.prevailingWage;
+                const listChanged = updates.assignedPersonnel !== undefined;
+
+                if (wageChanged || listChanged) {
+                    const targetWage = !!newPrevailingWage;
+                    const peopleToUpdate = newAssignedList || [];
+
+                    if (peopleToUpdate.length > 0) {
+                        set((state) => ({
+                            personnel: state.personnel.map(p => 
+                                peopleToUpdate.includes(p.id) ? { ...p, prevailingWage: targetWage } : p
+                            )
+                        }));
+                        await supabase.from('personnel').update({ prevailing_wage: targetWage }).in('id', peopleToUpdate);
+                    }
+                }
+
                 set((state) => ({ projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p) }));
                 const dbPayload: any = {};
                 if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
@@ -1068,8 +1100,8 @@ export const useStore = create<AppState>()(
                 if (updates.scopes !== undefined) dbPayload.scopes = updates.scopes;
                 if (updates.assignedPersonnel !== undefined) dbPayload.assigned_personnel = updates.assignedPersonnel;
                 if (updates.siteLeadIds !== undefined) dbPayload.site_lead_ids = updates.siteLeadIds;
-                if (updates.hasNoDefinedScope !== undefined) dbPayload.has_no_defined_scope = updates.hasNoDefinedScope;
                 if (updates.disciplines !== undefined) dbPayload.disciplines = updates.disciplines;
+                if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('projects').update(dbPayload).eq('id', id);
                 }

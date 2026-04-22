@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Project, Client } from '../store/useStore';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from '../components/ui/dialog';
+import { Checkbox } from '../components/ui/checkbox';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { KPIRow } from '../components/dashboard/KPIRow';
@@ -67,7 +68,8 @@ export default function Projects() {
         progress: 0,
         scopes: [],
         assignedPersonnel: [],
-        siteLeadIds: []
+        siteLeadIds: [],
+        prevailingWage: false
     });
     const [personnelSearch, setPersonnelSearch] = useState('');
     const [isVaidatingNewMap, setIsValidatingNewMap] = useState(false);
@@ -508,6 +510,25 @@ export default function Projects() {
                                     <option value="Hybrid">Hybrid</option>
                                     <option value="Other">{t('common.other')}</option>
                                 </select>
+                            </div>
+
+                            <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
+                                <Checkbox 
+                                    id="prevailingWage" 
+                                    checked={newProject.prevailingWage}
+                                    onCheckedChange={(checked) => setNewProject({...newProject, prevailingWage: !!checked})}
+                                />
+                                <div className="grid gap-1.5 leading-none">
+                                    <Label
+                                        htmlFor="prevailingWage"
+                                        className="text-sm font-bold text-accent-greyDark leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                    >
+                                        Prevailing Wage Project
+                                    </Label>
+                                    <p className="text-xs text-gray-500">
+                                        All personnel assigned will be automatically flagged for prevailing wage.
+                                    </p>
+                                </div>
                             </div>
                        </div>
 

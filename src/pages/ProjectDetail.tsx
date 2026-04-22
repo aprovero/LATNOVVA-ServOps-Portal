@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Checkbox } from '../components/ui/checkbox';
 import { gsap } from 'gsap';
 import { useRef } from 'react';
 
@@ -41,6 +42,7 @@ export default function ProjectDetail() {
     const [editHasNoDefinedScope, setEditHasNoDefinedScope] = useState(false);
     const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
     const [editSiteLeadIds, setEditSiteLeadIds] = useState<string[]>([]);
+    const [editPrevailingWage, setEditPrevailingWage] = useState(false);
 
     const [locationError, setLocationError] = useState('');
 
@@ -114,6 +116,7 @@ export default function ProjectDetail() {
         setEditHasNoDefinedScope(!!project.hasNoDefinedScope);
         setEditDisciplines(project.disciplines || []);
         setEditSiteLeadIds(project.siteLeadIds || []);
+        setEditPrevailingWage(!!project.prevailingWage);
         setIsEditing(true);
     };
 
@@ -134,6 +137,7 @@ export default function ProjectDetail() {
             hasNoDefinedScope: editHasNoDefinedScope,
             disciplines: editDisciplines,
             siteLeadIds: editSiteLeadIds,
+            prevailingWage: editPrevailingWage,
         });
         setIsEditing(false);
     };
@@ -244,6 +248,11 @@ export default function ProjectDetail() {
                                 </div>
                                 <h1 className="text-2xl md:text-3xl font-bold text-accent-greyDark mb-1 flex items-center gap-2">
                                     {project.name}
+                                    {project.prevailingWage && (
+                                        <span className="text-[10px] bg-brand-teal/10 text-brand-teal border border-brand-teal/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
+                                            <CheckCircle2 size={10} /> Prevailing Wage
+                                        </span>
+                                    )}
                                     {project.hasNoDefinedScope && (
                                         <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">{t('projects.labor_only', 'Labor Only')}</span>
                                     )}
@@ -422,6 +431,21 @@ export default function ProjectDetail() {
                                         className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
                                     />
                                     <Label htmlFor="dp-labor-only" className="cursor-pointer font-bold">No Defined Scope (Labor Only / IE Support)</Label>
+                                </div>
+                                <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
+                                    <Checkbox 
+                                        id="dp-prevailing-wage" 
+                                        checked={editPrevailingWage}
+                                        onCheckedChange={(checked) => setEditPrevailingWage(!!checked)}
+                                    />
+                                    <div className="grid gap-1 leading-none">
+                                        <Label htmlFor="dp-prevailing-wage" className="cursor-pointer font-bold text-accent-greyDark flex items-center gap-1.5">
+                                            Prevailing Wage Project
+                                        </Label>
+                                        <p className="text-xs text-gray-500">
+                                            Updates all assigned personnel to match this status.
+                                        </p>
+                                    </div>
                                 </div>
                                 <div className="sm:col-span-2 grid gap-1.5">
                                     <Label>Active Disciplines / Streams</Label>
