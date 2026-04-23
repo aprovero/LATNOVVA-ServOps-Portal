@@ -6,19 +6,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { UserPlus, UserCheck, Signature, Check, AlertTriangle, Plus, Users, Send, Trash2, Target } from 'lucide-react';
+import { UserPlus, UserCheck, Signature, Check, AlertTriangle, Plus, Users, Trash2 } from 'lucide-react';
 
 interface LaborEntry {
     id: string;
     personnelId?: string;
-    outsourcedName?: string;
     role: string;
+    _tempName?: string;
     qty: number;
     timeIn?: string;
     timeOut?: string;
     type?: 'On Site' | 'Travel' | 'Other';
     hours: number;
-    isOutsourced?: boolean;
 }
 
 interface LaborSectionProps {
@@ -41,7 +40,7 @@ const calculateHours = (inTime?: string, outTime?: string) => {
 
 export default function LaborSection({ labor, onChange, readOnly, currentReportId, currentDate, discipline }: LaborSectionProps) {
     const { t } = useTranslation();
-    const { personnel, reports, timesheets, addTimesheet, userRole, projects, addPersonnel } = useStore();
+    const { personnel, reports, timesheets, userRole, projects, addPersonnel } = useStore();
 
     const currentReport = reports.find(r => r.id === currentReportId);
     const project = projects.find(p => p.id === currentReport?.projectId);
@@ -57,7 +56,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
     const [signingEntryId, setSigningEntryId] = useState<string | null>(null);
 
     const handleAdd = () => {
-        onChange([...labor, { id: `l-${Date.now()}`, personnelId: '', role: '', qty: 1, timeIn: '08:00', timeOut: '17:00', type: 'On Site', hours: 9, isOutsourced: false }]);
+        onChange([...labor, { id: `l-${Date.now()}`, personnelId: '', role: '', qty: 1, timeIn: '08:00', timeOut: '17:00', type: 'On Site', hours: 9 }]);
     };
 
     const handleUpdate = (id: string, field: keyof LaborEntry, value: string | number | boolean) => {
@@ -98,7 +97,6 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
             timeOut: '17:00', 
             type: 'On Site', 
             hours: 9,
-            isOutsourced: true,   // treat as outsourced so cert fields apply
             pendingCerts: true,   // flag for audit badge
         } as any]);
         
@@ -128,6 +126,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                 timeOut,
                 type: 'On Site' as const,
                 hours,
+                _tempName: p?.name,
                 _autoFilledFromGPS: hasClockIn, // internal flag for UX hint
             };
         });
@@ -156,56 +155,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
         return busy;
     }, [reports, currentDate, currentReportId]);
 
-    const handleBatchLogTimesheets = () => {
-        if (!currentDate || readOnly) return;
-        
-        let successCount = 0;
-        let failCount = 0;
-        const currentReport = reports.find(r => r.id === currentReportId);
-        
-        labor.forEach(entry => {
-            if (!entry.personnelId || !entry.timeIn || !entry.timeOut || entry.isOutsourced) {
-                if (entry.personnelId && !entry.isOutsourced) failCount++;
-                return;
-            }
-            
-            const overlap = timesheets.some(t => {
-                if (t.personnelId !== entry.personnelId) return false;
-                if (t.date !== currentDate) return false;
-                if (!t.timeIn || !t.timeOut) return false;
-                
-                const tIn = t.timeIn;
-                const tOut = t.timeOut < t.timeIn ? '24:00' : t.timeOut;
-                const nIn = entry.timeIn!;
-                const nOut = entry.timeOut! < entry.timeIn! ? '24:00' : entry.timeOut!;
 
-                return tIn < nOut && nIn < tOut;
-            });
-
-            if (overlap) {
-                failCount++;
-            } else {
-                addTimesheet({
-                    id: `TS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    personnelId: entry.personnelId,
-                    date: currentDate,
-                    timeIn: entry.timeIn,
-                    timeOut: entry.timeOut,
-                    hours: entry.hours,
-                    type: entry.type || 'On Site',
-                    classification: 'Regular',
-                    projectId: currentReport?.projectId,
-                    status: 'Pending',
-                    notes: `Autologged from report ${currentReportId}`
-                });
-                successCount++;
-            }
-        });
-
-        alert(t('reports.labor_section.batch_timesheet_log_title') + ':\n' + 
-              t('reports.labor_section.batch_timesheet_log_success', { count: successCount }) + '\n' + 
-              t('reports.labor_section.batch_timesheet_log_fail', { count: failCount }));
-    };
 
 
     return (
@@ -221,34 +171,22 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                 </h2>
 
                 <div className="flex flex-wrap gap-2">
-                    {!readOnly && labor.length > 0 && ['Manager', 'Supervisor', 'HR'].includes(userRole) && (
-                        <div className="flex flex-col items-end gap-1">
-                            <button onClick={handleBatchLogTimesheets} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-brand-teal/10 text-brand-teal border-brand-teal/20 hover:bg-brand-teal hover:text-white transition-colors shadow-sm">
-                                <Send size={16} /> {t('reports.labor_section.batch_log_timesheets')}
-                            </button>
-
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mr-1">
-                                <Target size={12} className="text-status-success" /> {t('reports.labor_section.site_lead_resp')}
-                            </p>
-
-                        </div>
-                    )}
                     {!readOnly && (
                         <div className="flex gap-2">
+
                             <button onClick={() => {
                                 const initialSelected = (project?.assignedPersonnel || []).filter(pid => !labor.some(l => l.personnelId === pid));
                                 setSelectedTeamIds(initialSelected);
                                 setIsBatchAddOpen(true);
-                            }} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-brand-teal/5 text-brand-teal border-brand-teal/20">
-                                <UserCheck size={16} /> {t('reports.labor_section.batch_add_team')}
+                            }} className="bg-gray-50 text-gray-600 border border-gray-200 text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-gray-100 transition-all flex items-center gap-2">
+                                <UserCheck size={14} /> {t('reports.labor_section.batch_add_team')}
                             </button>
-                            <button onClick={() => setIsAddQuickPersonOpen(true)} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-gray-50 border-gray-200">
-                                <UserPlus size={16} /> {t('reports.labor_section.add_on_the_fly')}
+                            <button onClick={() => setIsAddQuickPersonOpen(true)} className="bg-gray-50 text-gray-600 border border-gray-200 text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-gray-100 transition-all flex items-center gap-2">
+                                <UserPlus size={14} /> {t('reports.labor_section.add_on_the_fly')}
                             </button>
-                            <button onClick={handleAdd} className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 bg-gray-50 border-gray-200">
-                                <Plus size={16} /> {t('reports.labor_section.custom_entry')}
+                            <button onClick={handleAdd} className="bg-brand-teal text-white text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-brand-tealDark transition-all flex items-center gap-2">
+                                <Plus size={14} /> {t('reports.labor_section.custom_entry')}
                             </button>
-
                         </div>
                     )}
                 </div>
@@ -276,10 +214,10 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                                 })()}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-sm text-accent-greyDark">
-                                                    {entry.outsourcedName || personnel.find(p => p.id === entry.personnelId)?.name || '—'}
+                                                <p className="font-bold text-sm text-accent-greyDark leading-none mb-0.5">
+                                                    {personnel.find(p => p.id === entry.personnelId)?.name || (entry as any)._tempName || entry.personnelId || '—'}
                                                 </p>
-                                                <p className="text-xs text-gray-400">{entry.role}</p>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{entry.role}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -329,7 +267,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                                         onClick={() => setSigningEntryId(entry.id)}
                                                         className="text-sm font-bold text-accent-greyDark hover:text-brand-teal transition-colors flex items-center gap-2"
                                                     >
-                                                        {personnel.find(p => p.id === entry.personnelId)?.name}
+                                                        {personnel.find(p => p.id === entry.personnelId)?.name || (entry as any)._tempName || entry.personnelId}
                                                         <Signature size={12} className="opacity-0 group-hover/name:opacity-100 transition-opacity" />
                                                     </button>
                                                     <button 
@@ -340,16 +278,6 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                                     </button>
 
                                                 </div>
-                                            ) : entry.isOutsourced ? (
-                                                <input
-                                                    type="text"
-                                                    value={entry.outsourcedName || ''}
-                                                    onChange={e => handleUpdate(entry.id, 'outsourcedName', e.target.value)}
-                                                    disabled={readOnly}
-                                                    placeholder={t('reports.labor_section.enter_name_manually')}
-                                                    className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 text-sm font-bold text-accent-greyDark"
-                                                />
-
                                             ) : (
                                             <select
                                                     value={entry.personnelId || ''}
@@ -436,22 +364,10 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                             <div className="flex items-center justify-between border-t border-gray-50 pt-3">
                                 <div className="flex items-center gap-6">
                                     <div className="w-24">
-                                        <div className="w-full bg-gray-50 rounded py-1 px-2 text-xs font-bold text-gray-400 text-center uppercase tracking-wider">
+                                        <div className="w-full bg-gray-50 rounded py-1 px-2 text-[10px] font-bold text-gray-400 text-center uppercase tracking-wider border border-gray-100">
                                             {t('reports.labor_section.on_site_label')}
                                         </div>
-
                                     </div>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={!!entry.isOutsourced}
-                                            onChange={(e) => handleUpdate(entry.id, 'isOutsourced', e.target.checked)}
-                                            disabled={readOnly}
-                                            className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal w-3.5 h-3.5 disabled:opacity-50"
-                                        />
-                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.outsourced_label')}</span>
-
-                                    </label>
                                 </div>
                                 {!readOnly && (
                                     <button onClick={() => handleRemove(entry.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors">

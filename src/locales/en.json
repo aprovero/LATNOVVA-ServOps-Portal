@@ -231,7 +231,7 @@
       "checklist": "Safety Checklists",
       "occurrences": "Field Issues & Occurrences",
       "signatures": "Signatures",
-      "media": "Media & Attachments",
+      "media": "Attachments",
       "media_placeholder": "Attach PDFs, site photos, or client check-ins.",
       "site_lead": "Site Lead",
       "notes": "Field Notes & Observations",
@@ -267,6 +267,10 @@
       "subtitle": "Create the first report for this project."
     }
     },
+    "empty": {
+      "title": "No items found",
+      "subtitle": "There are no data points to display in this section."
+    },
     "wbs_section": {
       "title": "Today's Logged Activities",
       "no_entries": "No activities have been logged for this report yet.",
@@ -294,8 +298,8 @@
       "workforce_title": "Workforce & Labor",
       "batch_log_timesheets": "Batch Log Timesheets",
       "site_lead_resp": "Site Lead Responsibility",
-      "batch_add_team": "Batch Add Team",
-      "add_on_the_fly": "Add Personnel on-the-fly",
+      "batch_add_team": "Add Personnel",
+      "add_on_the_fly": "Add Personnel",
       "custom_entry": "Custom Entry",
       "personnel_position_label": "Personnel & Position",
       "change_worker": "Change",
@@ -307,7 +311,7 @@
       "time_out_label": "Out",
       "hours_label": "Hrs",
       "on_site_label": "On Site",
-      "outsourced_label": "Outsourced",
+
       "no_entries_shift": "No labor entries logged for this shift.",
       "pending_certs_warning": "Pending certification records — HSE validation required before this worker can be confirmed on site.",
       "batch_timesheet_log_title": "Timesheet Batch Log",

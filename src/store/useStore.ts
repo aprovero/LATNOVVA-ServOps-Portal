@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabaseUntyped as supabase } from '../lib/supabase';
+import { createJSONStorage } from 'zustand/middleware';
+import { idbStorage } from '../lib/idbStorage';
 
 export type ReportState = 'Draft' | 'Pending Manager Review' | 'Pending Customer Review' | 'Approved' | 'Closed';
 
@@ -1780,6 +1782,7 @@ export const useStore = create<AppState>()(
         }),
         {
             name: 'latnovva-storage-v3',
+            storage: createJSONStorage(() => idbStorage),
         }
     )
 );

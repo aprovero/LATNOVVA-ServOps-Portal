@@ -232,7 +232,7 @@
       "checklist": "Listas de Verificación de Seguridad",
       "occurrences": "Incidencias y Bloqueos de Campo",
       "signatures": "Firmas",
-      "media": "Multimedia y Adjuntos",
+      "media": "Adjuntos",
       "media_placeholder": "Adjuntar PDFs, fotos de sitio o documentos del cliente.",
       "site_lead": "Líder de Sitio",
       "notes": "Notas de Campo y Observaciones",
@@ -268,6 +268,10 @@
       "subtitle": "Crea el primer reporte para este proyecto."
     }
     },
+    "empty": {
+      "title": "No se encontraron elementos",
+      "subtitle": "No hay datos para mostrar en esta sección."
+    },
     "wbs_section": {
       "title": "Actividades Registradas Hoy",
       "no_entries": "Aún no se han registrado actividades para este reporte.",
@@ -295,8 +299,8 @@
       "workforce_title": "Mano de Obra y Personal",
       "batch_log_timesheets": "Registrar Horas por Lote",
       "site_lead_resp": "Responsabilidad del Líder de Sitio",
-      "batch_add_team": "Agregar Equipo por Lote",
-      "add_on_the_fly": "Agregar Personal al Vuelo",
+      "batch_add_team": "Agregar Personal",
+      "add_on_the_fly": "Agregar Personal",
       "custom_entry": "Entrada Personalizada",
       "personnel_position_label": "Personal y Puesto",
       "change_worker": "Cambiar",
@@ -308,13 +312,13 @@
       "time_out_label": "Salida",
       "hours_label": "Hrs",
       "on_site_label": "En Sitio",
-      "outsourced_label": "Subcontratado",
+
       "no_entries_shift": "No se registraron entradas de personal para este turno.",
       "pending_certs_warning": "Registros de certificación pendientes — se requiere validación de HSE antes de que este trabajador pueda ser confirmado en el sitio.",
       "batch_timesheet_log_title": "Registro por Lote de Timesheets",
       "batch_timesheet_log_success": "Se crearon {{count}} entradas exitosamente.",
       "batch_timesheet_log_fail": "Se omitieron {{count}} entradas (tiempos solapados o falta de datos).",
-      "batch_add_team_modal_title": "Agregar Equipo del Proyecto por Lote",
+      "batch_add_team_modal_title": "Agregar Personal al Proyecto",
       "batch_add_team_desc": "Seleccione al personal asignado a este proyecto ({{name}}) para agregarlos al reporte automáticamente.",
       "no_personnel_assigned": "Aún no hay personal asignado a este proyecto.",
       "add_workers_btn": "Agregar {{count}} Trabajadores",

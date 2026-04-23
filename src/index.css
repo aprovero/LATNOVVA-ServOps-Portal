@@ -8,18 +8,7 @@
     width: 100%;
   }
 
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 9999;
-    opacity: 0.05;
-    filter: url(#noiseFilter);
-  }
+
   :root {
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
@@ -77,15 +66,15 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-brand-teal text-white font-semibold py-3 px-6 rounded-3xl shadow-soft transition-all duration-300 hover:bg-brand-tealDark hover:-translate-y-1 hover:shadow-float active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+    @apply bg-brand-teal text-white font-semibold py-2.5 px-6 rounded-xl shadow-soft transition-all duration-200 hover:bg-brand-tealDark active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
   }
   
   .btn-secondary {
-    @apply bg-white text-accent-grey border border-gray-200 font-semibold py-3 px-6 rounded-3xl shadow-soft transition-all duration-300 hover:bg-gray-50 active:scale-95 disabled:opacity-50;
+    @apply bg-white text-accent-grey border border-gray-200 font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50;
   }
 
   .card-container {
-    @apply bg-white rounded-3xl shadow-soft p-6 border border-gray-100;
+    @apply bg-white rounded-xl shadow-sm p-6 border border-gray-100;
   }
   
   .input-field {

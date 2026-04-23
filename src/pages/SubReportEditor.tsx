@@ -11,11 +11,14 @@ export default function SubReportEditor() {
     const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
-    const { subReportInstances, subReportTemplates, reports, updateSubReportInstance, userRole } = useStore();
+    const { subReportInstances, subReportTemplates, reports, clients, updateSubReportInstance, userRole } = useStore();
 
     const subReport = subReportInstances.find(sr => sr.id === id);
     const parentReport = reports.find(r => r.id === subReport?.parentReportId);
     const template = subReportTemplates.find(t => t.id === subReport?.templateId);
+    const client = clients.find(c => c.id === parentReport?.clientId);
+    const clientName = (client?.name || 'Unknown_Client').replace(/\s+/g, '_');
+    const safeProjectName = (parentReport?.projectName || 'Unknown_Project').replace(/\s+/g, '_');
 
     const [values, setValues] = useState<Record<string, any>>(subReport?.values || {});
 
@@ -85,7 +88,7 @@ export default function SubReportEditor() {
                 <div className="flex items-center gap-3">
                     <PDFDownloadLink
                         document={<PrintableSubReportTemplate subReport={subReport} />}
-                        fileName={`${parentReport.projectId}_${parentReport.date}_Form_${subReport.templateName.replace(/\s+/g, '_')}_${subReport.id.substring(0, 8)}.pdf`}
+                        fileName={`${clientName}_${safeProjectName}_LATNOVVA_Form_${subReport.templateName.replace(/\s+/g, '_')}_${parentReport.date}_${subReport.id.substring(0, 8)}.pdf`}
                     >
                         {/* @ts-ignore */}
                         {({ loading }) => (

@@ -26,7 +26,7 @@ export default function ReportEditor() {
     const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
-    const { reports, projects, personnel, timesheets, updateReport, updateActivityProgress, userRole, addComment, getCurrentUserName, addTimesheet } = useStore();
+    const { reports, projects, clients, personnel, timesheets, updateReport, updateActivityProgress, userRole, addComment, getCurrentUserName, addTimesheet } = useStore();
 
     // M-07: Timesheet batch-create state
     const [showTimesheetCreator, setShowTimesheetCreator] = useState(false);
@@ -44,6 +44,9 @@ export default function ReportEditor() {
     console.log('[ReportEditor] Initial render with ID:', id);
     const report = reports.find(r => r.id === id);
     const project = projects.find(p => p.id === report?.projectId);
+    const client = clients.find(c => c.id === report?.clientId);
+    const clientName = (client?.name || 'Unknown_Client').replace(/\s+/g, '_');
+    const safeProjectName = (report?.projectName || 'Unknown_Project').replace(/\s+/g, '_');
     
     console.log('[ReportEditor] Data state:', { 
         id, 
@@ -131,20 +134,32 @@ export default function ReportEditor() {
         }
     }, [report, project?.id]); // Also depend on project.id to re-build defaults if project loads later
 
-    // M-01: Dirty-state guard — warn on accidental browser close/refresh
-    // Note: canEditFields is derived after the early return, so we re-derive inline here
+    // Auto-save logic (Persistence Step)
+    useEffect(() => {
+        if (!canEditFields) return;
+        
+        const saveTimeout = setTimeout(() => {
+            console.log('[ReportEditor] Auto-saving draft...');
+            handleSave();
+        }, 30000); // 30 seconds
+
+        return () => clearTimeout(saveTimeout);
+    }, [notes, weatherState, locationState, sections, labor, media, occurrences, checklists, subReportIds, signatures, usedTools, activityLogs, discipline]);
+
     useEffect(() => {
         const isDraft = report?.state === 'Draft';
         const isEditable = isDraft && ['Tech', 'Supervisor', 'Manager'].includes(userRole);
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             if (isEditable) {
+                // Trigger an immediate save before unload
+                handleSave();
                 e.preventDefault();
                 e.returnValue = '';
             }
         };
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [report?.state, userRole]);
+    }, [report?.state, userRole, notes, weatherState, locationState, sections, labor, media, occurrences, checklists, subReportIds, signatures, usedTools, activityLogs, discipline]);
 
     useEffect(() => {
         if (document.querySelector('.editor-fade')) {
@@ -287,26 +302,32 @@ export default function ReportEditor() {
                     {toast.message}
                 </div>
             )}
-            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-brand-teal font-semibold hover:underline">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-accent-grey font-medium hover:text-brand-teal transition-colors">
                 <ChevronLeft size={20} /> {t('reports.back_to_list')}
             </button>
 
-            <div className="editor-fade flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div className="editor-fade flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-gray-100 pb-6 mb-8">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-3xl font-bold text-accent-greyDark">{report.projectName}</h1>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest
-                ${report.state === 'Draft' ? 'bg-status-warning/10 text-status-warning' :
-                                    'bg-status-success/10 text-status-success'}`}>
+                    <div className="flex items-center gap-4 mb-2">
+                        <h1 className="text-4xl font-bold text-accent-greyDark tracking-tight">{report.projectName}</h1>
+                        <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest
+                ${report.state === 'Draft' ? 'border-amber-400 text-amber-600 bg-amber-50' :
+                                     'border-emerald-400 text-emerald-600 bg-emerald-50'}`}>
                             {t(`reports.${report.state.toLowerCase().replace(/ /g, '_')}`)}
                         </span>
-
                     </div>
-                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mt-1">
-                        <p className="text-gray-500 font-mono text-sm">{t('reports.labels.id')}: {report.id} • {t('reports.labels.date')}: {report.date}</p>
+                    <div className="flex items-center gap-4 text-accent-greyLight text-sm font-mono uppercase tracking-wider">
+                        <span className="flex items-center gap-1.5"><MapPin size={14} /> {project.location || 'Site ID Unset'}</span>
+                        <span>•</span>
+                        <span>{report.date}</span>
+                        <span>•</span>
+                        <span>ID: {report.id}</span>
+                    </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
                         {locationState && (
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-brand-teal bg-brand-teal/10 px-2 py-1 rounded-md">
-                                <MapPin size={12} />
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200 px-2 py-1 rounded">
+                                <MapPin size={10} />
                                 {locationState.lat.toFixed(6)}, {locationState.lng.toFixed(6)}
                             </div>
                         )}
@@ -314,7 +335,7 @@ export default function ReportEditor() {
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('reports.work_stream')}:</span>
                                 <select 
-                                    className="bg-brand-teal/5 border border-brand-teal/20 text-xs font-bold text-brand-teal rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-brand-teal h-7"
+                                    className="bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-gray-300 h-8"
                                     value={discipline}
                                     onChange={(e) => setDiscipline(e.target.value)}
                                     disabled={!canEditFields}
@@ -326,15 +347,14 @@ export default function ReportEditor() {
                                 </select>
                             </div>
                         )}
-                    </div>
                 </div>
+            </div>
 
-                {report.state === 'Closed' && (
+            {report.state === 'Closed' && (
                     <div className="flex items-center gap-2 text-status-error font-bold bg-status-error/10 px-4 py-2 rounded-xl">
                         <Lock size={18} /> {t('reports.alerts.locked')}
                     </div>
                 )}
-            </div>
 
             {/* L-07: Rejection reason banner — shown when Draft has rejection comments */}
             {report.state === 'Draft' && (() => {
@@ -789,7 +809,7 @@ export default function ReportEditor() {
                     </div>
                     <PDFDownloadLink 
                         document={<PrintableReportTemplate report={report} />} 
-                        fileName={`${report.projectId}_${report.date}_${report.id.substring(0, 8)}_FINAL.pdf`}
+                        fileName={`${clientName}_${safeProjectName}_LATNOVVA_DailyReport_${report.date}_${report.id}_FINAL.pdf`}
                     >
                         {({ loading }) => (
                             <button className="bg-white/10 hover:bg-white/20 text-white py-2 px-6 rounded-xl font-semibold transition-colors flex items-center gap-2" disabled={loading}>
@@ -805,7 +825,7 @@ export default function ReportEditor() {
                 <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                     <PDFDownloadLink 
                         document={<PrintableReportTemplate report={report} />} 
-                        fileName={`${report.projectId}_${report.date}_${report.id.substring(0, 8)}_${report.state.replace(/\s+/g, '_')}.pdf`}
+                        fileName={`${clientName}_${safeProjectName}_LATNOVVA_DailyReport_${report.date}_${report.id}_${report.state.replace(/\s+/g, '_')}.pdf`}
                     >
                         {({ loading }) => (
                             <button className="w-full md:w-auto btn-secondary text-brand-teal border-brand-teal/20 bg-brand-teal/5 hover:bg-brand-teal/10 flex items-center justify-center gap-2" disabled={loading}>

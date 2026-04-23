@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   reportTitle: {
     fontSize: 18,
     fontFamily: 'Helvetica-Bold',
-    color: '#0D8A8A', // brand-teal
+    color: '#111827', // Neutral Dark
   },
   reportSubtitle: {
     fontSize: 10,
@@ -54,9 +54,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     padding: 4,
     marginBottom: 8,
-    color: '#1f2937',
+    color: '#111827',
     borderLeftWidth: 3,
-    borderLeftColor: '#0D8A8A',
+    borderLeftColor: '#374151',
   },
   row: {
     flexDirection: 'row',
@@ -196,7 +196,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
   });
   
   const getPersonName = (idOrName?: string) => {
-    if (!idOrName) return 'System / Unknown';
+    if (!idOrName) return '';
     const person = state.personnel.find(p => p.id === idOrName);
     return person ? person.name : idOrName;
   };
@@ -226,23 +226,25 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
   return (
   <Document title={documentTitle}>
     <Page size="A4" style={styles.page}>
-      
-      {/* Header: Logos */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 }}>
+         {/* Header: Logos */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#374151', paddingBottom: 12 }}>
         {/* Left: COR + LATNOVVA */}
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image src={corLogoUrl} style={{ height: 28, objectFit: 'contain' }} />
-            <View style={{ width: 1, height: 22, backgroundColor: '#ccc', marginLeft: 10, marginRight: 10 }} />
-            <Image src={latnovvaLogoUrl} style={{ height: 24, objectFit: 'contain' }} />
+            <Image src={corLogoUrl} style={{ height: 32, objectFit: 'contain' }} />
+            <View style={{ width: 1, height: 24, backgroundColor: '#e5e7eb', marginLeft: 12, marginRight: 12 }} />
+            <Image src={latnovvaLogoUrl} style={{ height: 32, objectFit: 'contain' }} />
         </View>
         {/* Right: Client logo or name */}
         <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
             {client?.logo ? (
                 <Image src={client.logo} style={{ height: 32, objectFit: 'contain' }} />
             ) : (
-                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 12, color: '#444' }}>
-                  {client?.name || (report.clientId ? `Client: ${report.clientId}` : 'PREPARED FOR CLIENT')}
-                </Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ fontSize: 8, color: '#6b7280', textTransform: 'uppercase', marginBottom: 2 }}>Prepared for</Text>
+                  <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 13, color: '#111827' }}>
+                    {client?.name || (report.clientId ? report.clientId : 'CLIENT UNKNOWN')}
+                  </Text>
+                </View>
             )}
         </View>
       </View>
@@ -305,7 +307,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {/* Labor Section */}
       {hasLabor && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{secNums.labor}. Labor Allocation</Text>
+          <Text style={styles.sectionTitle}>{secNums.labor}. Operational Personnel</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
               <Text style={[styles.tableCellBold, { flex: 2 }]}>Personnel</Text>
@@ -316,12 +318,12 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
             {validLabor.map((l, i) => (
               <View style={styles.tableRow} key={i}>
                 <Text style={[styles.tableCell, { flex: 2 }]}>
-                  {getPersonName(l.personnelId)} {l.isOutsourced ? '(Outsourced)' : ''}
+                  {getPersonName(l.personnelId)}
                 </Text>
                 <Text style={styles.tableCell}>{l.timeIn || '—'} - {l.timeOut || '—'}</Text>
                 <Text style={styles.tableCell}>{l.hours}</Text>
-                <Text style={[styles.tableCell, { color: (l as any).source === 'manual' ? '#B45309' : '#059669', fontSize: 8 }]}>
-                  {(l as any).source === 'manual' ? `⚠ Manual${(l as any).manualReason ? ` – ${(l as any).manualReason}` : ''}` : '✓ GPS'}
+                <Text style={[styles.tableCell, { color: (l as any).source === 'manual' ? '#92400E' : '#047857', fontSize: 8 }]}>
+                  {(l as any).source === 'manual' ? `Manual${(l as any).manualReason ? ` - ${(l as any).manualReason}` : ''}` : 'GPS Verified'}
                 </Text>
               </View>
             ))}
@@ -379,7 +381,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
               <View style={styles.tableRow} key={i}>
                 <Text style={styles.tableCell}>{eq.type}</Text>
                 <Text style={styles.tableCell}>{eq.serialNumber}</Text>
-                <Text style={styles.tableCell}>{eq.scanned ? 'Verified OCR' : 'Manual Entry'}</Text>
+                <Text style={styles.tableCell}>{eq.scanned ? 'OCR Verified' : 'Manual Entry'}</Text>
               </View>
             ))}
           </View>
@@ -493,7 +495,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       {/* Media / Photos */}
       {hasMedia && (
         <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitle}>{secNums.media}. Attached Media & Photos</Text>
+          <Text style={styles.sectionTitle}>{secNums.media}. Attachments</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
             {(report.media || []).map((m, i) => (
               <View key={i} style={{ width: '48%', marginBottom: 15, marginRight: i % 2 === 0 ? '4%' : 0 }}>
