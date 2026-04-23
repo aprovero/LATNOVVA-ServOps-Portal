@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { UserPlus, UserCheck, Signature, Check, AlertTriangle, Plus, Users, Trash2 } from 'lucide-react';
+import { UserCheck, Signature, Check, AlertTriangle, Plus, Users, Trash2 } from 'lucide-react';
 
 interface LaborEntry {
     id: string;
