@@ -112,13 +112,12 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
 
             </div>
 
-            {/* List of logged activities */}
-            <div className="space-y-3 mb-6">
+            {/* List of logged activities - Compact List View */}
+            <div className="bg-surface-alt rounded-2xl border border-gray-100 divide-y divide-gray-100 overflow-hidden mb-6">
                 {activityLogs.length === 0 ? (
-                    <div className="text-center p-6 bg-surface-alt rounded-2xl border border-dashed border-gray-300 text-gray-400 text-sm">
+                    <div className="text-center p-8 text-gray-400 text-sm">
                         {t('reports.wbs_section.no_entries')}
                     </div>
-
                 ) : (
                     activityLogs.map((log, i) => {
                         const scope = availableScopes.find(s => s.id === log.scopeId);
@@ -126,41 +125,43 @@ export default function WBSProgressSection({ project, readOnly, activityLogs, on
                         const totalProgress = (log.priorProgress || 0) + (log.progressReported || 0);
                         
                         return (
-                            <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all ${editIndex === i ? 'bg-brand-teal/5 border-brand-teal ring-1 ring-brand-teal' : 'bg-surface-alt border-gray-100'}`}>
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-bold text-accent-greyDark">
+                            <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 px-4 transition-all ${editIndex === i ? 'bg-brand-teal/5' : 'hover:bg-gray-50/50'}`}>
+                                <div className="flex-1 min-w-0 pr-4">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-sm text-accent-greyDark truncate">
                                             {log.customTaskName ? log.customTaskName : act?.title || t('reports.unknown_state')}
-                                        </h4>
-                                        {editIndex === i && <span className="text-[10px] font-bold bg-brand-teal text-white px-1.5 py-0.5 rounded">{t('reports.wbs_section.editing')}</span>}
-
+                                        </span>
+                                        {!log.customTaskName && scope && (
+                                            <span className="text-[9px] font-bold tracking-wider text-brand-teal uppercase bg-brand-teal/5 px-1.5 py-0.5 rounded border border-brand-teal/10">
+                                                {scope.name}
+                                            </span>
+                                        )}
+                                        {editIndex === i && <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded shadow-sm">{t('reports.wbs_section.editing')}</span>}
                                     </div>
-                                    {!log.customTaskName && scope && (
-                                        <p className="text-xs font-semibold tracking-wide text-brand-teal uppercase">{scope.name}</p>
-                                    )}
-                                    {log.notes && <p className="text-sm text-gray-600 mt-1 italic">"{log.notes}"</p>}
+                                    {log.notes && <p className="text-[11px] text-gray-500 mt-1 italic truncate max-w-md">"{log.notes}"</p>}
                                 </div>
-                                <div className="flex items-center gap-4 shrink-0">
+
+                                <div className="flex items-center gap-6 mt-2 sm:mt-0">
                                     <div className="text-right">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.wbs_section.new_total')}</div>
-                                        <div className="text-sm font-bold text-brand-teal">
-                                            {totalProgress}% 
-                                            <span className="text-gray-400 font-medium ml-1">
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('reports.wbs_section.progress')}</div>
+                                        <div className="text-sm font-bold text-brand-teal flex items-center justify-end gap-1.5">
+                                            <span>{totalProgress}%</span>
+                                            <span className="text-[10px] text-gray-400 font-medium">
                                                 ({log.priorProgress}% + {log.progressReported}%)
                                             </span>
                                         </div>
                                     </div>
 
                                     {!readOnly && (
-                                        <div className="flex items-center gap-1 border-l border-gray-200 pl-3 ml-2">
+                                        <div className="flex items-center gap-1 border-l border-gray-100 pl-3">
                                             <button 
                                                 onClick={() => handleEditLog(i)} 
-                                                className={`p-2 transition-colors ${editIndex === i ? 'text-brand-teal' : 'text-gray-400 hover:text-brand-teal'}`}
+                                                className={`p-1.5 rounded-lg transition-colors ${editIndex === i ? 'bg-brand-teal text-white' : 'text-gray-400 hover:text-brand-teal hover:bg-brand-teal/5'}`}
                                             >
-                                                <Edit2 size={16} />
+                                                <Edit2 size={14} />
                                             </button>
-                                            <button onClick={() => handleRemoveLog(i)} className="text-gray-400 hover:text-status-error transition-colors p-2">
-                                                <Trash2 size={16} />
+                                            <button onClick={() => handleRemoveLog(i)} className="text-gray-400 hover:text-status-error hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     )}

@@ -292,15 +292,16 @@
       "editing": "EDITING",
       "keep_current": "Keep Current Selection",
       "cancel_caps": "CANCEL",
-      "notes_placeholder": "Any additional notes..."
+      "notes_placeholder": "Any additional notes...",
+      "progress": "Progress"
     },
     "labor_section": {
       "workforce_title": "Workforce & Labor",
       "batch_log_timesheets": "Batch Log Timesheets",
       "site_lead_resp": "Site Lead Responsibility",
-      "batch_add_team": "Add Personnel",
-      "add_on_the_fly": "Add Personnel",
-      "custom_entry": "Custom Entry",
+      "add_worker": "Add Worker",
+      "batch_add_team": "Batch Add Team",
+      "not_in_list": "Worker not in list / Add New",
       "personnel_position_label": "Personnel & Position",
       "change_worker": "Change",
       "enter_name_manually": "Enter worker name manually",

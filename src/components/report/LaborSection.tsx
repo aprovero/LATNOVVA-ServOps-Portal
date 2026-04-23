@@ -97,12 +97,21 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
             timeOut: '17:00', 
             type: 'On Site', 
             hours: 9,
-            pendingCerts: true,   // flag for audit badge
+            pendingCerts: true,
+            _tempName: quickName, // Ensure name shows immediately
         } as any]);
         
         setIsAddQuickPersonOpen(false);
         setQuickName('');
         setQuickPosition('');
+
+        // If we came from a specific entry, update it
+        const entryId = (window as any)._lastLaborEntryId;
+        if (entryId) {
+            handleUpdate(entryId, 'personnelId', newId);
+            handleUpdate(entryId, 'role', quickPosition || 'Technician');
+            delete (window as any)._lastLaborEntryId;
+        }
     };
 
     const handleBatchAddTeam = () => {
@@ -169,11 +178,12 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                         </span>
                     )}
                 </h2>
-
                 <div className="flex flex-wrap gap-2">
                     {!readOnly && (
                         <div className="flex gap-2">
-
+                            <button onClick={handleAdd} className="bg-brand-teal text-white text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-brand-tealDark transition-all flex items-center gap-2">
+                                <Plus size={14} /> {t('reports.labor_section.add_worker')}
+                            </button>
                             <button onClick={() => {
                                 const initialSelected = (project?.assignedPersonnel || []).filter(pid => !labor.some(l => l.personnelId === pid));
                                 setSelectedTeamIds(initialSelected);
@@ -181,15 +191,10 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                             }} className="bg-gray-50 text-gray-600 border border-gray-200 text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-gray-100 transition-all flex items-center gap-2">
                                 <UserCheck size={14} /> {t('reports.labor_section.batch_add_team')}
                             </button>
-                            <button onClick={() => setIsAddQuickPersonOpen(true)} className="bg-gray-50 text-gray-600 border border-gray-200 text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-gray-100 transition-all flex items-center gap-2">
-                                <UserPlus size={14} /> {t('reports.labor_section.add_on_the_fly')}
-                            </button>
-                            <button onClick={handleAdd} className="bg-brand-teal text-white text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-brand-tealDark transition-all flex items-center gap-2">
-                                <Plus size={14} /> {t('reports.labor_section.custom_entry')}
-                            </button>
                         </div>
                     )}
                 </div>
+
             </div>
 
             <div className="space-y-3">
@@ -248,7 +253,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
 
                             )}
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                                <div className="md:col-span-6 lg:col-span-7">
+                                <div className="md:col-span-12 lg:col-span-5">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.personnel_position_label')}</label>
 
                                     <div className="flex items-center gap-3 mt-1 py-1">
@@ -256,23 +261,23 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                             <div className="w-8 h-8 rounded-xl bg-brand-teal/10 flex items-center justify-center text-xs font-bold text-brand-teal overflow-hidden border border-brand-teal/10 shadow-sm shrink-0">
                                                 {(() => {
                                                     const p = personnel.find(per => per.id === entry.personnelId);
-                                                    return p?.image ? <img src={p.image} className="w-full h-full object-cover" /> : p?.name.charAt(0);
+                                                    return p?.image ? <img src={p.image} className="w-full h-full object-cover" /> : (p?.name || (entry as any)._tempName || '?').charAt(0);
                                                 })()}
                                             </div>
                                         )}
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             {!readOnly && isPersonSelected ? (
                                                 <div className="flex items-center justify-between group/name">
                                                     <button 
                                                         onClick={() => setSigningEntryId(entry.id)}
-                                                        className="text-sm font-bold text-accent-greyDark hover:text-brand-teal transition-colors flex items-center gap-2"
+                                                        className="text-sm font-bold text-accent-greyDark hover:text-brand-teal transition-colors flex items-center gap-2 truncate"
                                                     >
                                                         {personnel.find(p => p.id === entry.personnelId)?.name || (entry as any)._tempName || entry.personnelId}
                                                         <Signature size={12} className="opacity-0 group-hover/name:opacity-100 transition-opacity" />
                                                     </button>
                                                     <button 
                                                         onClick={() => handleUpdate(entry.id, 'personnelId', '')}
-                                                        className="text-[10px] font-bold text-gray-400 hover:text-brand-teal uppercase opacity-0 group-hover/name:opacity-100 transition-opacity"
+                                                        className="text-[10px] font-bold text-gray-400 hover:text-brand-teal uppercase opacity-0 group-hover/name:opacity-100 transition-opacity whitespace-nowrap ml-2"
                                                     >
                                                         {t('reports.labor_section.change_worker')}
                                                     </button>
@@ -282,6 +287,12 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                             <select
                                                     value={entry.personnelId || ''}
                                                     onChange={(e) => {
+                                                        if (e.target.value === 'NEW_PERSON') {
+                                                            setIsAddQuickPersonOpen(true);
+                                                            // Keep track of which entry triggered the quick add
+                                                            (window as any)._lastLaborEntryId = entry.id;
+                                                            return;
+                                                        }
                                                         const p = personnel.find(per => per.id === e.target.value);
                                                         handleUpdate(entry.id, 'personnelId', e.target.value);
                                                         if (p) handleUpdate(entry.id, 'role', p.position);
@@ -311,6 +322,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
 
                                                         );
                                                     })}
+                                                    <option value="NEW_PERSON" className="text-brand-teal font-bold">+ {t('reports.labor_section.not_in_list')}</option>
                                                 </select>
                                             )}
                                             {!readOnly && isPersonSelected && personnel.find(p => p.id === entry.personnelId)?.position && (
@@ -321,12 +333,12 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                         </div>
                                     </div>
                                     {hasWarning && (
-                                        <div className="flex items-center gap-1 mt-2 text-status-error text-[10px] font-bold">
+                                        <div className="flex items-center gap-1 mt-1 text-status-error text-[10px] font-bold">
                                             <AlertTriangle size={12} /> Expired: {expiredCerts.join(', ')}
                                         </div>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 sm:gap-3 md:col-span-6 lg:col-span-5 w-full">
+                                <div className="grid grid-cols-3 gap-2 sm:gap-3 md:col-span-12 lg:col-span-6 w-full items-end">
                                     <div className="min-w-0">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('reports.labor_section.time_in_label')}</label>
                                         <input
@@ -347,33 +359,20 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                             className="w-full bg-transparent border-b border-gray-200 focus:border-brand-teal outline-none py-1 mt-1 text-center disabled:opacity-70 text-sm"
                                         />
                                     </div>
-                                    <div className="min-w-0">
-                                        <label className="text-[10px] font-bold text-brand-teal uppercase tracking-wider">{t('reports.labor_section.hours_label')}</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.5"
-                                            value={entry.hours}
-                                            disabled
-                                            className="w-full bg-transparent border-b border-transparent text-brand-teal outline-none py-1 mt-1 text-center font-bold text-sm"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center justify-between border-t border-gray-50 pt-3">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-24">
-                                        <div className="w-full bg-gray-50 rounded py-1 px-2 text-[10px] font-bold text-gray-400 text-center uppercase tracking-wider border border-gray-100">
-                                            {t('reports.labor_section.on_site_label')}
+                                    <div className="flex items-end gap-2">
+                                        <div className="flex-1 min-w-0 text-center">
+                                            <label className="text-[10px] font-bold text-brand-teal uppercase tracking-wider">{t('reports.labor_section.hours_label')}</label>
+                                            <div className="py-1 mt-1 font-bold text-brand-teal text-sm border-b border-transparent">
+                                                {entry.hours}
+                                            </div>
                                         </div>
+                                        {!readOnly && (
+                                            <button onClick={() => handleRemove(entry.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors mb-0.5">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                                {!readOnly && (
-                                    <button onClick={() => handleRemove(entry.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors">
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
                             </div>
                         </div>
                     );

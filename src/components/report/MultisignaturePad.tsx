@@ -28,7 +28,7 @@ export default function MultisignaturePad({ onSave, readOnly, existingSignatures
                     const existing = existingSignatures.find(s => s.role === role);
                     // Determine if the current user can sign for this role
                     const canSign = !readOnly && !existing && (
-                        (role === 'Supervisor' && userRole === 'Engineer') ||
+                        (role === 'Supervisor' && (userRole === 'Engineer' || userRole === 'Manager' || userRole === 'Supervisor' || (userRole as string) === 'Tech')) ||
                         (role === 'Management' && userRole === 'Manager') ||
                         (role === 'Customer' && userRole === 'Customer')
                     );
@@ -212,7 +212,7 @@ export function SignatureCanvasBox({ onSign }: { onSign: (blob: string) => void 
                         className="w-full h-full cursor-crosshair touch-none"
                         style={{ width: '100%', height: '100%' }}
                     />
-                    <div className="absolute inset-x-0 bottom-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-x-0 bottom-1 flex justify-center gap-2 opacity-100 transition-opacity">
                         <button onClick={handleClear} className="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold shadow-sm border border-red-100">{t('reports.signature_section.clear')}</button>
                         <button onClick={handleConfirmDraw} className="bg-brand-teal text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm">{t('reports.signature_section.sign')}</button>
                     </div>

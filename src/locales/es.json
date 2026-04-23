@@ -293,15 +293,16 @@
       "editing": "EDITING",
       "keep_current": "Mantener Selección Actual",
       "cancel_caps": "CANCELAR",
-      "notes_placeholder": "Cualquier nota adicional..."
+      "notes_placeholder": "Cualquier nota adicional...",
+      "progress": "Progreso"
     },
     "labor_section": {
       "workforce_title": "Mano de Obra y Personal",
       "batch_log_timesheets": "Registrar Horas por Lote",
       "site_lead_resp": "Responsabilidad del Líder de Sitio",
-      "batch_add_team": "Agregar Personal",
-      "add_on_the_fly": "Agregar Personal",
-      "custom_entry": "Entrada Personalizada",
+      "add_worker": "Agregar Trabajador",
+      "batch_add_team": "Agregar Equipo",
+      "not_in_list": "Trabajador no en lista / Agregar Nuevo",
       "personnel_position_label": "Personal y Puesto",
       "change_worker": "Cambiar",
       "enter_name_manually": "Ingrese el nombre del trabajador manualmente",
