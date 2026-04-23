@@ -8,7 +8,7 @@ interface SignaturePadProps {
     onSave: (role: 'Supervisor' | 'Management' | 'Customer', blob: string) => void;
     readOnly: boolean;
     existingSignatures?: ReportSignature[];
-    userRole: 'Engineer' | 'Manager' | 'Customer';
+    userRole: 'Engineer' | 'Manager' | 'Customer' | 'Supervisor' | 'Tech' | 'HR';
 }
 
 export default function MultisignaturePad({ onSave, readOnly, existingSignatures = [], userRole }: SignaturePadProps) {
