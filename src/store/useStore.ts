@@ -354,7 +354,7 @@ interface AppState {
     userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR';
     userId: string;
     userEmail?: string;
-    clientId: string;
+    clientId: string | null;
     clients: Client[];
     reports: Report[];
     projects: Project[];
@@ -374,7 +374,7 @@ interface AppState {
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
     setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR') => void;
-    setClientId: (id: string) => void;
+    setClientId: (id: string | null) => void;
     addClient: (client: Client) => void;
     updateClient: (id: string, updates: Partial<Client>) => void;
     deleteClient: (id: string) => void;
