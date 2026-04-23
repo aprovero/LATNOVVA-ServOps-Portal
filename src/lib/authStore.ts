@@ -32,6 +32,8 @@ async function fetchAccountData(userId: string): Promise<{ profile: IdentityProf
         
         if (profile?.client_id) {
             useStore.getState().setClientId(profile.client_id);
+        } else {
+            useStore.getState().setClientId(null);
         }
 
         // 2. If they are NOT a customer, fetch their heavy personnel data
@@ -195,6 +197,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                         .eq('id', currentProfile.id);
                     
                     if (!dbError) {
+                        // LATNOVVA SYSTEM OPS // v2.5.4
                         set({ profile: { ...currentProfile, name } });
                         // Also update the main store personnel list to reflect name change globally
                         useStore.getState().updatePersonnel(currentProfile.id, { name });
