@@ -128,7 +128,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
             set({ loading: true, error: null });
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
+                if (error) {
+                    console.error('[Auth Error Details] signInWithPassword failed:', error);
+                    throw error;
+                }
                 
                 if (data.session) {
                     useStore.getState().setAuthData(data.session.user.id, data.session.user.email ?? '');
