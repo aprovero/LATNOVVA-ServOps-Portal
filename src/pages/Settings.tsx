@@ -102,19 +102,19 @@ export default function Settings() {
                     // or just use the RPC to get them if they are completely gone from public chairs.
                     
                     const { data: existingUser, error: findError } = await supabase
-                        .from('personnel')
-                        .select('id')
+                        .from('personnel' as any)
+                        .select('id' as any)
                         .eq('email', inviteEmail)
                         .maybeSingle();
 
                     if (findError) throw findError;
 
                     if (existingUser) {
-                        newUserId = existingUser.id;
+                        newUserId = (existingUser as any).id;
                     } else {
                         // If they are gone from public.personnel but in Auth, we need to find their UID.
                         // We'll use a specialized RPC for this.
-                        const { data: uid, error: rpcError } = await supabase.rpc('get_user_id_by_email', { email_query: inviteEmail });
+                        const { data: uid, error: rpcError } = await supabase.rpc('get_user_id_by_email' as any, { email_query: inviteEmail } as any);
                         if (rpcError || !uid) {
                              throw new Error(`User is registered in Auth but could not be restored to the personnel directory automatically. Please contact support. (${error.message})`);
                         }
