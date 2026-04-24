@@ -77,7 +77,7 @@ export default function Settings() {
 
             const { data, error } = await tempClient.auth.signUp({
                 email: inviteEmail,
-                password: invitePassword || 'Latnovva!TemporaryPass123', // Ensure a fallback strong password
+                password: invitePassword || 'Latnovva!TemporaryPass123',
                 options: {
                     data: {
                         full_name: inviteEmail.split('@')[0],
@@ -87,12 +87,45 @@ export default function Settings() {
                 }
             });
 
+            let newUserId = data.user?.id;
+
             if (error) {
-                throw error;
+                // If the user already exists in Auth, we can still "restore" them by manually
+                // creating/updating their personnel record with the new role/company.
+                if (error.message.toLowerCase().includes('already registered')) {
+                    console.log('User exists in Auth. Attempting to restore personnel record...');
+                    
+                    // We need to find the existing User ID. 
+                    // Since we are on the frontend, we can't easily list all users, 
+                    // but we can try to "sign in" or just check if our profiles/personnel tables have them.
+                    // For now, we'll try to find them in the personnel table (in case they were only hidden/deactivated)
+                    // or just use the RPC to get them if they are completely gone from public chairs.
+                    
+                    const { data: existingUser, error: findError } = await supabase
+                        .from('personnel')
+                        .select('id')
+                        .eq('email', inviteEmail)
+                        .maybeSingle();
+
+                    if (findError) throw findError;
+
+                    if (existingUser) {
+                        newUserId = existingUser.id;
+                    } else {
+                        // If they are gone from public.personnel but in Auth, we need to find their UID.
+                        // We'll use a specialized RPC for this.
+                        const { data: uid, error: rpcError } = await supabase.rpc('get_user_id_by_email', { email_query: inviteEmail });
+                        if (rpcError || !uid) {
+                             throw new Error(`User is registered in Auth but could not be restored to the personnel directory automatically. Please contact support. (${error.message})`);
+                        }
+                        newUserId = uid;
+                    }
+                } else {
+                    throw error;
+                }
             }
 
-            const newUserId = data.user?.id;
-            if (!newUserId) throw new Error('User creation failed to return a valid UID.');
+            if (!newUserId) throw new Error('User creation/restoration failed.');
 
             addPersonnel({
                 id: newUserId,

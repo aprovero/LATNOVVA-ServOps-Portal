@@ -1357,10 +1357,13 @@ export const useStore = create<AppState>()(
                 }
             },
             deletePersonnel: async (id) => {
+                // Soft Delete: We mark them as Inactive and filter them out.
+                // This prevents orphaning the Auth account and preserves referential integrity
+                // for past reports.
                 set((state) => ({
                     personnel: state.personnel.filter((p) => p.id !== id),
                 }));
-                await supabase.from('personnel').delete().eq('id', id);
+                await supabase.from('personnel').update({ status: 'Inactive' }).eq('id', id);
             },
             addTemplate: (template) => set((state) => ({ templates: [...state.templates, template] })),
             updateTemplate: (id, updates) =>
