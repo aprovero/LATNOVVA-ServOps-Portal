@@ -1,6 +1,6 @@
 import { Report, useStore } from '../../store/useStore';
 import { formatTime } from '../../lib/utils';
-import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 // Clean text helper to strip emojis and characters that can corrupt PDF generation
 const clean = (text: any): string => {
