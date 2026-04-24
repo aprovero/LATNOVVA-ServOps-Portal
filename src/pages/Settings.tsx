@@ -66,28 +66,33 @@ export default function Settings() {
         }
         
         try {
-            // Internal helper to retry specifically on transient Auth Lock errors
-            const performRpc = async (retries = 1): Promise<string> => {
-                const { data, error } = await supabase.rpc('admin_create_user', {
-                    user_email: inviteEmail,
-                    user_name: inviteEmail.split('@')[0],
-                    user_role: inviteRole,
-                    user_password: invitePassword || '',
-                    user_client_id: inviteRole === 'Customer' ? inviteCompany : null
-                } as any);
+            // Re-architected: Instead of manual SQL insertion (which causes GoTrue schema corruption),
+            // we use a completely separate, ephemeral Supabase client instance.
+            // This safely executes the native GoTrue auth flow WITHOUT logging out the current Manager.
+            const tempClient = (await import('@supabase/supabase-js')).createClient(
+                import.meta.env.VITE_SUPABASE_URL,
+                import.meta.env.VITE_SUPABASE_ANON_KEY,
+                { auth: { persistSession: false, autoRefreshToken: false } }
+            );
 
-                if (error) {
-                    // Detect if this is the "Lock stolen" error and retry once if so
-                    if (error.message?.includes('Lock') && retries > 0) {
-                        await new Promise(r => setTimeout(r, 500));
-                        return performRpc(retries - 1);
+            const { data, error } = await tempClient.auth.signUp({
+                email: inviteEmail,
+                password: invitePassword || 'Latnovva!TemporaryPass123', // Ensure a fallback strong password
+                options: {
+                    data: {
+                        full_name: inviteEmail.split('@')[0],
+                        role: inviteRole,
+                        client_id: inviteRole === 'Customer' ? inviteCompany : null
                     }
-                    throw error;
                 }
-                return data as string;
-            };
+            });
 
-            const newUserId = await performRpc();
+            if (error) {
+                throw error;
+            }
+
+            const newUserId = data.user?.id;
+            if (!newUserId) throw new Error('User creation failed to return a valid UID.');
 
             addPersonnel({
                 id: newUserId,
