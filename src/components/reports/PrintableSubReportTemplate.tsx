@@ -70,10 +70,16 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
   const client = state.clients.find(c => c.id === project?.clientId);
   const template = state.subReportTemplates.find(t => t.id === subReport.templateId);
 
+  // Clean text helper to strip emojis and characters that can corrupt PDF generation
+  const clean = (text: any): string => {
+    if (typeof text !== 'string') return String(text || '');
+    return text.replace(/[^\x00-\x7F]/g, '').trim(); // Strip non-ASCII (emojis, etc)
+  };
+
   // Build absolute URLs for logos so @react-pdf/renderer can load them
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const corLogoUrl = `${origin}/cor-logo.png`;
-  const latnovvaLogoUrl = `${origin}/latnovva-O-logo.png`;
+  const latnovvaLogoUrl = `${origin}/latnovva-logo.png`;
 
   const formatDateTime = (isoString?: string) => {
     if (!isoString) return 'N/A';
@@ -92,9 +98,9 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
         <View style={styles.logoContainer}>
             {/* Left: COR + LATNOVVA */}
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image src={corLogoUrl} style={{ height: 28, objectFit: 'contain' }} />
-                <View style={{ width: 1, height: 22, backgroundColor: '#ccc', marginLeft: 10, marginRight: 10 }} />
-                <Image src={latnovvaLogoUrl} style={{ height: 24, objectFit: 'contain' }} />
+                <Image src={corLogoUrl} style={{ height: 26, objectFit: 'contain' }} />
+                <View style={{ width: 1, height: 18, backgroundColor: '#ccc', marginLeft: 10, marginRight: 10 }} />
+                <Image src={latnovvaLogoUrl} style={{ height: 26, objectFit: 'contain' }} />
             </View>
             {/* Right: Client logo or name */}
             <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -111,9 +117,9 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
         {/* Titles */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
             <View style={{ flex: 2 }}>
-                <Text style={styles.title}>{subReport.templateName}</Text>
+                <Text style={styles.title}>{clean(subReport.templateName)}</Text>
                 <Text style={styles.subtitle}>
-                    Project: {project?.name || 'Unknown Project'} {project?.codeName ? `(${project.codeName})` : ''}
+                    Project: {clean(project?.name) || 'Unknown Project'} {project?.codeName ? `(${clean(project.codeName)})` : ''}
                 </Text>
             </View>
             <View style={{ flex: 1, alignItems: 'flex-end', paddingTop: 4 }}>
@@ -195,7 +201,7 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
                                </View>
                                <View style={{ width: '60%' }}>
                                    <Text style={[styles.value, { fontFamily: val && field.type === 'checkbox' ? 'Helvetica-Bold' : 'Helvetica' }]}>
-                                       {val ? String(val) : '—'}
+                                       {val ? clean(String(val)) : '—'}
                                    </Text>
                                </View>
                            </View>

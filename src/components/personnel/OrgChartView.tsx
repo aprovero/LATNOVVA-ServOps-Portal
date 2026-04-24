@@ -183,7 +183,7 @@ export default function OrgChartView() {
                                         return client?.logo ? (
                                             <img src={client.logo} alt="" className={`w-full h-full object-cover ${isSelected ? 'brightness-0 invert' : ''}`} />
                                         ) : (
-                                            <img src="/latnovva-O-logo.png" alt="" className={`w-5 h-5 object-contain ${isSelected ? 'brightness-0 invert' : ''}`} />
+                                            <img src="/latnovva-logo.png" alt="" className={`w-5 h-5 object-contain ${isSelected ? 'brightness-0 invert' : ''}`} />
                                         );
                                     })()}
                                 </div>
@@ -219,7 +219,7 @@ export default function OrgChartView() {
                                                     return client?.logo ? (
                                                         <img src={client.logo} alt="" className="w-full h-full object-contain" />
                                                     ) : (
-                                                        <img src="/latnovva-O-logo.png" alt="" className="w-6 h-6 object-contain" />
+                                                        <img src="/latnovva-logo.png" alt="" className="w-6 h-6 object-contain" />
                                                     );
                                                 })()}
                                             </div>

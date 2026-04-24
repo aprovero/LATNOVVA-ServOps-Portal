@@ -2,14 +2,11 @@ import { Report, useStore } from '../../store/useStore';
 import { formatTime } from '../../lib/utils';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// Register fonts if needed (using default for now, but good practice for branding)
-Font.register({
-  family: 'Inter',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYMZhrib2Bg-4.ttf', fontWeight: 700 }, // Bold
-  ]
-});
+// Clean text helper to strip emojis and characters that can corrupt PDF generation
+const clean = (text: any): string => {
+  if (typeof text !== 'string') return String(text || '');
+  return text.replace(/[^\x00-\x7F]/g, '').trim(); // Strip non-ASCII (emojis, etc)
+};
 
 const styles = StyleSheet.create({
   page: {
@@ -164,7 +161,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
   // Build absolute URLs for logos so @react-pdf/renderer can load them
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const corLogoUrl = `${origin}/cor-logo.png`;
-  const latnovvaLogoUrl = `${origin}/latnovva-O-logo.png`;
+  const latnovvaLogoUrl = `${origin}/latnovva-logo.png`;
 
   const hasLabor = (report.labor || []).length > 0;
   const hasProgress = (report.activityLogs || []).length > 0;
@@ -195,10 +192,10 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       return !isExpired;
   });
   
-  const getPersonName = (idOrName?: string) => {
-    if (!idOrName) return '';
+  const getPersonName = (idOrName?: string, fallback?: string) => {
+    if (!idOrName) return clean(fallback);
     const person = state.personnel.find(p => p.id === idOrName);
-    return person ? person.name : idOrName;
+    return person ? clean(person.name) : clean(fallback || idOrName);
   };
 
   const formatDateTime = (isoString?: string) => {
@@ -206,7 +203,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
     return formatTime(isoString, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const documentTitle = `${project?.codeName ? `${project.codeName} - ` : ''}LATNOVVA Report ${report.id}`;
+  const documentTitle = clean(`${project?.codeName ? `${project.codeName} - ` : ''}LATNOVVA Report ${report.id}`);
 
   // Pre-compute section numbers so labels are stable during render
   const secNums = {
@@ -230,19 +227,19 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#374151', paddingBottom: 12 }}>
         {/* Left: COR + LATNOVVA */}
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image src={corLogoUrl} style={{ height: 32, objectFit: 'contain' }} />
-            <View style={{ width: 1, height: 24, backgroundColor: '#e5e7eb', marginLeft: 12, marginRight: 12 }} />
-            <Image src={latnovvaLogoUrl} style={{ height: 32, objectFit: 'contain' }} />
+            <Image src={corLogoUrl} style={{ height: 28, objectFit: 'contain' }} />
+            <View style={{ width: 1, height: 20, backgroundColor: '#e5e7eb', marginLeft: 10, marginRight: 10 }} />
+            <Image src={latnovvaLogoUrl} style={{ height: 28, objectFit: 'contain' }} />
         </View>
         {/* Right: Client logo or name */}
         <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
             {client?.logo ? (
-                <Image src={client.logo} style={{ height: 32, objectFit: 'contain' }} />
+                <Image src={client.logo} style={{ height: 28, objectFit: 'contain' }} />
             ) : (
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={{ fontSize: 8, color: '#6b7280', textTransform: 'uppercase', marginBottom: 2 }}>Prepared for</Text>
-                  <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 13, color: '#111827' }}>
-                    {client?.name || (report.clientId ? report.clientId : 'CLIENT UNKNOWN')}
+                  <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#111827' }}>
+                    {clean(client?.name) || clean(report.clientId) || 'CLIENT UNKNOWN'}
                   </Text>
                 </View>
             )}
@@ -253,7 +250,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
         <View style={{ flex: 1 }}>
           <Text style={styles.reportTitle}>Daily Field Report</Text>
-          <Text style={styles.reportSubtitle}>ID: {report.id} | Date: {report.date}</Text>
+          <Text style={styles.reportSubtitle}>ID: {clean(report.id)} | Date: {clean(report.date)}</Text>
         </View>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
           <Text style={{ fontSize: 8, color: '#666' }}>Created: {formatDateTime(report.createdAt)} by {getPersonName(report.createdBy)}</Text>
@@ -269,17 +266,17 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
         <View style={styles.row}>
           <View style={styles.col2}>
             <Text style={styles.label}>Project Name</Text>
-            <Text style={styles.value}>{report.projectName}</Text>
+            <Text style={styles.value}>{clean(report.projectName)}</Text>
           </View>
           <View style={styles.col2}>
             <Text style={styles.label}>Status</Text>
-            <Text style={styles.value}>{report.state}</Text>
+            <Text style={styles.value}>{clean(report.state)}</Text>
           </View>
         </View>
         <View style={[styles.row, { marginTop: 8 }]}>
           <View style={styles.col2}>
             <Text style={styles.label}>Weather</Text>
-            <Text style={styles.value}>{report.weather.temp}°C, {report.weather.condition}</Text>
+            <Text style={styles.value}>{report.weather.temp}°C, {clean(report.weather.condition)}</Text>
           </View>
           <View style={styles.col2}>
             <Text style={styles.label}>Location</Text>
@@ -318,7 +315,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
             {validLabor.map((l, i) => (
               <View style={styles.tableRow} key={i}>
                 <Text style={[styles.tableCell, { flex: 2 }]}>
-                  {getPersonName(l.personnelId)}
+                  {getPersonName(l.personnelId, (l as any)._tempName)}
                 </Text>
                 <Text style={styles.tableCell}>{l.timeIn || '—'} - {l.timeOut || '—'}</Text>
                 <Text style={styles.tableCell}>{l.hours}</Text>
@@ -359,7 +356,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
                   <Text style={styles.tableCell}>{log.priorProgress || 0}%</Text>
                   <Text style={styles.tableCell}>+{log.progressReported || 0}%</Text>
                   <Text style={styles.tableCell}>{total}%</Text>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{log.notes || '-'}</Text>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{clean(log.notes)}</Text>
                 </View>
               );
             })}
@@ -379,8 +376,8 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
             </View>
             {report.equipment.map((eq, i) => (
               <View style={styles.tableRow} key={i}>
-                <Text style={styles.tableCell}>{eq.type}</Text>
-                <Text style={styles.tableCell}>{eq.serialNumber}</Text>
+                <Text style={styles.tableCell}>{clean(eq.type)}</Text>
+                <Text style={styles.tableCell}>{clean(eq.serialNumber)}</Text>
                 <Text style={styles.tableCell}>{eq.scanned ? 'OCR Verified' : 'Manual Entry'}</Text>
               </View>
             ))}
@@ -392,7 +389,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{secNums.fieldNotes}. Field Notes & Observations</Text>
         <View style={styles.notesBox}>
-          <Text style={styles.value}>{report.notes || 'No remarks provided.'}</Text>
+          <Text style={styles.value}>{clean(report.notes) || 'No remarks provided.'}</Text>
         </View>
       </View>
 
@@ -484,8 +481,8 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
             </View>
             {(report.occurrences || []).map((occ, i) => (
               <View style={styles.tableRow} key={i}>
-                <Text style={styles.tableCell}>{occ.time}</Text>
-                <Text style={[styles.tableCell, { flex: 3 }]}>{occ.description}</Text>
+                <Text style={styles.tableCell}>{clean(occ.time)}</Text>
+                <Text style={[styles.tableCell, { flex: 3 }]}>{clean(occ.description)}</Text>
               </View>
             ))}
           </View>
@@ -500,14 +497,14 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
             {(report.media || []).map((m, i) => (
               <View key={i} style={{ width: '48%', marginBottom: 15, marginRight: i % 2 === 0 ? '4%' : 0 }}>
                 {m.url && (m.url.startsWith('data:image') || m.url.startsWith('http')) ? (
-                  <Image src={m.url} style={{ height: 150, objectFit: 'cover', backgroundColor: '#f0f0f0' }} />
+                  <Image src={m.url} style={{ height: 150, objectFit: 'cover' }} />
                 ) : (
                    <View style={{ height: 150, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
                      <Text style={{ fontSize: 8, color: '#999' }}>Image not available</Text>
                    </View>
                 )}
                 {m.caption ? (
-                  <Text style={{ fontSize: 9, marginTop: 4, color: '#555', fontStyle: 'italic' }}>{m.caption}</Text>
+                  <Text style={{ fontSize: 9, marginTop: 4, color: '#555', fontStyle: 'italic' }}>{clean(m.caption)}</Text>
                 ) : null}
               </View>
             ))}
@@ -545,7 +542,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
           {/* Rejection comments */}
           {(report.comments || []).filter((c: any) => c.sectionKey === 'rejection').map((c: any, i: number) => (
             <Text key={i} style={{ fontSize: 8, color: '#B91C1C', marginTop: 2 }}>
-              Rejected ({formatDateTime(c.timestamp)}) by {getPersonName(c.userId)}: {c.text.replace('[REJECTED] ', '')}
+              Rejected ({formatDateTime(c.timestamp)}) by {getPersonName(c.userId)}: {clean(c.text.replace('[REJECTED] ', ''))}
             </Text>
           ))}
         </View>
