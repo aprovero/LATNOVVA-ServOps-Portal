@@ -1354,6 +1354,18 @@ export const useStore = create<AppState>()(
                 if (updates.emergencyContactPhone !== undefined) dbPayload.emergency_contact_phone = updates.emergencyContactPhone;
                 if (Object.keys(dbPayload).length > 0) {
                     await supabase.from('personnel').update(dbPayload).eq('id', id);
+
+                    // HR-04: Sync core identity fields to the 'profiles' table.
+                    // This ensures the next login or multi-tab fetch gets the correct role/client assignment.
+                    const profilePayload: any = {};
+                    if (updates.name !== undefined) profilePayload.name = updates.name;
+                    if (updates.email !== undefined) profilePayload.email = updates.email;
+                    if (updates.appRole !== undefined) profilePayload.role = updates.appRole;
+                    if (updates.clientId !== undefined) profilePayload.client_id = updates.clientId;
+
+                    if (Object.keys(profilePayload).length > 0) {
+                        await supabase.from('profiles').update(profilePayload).eq('id', id);
+                    }
                 }
             },
             deletePersonnel: async (id) => {
