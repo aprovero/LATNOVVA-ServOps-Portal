@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { useStore } from '../../store/useStore';
 import { useTranslation } from 'react-i18next';
-
+import { useStore } from '../../store/useStore';
+import { UserCheck, Signature, Check, AlertTriangle, Plus, Users, Trash2 } from 'lucide-react';
+import { calculateHours, isCertExpired } from '../../utils/datetime.utils';
+import QuickAddWorker from '../shared/QuickAddWorker';
+import UnifiedSignaturePad from '../shared/UnifiedSignaturePad';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { UserCheck, Signature, Check, AlertTriangle, Plus, Users, Trash2 } from 'lucide-react';
 
 interface LaborEntry {
     id: string;
@@ -29,26 +29,16 @@ interface LaborSectionProps {
     discipline?: string;
 }
 
-const calculateHours = (inTime?: string, outTime?: string) => {
-    if (!inTime || !outTime) return 0;
-    const [inH, inM] = inTime.split(':').map(Number);
-    const [outH, outM] = outTime.split(':').map(Number);
-    let diff = (outH * 60 + outM) - (inH * 60 + inM);
-    if (diff < 0) diff += 24 * 60;
-    return Number((diff / 60).toFixed(2));
-};
 
 export default function LaborSection({ labor, onChange, readOnly, currentReportId, currentDate, discipline }: LaborSectionProps) {
     const { t } = useTranslation();
-    const { personnel, reports, timesheets, userRole, projects, addPersonnel } = useStore();
+    const { personnel, reports, timesheets, userRole, projects } = useStore();
 
     const currentReport = reports.find(r => r.id === currentReportId);
     const project = projects.find(p => p.id === currentReport?.projectId);
 
     // Modals
     const [isAddQuickPersonOpen, setIsAddQuickPersonOpen] = useState(false);
-    const [quickName, setQuickName] = useState('');
-    const [quickPosition, setQuickPosition] = useState('');
     
     const [isBatchAddOpen, setIsBatchAddOpen] = useState(false);
     const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
@@ -74,42 +64,26 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
         onChange(labor.filter(l => l.id !== id));
     };
 
-    const handleQuickAddPerson = () => {
-        if (!quickName.trim()) return;
-        const newId = crypto.randomUUID();
-        addPersonnel({
-            id: newId,
-            name: quickName,
-            position: quickPosition || 'Technician',
-            employeeNumber: `TEMP-${Math.floor(Math.random() * 1000)}`,
-            status: 'Active',
-            appRole: 'Tech',
-            certifications: []
-        });
-        
+    const handleQuickAddSuccess = (newId: string, name: string, role: string) => {
         // H-01: Mark as pending certs — uncertified quick-add workers need HSE validation
         onChange([...labor, { 
             id: `l-${Date.now()}`, 
             personnelId: newId, 
-            role: quickPosition || 'Technician', 
+            role: role || 'Technician', 
             qty: 1, 
             timeIn: '08:00', 
             timeOut: '17:00', 
             type: 'On Site', 
             hours: 9,
             pendingCerts: true,
-            _tempName: quickName, // Ensure name shows immediately
+            _tempName: name, // Ensure name shows immediately
         } as any]);
         
-        setIsAddQuickPersonOpen(false);
-        setQuickName('');
-        setQuickPosition('');
-
         // If we came from a specific entry, update it
         const entryId = (window as any)._lastLaborEntryId;
         if (entryId) {
             handleUpdate(entryId, 'personnelId', newId);
-            handleUpdate(entryId, 'role', quickPosition || 'Technician');
+            handleUpdate(entryId, 'role', role || 'Technician');
             delete (window as any)._lastLaborEntryId;
         }
     };
@@ -148,7 +122,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
         if (!personId) return [];
         const person = personnel.find(p => p.id === personId);
         if (!person || !person.certifications) return [];
-        return person.certifications.filter(cert => cert.expirationDate && new Date(cert.expirationDate) < new Date()).map(c => c.name);
+        return person.certifications.filter(cert => isCertExpired(cert.expirationDate)).map(c => c.name);
     };
 
     const busyPersonnelIds = useMemo(() => {
@@ -242,7 +216,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                     return (
                         <div key={entry.id} className={`flex flex-col gap-4 p-4 bg-surface-alt rounded-2xl border ${
                             isPendingCerts ? 'border-amber-300 bg-amber-50/40' :
-                            hasWarning ? 'border-status-error/40 bg-red-50/30' : 'border-gray-100'
+                            hasWarning ? 'border-status-warning/60 bg-amber-50/20' : 'border-gray-100'
                         }`}>
                             {/* H-01: Pending Certification Records badge */}
                             {isPendingCerts && (
@@ -333,8 +307,8 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                         </div>
                                     </div>
                                     {hasWarning && (
-                                        <div className="flex items-center gap-1 mt-1 text-status-error text-[10px] font-bold">
-                                            <AlertTriangle size={12} /> Expired: {expiredCerts.join(', ')}
+                                        <div className="flex items-center gap-1 mt-1 text-status-warning text-[10px] font-bold">
+                                            <AlertTriangle size={12} /> {t('reports.labor_section.expired_certs_tag')}: {expiredCerts.join(', ')}
                                         </div>
                                     )}
                                 </div>
@@ -438,74 +412,45 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                 </DialogContent>
             </Dialog>
 
-            {/* Quick Add Personnel Modal */}
-            <Dialog open={isAddQuickPersonOpen} onOpenChange={setIsAddQuickPersonOpen}>
-                <DialogContent className="sm:max-w-[400px]">
-                    <DialogHeader>
-                        <DialogTitle>{t('reports.labor_section.quick_add_title')}</DialogTitle>
-
-                    </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <div className="space-y-2">
-                            <Label>{t('reports.labor_section.full_name_label')}</Label>
-                            <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="e.g. Michael Scott" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>{t('reports.labor_section.position_label')}</Label>
-                            <Input value={quickPosition} onChange={e => setQuickPosition(e.target.value)} placeholder="e.g. Electrician" />
-                        </div>
-                        <p className="text-[10px] text-amber-600 font-medium bg-amber-50 p-2 rounded border border-amber-100">
-                             {t('reports.labor_section.quick_add_help')}
-                        </p>
-
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddQuickPersonOpen(false)}>{t('common.cancel')}</Button>
-                        <Button onClick={handleQuickAddPerson} className="bg-brand-teal hover:bg-brand-teal/90 text-white" disabled={!quickName.trim()}>
-                            {t('reports.labor_section.add_select_btn')}
-                        </Button>
-
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Quick Add Personnel Component */}
+            <QuickAddWorker 
+                open={isAddQuickPersonOpen} 
+                onOpenChange={setIsAddQuickPersonOpen} 
+                onSuccess={handleQuickAddSuccess} 
+            />
 
             {/* Signature Popup Modal */}
             <Dialog open={!!signingEntryId} onOpenChange={(open) => !open && setSigningEntryId(null)}>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] rounded-3xl p-6">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Signature size={20} className="text-brand-teal" /> 
+                        <DialogTitle className="flex items-center gap-2 text-xl font-bold text-accent-greyDark">
+                            <Signature size={24} className="text-brand-teal" /> 
                             {t('reports.labor_section.digital_signature_title')}: {personnel.find(p => p.id === labor.find(l => l.id === signingEntryId)?.personnelId)?.name}
                         </DialogTitle>
-
                     </DialogHeader>
-                    <div className="py-6 space-y-4">
-                        <div className="w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center relative group cursor-pointer hover:bg-gray-100 transition-all">
-                             <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                                 <AlertTriangle size={10} /> {t('reports.labor_section.supervisor_sig_required')}
-                             </div>
-                             <div className="text-center text-gray-300">
-                                 <Plus size={32} className="mx-auto mb-2 opacity-20" />
-                                 <p className="text-sm font-medium">{t('reports.labor_section.click_to_sign')}</p>
-                                 <p className="text-[10px] mt-1">{t('reports.labor_section.gps_verified')}</p>
-                             </div>
-
-                             {/* Canvas placeholder */}
-                             <div className="absolute inset-4 border border-gray-100 bg-white/50 backdrop-blur-[1px] rounded-xl hidden group-hover:block transition-all" />
-                        </div>
-                        <div className="flex items-center gap-3 text-[10px] text-gray-400 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                             <Check size={14} className="text-brand-teal" />
+                    <div className="py-6 space-y-6">
+                        <UnifiedSignaturePad 
+                            onSign={(blob) => {
+                                // In a real app we'd save this to the labor entry
+                                console.log('Signed labor entry:', signingEntryId, blob);
+                            }}
+                            onClear={() => {}}
+                            placeholder={t('reports.labor_section.click_to_sign')}
+                        />
+                        
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                             <Check size={16} className="text-brand-teal shrink-0" />
                              <span>{t('reports.labor_section.certify_hours_text', { date: currentDate })}</span>
                         </div>
-
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setSigningEntryId(null)}>{t('common.cancel')}</Button>
-                        <Button onClick={() => setSigningEntryId(null)} className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2">
-                             {t('reports.labor_section.confirm_identity_log')} <Check size={16} />
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="ghost" onClick={() => setSigningEntryId(null)} className="rounded-xl font-semibold">
+                            {t('common.cancel')}
+                        </Button>
+                        <Button onClick={() => setSigningEntryId(null)} className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 px-6 font-bold shadow-soft transition-all active:scale-95 gap-2">
+                             {t('reports.labor_section.confirm_identity_log')} <Check size={18} />
                         </Button>
                     </DialogFooter>
-
                 </DialogContent>
             </Dialog>
         </div>

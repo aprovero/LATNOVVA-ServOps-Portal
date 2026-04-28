@@ -164,6 +164,7 @@ export interface Client {
 
 export interface Certification {
     name: string;
+    issuedDate?: string; // ISO string
     expirationDate: string; // ISO string
     attachmentName?: string;
     hasAttachment?: boolean;

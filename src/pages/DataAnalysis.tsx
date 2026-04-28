@@ -1,29 +1,24 @@
+import { useMemo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
-import { Activity, TrendingUp, Users, Clock, AlertTriangle, FolderGit2, PieChart as PieChartIcon, LineChart as LineChartIcon, Timer } from 'lucide-react';
-import { useMemo, useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { Activity, FolderGit2, TrendingUp, Clock, Timer, Users, PieChart as PieChartIcon, AlertTriangle, LineChart as LineChartIcon } from 'lucide-react';
 import gsap from 'gsap';
+import { isThisMonth } from '../utils/datetime.utils';
 
-// Returns true if the date string falls within the current calendar month
-function isThisMonth(dateStr: string): boolean {
-    if (!dateStr) return false;
-    const d = new Date(dateStr);
-    const now = new Date();
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-}
 
 export default function DataAnalysis() {
     const { t } = useTranslation();
-    const { reports, projects, personnel, userRole } = useStore();
+    const { reports, projects, personnel, userRole, timesheets } = useStore();
     const [activeDiscipline, setActiveDiscipline] = useState<string>('All');
 
     const DISCIPLINE_OPTIONS = ['All', 'Mechanical', 'Commissioning', 'Civil', 'Electrical', 'Other'];
 
     useEffect(() => {
-        if (document.querySelector('.dash-stagger')) {
+        const targets = document.querySelectorAll('.dash-stagger');
+        if (targets.length > 0) {
             gsap.fromTo(
-                '.dash-stagger',
+                targets,
                 { y: 30, opacity: 0 },
                 { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power3.out' }
             );
@@ -52,14 +47,18 @@ export default function DataAnalysis() {
         return Math.round(total / relevantProjects.length);
     }, [projects, activeDiscipline]);
 
-    // 2. Labor Hours trend (this month)
+    // 2. Labor Hours trend (this month) - Now sourced from Timesheets (Ground Truth)
     const laborData = useMemo(() => {
         const grouping: Record<string, number> = {};
-        const relevantReports = reports.filter(r => isThisMonth(r.date) && (activeDiscipline === 'All' || r.discipline === activeDiscipline));
+        const relevantTimesheets = timesheets.filter(t => 
+            isThisMonth(t.date) && 
+            t.status === 'Approved' && 
+            (activeDiscipline === 'All' || projects.find(p => p.id === t.projectId)?.disciplines?.includes(activeDiscipline))
+        );
         
-        relevantReports.forEach(r => {
-            const date = r.date;
-            const hours = r.labor?.reduce((acc, l) => acc + (l.hours * l.qty), 0) || 0;
+        relevantTimesheets.forEach(ts => {
+            const date = ts.date;
+            const hours = ts.hours || 0;
             if (hours > 0) {
                 grouping[date] = (grouping[date] || 0) + hours;
             }
@@ -70,7 +69,7 @@ export default function DataAnalysis() {
             name: new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
             hours
         })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }, [reports, activeDiscipline]);
+    }, [timesheets, projects, activeDiscipline]);
 
     // 3. Resource Utilization
     const utilizationData = useMemo(() => {
@@ -186,7 +185,16 @@ export default function DataAnalysis() {
 
     const totalReports = monthlyFilteredReports.length;
 
-    const totalHoursLog = monthlyFilteredReports.reduce((acc, r) => acc + (r.labor?.reduce((sum, l) => sum + (l.hours * l.qty), 0) || 0), 0);
+    // Monthly total hours sourced from approved timesheets
+    const totalHoursLog = useMemo(() => {
+        return timesheets
+            .filter(ts => 
+                isThisMonth(ts.date) && 
+                ts.status === 'Approved' &&
+                (activeDiscipline === 'All' || projects.find(p => p.id === ts.projectId)?.disciplines?.includes(activeDiscipline))
+            )
+            .reduce((acc, ts) => acc + (ts.hours || 0), 0);
+    }, [timesheets, projects, activeDiscipline]);
 
     // Monthly lost time (in minutes)
     const totalLostTimeMins = useMemo(() => {

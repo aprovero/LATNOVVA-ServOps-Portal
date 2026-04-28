@@ -1,11 +1,15 @@
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, PenLine, Trash2, UserPlus, Clock, UserCheck
+    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, Trash2, UserPlus, Clock, UserCheck
 } from 'lucide-react';
 import { useStore, ClockPunch, Personnel } from '../store/useStore';
 import { formatTime } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
+import { useAttendance } from '../hooks/useAttendance';
+import { isCertExpired } from '../utils/datetime.utils';
+import QuickAddWorker from '../components/shared/QuickAddWorker';
+import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +60,7 @@ function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
 }
 
 function hasFinishedShiftToday(timesheets: any[], personnelId: string): boolean {
-    const today = getLocalDate();
+    const today = new Date().toISOString().split('T')[0];
     return timesheets.some((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut);
 }
 
@@ -107,160 +111,16 @@ function GpsBadge({ gps }: { gps: GpsState }) {
 // ─── SignaturePad ─────────────────────────────────────────────────────────────
 
 function SignaturePad({ onSign, onClear }: { onSign: (blob: string) => void; onClear: () => void }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const drawing = useRef(false);
-    const [hasSig, setHasSig] = useState(false);
-
-    const getPos = (e: React.MouseEvent | React.TouchEvent) => {
-        const canvas = canvasRef.current!;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        if ('touches' in e) {
-            return {
-                x: (e.touches[0].clientX - rect.left) * scaleX,
-                y: (e.touches[0].clientY - rect.top) * scaleY,
-            };
-        }
-        return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY,
-        };
-    };
-
-    const start = (e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault();
-        drawing.current = true;
-        const ctx = canvasRef.current!.getContext('2d')!;
-        const p = getPos(e);
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-    };
-
-    const move = (e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault();
-        if (!drawing.current) return;
-        const ctx = canvasRef.current!.getContext('2d')!;
-        ctx.strokeStyle = '#1e293b';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        const p = getPos(e);
-        ctx.lineTo(p.x, p.y);
-        ctx.stroke();
-    };
-
-    const end = (e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault();
-        if (!drawing.current) return;
-        drawing.current = false;
-        setHasSig(true);
-        const blob = canvasRef.current!.toDataURL('image/png');
-        onSign(blob);
-    };
-
-    const clear = () => {
-        const canvas = canvasRef.current!;
-        const ctx = canvas.getContext('2d')!;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        setHasSig(false);
-        onClear();
-    };
-
     const { t } = useTranslation();
     return (
-        <div className="space-y-2">
-            <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                    <PenLine size={12} /> {t('attendance.signature.label')}
-                </span>
-                {hasSig && (
-                    <button onClick={clear} className="text-xs text-red-500 font-semibold flex items-center gap-1">
-                        <Trash2 size={11} /> {t('attendance.signature.clear')}
-                    </button>
-                )}
-            </div>
-            <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 overflow-hidden" style={{ touchAction: 'none' }}>
-                <canvas
-                    ref={canvasRef}
-                    width={600}
-                    height={160}
-                    className="w-full h-28 cursor-crosshair block"
-                    onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
-                    onTouchStart={start} onTouchMove={move} onTouchEnd={end}
-                />
-                {!hasSig && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <p className="text-gray-300 text-sm font-medium">{t('attendance.signature.sign_here')}</p>
-                    </div>
-                )}
-                <div className="absolute bottom-2 left-4 right-4 border-b border-gray-300" />
-            </div>
-        </div>
+        <UnifiedSignaturePad 
+            onSign={onSign} 
+            onClear={onClear} 
+            placeholder={t('attendance.signature.sign_here')} 
+        />
     );
 }
 
-// ─── AddOutsourcedModal ───────────────────────────────────────────────────────
-
-function AddOutsourcedModal({ onAdd, onCancel }: {
-    onAdd: (entry: OutsourcedEntry) => void;
-    onCancel: () => void;
-}) {
-    const { t } = useTranslation();
-    const [name, setName] = useState('');
-    const [role, setRole] = useState('Technician');
-    const roles = ['Technician', 'Assembler', 'Team Leader', 'Foreman', 'Operator', 'Other'];
-
-    return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <UserPlus size={18} className="text-purple-500" /> {t('attendance.outsourced.title')}
-                    </h3>
-                    <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
-                </div>
-                <p className="text-sm text-gray-500">{t('attendance.outsourced.desc')}</p>
-                <div className="space-y-3">
-                    <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('attendance.outsourced.fullname')}</label>
-                        <input
-                            autoFocus
-                            type="text"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            placeholder="e.g. Carlos Perez"
-                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-400 outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('attendance.outsourced.role')}</label>
-                        <select
-                            value={role}
-                            onChange={e => setRole(e.target.value)}
-                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-400 outline-none appearance-none bg-white"
-                        >
-                            {roles.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                    </div>
-                </div>
-                <div className="flex gap-3 pt-1">
-                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">{t('common.cancel')}</button>
-                    <button
-                        onClick={() => {
-                            if (!name.trim()) return;
-                            onAdd({ tempId: `OUT-${Date.now()}`, name: name.trim(), role });
-                        }}
-                        disabled={!name.trim()}
-                        className="flex-1 py-3 rounded-xl bg-purple-500 text-white text-sm font-bold disabled:opacity-40"
-                    >
-                        {t('attendance.outsourced.add_to_list')}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 // ─── BatchConfirmModal ────────────────────────────────────────────────────────
 
@@ -300,7 +160,6 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                     <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
                 </div>
 
-                {/* Scrollable person list */}
                 <div className="overflow-y-auto flex-1">
                     <div className="px-6 pt-4 pb-2">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -328,7 +187,6 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                         </div>
                     </div>
 
-                    {/* GPS */}
                     <div className="px-6 pt-3 pb-2">
                         <div className="flex justify-center">
                             <GpsBadge gps={gps} />
@@ -338,7 +196,6 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                         )}
                     </div>
 
-                    {/* Signature pad */}
                     <div className="px-6 pb-5">
                         <SignaturePad
                             onSign={(b: string) => setSigBlob(b)}
@@ -347,7 +204,6 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                     </div>
                 </div>
 
-                {/* Footer actions */}
                 <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
                     <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">{t('common.cancel')}</button>
                     <button
@@ -392,7 +248,7 @@ function ManualAdjustModal({ punchType, onConfirm, onCancel }: {
                 </p>
                 <div className="space-y-3">
                     <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('common.date')}</label> {/* actually time, but t('common.date') is often date/time context. I'll use hardcoded 'Time' or add it. Wait, I'll use common.at or similar. or just "Time" if no key. I'll use hardcoded since I didn't add it. No, I'll add "time" to attendance or common. */}
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('common.date')}</label>
                         <input type="time" value={time} onChange={e => setTime(e.target.value)}
                             className="w-full border border-gray-200 rounded-xl px-4 py-3 font-mono focus:ring-2 focus:ring-amber-400 outline-none" />
                     </div>
@@ -413,8 +269,6 @@ function ManualAdjustModal({ punchType, onConfirm, onCancel }: {
     );
 }
 
-// (BatchPunchScreen removed — replaced by multi-select list + BatchConfirmModal)
-
 // ─── BatchModeView ────────────────────────────────────────────────────────────
 
 function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPunch, supervisorId }: {
@@ -426,6 +280,8 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     supervisorId: string;
 }) {
     const { t } = useTranslation();
+    const { getAttendanceState } = useAttendance();
+
     const [selectedProject, setSelectedProject] = useState(() => {
         const assigned = projects.find(p => p.status === 'Active' && p.assignedPersonnel?.includes(supervisorId));
         return assigned?.id ?? '';
@@ -440,7 +296,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
     const activeProjects = projects.filter((p: any) => p.status === 'Active');
 
-    // Build sorted personnel list: assigned to project first, then rest — both groups alpha-sorted
     const sortedPersonnel = useCallback(() => {
         const eligible = personnel.filter(p =>
             ['Tech', 'Supervisor'].includes(p.appRole ?? '') && p.status === 'Active'
@@ -453,8 +308,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         return [...assigned, ...rest];
     }, [personnel, projects, selectedProject]);
 
-    // When project changes: pre-select all assigned personnel + supervisor themselves
-    // Only pre-select people whose current state is 'idle' (avoids auto-selecting someone already on site)
     useEffect(() => {
         if (!selectedProject) {
             setSelectedIds(new Set([supervisorId]));
@@ -466,15 +319,13 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             .filter((p: Personnel) =>
                 assignedIds.includes(p.id) &&
                 ['Tech', 'Supervisor'].includes(p.appRole ?? '') &&
-                getPunchStep(timesheets, p.id) === 'idle' // only pre-check people not yet clocked in
+                getPunchStep(timesheets, p.id) === 'idle'
             )
             .map(p => p.id);
-        // Always include supervisor (regardless of their state — they may be self-clocked in)
         const initial = new Set([...validIds, supervisorId]);
         setSelectedIds(initial);
     }, [selectedProject, projects, personnel, supervisorId]);
 
-    // Success countdown
     useEffect(() => {
         if (screen !== 'success') return;
         if (countdown <= 0) { setScreen('list'); return; }
@@ -490,7 +341,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         });
     };
 
-    // Determine what punch action to perform for a given person
     const getNextAction = (id: string): ClockPunch['type'] => {
         const step = getPunchStep(timesheets, id);
         if (step === 'idle') return 'clockIn';
@@ -498,7 +348,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         return 'clockIn';
     };
 
-    // Determine dominant action for selected people (majority vote)
     const dominantAction = useCallback((): ClockPunch['type'] => {
         const list = [...selectedIds];
         const counts: Record<string, number> = { clockIn: 0, clockOut: 0 };
@@ -507,7 +356,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'clockIn') as ClockPunch['type'];
     }, [selectedIds, timesheets, outsourcedList]);
 
-    // Build entries for the confirm modal
     const buildEntries = (): BatchEntry[] => {
         const action = dominantAction();
         const result: BatchEntry[] = [];
@@ -526,7 +374,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         const entries = buildEntries();
         const action = dominantAction();
         
-        // Safety check: if we are doing a mass "clockIn" but some people are already "clocked-in", confirm first
         if (action === 'clockIn') {
             const alreadyIn = entries.filter(e => getPunchStep(timesheets, e.id) === 'clocked-in');
             if (alreadyIn.length > 0) {
@@ -560,7 +407,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         setCountdown(4);
     }, [gps, selectedIds, timesheets, outsourcedList, selectedProject, doPunch]);
 
-    // ── Success screen
     if (screen === 'success' && lastBatch) {
         return (
             <div className="flex flex-col items-center py-8 gap-5 text-center">
@@ -581,7 +427,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                 <div className="text-xs text-gray-400">{t('attendance.batch.return_countdown', { count: countdown })}</div>
                 <button
                     onClick={() => { setScreen('list'); }}
-                    className="w-full py-3 bg-teal-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-brand-teal text-white rounded-2xl font-bold flex items-center justify-center gap-2"
                 >
                     <Users size={16} /> {t('attendance.batch.back_to_team')}
                 </button>
@@ -589,13 +435,9 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         );
     }
 
-    // ── Main list view
     const sorted = sortedPersonnel();
-    const project = projects.find(p => p.id === selectedProject);
-    const assignedIds: string[] = project?.assignedPersonnel ?? [];
     const selCount = selectedIds.size;
 
-    // Count how many selected people need clock-in vs clock-out for the warning banner
     const actionCounts = (() => {
         const counts: Record<string, number> = { clockIn: 0, clockOut: 0 };
         [...selectedIds].forEach(id => {
@@ -610,7 +452,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
     return (
         <div className="space-y-4 pb-24">
-            {/* Project selector */}
             <div className="relative">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.select_project')}</label>
                 <div className="relative">
@@ -628,7 +469,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
             <div className="flex justify-center"><GpsBadge gps={gps} /></div>
 
-            {/* Team list */}
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -643,151 +483,64 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Registered personnel */}
                     {sorted.length === 0 && outsourcedList.length === 0 && (
                         <div className="text-center py-10 text-gray-400">
                             <Users size={36} className="mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">{t('templates.scopes.empty' /* placeholder or add key */)}</p>
+                            <p className="text-sm">{t('templates.scopes.empty')}</p>
                         </div>
                     )}
-                    {sorted.map((person: any, idx: number) => {
-                        const step = getPunchStep(timesheets, person.id);
-                        const meta = getStepMeta(t)[step];
-                        const isChecked = selectedIds.has(person.id);
-                        const isAssigned = assignedIds.includes(person.id);
-                        const isSelf = person.id === supervisorId;
-                        const finishedToday = hasFinishedShiftToday(timesheets, person.id);
-
-                        let displayLabel = meta.label;
-                        if (step === 'clocked-in') {
-                            const activeSession = timesheets.find((ts: any) => ts.personnelId === person.id && ts.timeIn && !ts.timeOut);
-                            if (activeSession && activeSession.projectId) {
-                                const activeProject = projects.find((p: any) => p.id === activeSession.projectId);
-                                if (activeProject) {
-                                    displayLabel = `${displayLabel} @ ${activeProject.name}`;
-                                }
-                            }
-                        }
+                    {sorted.map((p: any, idx: number) => {
+                        const isChecked = selectedIds.has(p.id);
+                        const state = getAttendanceState(p.id);
+                        const meta = getStepMeta(t)[state];
+                        const hasExpired = p.certifications?.some((c: any) => isCertExpired(c.expirationDate));
 
                         return (
                             <div
-                                key={person.id}
-                                onClick={() => toggleId(person.id)}
-                                className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                                key={p.id}
+                                onClick={() => toggleId(p.id)}
+                                className={`flex flex-col gap-2 px-4 py-3 transition-colors ${
                                     idx > 0 ? 'border-t border-gray-50' : ''
-                                } ${
-                                    isChecked ? 'bg-teal-50/60 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'
-                                }`}
+                                } ${isChecked ? 'bg-teal-50/60' : 'hover:bg-gray-50'}`}
                             >
-                                {/* Checkbox */}
-                                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
-                                    isChecked ? 'bg-teal-500 border-teal-500' : 'border-gray-300 bg-white'
-                                }`}>
-                                    {isChecked && <Check size={12} className="text-white" strokeWidth={3} />}
-                                </div>
-
-                                {/* Avatar initials */}
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                                    isSelf ? 'bg-purple-100 text-purple-700' :
-                                    isAssigned ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                    {person.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                                </div>
-
-                                {/* Name + role */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="font-semibold text-sm text-gray-800 leading-tight">{person.name}</span>
-                                        {isSelf && (
-                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">{t('attendance.labels.you')}</span>
-                                        )}
-                                        {isAssigned && !isSelf && (
-                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">{t('attendance.labels.assigned')}</span>
-                                        )}
+                                {hasExpired && (
+                                    <div className="px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+                                        <AlertTriangle size={10} className="text-amber-600" />
+                                        <span className="text-[9px] font-bold text-amber-700 uppercase">{t('reports.labor_section.expired_certs_tag')}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-[11px] text-gray-400 mt-0.5">{person.position}</p>
-                                        {/* Show what will happen if this person is checked in a mixed batch */}
-                                        {isChecked && hasMixedActions && (() => {
-                                            const nextA = getNextAction(person.id);
-                                            const labelMap = {
-                                                clockIn: t('attendance.punches.will_in'),
-                                                clockOut: t('attendance.punches.will_out'),
-                                            };
-                                            const label = labelMap[nextA];
-                                            const color = nextA === 'clockIn' ? 'text-teal-500' : 'text-red-400';
-                                            return <span className={`text-[10px] font-semibold mt-0.5 ${color}`}>{label}</span>;
-                                        })()}
-                                        {/* Warn if already clocked-in but selected in a check-in batch */}
-                                        {step === 'clocked-in' && !isChecked && (
-                                            <span className="text-[10px] text-amber-500 font-medium mt-0.5">{t('attendance.status.already_on_site')}</span>
-                                        )}
+                                )}
+                                <div className="flex items-center gap-3 cursor-pointer">
+                                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${isChecked ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
+                                        {isChecked && <Check size={12} className="text-white" />}
                                     </div>
-                                </div>
-
-                                {/* Status badge */}
-                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                    <span 
-                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full max-w-[120px] truncate ${meta.bg} ${meta.text}`}
-                                        title={displayLabel}
-                                    >
-                                        {meta.dot} {displayLabel}
+                                    <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+                                        {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : p.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-sm text-gray-800">{p.name}</p>
+                                        <p className="text-[10px] text-gray-400">{p.position}</p>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.bg} ${meta.text}`}>
+                                        {meta.dot} {meta.label}
                                     </span>
-                                    {finishedToday && step === 'idle' && (
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-md flex items-center gap-1">
-                                            <CheckCircle size={10} /> {t('attendance.status.done')}
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                         );
                     })}
 
-                    {/* Outsourced entries */}
-                    {outsourcedList.map((o: any, idx: number) => {
+                    {outsourcedList.map((o: any) => {
                         const isChecked = selectedIds.has(o.tempId);
-                        const baseIdx = sorted.length + idx;
                         return (
-                            <div
-                                key={o.tempId}
-                                className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                                    baseIdx > 0 ? 'border-t border-gray-50' : ''
-                                } ${
-                                    isChecked ? 'bg-purple-50/60 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'
-                                }`}
-                            >
-                                {/* Checkbox */}
-                                <div
-                                    onClick={() => toggleId(o.tempId)}
-                                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
-                                        isChecked ? 'bg-purple-500 border-purple-500' : 'border-gray-300 bg-white'
-                                    }`}
-                                >
-                                    {isChecked && <Check size={12} className="text-white" strokeWidth={3} />}
+                            <div key={o.tempId} className={`flex items-center gap-3 px-4 py-3 border-t border-gray-50 ${isChecked ? 'bg-purple-50/60' : ''}`}>
+                                <div onClick={() => toggleId(o.tempId)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${isChecked ? 'bg-purple-500 border-purple-500' : 'border-gray-300'}`}>
+                                    {isChecked && <Check size={12} className="text-white" />}
                                 </div>
-
-                                {/* Avatar */}
-                                <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold shrink-0">
-                                    {o.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">{o.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-sm text-gray-800">{o.name}</p>
+                                    <p className="text-[10px] text-gray-400">{o.role}</p>
                                 </div>
-
-                                {/* Name + role */}
-                                <div className="flex-1 min-w-0" onClick={() => toggleId(o.tempId)}>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="font-semibold text-sm text-gray-800">{o.name}</span>
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">{t('attendance.labels.outsourced')}</span>
-                                    </div>
-                                    <p className="text-[11px] text-gray-400 mt-0.5">{o.role}</p>
-                                </div>
-
-                                {/* Remove */}
-                                <button
-                                    onClick={() => {
-                                        setOutsourcedList(prev => prev.filter(x => x.tempId !== o.tempId));
-                                        setSelectedIds(prev => { const n = new Set(prev); n.delete(o.tempId); return n; });
-                                    }}
-                                    className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
-                                >
+                                <button onClick={() => { setOutsourcedList(prev => prev.filter(x => x.tempId !== o.tempId)); setSelectedIds(prev => { const n = new Set(prev); n.delete(o.tempId); return n; }); }} className="p-1.5 text-gray-300 hover:text-red-400">
                                     <Trash2 size={14} />
                                 </button>
                             </div>
@@ -796,35 +549,25 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                 </div>
             </div>
 
-            {/* Floating action bar */}
             {selCount > 0 && (
                 <div className="fixed bottom-20 md:bottom-6 left-4 right-4 max-w-lg mx-auto z-30">
                     <div className="bg-gray-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
                             <p className="text-white font-bold text-sm">{t('attendance.labels.selected', { count: selCount })}</p>
                             {hasMixedActions ? (
-                                <p className="text-amber-400 text-xs font-semibold">
-                                    {t('attendance.batch.mixed_warning', { 
-                                        counts: `${actionCounts.clockIn > 0 ? `${actionCounts.clockIn} ${t('attendance.labels.action_in').toLowerCase()}` : ''}${actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}${actionCounts.clockOut > 0 ? `${actionCounts.clockOut} ${t('attendance.labels.action_out').toLowerCase()}` : ''}`
-                                    })}
-                                </p>
+                                <p className="text-amber-400 text-xs font-semibold">{t('attendance.batch.mixed_warning')}</p>
                             ) : (
                                 <p className="text-gray-400 text-xs">{t('attendance.labels.deselect_hint')}</p>
                             )}
                         </div>
                         <button
                             onClick={() => setShowConfirm(true)}
-                            className={`flex items-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold text-sm transition-colors ${
-                                hasMixedActions ? 'bg-amber-500 hover:bg-amber-400' : 'bg-teal-500 hover:bg-teal-400'
-                            }`}
+                            className={`flex items-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold text-sm transition-colors ${hasMixedActions ? 'bg-amber-500' : 'bg-teal-500'}`}
                         >
                             <LogIn size={15} />
                             {(() => {
                                 const a = dominantAction();
-                                const labelMap = {
-                                    clockIn: t('attendance.labels.action_in'),
-                                    clockOut: t('attendance.labels.action_out'),
-                                };
+                                const labelMap = { clockIn: t('attendance.labels.action_in'), clockOut: t('attendance.labels.action_out') };
                                 return labelMap[a];
                             })()} {selCount}
                         </button>
@@ -834,13 +577,13 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
             {/* Modals */}
             {showAddOutsourced && (
-                <AddOutsourcedModal
-                    onAdd={entry => {
-                        setOutsourcedList(prev => [...prev, entry]);
-                        setSelectedIds(prev => new Set([...prev, entry.tempId]));
-                        setShowAddOutsourced(false);
+                <QuickAddWorker 
+                    open={showAddOutsourced} 
+                    onOpenChange={setShowAddOutsourced} 
+                    onSuccess={(id, name, role) => {
+                        setOutsourcedList(prev => [...prev, { tempId: id, name, role }]);
+                        setSelectedIds(prev => new Set([...prev, id]));
                     }}
-                    onCancel={() => setShowAddOutsourced(false)}
                 />
             )}
             {showConfirm && (

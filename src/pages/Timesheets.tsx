@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore, TimesheetEntry } from '../store/useStore';
-import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { SignatureCanvasBox } from '../components/report/MultisignaturePad';
+import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { isCertExpired } from '../utils/datetime.utils';
+import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
 import {
     Dialog,
     DialogContent,
@@ -505,11 +506,12 @@ export default function Timesheets() {
                                                 <button onClick={() => setSignatureBlob('')} className="absolute top-2 right-2 p-1.5 bg-red-100 text-red-600 font-bold text-xs rounded-md shadow-sm transition-opacity">{t('timesheets.modals.clear')}</button>
                                             </div>
                                         ) : (
-                                            <div className="h-32 bg-white border border-dashed border-gray-300 rounded-xl relative overflow-hidden group">
-                                                <SignatureCanvasBox onSign={(blob) => setSignatureBlob(blob)} />
-                                                <div className="absolute inset-x-0 bottom-4 pointer-events-none text-center opacity-30">
-                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t('timesheets.modals.sign_here')}</span>
-                                                </div>
+                                            <div className="bg-white border border-dashed border-gray-300 rounded-xl relative overflow-hidden group p-4">
+                                                <UnifiedSignaturePad 
+                                                    onSign={(blob) => setSignatureBlob(blob)} 
+                                                    onClear={() => setSignatureBlob('')}
+                                                    placeholder={t('timesheets.modals.sign_here')}
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -679,7 +681,18 @@ export default function Timesheets() {
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm font-bold text-accent-greyDark whitespace-nowrap">
-                                                {getPersonnelName(entry.personnelId)}
+                                                <div className="flex flex-col">
+                                                    <span>{getPersonnelName(entry.personnelId)}</span>
+                                                    {(() => {
+                                                        const p = personnel.find(px => px.id === entry.personnelId);
+                                                        const hasExpired = p?.certifications?.some(c => isCertExpired(c.expirationDate));
+                                                        return hasExpired ? (
+                                                            <span className="text-[9px] font-bold text-amber-600 uppercase flex items-center gap-1 mt-0.5">
+                                                                <AlertTriangle size={10} /> {t('reports.labor_section.expired_certs_tag')}
+                                                            </span>
+                                                        ) : null;
+                                                    })()}
+                                                </div>
                                             </td>
                                             <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
                                                 {entry.timeIn && entry.timeOut ? `${entry.timeIn} - ${entry.timeOut}` : '-'}
@@ -933,7 +946,14 @@ export default function Timesheets() {
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-bold text-accent-greyDark leading-none">{p.name}</p>
-                                                        <p className="text-[10px] text-gray-500 font-medium uppercase mt-1">{p.position}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <p className="text-[10px] text-gray-500 font-medium uppercase">{p.position}</p>
+                                                            {p.certifications?.some((c: any) => isCertExpired(c.expirationDate)) && (
+                                                                <span className="text-[9px] font-bold text-amber-600 uppercase flex items-center gap-1">
+                                                                    <AlertTriangle size={10} /> {t('reports.labor_section.expired_certs_tag')}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1003,14 +1023,15 @@ export default function Timesheets() {
                                 time: batchTime
                             })}
                         </p>
-                        <div className="h-48 bg-white border-2 border-dashed border-gray-200 rounded-2xl relative overflow-hidden group">
-                            <SignatureCanvasBox onSign={(blob) => {
-                                setBatchSignatures({ ...batchSignatures, [signingPersonnelId!]: blob });
-                                setSigningPersonnelId(null);
-                            }} />
-                            <div className="absolute inset-x-0 bottom-4 pointer-events-none text-center opacity-20">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{t('timesheets.modals.worker_signature')}</span>
-                            </div>
+                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl relative overflow-hidden group p-4">
+                            <UnifiedSignaturePad 
+                                onSign={(blob) => {
+                                    setBatchSignatures({ ...batchSignatures, [signingPersonnelId!]: blob });
+                                    setSigningPersonnelId(null);
+                                }} 
+                                onClear={() => {}}
+                                placeholder={t('attendance.signature.sign_here')}
+                            />
                         </div>
                         <Button variant="outline" className="w-full rounded-xl" onClick={() => setSigningPersonnelId(null)}>{t('common.cancel')}</Button>
                     </div>

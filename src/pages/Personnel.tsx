@@ -585,26 +585,28 @@ export default function Personnel() {
                                                                     value={assignedProject?.id || ''}
                                                                     onChange={(e) => {
                                                                         const newProjectId = e.target.value;
-                                                                        // Logic to change project
                                                                         const oldProject = projects.find(p => p.assignedPersonnel?.includes(selectedPerson.id));
+                                                                        
+                                                                        // 1. Remove from old project
                                                                         if (oldProject) {
                                                                             updateProject(oldProject.id, { 
                                                                                 assignedPersonnel: (oldProject.assignedPersonnel || []).filter(id => id !== selectedPerson.id) 
                                                                             });
                                                                         }
+
+                                                                        // 2. Handle new assignment
                                                                         if (newProjectId) {
                                                                             const p = projects.find(proj => proj.id === newProjectId);
                                                                             if (p) {
                                                                                 updateProject(newProjectId, { 
-                                                                                    assignedPersonnel: [...(p.assignedPersonnel || []), selectedPerson.id],
-                                                                                    // Inherit Prevailing Wage if project has it
-                                                                                    prevailingWage: p.prevailingWage
+                                                                                    assignedPersonnel: [...(p.assignedPersonnel || []), selectedPerson.id]
                                                                                 });
-                                                                                // If project is prevailing wage, set personnel as well
-                                                                                if (p.prevailingWage) {
-                                                                                    updatePersonnel(selectedPerson.id, { prevailingWage: true });
-                                                                                }
+                                                                                // Inherit PW flag from project (M-01)
+                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: !!p.prevailingWage });
                                                                             }
+                                                                        } else {
+                                                                            // 3. Clear PW flag if unassigned (M-01)
+                                                                            updatePersonnel(selectedPerson.id, { prevailingWage: false });
                                                                         }
                                                                     }}
                                                                 >
