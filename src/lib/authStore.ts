@@ -241,7 +241,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                         .eq('id', currentProfile.id);
                     
                     if (!dbError) {
-                        // LATNOVVA SYSTEM OPS // v2.5.4
+                        // LATNOVVA SYSTEM OPS // v2.5.8
                         set({ profile: { ...currentProfile, name } });
                         // Also update the main store personnel list to reflect name change globally
                         useStore.getState().updatePersonnel(currentProfile.id, { name });
