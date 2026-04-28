@@ -319,7 +319,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             .filter((p: Personnel) =>
                 assignedIds.includes(p.id) &&
                 ['Tech', 'Supervisor'].includes(p.appRole ?? '') &&
-                (getPunchStep(timesheets, p.id) === 'idle' || getPunchStep(timesheets, p.id) === 'clocked-in')
+                getPunchStep(timesheets, p.id) === 'idle'
             )
             .map(p => p.id);
         const initial = new Set([...validIds, supervisorId]);
@@ -560,12 +560,16 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             </div>
 
             {selCount > 0 && (
-                <div className="fixed bottom-20 md:bottom-6 left-4 right-4 max-w-lg mx-auto z-30">
+                <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-30">
                     <div className="bg-gray-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
                             <p className="text-white font-bold text-sm">{t('attendance.labels.selected', { count: selCount })}</p>
                             {hasMixedActions ? (
-                                <p className="text-amber-400 text-xs font-semibold">{t('attendance.batch.mixed_warning')}</p>
+                                <p className="text-amber-400 text-[10px] font-semibold">
+                                    {t('attendance.batch.mixed_warning', { 
+                                        counts: `${actionCounts.clockIn} IN / ${actionCounts.clockOut} OUT` 
+                                    })}
+                                </p>
                             ) : (
                                 <p className="text-gray-400 text-xs">{t('attendance.labels.deselect_hint')}</p>
                             )}
@@ -821,7 +825,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 // ─── Main ClockIn Page ────────────────────────────────────────────────────────
 
 export default function ClockIn() {
-    const { userId, userRole, projects, personnel, timesheets, clockPunch } = useStore();
+    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance } = useStore();
+
+    useEffect(() => {
+        refreshAttendance();
+        // Periodically refresh every 30 seconds while in ClockIn view to ensure real-time status
+        const id = setInterval(() => refreshAttendance(), 30000);
+        return () => clearInterval(id);
+    }, [refreshAttendance]);
 
     // GPS state with satellite timestamp
     const [gps, setGps] = useState<GpsState>({

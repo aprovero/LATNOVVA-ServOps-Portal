@@ -454,6 +454,7 @@ interface AppState {
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     checkZombieSessions: () => Promise<void>;
+    refreshAttendance: () => Promise<void>;
     initializeGlobalTemplates: () => Promise<void>;
     // Sync Queue Management
     pendingSync: PendingSyncItem[];
@@ -1109,6 +1110,36 @@ export const useStore = create<AppState>()(
 
                 } catch (error) {
                     console.error('Failed to init DB from Supabase', error);
+                }
+            },
+            refreshAttendance: async () => {
+                try {
+                    const { data: timesheetsDB } = await supabase.from('timesheets').select('*');
+                    if (timesheetsDB) {
+                        set({
+                            timesheets: timesheetsDB.map(t => ({
+                                id: t.id,
+                                personnelId: t.personnel_id,
+                                projectId: t.project_id,
+                                date: t.date,
+                                timeIn: t.time_in,
+                                timeOut: t.time_out,
+                                hours: t.hours,
+                                type: t.type,
+                                classification: t.classification,
+                                notes: t.notes,
+                                status: t.status,
+                                approvedBy: t.approved_by,
+                                signature: t.signature,
+                                punches: t.punches || [],
+                                gpsVerified: t.gps_verified,
+                                source: (t as any).source || 'manual',
+                                manualReason: (t as any).manual_reason,
+                            }))
+                        });
+                    }
+                } catch (e) {
+                    console.error('[Sync] Failed to refresh attendance:', e);
                 }
             },
             dismissNotification: (id) => set((state) => ({
