@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useStore, ClockPunch, Personnel } from '../store/useStore';
 import { formatTime } from '../lib/utils';
+import { Badge } from '../components/ui/badge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,18 +48,16 @@ function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'dev
     return { iso: new Date().toISOString(), source: 'device' };
 }
 
-/** Derives punch step for ANY person from persisted timesheets — works on reload */
 function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
-    // 1. Look for any active session (in with no out) across any date (H-01 Persistence)
+    // Look for any active session (in with no out) across any date
     const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
     if (openEntry) return 'clocked-in';
-    
-    // 2. Otherwise, check if they finished today
-    const today = getLocalDate();
-    const finishedToday = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut);
-    if (finishedToday) return 'clocked-out';
-    
     return 'idle';
+}
+
+function hasFinishedShiftToday(timesheets: any[], personnelId: string): boolean {
+    const today = getLocalDate();
+    return timesheets.some((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut);
 }
 
 const getStepMeta = (t: any): Record<PunchStep, { label: string; dot: string; bg: string; text: string }> => ({
@@ -657,7 +656,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                         const isChecked = selectedIds.has(person.id);
                         const isAssigned = assignedIds.includes(person.id);
                         const isSelf = person.id === supervisorId;
-                        const doneFoDay = step === 'clocked-out';
+                        const finishedToday = hasFinishedShiftToday(timesheets, person.id);
 
                         let displayLabel = meta.label;
                         if (step === 'clocked-in') {
@@ -673,11 +672,10 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                         return (
                             <div
                                 key={person.id}
-                                onClick={() => !doneFoDay && toggleId(person.id)}
+                                onClick={() => toggleId(person.id)}
                                 className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                                     idx > 0 ? 'border-t border-gray-50' : ''
                                 } ${
-                                    doneFoDay ? 'opacity-50 cursor-not-allowed' :
                                     isChecked ? 'bg-teal-50/60 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'
                                 }`}
                             >
@@ -728,12 +726,19 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                 </div>
 
                                 {/* Status badge */}
-                                <span 
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 max-w-[120px] truncate ${meta.bg} ${meta.text}`}
-                                    title={displayLabel}
-                                >
-                                    {meta.dot} {displayLabel}
-                                </span>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <span 
+                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full max-w-[120px] truncate ${meta.bg} ${meta.text}`}
+                                        title={displayLabel}
+                                    >
+                                        {meta.dot} {displayLabel}
+                                    </span>
+                                    {finishedToday && step === 'idle' && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-md flex items-center gap-1">
+                                            <CheckCircle size={10} /> {t('attendance.status.done')}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -861,9 +866,10 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 }) {
     const { t } = useTranslation();
     const today = getLocalDate(getBestDate(gps));
-    const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today);
+    const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut); // find a finished one for summary
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
     const step = getPunchStep(timesheets, personnelId);
+    const hasFinishedToday = hasFinishedShiftToday(timesheets, personnelId);
 
     const [selectedProject, setSelectedProject] = useState(() => {
         if (todayEntry?.projectId) return todayEntry.projectId;
@@ -895,39 +901,27 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
     return (
         <div className="space-y-5">
-            {/* Day complete summary — L-02: project name + GPS */}
-            {step === 'clocked-out' && todayEntry && (
-                <div className="bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl p-5 shadow-lg text-white">
-                    <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle size={20} /><span className="font-bold text-lg">{t('attendance.status.done')}</span>
+            {/* Day complete summary — Only show if they actually finished a shift today and aren't currently clocked in */}
+            {hasFinishedToday && step === 'idle' && todayEntry && (
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-lg text-white mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle size={20} /><span className="font-bold text-lg">{t('attendance.status.done')}</span>
+                        </div>
+                        <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">{t('attendance.status.worked_today', 'Shift Completed')}</Badge>
                     </div>
                     {/* Project name */}
-                    {selectedProject && (
-                        <p className="text-teal-200 text-xs mb-4 flex items-center gap-1">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>
-                            {projects.find((p: any) => p.id === selectedProject)?.name ?? selectedProject}
+                    {todayEntry.projectId && (
+                        <p className="text-emerald-100 text-xs mb-4 flex items-center gap-1">
+                            <Clock size={12} />
+                            {projects.find((p: any) => p.id === todayEntry.projectId)?.name ?? todayEntry.projectId}
                         </p>
                     )}
                     <div className="grid grid-cols-3 gap-3 text-sm">
-                        <div><p className="text-teal-200 text-xs">{t('attendance.punches.clockIn')}</p><p className="font-bold text-lg">{todayEntry.timeIn ?? '—'}</p></div>
-                        <div><p className="text-teal-200 text-xs">{t('attendance.punches.clockOut')}</p><p className="font-bold text-lg">{todayEntry.timeOut ?? '—'}</p></div>
-                        <div><p className="text-teal-200 text-xs">{t('projects.table.reported_time')}</p><p className="font-bold text-2xl">{todayEntry.hours.toFixed(2)}</p></div>
+                        <div><p className="text-emerald-100 text-xs">{t('attendance.punches.clockIn')}</p><p className="font-bold text-lg">{todayEntry.timeIn ?? '—'}</p></div>
+                        <div><p className="text-emerald-100 text-xs">{t('attendance.punches.clockOut')}</p><p className="font-bold text-lg">{todayEntry.timeOut ?? '—'}</p></div>
+                        <div><p className="text-emerald-100 text-xs">{t('projects.table.reported_time')}</p><p className="font-bold text-2xl">{todayEntry.hours.toFixed(2)}</p></div>
                     </div>
-                    {/* GPS coordinates from last clockOut punch */}
-                    {(() => {
-                        const lastOut = (todayEntry.punches ?? []).filter((p: any) => p.type === 'clockOut').slice(-1)[0];
-                        if (!lastOut || lastOut.lat === 0) return null;
-                        return (
-                            <a
-                                href={`https://maps.google.com/?q=${lastOut.lat},${lastOut.lng}`}
-                                target="_blank" rel="noreferrer"
-                                className="mt-3 flex items-center gap-1.5 text-teal-200 hover:text-white text-[10px] font-mono transition-colors"
-                            >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                                {lastOut.lat.toFixed(5)}, {lastOut.lng.toFixed(5)} ±{Math.round(lastOut.accuracy ?? 0)}m
-                            </a>
-                        );
-                    })()}
                 </div>
             )}
 
@@ -950,13 +944,17 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     {!gpsReady && gps.status === 'acquiring' && (
                         <p className="text-center text-sm text-blue-500 animate-pulse">{t('attendance.gps.waiting')}</p>
                     )}
-                    {/* C-04: Warn if no project selected */}
-                    {!selectedProject && (
-                        <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500">
-                            <AlertTriangle size={15} className="text-gray-400 shrink-0" />
-                            <span>{t('attendance.project_placeholder')}</span>
+                    {/* Warning if already worked today */}
+                    {hasFinishedToday && (
+                        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-2xl text-blue-800 text-sm animate-in slide-in-from-top-1 duration-300">
+                            <Clock className="text-blue-500 shrink-0" size={20} />
+                            <div>
+                                <p className="font-bold">{t('attendance.alerts.double_shift', 'Starting a new shift?')}</p>
+                                <p className="text-xs text-blue-600/80">{t('attendance.alerts.shift_exists_desc', 'You already have a completed timesheet for today.')}</p>
+                            </div>
                         </div>
                     )}
+
                     {/* M-01: GPS denied — amber enabled button, opens manual modal automatically */}
                     {gpsDenied ? (
                         <>
@@ -969,13 +967,16 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 disabled={!selectedProject}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                <LogIn size={26} /> {t('attendance.punches.action_in')} ({t('common.other')})
+                                <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.punches.action_in')} (${t('common.other')})`}
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => executePunch('clockIn')} disabled={!gpsReady || !selectedProject}
+                        <button onClick={() => {
+                            if (hasFinishedToday && !window.confirm(t('attendance.alerts.double_shift'))) return;
+                            executePunch('clockIn');
+                        }} disabled={!gpsReady || !selectedProject}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
-                            <LogIn size={26} /> {t('attendance.punches.action_in')}
+                            <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.punches.action_in')}
                         </button>
                     )}
                     {gps.status === 'poor' && (

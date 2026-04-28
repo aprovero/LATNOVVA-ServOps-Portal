@@ -84,7 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
             // Handle "Invalid Refresh Token" or "Refresh Token Not Found"
             // If Supabase encounters a catastrophic refresh failure, we must purge local state.
             if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !newSession)) {
-                useStore.getState().setAuthData('', '');
+                useStore.getState().resetDb();
                 set({ session: null, user: null, profile: null, loading: false });
                 return;
             }
@@ -102,7 +102,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 return;
             }
 
-            // ── STEP 1: Unblock the router immediately ───────────────────────
+            // ── STEP 1: Unblock the router and Sync App Data ─────────────────
+            useStore.getState().initDb();
             useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
             set({ session: newSession, user: newSession.user, loading: false });
 
@@ -163,15 +164,55 @@ export const useAuthStore = create<AuthState>((set, get) => {
         },
 
         signOut: async () => {
-            // Immediate local clear to unblock UI
-            set({ session: null, user: null, identity: null, profile: null, loading: false });
-            useStore.getState().setAuthData('', '');
+            console.log('[Auth] Initiating sign out sequence...');
             
-            // Clear any lingering locks or state in background
+            // ── STEP 1: Handle Active Clock-In ──────────────────────────────
+            const store = useStore.getState();
+            const myPersonId = store.resolvePersonnelId();
+            if (myPersonId) {
+                const activeSession = store.timesheets.find(t => t.personnelId === myPersonId && t.timeIn && !t.timeOut);
+                if (activeSession) {
+                    console.log('[Auth] Active session found. Auto clocking out...');
+                    try {
+                        await store.clockPunch(myPersonId, {
+                            timestamp: new Date().toISOString(),
+                            lat: 0,
+                            lng: 0,
+                            accuracy: 0,
+                            type: 'clockOut',
+                            timeSource: 'device',
+                            manualAdjustment: true,
+                            adjustmentNote: 'System auto-logout (Session Terminated)'
+                        });
+                    } catch (err) {
+                        console.error('[Auth] Failed to auto clock-out:', err);
+                    }
+                }
+            }
+
+            // ── STEP 2: Clear Local Stores ──────────────────────────────────
+            set({ session: null, user: null, identity: null, profile: null, loading: false });
+            store.resetDb();
+            
+            // ── STEP 3: Clear Storage Hard Link ──────────────────────────────
+            // This force-kills GoTrue locks and stale tokens that cause "nothing happens" loops.
             try {
-                await supabase.auth.signOut();
+                const keys = Object.keys(localStorage);
+                keys.forEach(k => {
+                    if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
+                        localStorage.removeItem(k);
+                    }
+                });
+            } catch (e) {
+                console.warn('[Auth] Failed to purge localStorage:', e);
+            }
+
+            // ── STEP 4: Supabase Cloud SignOut ──────────────────────────────
+            try {
+                // Non-blocking call — session is already cleared locally.
+                supabase.auth.signOut().catch(() => {});
             } catch {
-                // Ignore — session is already cleared locally
+                // Ignore — local state is primary
             }
         },
 

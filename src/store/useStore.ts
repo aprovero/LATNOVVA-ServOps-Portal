@@ -437,6 +437,11 @@ interface AppState {
     setMicrosoftAuth: (auth: Partial<AppState['microsoftAuth']>) => void;
     language: 'en' | 'es';
     setLanguage: (lang: 'en' | 'es') => void;
+    platformSettings: {
+        shiftLengthThreshold: number;
+        enableShiftNotifications: boolean;
+    };
+    updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     initializeGlobalTemplates: () => Promise<void>;
 }
 
@@ -777,6 +782,13 @@ export const useStore = create<AppState>()(
                 set({ language: lang });
                 import('../i18n').then(m => m.default.changeLanguage(lang));
             },
+            platformSettings: {
+                shiftLengthThreshold: 8,
+                enableShiftNotifications: true,
+            },
+            updatePlatformSettings: (settings) => set((state) => ({
+                platformSettings: { ...state.platformSettings, ...settings }
+            })),
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
@@ -933,12 +945,19 @@ export const useStore = create<AppState>()(
             })),
             resetDb: () => {
                 set(() => ({
+                    userRole: 'Tech',
+                    userId: '',
+                    userEmail: '',
+                    clientId: null,
                     clients: [],
                     projects: [],
                     reports: [],
                     personnel: [],
                     tools: [],
                     timesheets: [],
+                    subReportInstances: [],
+                    dismissedNotifications: [],
+                    microsoftAuth: { isAuthenticated: false }
                 }));
             },
             /** Returns the display name of the currently logged-in user (H-02). 
@@ -1550,35 +1569,38 @@ export const useStore = create<AppState>()(
                     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
                 };
 
-                let existingBefore = get().timesheets.find(
-                    t => t.personnelId === personnelId && t.date === today
+                // C-01 IMPROVEMENT: Find an ACTIVE session (no timeOut)
+                let existing = get().timesheets.find(
+                    t => t.personnelId === personnelId && t.timeIn && !t.timeOut
                 );
 
-                if (punch.type === 'clockOut' && (!existingBefore || existingBefore.timeOut)) {
-                    const openEntry = [...get().timesheets]
+                // For clockOut, if we didn't find one by personnelId alone, we might need to be more aggressive
+                // (though usually one per person is the rule)
+                if (punch.type === 'clockOut' && !existing) {
+                    existing = [...get().timesheets]
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
-                    if (openEntry) existingBefore = openEntry;
                 }
                 
-                const isNewEntry = !existingBefore;
+                // If clocking IN and we already have an active session, don't create a new one — update it? 
+                // Actually, if they are already IN, the UI should prevent another IN. 
+                // But for robustness, if punch is clockIn and we have an active session, we'll just append the punch.
+                
+                const isNewEntry = !existing && punch.type === 'clockIn';
 
                 set((state) => {
-                    // C-01 IMPROVEMENT: For check-out, find the most recent OPEN entry (no timeOut), regardless of date.
-                    // This handles midnight crossings and missing records for "today".
-                    let existing = state.timesheets.find(
-                        t => t.personnelId === personnelId && t.date === today
+                    // Re-find in current state for the setter
+                    let sessionToUpdate = state.timesheets.find(
+                        t => t.personnelId === personnelId && t.timeIn && !t.timeOut
                     );
-
-                    if (punch.type === 'clockOut' && (!existing || existing.timeOut)) {
-                        // Look for any open entry for this person
-                        const openEntry = [...state.timesheets]
+                    
+                    if (punch.type === 'clockOut' && !sessionToUpdate) {
+                        sessionToUpdate = [...state.timesheets]
                             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                             .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
-                        if (openEntry) existing = openEntry;
                     }
 
-                    const updatedPunches = [...(existing?.punches ?? []), punch];
+                    const updatedPunches = [...(sessionToUpdate?.punches ?? []), punch];
                     const allAccurate = updatedPunches.every(p => p.accuracy <= 50);
 
                     const clockIn = updatedPunches.find(p => p.type === 'clockIn');
@@ -1593,22 +1615,23 @@ export const useStore = create<AppState>()(
                     const entryUpdates: Partial<TimesheetEntry> = {
                         punches: updatedPunches,
                         gpsVerified: allAccurate,
-                        source: 'gps', // H-04: explicit audit flag
+                        source: 'gps',
                         ...(clockIn ? { timeIn: toHHMM(clockIn.timestamp) } : {}),
                         ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
                         ...(computedHours > 0 ? { hours: computedHours } : {}),
                         ...(projectId ? { projectId } : {}),
                     };
 
-                    if (existing) {
+                    if (sessionToUpdate) {
                         return {
                             timesheets: state.timesheets.map(t =>
-                                t.id === existing.id ? { ...t, ...entryUpdates } : t
+                                t.id === sessionToUpdate.id ? { ...t, ...entryUpdates } : t
                             )
                         };
                     } else {
+                        // Create a NEW unique timesheet ID to allow multiple per day
                         const newEntry: TimesheetEntry = {
-                            id: `TS-${personnelId}-${today}`,
+                            id: `TS-${personnelId}-${Date.now()}`,
                             personnelId,
                             date: today,
                             hours: 0,
@@ -1659,9 +1682,6 @@ export const useStore = create<AppState>()(
                             // If online without fetch error, but 0 rows matched (time_out wasn't null)
                             if (!error && data && data.length === 0) {
                                 alert(`Punch Sync Rejected: The worker is already checked out by another device for this shift.`);
-                                if (existingBefore) {
-                                    set(s => ({ timesheets: s.timesheets.map(t => t.id === updated.id ? existingBefore! : t) }));
-                                }
                             } else if (error) {
                                 // standard upsert fallback if there's a weird backend error that isn't network?
                                 // Actually if it is offline, it throws. So it's fine.

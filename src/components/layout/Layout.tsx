@@ -33,7 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setAuthData, tools, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications } = useStore();
+    const { userRole, setAuthData, tools, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -126,20 +126,38 @@ export default function Layout() {
 
     // ── Proactive Shift Check (H-01) ──
     const myPersonId = useStore.getState().resolvePersonnelId();
-    if (myPersonId && ['Tech', 'Supervisor'].includes(userRole)) {
+    if (myPersonId && ['Tech', 'Supervisor'].includes(userRole) && platformSettings.enableShiftNotifications) {
         const activeSession = useStore.getState().timesheets.find(t => t.personnelId === myPersonId && t.timeIn && !t.timeOut);
         if (activeSession && activeSession.punches) {
             const inPunch = activeSession.punches.find(p => p.type === 'clockIn');
             if (inPunch) {
                 const hours = (new Date().getTime() - new Date(inPunch.timestamp).getTime()) / 3600000;
-                if (hours >= 8) {
+                if (hours >= platformSettings.shiftLengthThreshold) {
+                    const notificationId = `long-shift-${myPersonId}-${activeSession.id}`;
+                    const title = t('notifications.long_shift_title', 'HEY!');
+                    const message = t('notifications.long_shift_desc', "Did you forget to check out? You've been working for more than {{hours}} hours.", { hours: platformSettings.shiftLengthThreshold });
+                    
                     notifications.push({
-                        id: `long-shift-${myPersonId}`,
-                        title: t('notifications.long_shift_title', 'HEY!'),
-                        message: t('notifications.long_shift_desc', "Did you forget to check out? You've been working for more than 8 hours."),
+                        id: notificationId,
+                        title,
+                        message,
                         type: 'warning',
                         link: '/clock-in'
                     });
+
+                    // Push Browser Notification if permission granted and not already dismissed
+                    if (!dismissedNotifications.includes(notificationId) && 'Notification' in window && Notification.permission === 'granted') {
+                        // Only trigger if we haven't shown it recently for this specific shift
+                        const lastNotif = sessionStorage.getItem(`notif_${notificationId}`);
+                        if (!lastNotif) {
+                            new Notification(title, {
+                                body: message,
+                                icon: '/pwa-192x192.png',
+                                tag: notificationId
+                            });
+                            sessionStorage.setItem(`notif_${notificationId}`, 'true');
+                        }
+                    }
                 }
             }
         }
@@ -559,7 +577,6 @@ export default function Layout() {
                                         if (!navigator.onLine) {
                                             setIsOfflineLogoutWarningOpen(true);
                                         } else {
-                                            setAuthData('', '');
                                             signOut();
                                         }
                                     }}
@@ -714,7 +731,7 @@ export default function Layout() {
                                     </div>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => { setAuthData('', ''); navigate('/login'); }}>
+                                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => signOut()}>
                                     {t('auth.logout')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

@@ -158,7 +158,7 @@ export default function Personnel() {
 
     // Filter + sort: active first, inactive at bottom
     const filteredPersonnel = personnel
-        .filter(p => p.appRole !== 'Customer')
+        .filter(p => !['Customer', 'HR'].includes(p.appRole || ''))
         .filter(p => {
             if (filterRole === 'All') return true;
             if (filterRole === 'Prevailing Wage') return p.prevailingWage;

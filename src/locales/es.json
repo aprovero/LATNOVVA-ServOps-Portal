@@ -796,9 +796,16 @@
       "not_in": "Sin Entrada",
       "on_site": "En Sitio",
       "already_on_site": "Ya en sitio",
-      "done": "Finalizado"
+      "done": "Finalizado",
+      "worked_today": "Trabajó Hoy"
     },
-    "punches": {
+    "alerts": {
+      "double_shift": "¿Turno completado hoy. Iniciar un nuevo turno?",
+      "shift_exists_desc": "Ya tienes un registro de horas completado para hoy."
+    },
+    "labels": {
+      "start_new_shift": "Iniciar Nuevo Turno",
+      "you": "TÚ",
       "clockIn": "Entrada Registrada",
       "clockOut": "Salida Registrada",
       "action_in": "Entrada",

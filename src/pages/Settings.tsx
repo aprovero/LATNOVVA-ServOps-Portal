@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
 import { useTranslation } from 'react-i18next';
-import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2, Key } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2, Key, Bell, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { 
     msalInstance, 
@@ -19,7 +19,7 @@ export default function Settings() {
     const { t } = useTranslation();
     const { 
         userRole, clients, projects, updateClient, deleteClient, personnel, addPersonnel, deletePersonnel, updatePersonnel, resetDb,
-        sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth, language, setLanguage
+        sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth, language, setLanguage, platformSettings, updatePlatformSettings
     } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
     
@@ -232,6 +232,7 @@ export default function Settings() {
         { id: 'users', name: 'Users', description: 'Access control and roles', icon: Users },
         { id: 'wbs', name: 'WBS Templates', description: 'Standard activities and steps', icon: ListChecks },
         { id: 'cloud', name: 'Cloud Storage', description: 'SharePoint & Central Storage config', icon: Cloud },
+        { id: 'rules', name: 'Platform Rules', description: 'Shift limits and automation rules', icon: ShieldCheck },
         { id: 'system', name: 'Sync Data', description: 'Force refresh environment data', icon: Shield },
     ];
 
@@ -550,6 +551,119 @@ export default function Settings() {
                                 >
                                     {isSaving ? <Loader2 className="animate-spin mr-2" size={20} /> : null}
                                     {t('settings.cloud.save_config')}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : activeTab === 'rules' ? (
+                        <div className="max-w-2xl mx-auto space-y-8 py-6 text-left">
+                            <div>
+                                <h2 className="text-2xl font-bold text-accent-greyDark flex items-center gap-2">
+                                    <ShieldCheck className="text-brand-teal" size={28} />
+                                    Platform Rules & Automation
+                                </h2>
+                                <p className="text-gray-500 mt-1">Configure automated alerts and platform-wide behavior thresholds.</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Shift Notification Card */}
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-orange-100 text-orange-600 rounded-xl">
+                                                <Bell size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-accent-greyDark">Shift Length Alerts</h3>
+                                                <p className="text-sm text-gray-500">Notify users when their active shift exceeds a limit.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableShiftNotifications: true })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${platformSettings.enableShiftNotifications ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                ON
+                                            </button>
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableShiftNotifications: false })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!platformSettings.enableShiftNotifications ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                OFF
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 pt-2">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Alert Threshold (Hours)</Label>
+                                            <div className="flex items-center gap-4">
+                                                <Input 
+                                                    type="number"
+                                                    min="1"
+                                                    max="24"
+                                                    step="0.5"
+                                                    className="h-11 border-gray-200 w-32 font-bold"
+                                                    value={platformSettings.shiftLengthThreshold}
+                                                    onChange={e => updatePlatformSettings({ shiftLengthThreshold: parseFloat(e.target.value) || 8 })}
+                                                />
+                                                <span className="text-sm text-gray-400 font-medium italic">hours of continuous activity</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-xs leading-relaxed flex items-start gap-3">
+                                            <div className="mt-0.5"><Shield size={14} /></div>
+                                            <p>This rule helps prevent users from forgetting to clock out by triggering an in-app and browser alert when the {platformSettings.shiftLengthThreshold}h limit is hit.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Browser Notification Permission Card */}
+                                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center text-brand-teal">
+                                            <Globe size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-accent-greyDark">Browser Notifications</p>
+                                            <p className="text-xs text-gray-400">Receive alerts even when the app is in the background.</p>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        variant="outline" 
+                                        className={`h-11 px-6 font-bold gap-2 ${'Notification' in window && Notification.permission === 'granted' ? 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700' : 'border-brand-teal/20 text-brand-teal hover:bg-brand-teal/5'}`}
+                                        onClick={async () => {
+                                            if (!('Notification' in window)) {
+                                                alert('This browser does not support desktop notifications');
+                                                return;
+                                            }
+                                            const permission = await Notification.requestPermission();
+                                            if (permission === 'granted') {
+                                                new Notification('Notifications Enabled!', {
+                                                    body: 'You will now receive alerts for long shifts and other important events.',
+                                                    icon: '/pwa-192x192.png'
+                                                });
+                                            }
+                                        }}
+                                        disabled={'Notification' in window && Notification.permission === 'granted'}
+                                    >
+                                        {'Notification' in window && Notification.permission === 'granted' ? <><CheckCircle2 size={16} /> Notifications Active</> : <><Bell size={16} /> Request Permission</>}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-4">
+                                <Button 
+                                    className="bg-brand-teal text-white hover:bg-brand-teal/90 h-12 px-10 font-bold rounded-xl shadow-lg"
+                                    onClick={() => {
+                                        setIsSaving(true);
+                                        setTimeout(() => {
+                                            setIsSaving(false);
+                                            alert('Platform rules saved successfully!');
+                                        }, 800);
+                                    }}
+                                >
+                                    {isSaving ? <Loader2 className="animate-spin mr-2" size={20} /> : null}
+                                    Apply Rules
                                 </Button>
                             </div>
                         </div>

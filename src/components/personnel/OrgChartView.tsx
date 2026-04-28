@@ -26,6 +26,8 @@ export default function OrgChartView() {
     const fieldPersonnel = personnel.filter(p => 
         p.status !== 'Inactive' && 
         p.id !== userId &&
+        p.appRole !== 'Customer' &&
+        p.appRole !== 'HR' &&
         !OFFICE_MANAGERS.includes(p.name.toUpperCase())
     );
 

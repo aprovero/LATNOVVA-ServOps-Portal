@@ -795,9 +795,16 @@
       "not_in": "Not In",
       "on_site": "On Site",
       "already_on_site": "Already on site",
-      "done": "Done"
+      "done": "Done",
+      "worked_today": "Worked Today"
     },
-    "punches": {
+    "alerts": {
+      "double_shift": "Shift completed today. Start a new shift?",
+      "shift_exists_desc": "You already have a completed timesheet for today."
+    },
+    "labels": {
+      "start_new_shift": "Start New Shift",
+      "you": "YOU",
       "clockIn": "Clocked In",
       "clockOut": "Clock Out",
       "action_in": "Clock In",
