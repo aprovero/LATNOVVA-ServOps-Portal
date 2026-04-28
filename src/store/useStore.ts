@@ -457,6 +457,7 @@ interface AppState {
     syncError: string | null;
     processSyncQueue: () => Promise<void>;
     safeSync: (table: string, id: string, action: 'insert' | 'update' | 'upsert' | 'delete', payload: any) => Promise<void>;
+    clearSyncQueue: () => void;
 }
 
 export const useStore = create<AppState>()(
