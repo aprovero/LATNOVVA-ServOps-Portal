@@ -1165,7 +1165,10 @@ export const useStore = create<AppState>()(
                             project.assignedPersonnel?.includes(p.id) ? { ...p, prevailingWage: true } : p
                         )
                     }));
-                    await get().safeSync('personnel', 'multiple', 'upsert', project.assignedPersonnel?.map(id => ({ id, prevailing_wage: true })));
+                    // Sync individual personnel records to ensure we don't violate NOT NULL constraints with partial upserts
+                    for (const pid of project.assignedPersonnel) {
+                        await get().safeSync('personnel', pid, 'update', { prevailing_wage: true });
+                    }
                 }
             },
             updateProject: async (id, updates) => {
@@ -1227,7 +1230,10 @@ export const useStore = create<AppState>()(
                                 peopleToUpdate.includes(p.id) ? { ...p, prevailingWage: targetWage } : p
                             )
                         }));
-                        await get().safeSync('personnel', 'multiple', 'upsert', peopleToUpdate.map(pid => ({ id: pid, prevailing_wage: targetWage })));
+                        // Sync individual personnel records to ensure we don't violate NOT NULL constraints with partial upserts
+                        for (const pid of peopleToUpdate) {
+                            await get().safeSync('personnel', pid, 'update', { prevailing_wage: targetWage });
+                        }
                     }
                 }
 
