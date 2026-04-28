@@ -166,33 +166,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         signOut: async () => {
             console.log('[Auth] Initiating sign out sequence...');
             
-            // ── STEP 1: Handle Active Clock-In ──────────────────────────────
-            const store = useStore.getState();
-            const myPersonId = store.resolvePersonnelId();
-            if (myPersonId) {
-                const activeSession = store.timesheets.find(t => t.personnelId === myPersonId && t.timeIn && !t.timeOut);
-                if (activeSession) {
-                    console.log('[Auth] Active session found. Auto clocking out...');
-                    try {
-                        await store.clockPunch(myPersonId, {
-                            timestamp: new Date().toISOString(),
-                            lat: 0,
-                            lng: 0,
-                            accuracy: 0,
-                            type: 'clockOut',
-                            timeSource: 'device',
-                            manualAdjustment: true,
-                            adjustmentNote: 'System auto-logout (Session Terminated)'
-                        });
-                    } catch (err) {
-                        console.error('[Auth] Failed to auto clock-out:', err);
-                    }
-                }
-            }
-
             // ── STEP 2: Clear Local Stores ──────────────────────────────────
             set({ session: null, user: null, identity: null, profile: null, loading: false });
-            store.resetDb();
+            useStore.getState().resetDb();
             
             // ── STEP 3: Clear Storage Hard Link ──────────────────────────────
             // This force-kills GoTrue locks and stale tokens that cause "nothing happens" loops.

@@ -449,8 +449,11 @@ interface AppState {
     platformSettings: {
         shiftLengthThreshold: number;
         enableShiftNotifications: boolean;
+        enableAutoClockOut: boolean;
+        autoClockOutThreshold: number;
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
+    checkZombieSessions: () => Promise<void>;
     initializeGlobalTemplates: () => Promise<void>;
     // Sync Queue Management
     pendingSync: PendingSyncItem[];
@@ -804,10 +807,52 @@ export const useStore = create<AppState>()(
             platformSettings: {
                 shiftLengthThreshold: 8,
                 enableShiftNotifications: true,
+                enableAutoClockOut: true,
+                autoClockOutThreshold: 14,
             },
-            updatePlatformSettings: (settings) => set((state) => ({
-                platformSettings: { ...state.platformSettings, ...settings }
-            })),
+            updatePlatformSettings: (settings) => {
+                const next = { ...get().platformSettings, ...settings };
+                set({ platformSettings: next });
+                get().safeSync('platform_settings', 'global', 'upsert', next);
+            },
+
+            checkZombieSessions: async () => {
+                const { timesheets, platformSettings, clockPunch } = get();
+                if (!platformSettings.enableAutoClockOut) return;
+
+                const thresholdHours = platformSettings.autoClockOutThreshold;
+                const now = new Date();
+                
+                // Find open sessions that started more than X hours ago
+                const zombies = timesheets.filter(t => {
+                    if (!t.timeIn || t.timeOut) return false;
+                    const startTime = new Date(`${t.date}T${t.timeIn}`);
+                    const diffMs = now.getTime() - startTime.getTime();
+                    return diffMs > thresholdHours * 60 * 60 * 1000;
+                });
+
+                if (zombies.length === 0) return;
+
+                console.log(`[Zombie] Cleaning up ${zombies.length} stale sessions...`);
+                
+                for (const z of zombies) {
+                    const startTime = new Date(`${z.date}T${z.timeIn}`);
+                    const autoOutTime = new Date(startTime.getTime() + thresholdHours * 60 * 60 * 1000);
+                    
+                    try {
+                        await clockPunch(z.personnelId, {
+                            timestamp: autoOutTime.toISOString(),
+                            lat: 0, lng: 0, accuracy: 0,
+                            type: 'clockOut',
+                            timeSource: 'device',
+                            manualAdjustment: true,
+                            adjustmentNote: `System: Auto closed after ${thresholdHours}h limit.`
+                        });
+                    } catch (e) {
+                        console.error(`[Zombie] Failed to close session for ${z.personnelId}:`, e);
+                    }
+                }
+            },
 
             processSyncQueue: async () => {
                 const { pendingSync, isSyncing } = get();
@@ -1058,6 +1103,9 @@ export const useStore = create<AppState>()(
                     
                     // Trigger background sync for anything pending
                     get().processSyncQueue();
+                    
+                    // Cleanup stale sessions (Zombies)
+                    get().checkZombieSessions();
 
                 } catch (error) {
                     console.error('Failed to init DB from Supabase', error);

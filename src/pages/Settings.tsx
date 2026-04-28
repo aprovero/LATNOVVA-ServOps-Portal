@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
 import { useTranslation } from 'react-i18next';
-import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2, Key, Bell, ShieldCheck } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2, Key, Bell, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { 
     msalInstance, 
@@ -613,6 +613,58 @@ export default function Settings() {
                                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-xs leading-relaxed flex items-start gap-3">
                                             <div className="mt-0.5"><Shield size={14} /></div>
                                             <p>This rule helps prevent users from forgetting to clock out by triggering an in-app and browser alert when the {platformSettings.shiftLengthThreshold}h limit is hit.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Auto Clock-Out Card */}
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-red-100 text-red-600 rounded-xl">
+                                                <LogOut size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-accent-greyDark">Auto Clock-Out (Zombies)</h3>
+                                                <p className="text-sm text-gray-500">Automatically close shifts that exceed a time limit.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableAutoClockOut: true })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${platformSettings.enableAutoClockOut ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                ON
+                                            </button>
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableAutoClockOut: false })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!platformSettings.enableAutoClockOut ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                OFF
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 pt-2">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Closure Threshold (Hours)</Label>
+                                            <div className="flex items-center gap-4">
+                                                <Input 
+                                                    type="number"
+                                                    min="1"
+                                                    max="48"
+                                                    step="1"
+                                                    className="h-11 border-gray-200 w-32 font-bold"
+                                                    value={platformSettings.autoClockOutThreshold}
+                                                    onChange={e => updatePlatformSettings({ autoClockOutThreshold: parseFloat(e.target.value) || 14 })}
+                                                />
+                                                <span className="text-sm text-gray-400 font-medium italic">hours before system auto-closure</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-xs leading-relaxed flex items-start gap-3">
+                                            <div className="mt-0.5"><AlertTriangle size={14} /></div>
+                                            <p>When enabled, any shift active for more than {platformSettings.autoClockOutThreshold} hours will be automatically closed. This prevents "Zombie Sessions" from distorting timesheet metrics.</p>
                                         </div>
                                     </div>
                                 </div>

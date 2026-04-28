@@ -319,7 +319,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             .filter((p: Personnel) =>
                 assignedIds.includes(p.id) &&
                 ['Tech', 'Supervisor'].includes(p.appRole ?? '') &&
-                getPunchStep(timesheets, p.id) === 'idle'
+                (getPunchStep(timesheets, p.id) === 'idle' || getPunchStep(timesheets, p.id) === 'clocked-in')
             )
             .map(p => p.id);
         const initial = new Set([...validIds, supervisorId]);
@@ -752,13 +752,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </div>
                             <button onClick={() => setManualModal('clockOut')}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                                <LogOut size={26} /> {t('attendance.punches.action_out')} ({t('common.other')})
+                                <LogOut size={26} /> {t('attendance.labels.action_out')} ({t('common.other')})
                             </button>
                         </>
                     ) : (
                         <button onClick={() => executePunch('clockOut')} disabled={!gpsReady}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
-                            <LogOut size={26} /> {t('attendance.punches.action_out')}
+                            <LogOut size={26} /> {t('attendance.labels.action_out')}
                         </button>
                     )}
                 </div>
