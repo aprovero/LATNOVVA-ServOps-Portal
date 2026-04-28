@@ -803,16 +803,6 @@
       "double_shift": "¿Turno completado hoy. Iniciar un nuevo turno?",
       "shift_exists_desc": "Ya tienes un registro de horas completado para hoy."
     },
-    "labels": {
-      "start_new_shift": "Iniciar Nuevo Turno",
-      "you": "TÚ",
-      "clockIn": "Entrada Registrada",
-      "clockOut": "Salida Registrada",
-      "action_in": "Entrada",
-      "action_out": "Salida",
-      "will_in": "↳ Marcara Entrada",
-      "will_out": "↳ Marcara Salida"
-    },
     "gps": {
       "acquiring": "Adquiriendo GPS...",
       "locked": "GPS ±{{accuracy}}m",
@@ -866,7 +856,14 @@
       "skip_lunch": "Omitir Almuerzo → Ir a Salida",
       "forgot_punch": "¿Olvidó registrar? Ingresar manualmente",
       "todays_punches": "Marcajes de Hoy",
-      "manual_adj": "Ajuste Manual"
+      "manual_adj": "Ajuste Manual",
+      "start_new_shift": "Iniciar Nuevo Turno",
+      "clockIn": "Entrada Registrada",
+      "clockOut": "Salida Registrada",
+      "action_in": "Entrada",
+      "action_out": "Salida",
+      "will_in": "↳ Marcara Entrada",
+      "will_out": "↳ Marcara Salida"
     }
   },
   "settings": {

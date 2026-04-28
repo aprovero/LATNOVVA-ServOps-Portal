@@ -802,16 +802,6 @@
       "double_shift": "Shift completed today. Start a new shift?",
       "shift_exists_desc": "You already have a completed timesheet for today."
     },
-    "labels": {
-      "start_new_shift": "Start New Shift",
-      "you": "YOU",
-      "clockIn": "Clocked In",
-      "clockOut": "Clock Out",
-      "action_in": "Clock In",
-      "action_out": "Clock Out",
-      "will_in": "↳ Will Clock In",
-      "will_out": "↳ Will Clock Out"
-    },
     "gps": {
       "acquiring": "Acquiring GPS...",
       "locked": "GPS ±{{accuracy}}m",
@@ -865,7 +855,14 @@
       "skip_lunch": "Skip Lunch → Go to Clock Out",
       "forgot_punch": "Forgot to punch? Enter manually",
       "todays_punches": "Today's Punches",
-      "manual_adj": "Manual Adj."
+      "manual_adj": "Manual Adj.",
+      "start_new_shift": "Start New Shift",
+      "clockIn": "Clocked In",
+      "clockOut": "Clock Out",
+      "action_in": "Clock In",
+      "action_out": "Clock Out",
+      "will_in": "↳ Will Clock In",
+      "will_out": "↳ Will Clock Out"
     }
   },
   "settings": {
