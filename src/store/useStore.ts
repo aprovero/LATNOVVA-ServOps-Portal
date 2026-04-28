@@ -816,6 +816,7 @@ export const useStore = create<AppState>()(
                 const remaining = [...pendingSync];
                 const failed: PendingSyncItem[] = [];
 
+                let lastError = null;
                 for (const item of remaining) {
                     try {
                         let query;
@@ -835,6 +836,7 @@ export const useStore = create<AppState>()(
                         }
                     } catch (err: any) {
                         console.error(`Sync failed for ${item.table}/${item.id}:`, err);
+                        lastError = err.message || err.toString();
                         failed.push(item);
                         // If one fails due to network, stop processing the rest
                         if (!navigator.onLine) break;
@@ -844,7 +846,7 @@ export const useStore = create<AppState>()(
                 set({ 
                     pendingSync: failed, 
                     isSyncing: false,
-                    syncError: failed.length > 0 ? `Failed to sync ${failed.length} items. Will retry.` : null
+                    syncError: failed.length > 0 ? `Sync Error: ${lastError} (${failed.length} pending)` : null
                 });
             },
 

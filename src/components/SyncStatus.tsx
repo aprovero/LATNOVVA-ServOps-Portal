@@ -27,13 +27,14 @@ export const SyncStatus: React.FC = () => {
     return (
         <div className="flex items-center gap-2">
             {syncError ? (
-                <div 
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-100 text-red-600 shadow-sm animate-pulse"
-                    title={syncError}
+                <button 
+                    onClick={() => alert(syncError)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-100 text-red-600 shadow-sm animate-pulse cursor-pointer hover:bg-red-100 transition-colors"
+                    title="Click for details"
                 >
                     <AlertCircle size={14} />
                     <span className="text-[10px] font-bold uppercase tracking-wider">Sync Error</span>
-                </div>
+                </button>
             ) : isSyncing ? (
                 <div 
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 shadow-sm"
