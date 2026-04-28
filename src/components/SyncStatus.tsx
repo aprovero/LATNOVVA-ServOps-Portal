@@ -28,7 +28,12 @@ export const SyncStatus: React.FC = () => {
         <div className="flex items-center gap-2">
             {syncError ? (
                 <button 
-                    onClick={() => alert(syncError)}
+                    onClick={() => {
+                        const confirmMsg = `${syncError}\n\nWould you like to clear the sync queue? (Warning: This will remove failing changes that haven't reached the server yet).`;
+                        if (window.confirm(confirmMsg)) {
+                            useStore.getState().clearSyncQueue();
+                        }
+                    }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-100 text-red-600 shadow-sm animate-pulse cursor-pointer hover:bg-red-100 transition-colors"
                     title="Click for details"
                 >

@@ -33,7 +33,7 @@ export default function PersonnelManager({ onBack }: PersonnelManagerProps) {
         } else {
             addPersonnel({
                 ...formData,
-                id: `EMP-${Date.now()}`
+                id: crypto.randomUUID(),
             } as Personnel);
         }
         resetForm();

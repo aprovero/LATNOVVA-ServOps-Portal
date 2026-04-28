@@ -628,7 +628,7 @@ export default function Projects() {
                             onClick={() => {
                                 addProject({
                                     ...newProject as Project,
-                                    id: `PROJ-${Date.now()}`,
+                                    id: crypto.randomUUID(),
                                     progress: 0,
                                     scopes: [],
                                     assignedPersonnel: newProject.assignedPersonnel || [],

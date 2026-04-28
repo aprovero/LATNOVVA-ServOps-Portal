@@ -248,7 +248,7 @@ export default function ReportEditor() {
     };
 
     const handleAddSection = () => {
-        setSections([...sections, { id: `sec-${Date.now()}`, title: t('reports.editor_sections.new_custom_section'), content: '' }]);
+        setSections([...sections, { id: crypto.randomUUID(), title: t('reports.editor_sections.new_custom_section'), content: '' }]);
     };
 
 
@@ -442,7 +442,7 @@ export default function ReportEditor() {
                                             missing.forEach(pid => {
                                                 const gpsEntry = timesheets.find(t => t.personnelId === pid && t.date === today);
                                                 addTimesheet({
-                                                    id: `TS-RPT-${Date.now()}-${pid}`,
+                                                    id: crypto.randomUUID(),
                                                     personnelId: pid,
                                                     date: today,
                                                     timeIn: gpsEntry?.timeIn || labor.find(l => l.personnelId === pid)?.timeIn || '08:00',

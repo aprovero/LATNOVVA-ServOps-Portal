@@ -29,7 +29,7 @@ export function AddScopeModal({ open, onOpenChange, project }: AddScopeModalProp
             if (!template) return;
             newScopeName = template.name;
             initialActivities = template.activities.map(act => ({
-                id: `ACT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                id: crypto.randomUUID(),
                 title: act.title,
                 status: 'Pending',
                 progress: 0,
@@ -39,7 +39,7 @@ export function AddScopeModal({ open, onOpenChange, project }: AddScopeModalProp
         }
 
         const newScope: ProjectScope = {
-            id: `SCOPE-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+            id: crypto.randomUUID(),
             name: newScopeName,
             activities: initialActivities
         };

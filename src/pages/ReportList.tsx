@@ -80,7 +80,7 @@ export default function ReportList() {
             return;
         }
 
-        const reportId = `REP-${Date.now().toString(36).toUpperCase()}`;
+        const reportId = crypto.randomUUID();
         const now = new Date().toISOString();
         addReport({
             id: reportId,

@@ -863,6 +863,10 @@ export const useStore = create<AppState>()(
                 await get().processSyncQueue();
             },
 
+            clearSyncQueue: () => {
+                set({ pendingSync: [], syncError: null });
+            },
+
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
@@ -1341,7 +1345,7 @@ export const useStore = create<AppState>()(
             addComment: async (reportId, text, sectionKey) => {
                 const { userRole, userId } = get();
                 const newComment: ReportComment = {
-                    id: `C-${Date.now()}`,
+                    id: crypto.randomUUID(),
                     userId,
                     role: userRole,
                     timestamp: new Date().toISOString(),
@@ -1748,7 +1752,7 @@ export const useStore = create<AppState>()(
                     } else {
                         // Create a NEW unique timesheet ID to allow multiple per day
                         const newEntry: TimesheetEntry = {
-                            id: `TS-${personnelId}-${Date.now()}`,
+                            id: crypto.randomUUID(),
                             personnelId,
                             date: today,
                             hours: 0,
