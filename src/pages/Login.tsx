@@ -184,7 +184,7 @@ export const Login: React.FC = () => {
                     </form>
                     
                     <div className="mt-8 text-center text-sm font-mono text-slate-400 space-y-1">
-                        <p>LATNOVVA SYSTEM OPS // v2.6.6</p>
+                        <p>LATNOVVA SYSTEM OPS // v{__APP_VERSION__}</p>
                         <p>End-to-End Encryption Enabled</p>
                     </div>
                 </div>
