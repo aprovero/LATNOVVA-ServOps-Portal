@@ -315,11 +315,25 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         }
         const project = projects.find(p => p.id === selectedProject);
         const assignedIds: string[] = project?.assignedPersonnel ?? [];
+        
+        // Smart Selection Strategy: 
+        // 1. Check current status of all assigned personnel
+        // 2. If more people are 'clocked-in' than 'idle', assume intent is 'Clock Out'
+        // 3. Otherwise, assume intent is 'Clock In'
+        // 4. This prevents mixed-action confusion while staying proactive for both start/end of shift.
+        const statuses = personnel
+            .filter(p => assignedIds.includes(p.id))
+            .map(p => getPunchStep(timesheets, p.id));
+        
+        const idleCount = statuses.filter(s => s === 'idle').length;
+        const clockedInCount = statuses.filter(s => s === 'clocked-in').length;
+        const targetStep = (clockedInCount > idleCount) ? 'clocked-in' : 'idle';
+
         const validIds = personnel
             .filter((p: Personnel) =>
                 assignedIds.includes(p.id) &&
                 ['Tech', 'Supervisor'].includes(p.appRole ?? '') &&
-                getPunchStep(timesheets, p.id) === 'idle'
+                getPunchStep(timesheets, p.id) === targetStep
             )
             .map(p => p.id);
         const initial = new Set([...validIds, supervisorId]);
