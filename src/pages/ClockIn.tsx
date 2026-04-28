@@ -283,8 +283,8 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';
 
     const actionLabel: Record<ClockPunch['type'], { label: string; color: string }> = {
-        clockIn:  { label: t('attendance.punches.action_in'),        color: 'text-teal-700 bg-teal-50' },
-        clockOut: { label: t('attendance.punches.action_out'),       color: 'text-red-700 bg-red-50' },
+        clockIn:  { label: t('attendance.labels.action_in'),        color: 'text-teal-700 bg-teal-50' },
+        clockOut: { label: t('attendance.labels.action_out'),       color: 'text-rose-700 bg-rose-50' },
     };
 
     // Group by action type for the header
@@ -805,7 +805,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                             {hasMixedActions ? (
                                 <p className="text-amber-400 text-xs font-semibold">
                                     {t('attendance.batch.mixed_warning', { 
-                                        counts: `${actionCounts.clockIn > 0 ? `${actionCounts.clockIn} ${t('attendance.punches.action_in').toLowerCase()}` : ''}${actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}${actionCounts.clockOut > 0 ? `${actionCounts.clockOut} ${t('attendance.punches.action_out').toLowerCase()}` : ''}`
+                                        counts: `${actionCounts.clockIn > 0 ? `${actionCounts.clockIn} ${t('attendance.labels.action_in').toLowerCase()}` : ''}${actionCounts.clockIn > 0 && actionCounts.clockOut > 0 ? ', ' : ''}${actionCounts.clockOut > 0 ? `${actionCounts.clockOut} ${t('attendance.labels.action_out').toLowerCase()}` : ''}`
                                     })}
                                 </p>
                             ) : (
@@ -822,8 +822,8 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                             {(() => {
                                 const a = dominantAction();
                                 const labelMap = {
-                                    clockIn: t('attendance.punches.action_in'),
-                                    clockOut: t('attendance.punches.action_out'),
+                                    clockIn: t('attendance.labels.action_in'),
+                                    clockOut: t('attendance.labels.action_out'),
                                 };
                                 return labelMap[a];
                             })()} {selCount}
@@ -967,7 +967,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 disabled={!selectedProject}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.punches.action_in')} (${t('common.other')})`}
+                                <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.labels.action_in')} (${t('common.other')})`}
                             </button>
                         </>
                     ) : (
@@ -976,7 +976,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             executePunch('clockIn');
                         }} disabled={!gpsReady || !selectedProject}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
-                            <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.punches.action_in')}
+                            <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.labels.action_in')}
                         </button>
                     )}
                     {gps.status === 'poor' && (
