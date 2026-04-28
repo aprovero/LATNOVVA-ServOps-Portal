@@ -76,7 +76,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
 
     const handleQuickAddPerson = () => {
         if (!quickName.trim()) return;
-        const newId = `usr-${Date.now()}`;
+        const newId = crypto.randomUUID();
         addPersonnel({
             id: newId,
             name: quickName,

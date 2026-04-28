@@ -1435,7 +1435,7 @@ export const useStore = create<AppState>()(
                 set((state) => ({ personnel: [...state.personnel, person] }));
                 const dbPayload = {
                     id: person.id,
-                    name: person.name,
+                    name: person.name || 'Unnamed Personnel',
                     position: person.position,
                     employee_number: person.employeeNumber,
                     app_role: person.appRole,
@@ -1468,7 +1468,7 @@ export const useStore = create<AppState>()(
                     personnel: state.personnel.map((p) => (p.id === id ? { ...p, ...updates } : p)),
                 }));
                 const dbPayload: any = {};
-                if (updates.name !== undefined) dbPayload.name = updates.name;
+                if (updates.name !== undefined) dbPayload.name = updates.name || 'Unnamed Personnel';
                 if (updates.position !== undefined) dbPayload.position = updates.position;
                 if (updates.employeeNumber !== undefined) dbPayload.employee_number = updates.employeeNumber;
                 if (updates.appRole !== undefined) dbPayload.app_role = updates.appRole;
