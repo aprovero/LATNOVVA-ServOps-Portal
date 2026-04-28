@@ -242,20 +242,34 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                         <div className="flex-1 min-w-0">
                                             {!readOnly && isPersonSelected ? (
                                                 <div className="flex items-center justify-between group/name">
-                                                    <button 
-                                                        onClick={() => setSigningEntryId(entry.id)}
-                                                        className="text-sm font-bold text-accent-greyDark hover:text-brand-teal transition-colors flex items-center gap-2 truncate"
-                                                    >
-                                                        {personnel.find(p => p.id === entry.personnelId)?.name || (entry as any)._tempName || entry.personnelId}
-                                                        <Signature size={12} className="opacity-0 group-hover/name:opacity-100 transition-opacity" />
-                                                    </button>
+                                                    <div className="flex items-center gap-2 truncate">
+                                                        <button 
+                                                            onClick={() => setSigningEntryId(entry.id)}
+                                                            className="text-sm font-bold text-accent-greyDark hover:text-brand-teal transition-colors flex items-center gap-2 truncate"
+                                                        >
+                                                            {personnel.find(p => p.id === entry.personnelId)?.name || (entry as any)._tempName || entry.personnelId}
+                                                            <Signature size={12} className="opacity-0 group-hover/name:opacity-100 transition-opacity" />
+                                                        </button>
+                                                        {hasWarning && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const person = personnel.find(p => p.id === entry.personnelId);
+                                                                    alert(`${person?.name} has expired certifications:\n- ${expiredCerts.join('\n- ')}`);
+                                                                }}
+                                                                className="text-amber-500 hover:text-amber-600 transition-colors"
+                                                                title={t('reports.labor_section.expired_certs_tag')}
+                                                            >
+                                                                <AlertTriangle size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                     <button 
                                                         onClick={() => handleUpdate(entry.id, 'personnelId', '')}
                                                         className="text-[10px] font-bold text-gray-400 hover:text-brand-teal uppercase opacity-0 group-hover/name:opacity-100 transition-opacity whitespace-nowrap ml-2"
                                                     >
                                                         {t('reports.labor_section.change_worker')}
                                                     </button>
-
                                                 </div>
                                             ) : (
                                             <select
@@ -306,11 +320,7 @@ export default function LaborSection({ labor, onChange, readOnly, currentReportI
                                             )}
                                         </div>
                                     </div>
-                                    {hasWarning && (
-                                        <div className="flex items-center gap-1 mt-1 text-status-warning text-[10px] font-bold">
-                                            <AlertTriangle size={12} /> {t('reports.labor_section.expired_certs_tag')}: {expiredCerts.join(', ')}
-                                        </div>
-                                    )}
+
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 sm:gap-3 md:col-span-12 lg:col-span-6 w-full items-end">
                                     <div className="min-w-0">

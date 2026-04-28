@@ -601,7 +601,9 @@
       "confirm_text": "Al firmar a continuación, confirmo mi {{action}} para {{date}} a las {{time}}.",
       "summary_checkin": "✅ {{reused}} registros GPS actualizados. ⚠ {{created}} entradas manuales creadas (sin datos GPS).",
       "summary_checkout": "✅ {{reused}} check-outs registrados.",
-      "complete_alert": "Operación de {{action}} grupal completada."
+      "complete_alert": "Operación de {{action}} grupal completada.",
+      "selected_count": "Entradas Seleccionadas",
+      "actions_available": "Acciones Masivas Disponibles"
     },
     "types": {
       "on_site": "En Sitio",
@@ -626,6 +628,7 @@
       "reason_required": "Por favor ingresa un motivo / justificación para esta entrada de tiempo manual.",
       "overlap": "Este tiempo se traslapa con una entrada de timesheet existente para esta persona en esta fecha.",
       "delete_confirm": "¿Eliminar entrada de timesheet para {{name}} el {{date}}? Esto no se puede deshacer.",
+      "delete_selected_confirm": "¿Está seguro de eliminar las {{count}} entradas seleccionadas?",
       "select_project": "Por favor selecciona un proyecto para el check-in grupal."
     }
   },

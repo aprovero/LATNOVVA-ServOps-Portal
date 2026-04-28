@@ -601,7 +601,9 @@
       "confirm_text": "By signing below, I confirm my {{action}} for {{date}} at {{time}}.",
       "summary_checkin": "✅ {{reused}} GPS records updated. ⚠ {{created}} manual entries created (no GPS data).",
       "summary_checkout": "✅ {{reused}} check-outs recorded.",
-      "complete_alert": "Batch {{action}} complete."
+      "complete_alert": "Batch {{action}} complete.",
+      "selected_count": "Entries Selected",
+      "actions_available": "Batch Actions Available"
     },
     "types": {
       "on_site": "On Site",
@@ -626,6 +628,7 @@
       "reason_required": "Please enter a reason / justification for this manual time entry.",
       "overlap": "This time overlaps with an existing timesheet entry for this person on this date.",
       "delete_confirm": "Delete timesheet entry for {{name}} on {{date}}? This cannot be undone.",
+      "delete_selected_confirm": "Are you sure you want to delete {{count}} selected entries?",
       "select_project": "Please select a project for the batch check-in."
     }
   },

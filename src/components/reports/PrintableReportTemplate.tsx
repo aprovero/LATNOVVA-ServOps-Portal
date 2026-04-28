@@ -177,13 +177,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
   let sectionNum = 1;
   const sec = () => sectionNum++;
 
-  const validLabor = (report.labor || []).filter(l => {
-      if (!l.personnelId) return true;
-      const person = state.personnel.find(p => p.id === l.personnelId);
-      if (!person || !person.certifications) return true;
-      const hasExpired = person.certifications.some(cert => cert.expirationDate && new Date(cert.expirationDate) < new Date());
-      return !hasExpired;
-  });
+  const validLabor = report.labor || [];
 
   const validTools = (report.usedTools || []).filter(toolId => {
       const tool = state.tools.find(t => t.id === toolId);

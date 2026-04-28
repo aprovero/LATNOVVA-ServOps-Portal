@@ -503,12 +503,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                     idx > 0 ? 'border-t border-gray-50' : ''
                                 } ${isChecked ? 'bg-teal-50/60' : 'hover:bg-gray-50'}`}
                             >
-                                {hasExpired && (
-                                    <div className="px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
-                                        <AlertTriangle size={10} className="text-amber-600" />
-                                        <span className="text-[9px] font-bold text-amber-700 uppercase">{t('reports.labor_section.expired_certs_tag')}</span>
-                                    </div>
-                                )}
+
                                 <div className="flex items-center gap-3 cursor-pointer">
                                     <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${isChecked ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
                                         {isChecked && <Check size={12} className="text-white" />}
@@ -517,7 +512,22 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                                         {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : p.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-sm text-gray-800">{p.name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-semibold text-sm text-gray-800">{p.name}</p>
+                                            {hasExpired && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const expired = p.certifications?.filter((c: any) => isCertExpired(c.expirationDate)).map((c: any) => c.name) || [];
+                                                        alert(`${p.name} has expired certifications:\n- ${expired.join('\n- ')}`);
+                                                    }}
+                                                    className="text-amber-500 hover:text-amber-600 transition-colors"
+                                                    title={t('reports.labor_section.expired_certs_tag')}
+                                                >
+                                                    <AlertTriangle size={14} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <p className="text-[10px] text-gray-400">{p.position}</p>
                                     </div>
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.bg} ${meta.text}`}>

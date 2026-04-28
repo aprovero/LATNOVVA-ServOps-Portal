@@ -45,6 +45,7 @@ export default function Timesheets() {
     const [signatureBlob, setSignatureBlob] = useState<string>('');
     const [signatureName, setSignatureName] = useState<string>('');
     const [expandedPunchId, setExpandedPunchId] = useState<string | null>(null);
+    const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
 
     const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
     const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
@@ -301,6 +302,27 @@ export default function Timesheets() {
             ? t('timesheets.batch.summary_checkin', { reused, created })
             : t('timesheets.batch.summary_checkout', { reused });
         alert(`${t('timesheets.batch.complete_alert', { action: batchAction })}\n${summary}`);
+    };
+
+    const handleBatchApprove = () => {
+        if (selectedEntries.length === 0) return;
+        selectedEntries.forEach(id => {
+            const entry = timesheets.find(t => t.id === id);
+            if (entry && entry.status !== 'Approved') {
+                updateTimesheet(id, { status: 'Approved', approvedBy: getCurrentUserName() } as any);
+            }
+        });
+        setSelectedEntries([]);
+    };
+
+    const handleBatchDelete = () => {
+        if (selectedEntries.length === 0) return;
+        if (confirm(t('timesheets.alerts.delete_selected_confirm', { count: selectedEntries.length }))) {
+            selectedEntries.forEach(id => {
+                deleteTimesheet(id);
+            });
+            setSelectedEntries([]);
+        }
     };
 
     const handleExportCSV = () => {
@@ -645,13 +667,63 @@ export default function Timesheets() {
                 )}
             </div>
 
+            {/* Batch Actions Bar */}
+            {selectedEntries.length > 0 && (
+                <div className="bg-brand-teal text-white p-4 rounded-2xl shadow-teal flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-white/20 p-2 rounded-xl">
+                            <Users size={20} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-sm">{selectedEntries.length} {t('timesheets.batch.selected_count')}</p>
+                            <p className="text-[10px] text-white/70 uppercase tracking-widest font-semibold">{t('timesheets.batch.actions_available')}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {['Manager', 'Supervisor'].includes(userRole) && (
+                            <Button 
+                                onClick={handleBatchApprove}
+                                className="bg-white text-brand-teal hover:bg-white/90 rounded-xl px-4 py-2 text-xs font-bold gap-1.5 h-9"
+                            >
+                                <CheckCircle size={14} /> {t('timesheets.status.approved')}
+                            </Button>
+                        )}
+                        <Button 
+                            onClick={handleBatchDelete}
+                            className="bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-2 text-xs font-bold gap-1.5 h-9 shadow-sm"
+                        >
+                            <Trash2 size={14} /> {t('common.actions')}
+                        </Button>
+                        <div className="w-px h-6 bg-white/20 mx-1" />
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setSelectedEntries([])}
+                            className="text-white hover:bg-white/10 rounded-xl px-3 py-2 text-xs font-bold h-9"
+                        >
+                            {t('common.cancel')}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Timesheet List */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-bold">
-                                <th className="p-4 rounded-tl-xl whitespace-nowrap">{t('timesheets.table.date')}</th>
+                                <th className="p-4 w-10">
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal cursor-pointer"
+                                        checked={filteredTimesheets.length > 0 && selectedEntries.length === filteredTimesheets.length}
+                                        onChange={(e) => {
+                                            if (e.target.checked) setSelectedEntries(filteredTimesheets.map(t => t.id));
+                                            else setSelectedEntries([]);
+                                        }}
+                                    />
+                                </th>
+                                <th className="p-4 whitespace-nowrap">{t('timesheets.table.date')}</th>
                                 <th className="p-4">{t('timesheets.table.personnel')}</th>
                                 <th className="p-4 whitespace-nowrap">{t('timesheets.table.time_in_out')}</th>
                                 <th className="p-4 whitespace-nowrap">{t('timesheets.table.hours')}</th>
@@ -664,7 +736,7 @@ export default function Timesheets() {
                         <tbody className="divide-y divide-gray-100">
                             {filteredTimesheets.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="p-8 text-center text-gray-500">
+                                    <td colSpan={9} className="p-8 text-center text-gray-500">
                                         <Clock className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                                         <p className="text-lg font-semibold text-accent-greyDark flex items-center justify-center gap-2">{t('timesheets.table.empty')}</p>
                                         <p className="text-sm">{t('timesheets.table.empty_subtitle')}</p>
@@ -673,7 +745,18 @@ export default function Timesheets() {
                             ) : (
                                 filteredTimesheets.map((entry) => (
                                     <>
-                                        <tr key={entry.id} className="hover:bg-gray-50/50 transition-colors group">
+                                        <tr key={entry.id} className={`hover:bg-gray-50/50 transition-colors group ${selectedEntries.includes(entry.id) ? 'bg-brand-teal/5' : ''}`}>
+                                            <td className="p-4">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="w-4 h-4 rounded border-gray-300 text-brand-teal focus:ring-brand-teal cursor-pointer"
+                                                    checked={selectedEntries.includes(entry.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedEntries([...selectedEntries, entry.id]);
+                                                        else setSelectedEntries(selectedEntries.filter(id => id !== entry.id));
+                                                    }}
+                                                />
+                                            </td>
                                             <td className="p-4 text-sm font-medium text-accent-greyDark whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
                                                     <CalendarIcon size={14} className="text-gray-400" />
@@ -683,15 +766,6 @@ export default function Timesheets() {
                                             <td className="p-4 text-sm font-bold text-accent-greyDark whitespace-nowrap">
                                                 <div className="flex flex-col">
                                                     <span>{getPersonnelName(entry.personnelId)}</span>
-                                                    {(() => {
-                                                        const p = personnel.find(px => px.id === entry.personnelId);
-                                                        const hasExpired = p?.certifications?.some(c => isCertExpired(c.expirationDate));
-                                                        return hasExpired ? (
-                                                            <span className="text-[9px] font-bold text-amber-600 uppercase flex items-center gap-1 mt-0.5">
-                                                                <AlertTriangle size={10} /> {t('reports.labor_section.expired_certs_tag')}
-                                                            </span>
-                                                        ) : null;
-                                                    })()}
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
@@ -799,7 +873,7 @@ export default function Timesheets() {
                                         {/* GPS Punch Audit Trail */}
                                         {expandedPunchId === entry.id && entry.punches && (
                                             <tr key={`${entry.id}-punches`}>
-                                                <td colSpan={8} className="px-6 pb-4 pt-0 bg-gray-50/60">
+                                                <td colSpan={9} className="px-6 pb-4 pt-0 bg-gray-50/60">
                                                     <div className="border border-gray-100 rounded-xl p-4 bg-white shadow-sm">
                                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                                             <MapPin size={12} /> {t('timesheets.table.audit_trail')}
@@ -856,19 +930,30 @@ export default function Timesheets() {
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
-                        <div className="flex gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100 mb-4">
-                            <button 
-                                className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-in' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
-                                onClick={() => { setBatchAction('Check-in'); setSelectedPersonnel([]); setBatchSignatures({}); }}
+                        <div className="flex items-center justify-between gap-2 p-1 bg-gray-50 rounded-xl border border-gray-100 mb-4">
+                            <div className="flex flex-1 gap-1">
+                                <button 
+                                    className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-in' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
+                                    onClick={() => { setBatchAction('Check-in'); setSelectedPersonnel([]); setBatchSignatures({}); }}
+                                >
+                                    {t('timesheets.batch.checkin_group')}
+                                </button>
+                                <button 
+                                    className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-out' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
+                                    onClick={() => { setBatchAction('Check-out'); setSelectedPersonnel([]); setBatchSignatures({}); }}
+                                >
+                                    {t('timesheets.batch.checkout_group')}
+                                </button>
+                            </div>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-9 px-3 gap-1.5 text-xs font-bold border-brand-teal/20 text-brand-teal hover:bg-brand-teal hover:text-white rounded-lg"
+                                disabled={selectedPersonnel.length === 0}
+                                onClick={() => setSigningPersonnelId('BATCH_ALL')}
                             >
-                                {t('timesheets.batch.checkin_group')}
-                            </button>
-                            <button 
-                                className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${batchAction === 'Check-out' ? 'bg-brand-teal text-white shadow-sm' : 'text-gray-400 hover:text-brand-teal'}`}
-                                onClick={() => { setBatchAction('Check-out'); setSelectedPersonnel([]); setBatchSignatures({}); }}
-                            >
-                                {t('timesheets.batch.checkout_group')}
-                            </button>
+                                <PenTool size={12} /> Sign for All
+                            </Button>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
@@ -948,11 +1033,6 @@ export default function Timesheets() {
                                                         <p className="text-sm font-bold text-accent-greyDark leading-none">{p.name}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <p className="text-[10px] text-gray-500 font-medium uppercase">{p.position}</p>
-                                                            {p.certifications?.some((c: any) => isCertExpired(c.expirationDate)) && (
-                                                                <span className="text-[9px] font-bold text-amber-600 uppercase flex items-center gap-1">
-                                                                    <AlertTriangle size={10} /> {t('reports.labor_section.expired_certs_tag')}
-                                                                </span>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1012,7 +1092,7 @@ export default function Timesheets() {
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-accent-greyDark flex items-center gap-2">
                              <PenTool size={18} className="text-brand-teal" /> 
-                             {t('timesheets.batch.worker_signature_title', { name: personnel.find(p => p.id === signingPersonnelId)?.name })}
+                             {signingPersonnelId === 'BATCH_ALL' ? 'Sign for All Personnel' : t('timesheets.batch.worker_signature_title', { name: personnel.find(p => p.id === signingPersonnelId)?.name })}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -1026,7 +1106,15 @@ export default function Timesheets() {
                         <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl relative overflow-hidden group p-4">
                             <UnifiedSignaturePad 
                                 onSign={(blob) => {
-                                    setBatchSignatures({ ...batchSignatures, [signingPersonnelId!]: blob });
+                                    if (signingPersonnelId === 'BATCH_ALL') {
+                                        const newSigs = { ...batchSignatures };
+                                        selectedPersonnel.forEach(id => {
+                                            newSigs[id] = blob;
+                                        });
+                                        setBatchSignatures(newSigs);
+                                    } else {
+                                        setBatchSignatures({ ...batchSignatures, [signingPersonnelId!]: blob });
+                                    }
                                     setSigningPersonnelId(null);
                                 }} 
                                 onClear={() => {}}
