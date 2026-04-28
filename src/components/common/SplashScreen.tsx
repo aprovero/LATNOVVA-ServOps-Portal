@@ -34,11 +34,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         const tl = gsap.timeline({
             onComplete: () => {
                 sessionStorage.setItem('latnovva_splash_shown', 'true');
-                // Longer pause before hiding the whole thing
+                // Shorter pause before hiding the whole thing
                 gsap.to(containerRef.current, {
                     opacity: 0,
                     duration: 1.0,
-                    delay: 2.5,
+                    delay: 1.25,
                     ease: "power2.inOut",
                     onComplete: () => {
                         setShouldShow(false);

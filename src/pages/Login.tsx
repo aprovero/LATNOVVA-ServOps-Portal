@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, ShieldCheck, Component } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
+import { requestInitialPermissions } from '../lib/permissions';
 
 export const Login: React.FC = () => {
     const navigate = useNavigate();
@@ -21,6 +22,8 @@ export const Login: React.FC = () => {
         }
         try {
             await signInWithEmail(email, password);
+            // Trigger permissions request on successful login
+            requestInitialPermissions();
             // Imperative navigation — fires exactly once after explicit user action.
             // Cannot loop because it's not a reactive useEffect.
             navigate('/', { replace: true });
@@ -38,6 +41,8 @@ export const Login: React.FC = () => {
         }
         try {
             await signInWithOtp(email);
+            // Trigger permissions request when link is sent to pre-approve the device
+            requestInitialPermissions();
             setLocalSuccess('Magic link sent! Check your inbox.');
         } catch (err: any) {
             setLocalError(err.message || 'Failed to send magic link');
