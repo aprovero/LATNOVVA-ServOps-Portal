@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useStore, TimesheetEntry } from '../store/useStore';
 import { format, parseISO } from 'date-fns';
 import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
-import { isCertExpired } from '../utils/datetime.utils';
+
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
 import {
     Dialog,
