@@ -47,7 +47,8 @@ export default function Personnel() {
     const [newPerson, setNewPerson] = useState<Partial<PersonnelType> | null>(null);
 
     const isManager = userRole === 'Manager';
-    const isHROrManager = ['Manager', 'HR'].includes(userRole);
+    const canManagePersonnel = ['Manager', 'HR', 'Supervisor'].includes(userRole);
+    const isHROrManager = ['Manager', 'HR', 'Supervisor'].includes(userRole);
 
     // Select a person → load into edit draft
     const handleSelectPerson = (person: PersonnelType) => {
@@ -176,9 +177,9 @@ export default function Personnel() {
         });
 
     const selectedPerson = personnel.find(p => p.id === selectedPersonId) ?? null;
-    const assignedProject = selectedPerson
-        ? projects.find(p => p.assignedPersonnel?.includes(selectedPerson.id))
-        : null;
+    const assignedProjects = selectedPerson
+        ? projects.filter(p => p.assignedPersonnel?.includes(selectedPerson.id))
+        : [];
 
     const renderCertsEditor = (draft: Partial<PersonnelType>, setter: (d: Partial<PersonnelType>) => void) => (
         <div className="space-y-3 pt-4 border-t border-gray-100">
@@ -287,7 +288,7 @@ export default function Personnel() {
                                     <Input placeholder="e.g. 956-280-8290" value={newPerson?.phoneNumber || ''} onChange={e => setNewPerson({ ...newPerson, phoneNumber: e.target.value })} />
                                 </div>
                             </div>
-                            {isManager && (
+                            {canManagePersonnel && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> {t('personnel.columns.role')}</label>
@@ -578,49 +579,68 @@ export default function Personnel() {
                                                                 <Award size={10} /> Prevailing Wage
                                                             </span>
                                                         )}
-                                                        {isHROrManager ? (
-                                                            <div className="relative">
-                                                                <select 
-                                                                    className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2 py-0.5 rounded-full border border-brand-teal/20 outline-none appearance-none cursor-pointer pr-5"
-                                                                    value={assignedProject?.id || ''}
-                                                                    onChange={(e) => {
-                                                                        const newProjectId = e.target.value;
-                                                                        const oldProject = projects.find(p => p.assignedPersonnel?.includes(selectedPerson.id));
-                                                                        
-                                                                        // 1. Remove from old project
-                                                                        if (oldProject) {
-                                                                            updateProject(oldProject.id, { 
-                                                                                assignedPersonnel: (oldProject.assignedPersonnel || []).filter(id => id !== selectedPerson.id) 
-                                                                            });
-                                                                        }
-
-                                                                        // 2. Handle new assignment
-                                                                        if (newProjectId) {
+                                                        {canManagePersonnel ? (
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {/* Assigned Projects Tags */}
+                                                                {assignedProjects.map(p => (
+                                                                    <span key={p.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-teal/10 text-brand-teal border border-brand-teal/20 group/tag transition-all hover:bg-brand-teal/20">
+                                                                        <Briefcase size={10} />
+                                                                        {p.name}
+                                                                        <button 
+                                                                            onClick={() => {
+                                                                                updateProject(p.id, { 
+                                                                                    assignedPersonnel: (p.assignedPersonnel || []).filter(id => id !== selectedPerson.id) 
+                                                                                });
+                                                                                // Re-calculate PW flag
+                                                                                const remainingProjects = assignedProjects.filter(ap => ap.id !== p.id);
+                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: remainingProjects.some(ap => ap.prevailingWage) });
+                                                                            }}
+                                                                            className="ml-1 text-brand-teal/50 hover:text-red-500 transition-colors"
+                                                                        >
+                                                                            <X size={10} />
+                                                                        </button>
+                                                                    </span>
+                                                                ))}
+                                                                
+                                                                {/* Add Project Dropdown */}
+                                                                <div className="relative group/add">
+                                                                    <select 
+                                                                        className="text-[10px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 outline-none appearance-none cursor-pointer pr-6 hover:bg-gray-100 hover:text-gray-600 transition-all"
+                                                                        value=""
+                                                                        onChange={(e) => {
+                                                                            const newProjectId = e.target.value;
+                                                                            if (!newProjectId) return;
                                                                             const p = projects.find(proj => proj.id === newProjectId);
                                                                             if (p) {
                                                                                 updateProject(newProjectId, { 
                                                                                     assignedPersonnel: [...(p.assignedPersonnel || []), selectedPerson.id]
                                                                                 });
-                                                                                // Inherit PW flag from project (M-01)
-                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: !!p.prevailingWage });
+                                                                                // Inherit PW flag if any project is PW
+                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: true === p.prevailingWage || assignedProjects.some(ap => ap.prevailingWage) });
                                                                             }
-                                                                        } else {
-                                                                            // 3. Clear PW flag if unassigned (M-01)
-                                                                            updatePersonnel(selectedPerson.id, { prevailingWage: false });
+                                                                        }}
+                                                                    >
+                                                                        <option value="">+ {t('personnel.assign_project', 'Assign Project')}</option>
+                                                                        {projects
+                                                                            .filter(p => p.status === 'Active' && !assignedProjects.some(ap => ap.id === p.id))
+                                                                            .map(p => (
+                                                                                <option key={p.id} value={p.id}>{p.name} {p.prevailingWage ? '(PW)' : ''}</option>
+                                                                            ))
                                                                         }
-                                                                    }}
-                                                                >
-                                                                    <option value="">Unassigned</option>
-                                                                    {projects.filter(p => p.status === 'Active').map(p => (
-                                                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                                                    ))}
-                                                                </select>
-                                                                <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-brand-teal pointer-events-none" />
+                                                                    </select>
+                                                                    <Plus size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-hover/add:text-gray-600" />
+                                                                </div>
                                                             </div>
-                                                        ) : assignedProject && (
-                                                            <span className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2 py-0.5 rounded-full border border-brand-teal/20 flex items-center gap-1">
-                                                                <Briefcase size={10} /> {assignedProject.name}
-                                                            </span>
+                                                        ) : assignedProjects.length > 0 ? (
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {assignedProjects.map(p => (
+                                                                    <span key={p.id} className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2.5 py-1 rounded-full border border-brand-teal/20 flex items-center gap-1.5 shadow-sm">
+                                                                        <Briefcase size={10} /> {p.name}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-[10px] font-bold text-gray-400 italic px-2.5 py-1">{t('personnel.unassigned', 'Unassigned')}</span>
                                                         )}
                                                     </div>
                                                 </div>

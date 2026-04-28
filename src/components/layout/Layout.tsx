@@ -47,6 +47,10 @@ export default function Layout() {
     const [accountName, setAccountName] = useState('');
     const [accountPassword, setAccountPassword] = useState('');
     const [accountDbo, setAccountDbo] = useState('');
+    const [accountEmployeeNumber, setAccountEmployeeNumber] = useState('');
+    const [accountEmergencyContactName, setAccountEmergencyContactName] = useState('');
+    const [accountEmergencyContactPhone, setAccountEmergencyContactPhone] = useState('');
+    const [accountImage, setAccountImage] = useState('');
     const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
 
     // Command Search
@@ -314,7 +318,11 @@ export default function Layout() {
             if (resId) {
                 await updatePersonnel(resId, {
                     name: accountName,
-                    dbo: accountDbo
+                    dbo: accountDbo,
+                    employeeNumber: accountEmployeeNumber,
+                    emergencyContactName: accountEmergencyContactName,
+                    emergencyContactPhone: accountEmergencyContactPhone,
+                    image: accountImage
                 });
             }
 
@@ -337,6 +345,10 @@ export default function Layout() {
             const person = personnel.find(p => p.id === resId);
             if (person) {
                 setAccountDbo(person.dbo || '');
+                setAccountEmployeeNumber(person.employeeNumber || '');
+                setAccountEmergencyContactName(person.emergencyContactName || '');
+                setAccountEmergencyContactPhone(person.emergencyContactPhone || '');
+                setAccountImage(person.image || '');
             }
         }
     }, [isAccountModalOpen, user, personnel]);
@@ -1102,7 +1114,32 @@ export default function Layout() {
                             {t('nav.my_profile', 'My Profile')}
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1">
+                        <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100 flex flex-col items-center gap-4">
+                            <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">{t('personnel.profile_photo', 'Profile Photo')}</Label>
+                            <div className="flex items-center gap-4 w-full">
+                                <div className="w-16 h-16 rounded-full bg-brand-teal/10 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center text-brand-teal">
+                                    {accountImage ? <img src={accountImage} alt="Profile" className="w-full h-full object-cover" /> : <User size={24} />}
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <Input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        className="h-9 text-xs cursor-pointer bg-white"
+                                        onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) { 
+                                                const r = new FileReader(); 
+                                                r.onloadend = () => setAccountImage(r.result as string); 
+                                                r.readAsDataURL(file); 
+                                            }
+                                        }}
+                                    />
+                                    <p className="text-[10px] text-gray-400 italic">Self-service photo update.</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
                             <Label className="text-sm font-semibold">{t('personnel.columns.name', 'Full Name')}</Label>
                             <Input 
@@ -1111,6 +1148,52 @@ export default function Layout() {
                                 placeholder="E.g. John Doe"
                             />
                         </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('personnel.columns.id', 'Employee #')}</Label>
+                                <Input 
+                                    value={accountEmployeeNumber} 
+                                    onChange={(e) => setAccountEmployeeNumber(e.target.value)}
+                                    placeholder="EMP-1234"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('personnel.profile.dbo', 'Date of Birth')}</Label>
+                                <Input 
+                                    type="date"
+                                    value={accountDbo} 
+                                    onChange={(e) => setAccountDbo(e.target.value)}
+                                    className="block"
+                                    style={{ colorScheme: 'light' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 p-3 bg-brand-teal/5 rounded-xl border border-brand-teal/10">
+                            <Label className="text-xs font-bold text-brand-teal uppercase tracking-wider">{t('personnel.profile.emergency_contact', 'Emergency Contact')}</Label>
+                            <div className="space-y-3">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-gray-400 uppercase">{t('personnel.profile.emergency_contact_name', 'Contact Name')}</Label>
+                                    <Input 
+                                        value={accountEmergencyContactName} 
+                                        onChange={(e) => setAccountEmergencyContactName(e.target.value)}
+                                        placeholder="Jane Doe"
+                                        className="h-9 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-gray-400 uppercase">{t('personnel.profile.emergency_contact_phone', 'Contact Phone')}</Label>
+                                    <Input 
+                                        value={accountEmergencyContactPhone} 
+                                        onChange={(e) => setAccountEmergencyContactPhone(e.target.value)}
+                                        placeholder="956-280-8290"
+                                        className="h-9 text-sm"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
                             <Label className="text-sm font-semibold opacity-50">{t('personnel.profile.email', 'Email Address')}</Label>
                             <Input 
@@ -1118,9 +1201,9 @@ export default function Layout() {
                                 disabled 
                                 className="bg-gray-50 border-gray-100 opacity-60"
                             />
-                            <p className="text-[10px] text-gray-400 italic">Email cannot be changed by the user.</p>
                         </div>
-                        <div className="space-y-2 pt-2 border-t border-gray-50">
+
+                        <div className="space-y-2 pt-2 border-t border-gray-100">
                             <Label className="text-sm font-semibold">Change Password</Label>
                             <Input 
                                 type="password" 
@@ -1129,15 +1212,6 @@ export default function Layout() {
                                 placeholder="Enter new password to update"
                             />
                             <p className="text-[10px] text-gray-400">Leave blank to keep your current password.</p>
-                        </div>
-                        <div className="space-y-2 pt-2 border-t border-gray-50">
-                            <Label className="text-sm font-semibold">Date of Birth (DBO)</Label>
-                            <Input 
-                                value={accountDbo} 
-                                onChange={(e) => setAccountDbo(e.target.value)}
-                                placeholder="MM/DD/YYYY"
-                            />
-                            <p className="text-[10px] text-gray-400">Used for HR records and certifications.</p>
                         </div>
                     </div>
                     <DialogFooter className="flex gap-2">
