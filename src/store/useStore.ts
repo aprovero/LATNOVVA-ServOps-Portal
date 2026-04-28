@@ -1339,7 +1339,7 @@ export const useStore = create<AppState>()(
                     emergency_contact_name: person.emergencyContactName,
                     emergency_contact_phone: person.emergencyContactPhone
                 };
-                await supabase.from('personnel').insert(dbPayload);
+                await supabase.from('personnel').upsert(dbPayload);
             },
             updatePersonnel: async (id, updates) => {
                 set((state) => ({
