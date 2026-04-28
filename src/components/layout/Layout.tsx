@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { differenceInDays, parseISO } from 'date-fns';
+import { SyncStatus } from '../SyncStatus';
 
 import CommandSearch from '../search/CommandSearch';
 import { Input } from '../ui/input';
@@ -456,6 +457,8 @@ export default function Layout() {
                                 <span className="text-xs font-semibold">{t('common.install', 'Install App')}</span>
                             </button>
                         )}
+                        
+                        <SyncStatus />
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

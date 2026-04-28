@@ -4,6 +4,14 @@ import { supabaseUntyped as supabase } from '../lib/supabase';
 import { createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from '../lib/idbStorage';
 
+export interface PendingSyncItem {
+    table: string;
+    id: string;
+    action: 'insert' | 'update' | 'delete' | 'upsert';
+    payload: any;
+    timestamp: string;
+}
+
 export type ReportState = 'Draft' | 'Pending Manager Review' | 'Pending Customer Review' | 'Approved' | 'Closed';
 
 export interface ToolHistoryEntry {
@@ -443,6 +451,12 @@ interface AppState {
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     initializeGlobalTemplates: () => Promise<void>;
+    // Sync Queue Management
+    pendingSync: PendingSyncItem[];
+    isSyncing: boolean;
+    syncError: string | null;
+    processSyncQueue: () => Promise<void>;
+    safeSync: (table: string, id: string, action: 'insert' | 'update' | 'upsert' | 'delete', payload: any) => Promise<void>;
 }
 
 export const useStore = create<AppState>()(
@@ -457,6 +471,9 @@ export const useStore = create<AppState>()(
             tools: [],
             personnel: [],
             dismissedNotifications: [],
+            pendingSync: [],
+            isSyncing: false,
+            syncError: null,
 
             templates: [
                 {
@@ -789,6 +806,61 @@ export const useStore = create<AppState>()(
             updatePlatformSettings: (settings) => set((state) => ({
                 platformSettings: { ...state.platformSettings, ...settings }
             })),
+
+            processSyncQueue: async () => {
+                const { pendingSync, isSyncing } = get();
+                if (isSyncing || pendingSync.length === 0 || !navigator.onLine) return;
+
+                set({ isSyncing: true, syncError: null });
+
+                const remaining = [...pendingSync];
+                const failed: PendingSyncItem[] = [];
+
+                for (const item of remaining) {
+                    try {
+                        let query;
+                        if (item.action === 'insert') {
+                            query = supabase.from(item.table).insert(item.payload);
+                        } else if (item.action === 'update') {
+                            query = supabase.from(item.table).update(item.payload).eq('id', item.id);
+                        } else if (item.action === 'upsert') {
+                            query = supabase.from(item.table).upsert(item.payload);
+                        } else if (item.action === 'delete') {
+                            query = supabase.from(item.table).delete().eq('id', item.id);
+                        }
+
+                        if (query) {
+                            const { error } = await query;
+                            if (error) throw error;
+                        }
+                    } catch (err: any) {
+                        console.error(`Sync failed for ${item.table}/${item.id}:`, err);
+                        failed.push(item);
+                        // If one fails due to network, stop processing the rest
+                        if (!navigator.onLine) break;
+                    }
+                }
+
+                set({ 
+                    pendingSync: failed, 
+                    isSyncing: false,
+                    syncError: failed.length > 0 ? `Failed to sync ${failed.length} items. Will retry.` : null
+                });
+            },
+
+            safeSync: async (table, id, action, payload) => {
+                const syncItem: PendingSyncItem = { table, id, action, payload, timestamp: new Date().toISOString() };
+                
+                // Add to queue first (Optimistic)
+                set(state => ({ 
+                    pendingSync: [...state.pendingSync, syncItem],
+                    syncError: null 
+                }));
+
+                // Immediately try to process the queue
+                await get().processSyncQueue();
+            },
+
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
@@ -933,6 +1005,52 @@ export const useStore = create<AppState>()(
                             }))
                             : state.tools,
                     }));
+
+                    // ── SMART MERGE ──
+                    // After fetching from DB, re-apply any local pending changes that haven't synced yet.
+                    set((state) => {
+                        const { pendingSync } = state;
+                        if (pendingSync.length === 0) return state;
+
+                        const newState = { ...state };
+                        
+                        pendingSync.forEach(item => {
+                            // Map table name to store key
+                            const tableToKey: Record<string, keyof AppState> = {
+                                'clients': 'clients',
+                                'projects': 'projects',
+                                'personnel': 'personnel',
+                                'reports': 'reports',
+                                'timesheets': 'timesheets',
+                                'tools': 'tools',
+                                'scope_templates': 'scopeTemplates',
+                                'sub_report_templates': 'subReportTemplates'
+                            };
+
+                            const key = tableToKey[item.table];
+                            if (key && Array.isArray(newState[key])) {
+                                const list = [...(newState[key] as any[])];
+                                const idx = list.findIndex(l => l.id === item.id);
+
+                                if (item.action === 'delete') {
+                                    if (idx !== -1) list.splice(idx, 1);
+                                } else if (item.action === 'insert' || item.action === 'upsert' || item.action === 'update') {
+                                    if (idx !== -1) {
+                                        list[idx] = { ...list[idx], ...item.payload };
+                                    } else if (item.action !== 'update') {
+                                        list.push(item.payload);
+                                    }
+                                }
+                                (newState as any)[key] = list;
+                            }
+                        });
+                        
+                        return newState;
+                    });
+                    
+                    // Trigger background sync for anything pending
+                    get().processSyncQueue();
+
                 } catch (error) {
                     console.error('Failed to init DB from Supabase', error);
                 }
@@ -998,22 +1116,18 @@ export const useStore = create<AppState>()(
             setClientId: (id) => set({ clientId: id }),
             addClient: async (client) => {
                 set((state) => ({ clients: [...state.clients, client] }));
-                await supabase.from('clients').insert({
-                    id: client.id,
-                    name: client.name,
-                    logo: client.logo
-                });
+                await get().safeSync('clients', client.id, 'insert', client);
             },
             updateClient: async (id, updates) => {
                 set((state) => ({ clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c) }));
-                await supabase.from('clients').update({
+                await get().safeSync('clients', id, 'update', {
                     name: updates.name,
                     logo: updates.logo
-                }).eq('id', id);
+                });
             },
             deleteClient: async (id) => {
                 set((state) => ({ clients: state.clients.filter(c => c.id !== id) }));
-                await supabase.from('clients').delete().eq('id', id);
+                await get().safeSync('clients', id, 'delete', null);
             },
             addProject: async (project) => {
                 set((state) => ({ projects: [...state.projects, project] }));
@@ -1035,7 +1149,7 @@ export const useStore = create<AppState>()(
                     disciplines: project.disciplines || [],
                     prevailing_wage: project.prevailingWage || false
                 };
-                await supabase.from('projects').insert(dbPayload);
+                await get().safeSync('projects', project.id, 'insert', dbPayload);
 
                 // Initial propagation for people assigned during creation
                 if (project.prevailingWage && project.assignedPersonnel?.length) {
@@ -1044,7 +1158,7 @@ export const useStore = create<AppState>()(
                             project.assignedPersonnel?.includes(p.id) ? { ...p, prevailingWage: true } : p
                         )
                     }));
-                    await supabase.from('personnel').update({ prevailing_wage: true }).in('id', project.assignedPersonnel);
+                    await get().safeSync('personnel', 'multiple', 'upsert', project.assignedPersonnel?.map(id => ({ id, prevailing_wage: true })));
                 }
             },
             updateProject: async (id, updates) => {
@@ -1075,7 +1189,7 @@ export const useStore = create<AppState>()(
 
                         // 3. Update Supabase for tools
                         await Promise.all(affectedTools.map(t => 
-                            supabase.from('tools').update({ 
+                            get().safeSync('tools', t.id, 'update', { 
                                 assigned_project_id: null,
                                 history: [
                                     ...t.history,
@@ -1085,7 +1199,7 @@ export const useStore = create<AppState>()(
                                         projectId: id
                                     }
                                 ]
-                            }).eq('id', t.id)
+                            })
                         ));
                     }
                 }
@@ -1106,7 +1220,7 @@ export const useStore = create<AppState>()(
                                 peopleToUpdate.includes(p.id) ? { ...p, prevailingWage: targetWage } : p
                             )
                         }));
-                        await supabase.from('personnel').update({ prevailing_wage: targetWage }).in('id', peopleToUpdate);
+                        await get().safeSync('personnel', 'multiple', 'upsert', peopleToUpdate.map(pid => ({ id: pid, prevailing_wage: targetWage })));
                     }
                 }
 
@@ -1126,8 +1240,9 @@ export const useStore = create<AppState>()(
                 if (updates.siteLeadIds !== undefined) dbPayload.site_lead_ids = updates.siteLeadIds;
                 if (updates.disciplines !== undefined) dbPayload.disciplines = updates.disciplines;
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
+                
                 if (Object.keys(dbPayload).length > 0) {
-                    await supabase.from('projects').update(dbPayload).eq('id', id);
+                    await get().safeSync('projects', id, 'update', dbPayload);
                 }
             },
             addReport: async (report) => {
@@ -1166,13 +1281,13 @@ export const useStore = create<AppState>()(
                     created_by: reportToSave.createdBy,
                     discipline: reportToSave.discipline
                 };
-                await supabase.from('reports').insert(dbPayload);
+                await get().safeSync('reports', reportToSave.id, 'insert', dbPayload);
             },
             deleteReport: async (id) => {
                 set((state) => ({
                     reports: state.reports.filter((r) => r.id !== id),
                 }));
-                await supabase.from('reports').delete().eq('id', id);
+                await get().safeSync('reports', id, 'delete', null);
             },
             updateReport: async (id, updates) => {
                 // C-03: Enforce valid state transitions
@@ -1218,7 +1333,7 @@ export const useStore = create<AppState>()(
                 dbPayload.updated_by = get().userId;
 
                 if (Object.keys(dbPayload).length > 0) {
-                    await supabase.from('reports').update(dbPayload).eq('id', id);
+                    await get().safeSync('reports', id, 'update', dbPayload);
                 }
             },
             addComment: async (reportId, text, sectionKey) => {
@@ -1243,7 +1358,7 @@ export const useStore = create<AppState>()(
                 }));
                 // H-03: Persist comments to Supabase immediately
                 if (updatedComments.length > 0) {
-                    await supabase.from('reports').update({ comments: updatedComments }).eq('id', reportId);
+                    await get().safeSync('reports', reportId, 'update', { comments: updatedComments });
                 }
             },
             addTool: async (tool) => {
@@ -1257,7 +1372,7 @@ export const useStore = create<AppState>()(
                     assigned_project_id: tool.assignedProjectId,
                     history: tool.history || []
                 };
-                await supabase.from('tools').insert(dbPayload);
+                await get().safeSync('tools', tool.id, 'insert', dbPayload);
             },
             updateTool: async (id, updates) => {
                 const state = get();
@@ -1300,14 +1415,14 @@ export const useStore = create<AppState>()(
                 dbPayload.history = finalHistory;
 
                 if (Object.keys(dbPayload).length > 0) {
-                    await supabase.from('tools').update(dbPayload).eq('id', id);
+                    await get().safeSync('tools', id, 'update', dbPayload);
                 }
             },
             deleteTool: async (id) => {
                 set((state) => ({
                     tools: state.tools.filter((t) => t.id !== id),
                 }));
-                await supabase.from('tools').delete().eq('id', id);
+                await get().safeSync('tools', id, 'delete', null);
             },
             addPersonnel: async (person) => {
                 set((state) => ({ personnel: [...state.personnel, person] }));
@@ -1339,7 +1454,7 @@ export const useStore = create<AppState>()(
                     emergency_contact_name: person.emergencyContactName,
                     emergency_contact_phone: person.emergencyContactPhone
                 };
-                await supabase.from('personnel').upsert(dbPayload);
+                await get().safeSync('personnel', person.id, 'upsert', dbPayload);
             },
             updatePersonnel: async (id, updates) => {
                 set((state) => ({
@@ -1372,7 +1487,7 @@ export const useStore = create<AppState>()(
                 if (updates.emergencyContactName !== undefined) dbPayload.emergency_contact_name = updates.emergencyContactName;
                 if (updates.emergencyContactPhone !== undefined) dbPayload.emergency_contact_phone = updates.emergencyContactPhone;
                 if (Object.keys(dbPayload).length > 0) {
-                    await supabase.from('personnel').update(dbPayload).eq('id', id);
+                    await get().safeSync('personnel', id, 'update', dbPayload);
 
                     // HR-04: Sync core identity fields to the 'profiles' table.
                     // This ensures the next login or multi-tab fetch gets the correct role/client assignment.
@@ -1383,7 +1498,7 @@ export const useStore = create<AppState>()(
                     if (updates.clientId !== undefined) profilePayload.client_id = updates.clientId;
 
                     if (Object.keys(profilePayload).length > 0) {
-                        await supabase.from('profiles').update(profilePayload).eq('id', id);
+                        await get().safeSync('profiles', id, 'update', profilePayload);
                     }
                 }
             },
@@ -1394,7 +1509,7 @@ export const useStore = create<AppState>()(
                 set((state) => ({
                     personnel: state.personnel.filter((p) => p.id !== id),
                 }));
-                await supabase.from('personnel').update({ status: 'Inactive' }).eq('id', id);
+                await get().safeSync('personnel', id, 'update', { status: 'Inactive' });
             },
             addTemplate: (template) => set((state) => ({ templates: [...state.templates, template] })),
             updateTemplate: (id, updates) =>
@@ -1409,7 +1524,7 @@ export const useStore = create<AppState>()(
                 set((state) => ({ scopeTemplates: [...state.scopeTemplates, template] }));
                 const { userRole } = get();
                 if (userRole === 'Manager' || userRole === 'Supervisor') {
-                    await supabase.from('scope_templates').insert({
+                    await get().safeSync('scope_templates', template.id, 'insert', {
                         id: template.id,
                         name: template.name,
                         activities: template.activities
@@ -1426,7 +1541,7 @@ export const useStore = create<AppState>()(
                     if (updates.name !== undefined) dbPayload.name = updates.name;
                     if (updates.activities !== undefined) dbPayload.activities = updates.activities;
                     if (Object.keys(dbPayload).length > 0) {
-                        await supabase.from('scope_templates').update(dbPayload).eq('id', id);
+                        await get().safeSync('scope_templates', id, 'update', dbPayload);
                     }
                 }
             },
@@ -1436,14 +1551,14 @@ export const useStore = create<AppState>()(
                 }));
                 const { userRole } = get();
                 if (userRole === 'Manager' || userRole === 'Supervisor') {
-                    await supabase.from('scope_templates').delete().eq('id', id);
+                    await get().safeSync('scope_templates', id, 'delete', null);
                 }
             },
             addSubReportTemplate: async (template) => {
                 set((state) => ({ subReportTemplates: [...state.subReportTemplates, template] }));
                 const { userRole } = get();
                 if (userRole === 'Manager' || userRole === 'Supervisor') {
-                    await supabase.from('sub_report_templates').insert({
+                    await get().safeSync('sub_report_templates', template.id, 'insert', {
                         id: template.id,
                         name: template.name,
                         fields: template.fields
@@ -1460,7 +1575,7 @@ export const useStore = create<AppState>()(
                     if (updates.name !== undefined) dbPayload.name = updates.name;
                     if (updates.fields !== undefined) dbPayload.fields = updates.fields;
                     if (Object.keys(dbPayload).length > 0) {
-                        await supabase.from('sub_report_templates').update(dbPayload).eq('id', id);
+                        await get().safeSync('sub_report_templates', id, 'update', dbPayload);
                     }
                 }
             },
@@ -1470,7 +1585,7 @@ export const useStore = create<AppState>()(
                 }));
                 const { userRole } = get();
                 if (userRole === 'Manager' || userRole === 'Supervisor') {
-                    await supabase.from('sub_report_templates').delete().eq('id', id);
+                    await get().safeSync('sub_report_templates', id, 'delete', null);
                 }
             },
             addSubReportInstance: (instance) => set((state) => ({ subReportInstances: [...state.subReportInstances, instance] })),
@@ -1510,7 +1625,7 @@ export const useStore = create<AppState>()(
                     punches: timesheet.punches,
                     gps_verified: timesheet.gpsVerified
                 };
-                await supabase.from('timesheets').insert(dbPayload);
+                await get().safeSync('timesheets', timesheet.id, 'insert', dbPayload);
             },
             updateTimesheet: async (id, updates) => {
                 set((state) => ({
@@ -1531,17 +1646,17 @@ export const useStore = create<AppState>()(
                 if (updates.signature !== undefined) dbPayload.signature = updates.signature;
                 if (updates.punches !== undefined) dbPayload.punches = updates.punches;
                 if (updates.gpsVerified !== undefined) dbPayload.gps_verified = updates.gpsVerified;
-                if (updates.source !== undefined) dbPayload.source = updates.source;             // M-04
-                if (updates.manualReason !== undefined) dbPayload.manual_reason = updates.manualReason; // M-04
+                if (updates.source !== undefined) dbPayload.source = updates.source;             
+                if (updates.manualReason !== undefined) dbPayload.manual_reason = updates.manualReason; 
                 if (Object.keys(dbPayload).length > 0) {
-                    await supabase.from('timesheets').update(dbPayload).eq('id', id);
+                    await get().safeSync('timesheets', id, 'update', dbPayload);
                 }
             },
             deleteTimesheet: async (id) => {
                 set((state) => ({
                     timesheets: state.timesheets.filter((t) => t.id !== id),
                 }));
-                await supabase.from('timesheets').delete().eq('id', id);
+                await get().safeSync('timesheets', id, 'delete', null);
             },
             approveTimesheet: async (id, approverId) => {
                 set((state) => ({
@@ -1550,7 +1665,7 @@ export const useStore = create<AppState>()(
                     )
                 }));
                 // H-03: persist actual approver id
-                await supabase.from('timesheets').update({ status: 'Approved', approved_by: approverId }).eq('id', id);
+                await get().safeSync('timesheets', id, 'update', { status: 'Approved', approved_by: approverId });
             },
             rejectTimesheet: async (id, approverId) => {
                 set((state) => ({
@@ -1558,7 +1673,7 @@ export const useStore = create<AppState>()(
                         t.id === id ? { ...t, status: 'Rejected', approvedBy: approverId } : t
                     )
                 }));
-                await supabase.from('timesheets').update({ status: 'Rejected', approved_by: approverId }).eq('id', id);
+                await get().safeSync('timesheets', id, 'update', { status: 'Rejected', approved_by: approverId });
             },
             clockPunch: async (personnelId, punch, projectId) => {
                 const _d = new Date();
@@ -1667,31 +1782,15 @@ export const useStore = create<AppState>()(
                         };
 
                         if (isNewEntry) {
-                            const { error } = await supabase.from('timesheets').insert(payload);
-                            if (error && error.code === '23505') {
-                                alert(`Punch Sync Rejected: The worker is already checked in by another device for this shift.`);
-                                set(s => ({ timesheets: s.timesheets.filter(t => t.id !== updated.id) }));
-                            }
+                            await get().safeSync('timesheets', updated.id, 'insert', payload);
                         } else if (punch.type === 'clockOut') {
-                            const { data, error } = await supabase.from('timesheets')
-                                .update(payload)
-                                .eq('id', updated.id)
-                                .is('time_out', null)
-                                .select('id');
-                            
-                            // If online without fetch error, but 0 rows matched (time_out wasn't null)
-                            if (!error && data && data.length === 0) {
-                                alert(`Punch Sync Rejected: The worker is already checked out by another device for this shift.`);
-                            } else if (error) {
-                                // standard upsert fallback if there's a weird backend error that isn't network?
-                                // Actually if it is offline, it throws. So it's fine.
-                            }
+                            await get().safeSync('timesheets', updated.id, 'update', payload);
                         } else {
-                            await supabase.from('timesheets').upsert(payload);
+                            await get().safeSync('timesheets', updated.id, 'upsert', payload);
                         }
                     }
                 } catch (e) {
-                    console.warn('[clockPunch] Supabase upsert failed:', e);
+                    console.warn('[clockPunch] Sync queue failed:', e);
                 }
             },
             assignSupervisor: (personnelId, supervisorId, managerId) =>
