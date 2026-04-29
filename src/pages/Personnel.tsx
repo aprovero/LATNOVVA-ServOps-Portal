@@ -203,7 +203,7 @@ export default function Personnel() {
                         />
                     </div>
                     <div className="w-36 shrink-0 space-y-1">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Expiration Date</label>
+                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Certification Date</label>
                         <Input
                             type="date"
                             value={cert.expirationDate}

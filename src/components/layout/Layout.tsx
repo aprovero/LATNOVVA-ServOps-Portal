@@ -7,7 +7,6 @@ import { useAuthStore } from '../../lib/authStore';
 import { useTranslation } from 'react-i18next';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
-import { differenceInDays, parseISO } from 'date-fns';
 import { SyncStatus } from '../SyncStatus';
 
 import CommandSearch from '../search/CommandSearch';
@@ -34,7 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setAuthData, tools, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings } = useStore();
+    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -75,6 +74,8 @@ export default function Layout() {
     const notifications: { id: string; title: string; message: string; type: 'warning' | 'error', link?: string }[] = [];
 
     if (userRole !== 'Customer') {
+        // [DISABLED] Certification expiry warnings - requested to hide due to noise
+        /*
         (tools || []).forEach(tool => {
             if (!tool.certificationExpiry) return;
             const daysLeft = differenceInDays(parseISO(tool.certificationExpiry), new Date());
@@ -103,6 +104,7 @@ export default function Layout() {
                 }
             });
         });
+        */
 
         if (userRole === 'Manager' || userRole === 'Supervisor') {
             const pendingReports = (reports || []).filter(r => r.state === 'Pending Manager Review');

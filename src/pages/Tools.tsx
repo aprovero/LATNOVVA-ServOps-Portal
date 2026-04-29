@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Wrench, AlertTriangle, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save, ChevronDown, ArrowLeft, X } from 'lucide-react';
+import { Plus, Search, Wrench, Calendar, Clock, MapPin, Building2, CheckCircle2, Trash2, Save, ChevronDown, ArrowLeft, X } from 'lucide-react';
 import { useStore, Tool } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -158,7 +158,7 @@ export default function Tools() {
                                     <Input placeholder="e.g. SN-12345" value={newTool.serialNumber} onChange={e => setNewTool({ ...newTool, serialNumber: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.cert_expiry')}</label>
+                                    <label className="text-sm font-semibold text-accent-greyDark">Certification Date</label>
                                     <Input type="date" value={newTool.certificationExpiry} onChange={e => setNewTool({ ...newTool, certificationExpiry: e.target.value })} className="rounded-xl border-gray-200" />
                                 </div>
                                 <div className="space-y-2">
@@ -246,9 +246,9 @@ export default function Tools() {
                                 }`}
                             >
                                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                    isSelected ? 'bg-white/20' : expired ? 'bg-red-100' : 'bg-brand-teal/10'
+                                    isSelected ? 'bg-white/20' : 'bg-brand-teal/10'
                                 }`}>
-                                    <Wrench size={13} className={isSelected ? 'text-white' : expired ? 'text-red-500' : 'text-brand-teal'} />
+                                    <Wrench size={13} className={isSelected ? 'text-white' : 'text-brand-teal'} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className={`text-xs font-bold truncate leading-tight ${isSelected ? 'text-white' : 'text-accent-greyDark'}`}>
@@ -296,13 +296,9 @@ export default function Tools() {
                                                 <h2 className="text-xl font-bold text-accent-greyDark truncate">{selectedTool.name}</h2>
                                                 <p className="text-sm text-gray-500 mt-0.5 truncate">{selectedTool.model} · SN: <span className="font-mono">{selectedTool.serialNumber}</span></p>
                                                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                                                        expired
-                                                            ? 'bg-red-50 text-red-600 border-red-200'
-                                                            : 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                                                    }`}>
-                                                        {expired ? <AlertTriangle size={10} /> : <CheckCircle2 size={10} />}
-                                                        {expired ? t('inventory.status.expired') : t('inventory.status.certified')} · {selectedTool.certificationExpiry ? new Date(selectedTool.certificationExpiry).toLocaleDateString() : t('inventory.no_date')}
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 bg-emerald-50 text-emerald-600 border-emerald-200">
+                                                        <CheckCircle2 size={10} />
+                                                        {t('inventory.status.certified')} · {selectedTool.certificationExpiry ? new Date(selectedTool.certificationExpiry).toLocaleDateString() : t('inventory.no_date')}
                                                     </span>
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                                                         assignedProject ? 'bg-brand-teal/10 text-brand-teal border-brand-teal/20' : 'bg-amber-50 text-amber-600 border-amber-200'
@@ -366,7 +362,7 @@ export default function Tools() {
                                             <Input value={editDraft.serialNumber} onChange={e => setEditDraft({ ...editDraft, serialNumber: e.target.value })} className="rounded-xl border-gray-200" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('inventory.cert_expiry')}</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">Certification Date</label>
                                             <Input type="date" value={editDraft.certificationExpiry} onChange={e => setEditDraft({ ...editDraft, certificationExpiry: e.target.value })} className="rounded-xl border-gray-200" />
                                         </div>
                                         <div className="col-span-2 space-y-2">
