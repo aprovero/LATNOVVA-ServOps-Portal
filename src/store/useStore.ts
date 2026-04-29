@@ -856,46 +856,47 @@ export const useStore = create<AppState>()(
             },
 
             processSyncQueue: async () => {
-                const { pendingSync, isSyncing } = get();
+                const { isSyncing, pendingSync } = get();
                 if (isSyncing || pendingSync.length === 0 || !navigator.onLine) return;
 
                 set({ isSyncing: true, syncError: null });
 
-                const remaining = [...pendingSync];
-                const failed: PendingSyncItem[] = [];
+                try {
+                    // Process while we have items and we are online
+                    while (get().pendingSync.length > 0 && navigator.onLine) {
+                        const item = get().pendingSync[0]; // Take the first one
+                        try {
+                            let query;
+                            if (item.action === 'insert') {
+                                query = supabase.from(item.table).insert(item.payload);
+                            } else if (item.action === 'update') {
+                                query = supabase.from(item.table).update(item.payload).eq('id', item.id);
+                            } else if (item.action === 'upsert') {
+                                query = supabase.from(item.table).upsert(item.payload);
+                            } else if (item.action === 'delete') {
+                                query = supabase.from(item.table).delete().eq('id', item.id);
+                            }
 
-                let lastError = null;
-                for (const item of remaining) {
-                    try {
-                        let query;
-                        if (item.action === 'insert') {
-                            query = supabase.from(item.table).insert(item.payload);
-                        } else if (item.action === 'update') {
-                            query = supabase.from(item.table).update(item.payload).eq('id', item.id);
-                        } else if (item.action === 'upsert') {
-                            query = supabase.from(item.table).upsert(item.payload);
-                        } else if (item.action === 'delete') {
-                            query = supabase.from(item.table).delete().eq('id', item.id);
-                        }
+                            if (query) {
+                                const { error } = await query;
+                                if (error) throw error;
+                            }
 
-                        if (query) {
-                            const { error } = await query;
-                            if (error) throw error;
+                            // Success: remove from queue
+                            set(state => ({
+                                pendingSync: state.pendingSync.filter(i => i !== item)
+                            }));
+                        } catch (err: any) {
+                            console.error(`Sync failed for ${item.table}/${item.id}:`, err);
+                            const lastError = err.message || err.toString();
+                            set({ syncError: `Sync Error: ${lastError} (${get().pendingSync.length} pending)` });
+                            // On failure, we stop processing this queue to avoid out-of-order issues
+                            break;
                         }
-                    } catch (err: any) {
-                        console.error(`Sync failed for ${item.table}/${item.id}:`, err);
-                        lastError = err.message || err.toString();
-                        failed.push(item);
-                        // If one fails due to network, stop processing the rest
-                        if (!navigator.onLine) break;
                     }
+                } finally {
+                    set({ isSyncing: false });
                 }
-
-                set({ 
-                    pendingSync: failed, 
-                    isSyncing: false,
-                    syncError: failed.length > 0 ? `Sync Error: ${lastError} (${failed.length} pending)` : null
-                });
             },
 
             safeSync: async (table, id, action, payload) => {
@@ -1858,28 +1859,29 @@ export const useStore = create<AppState>()(
                     );
                     
                     if (updated) {
-                        const payload = {
+                        const dbPayload: any = {
                             id: updated.id,
                             personnel_id: updated.personnelId,
                             project_id: updated.projectId || projectId || null,
                             date: updated.date,
-                            time_in: updated.timeIn,
-                            time_out: updated.timeOut,
-                            hours: updated.hours,
-                            type: updated.type,
-                            status: updated.status,
-                            punches: updated.punches,
-                            gps_verified: updated.gpsVerified,
-                            source: updated.source,
-                            manual_reason: (updated as any).manualReason || null,
+                            time_in: updated.timeIn || null,
+                            time_out: updated.timeOut || null,
+                            hours: updated.hours || 0,
+                            type: updated.type || 'On Site',
+                            status: updated.status || 'Pending',
+                            punches: updated.punches || [],
+                            gps_verified: updated.gpsVerified ?? false,
                         };
 
+                        // Optional columns - only include if they have values to avoid schema errors on older DBs
+                        if (updated.source) dbPayload.source = updated.source;
+                        if ((updated as any).manualReason) dbPayload.manual_reason = (updated as any).manualReason;
+
                         if (isNewEntry) {
-                            await get().safeSync('timesheets', updated.id, 'insert', payload);
-                        } else if (punch.type === 'clockOut') {
-                            await get().safeSync('timesheets', updated.id, 'update', payload);
+                            await get().safeSync('timesheets', updated.id, 'insert', dbPayload);
                         } else {
-                            await get().safeSync('timesheets', updated.id, 'upsert', payload);
+                            // Use upsert for existing to handle potential race conditions or missing local records
+                            await get().safeSync('timesheets', updated.id, 'upsert', dbPayload);
                         }
                     }
                 } catch (e) {
