@@ -349,7 +349,14 @@ export default function Timesheets() {
         URL.revokeObjectURL(url);
     };
 
-    const getPersonnelName = (id: string) => personnel.find(p => p.id === id)?.name || 'Unknown';
+    const getPersonnelName = (id: string, entry?: TimesheetEntry) => {
+        const p = personnel.find(p => p.id === id);
+        if (p) return p.name;
+        if (entry?.punches?.[0]?.isOutsourced && entry.punches[0].outsourcedName) {
+            return entry.punches[0].outsourcedName;
+        }
+        return 'Unknown';
+    };
     const getProjectName = (id?: string) => id ? projects.find(p => p.id === id)?.name || 'Unknown' : '-';
 
     const filteredTimesheets = timesheets
@@ -765,7 +772,7 @@ export default function Timesheets() {
                                             </td>
                                             <td className="p-4 text-sm font-bold text-accent-greyDark whitespace-nowrap">
                                                 <div className="flex flex-col">
-                                                    <span>{getPersonnelName(entry.personnelId)}</span>
+                                                    <span>{getPersonnelName(entry.personnelId, entry)}</span>
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
@@ -781,7 +788,7 @@ export default function Timesheets() {
                                                 </div>
                                                 {entry.signature && (
                                                     <div className="flex items-center gap-1 mt-1.5 text-[10px] text-status-success font-bold px-1.5 py-0.5 bg-green-50 border border-green-100/50 rounded-md w-fit uppercase tracking-wider" title={`${t('common.actions')} ${entry.signature.name}`}>
-                                                        <PenTool size={10} /> {t('timesheets.table.verified')}
+                                                        <PenTool size={10} /> {entry.signature?.name ? `Verified by ${entry.signature.name}` : t('timesheets.table.verified')}
                                                     </div>
                                                 )}
                                             </td>

@@ -582,27 +582,29 @@ export default function Personnel() {
                                                         {canManagePersonnel ? (
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 {/* Assigned Projects Tags */}
-                                                                {assignedProjects.map(p => (
-                                                                    <span key={p.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-teal/10 text-brand-teal border border-brand-teal/20 group/tag transition-all hover:bg-brand-teal/20">
+                                                                {/* Current Project Tag (if any) */}
+                                                                {assignedProjects.length > 0 && (
+                                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-teal text-white border border-brand-teal shadow-sm group/tag transition-all">
                                                                         <Briefcase size={10} />
-                                                                        {p.name}
+                                                                        {assignedProjects[0].name}
                                                                         <button 
                                                                             onClick={() => {
-                                                                                updateProject(p.id, { 
-                                                                                    assignedPersonnel: (p.assignedPersonnel || []).filter(id => id !== selectedPerson.id) 
+                                                                                assignedProjects.forEach(ap => {
+                                                                                    updateProject(ap.id, { 
+                                                                                        assignedPersonnel: (ap.assignedPersonnel || []).filter(id => id !== selectedPerson.id) 
+                                                                                    });
                                                                                 });
-                                                                                // Re-calculate PW flag
-                                                                                const remainingProjects = assignedProjects.filter(ap => ap.id !== p.id);
-                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: remainingProjects.some(ap => ap.prevailingWage) });
+                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: false });
                                                                             }}
-                                                                            className="ml-1 text-brand-teal/50 hover:text-red-500 transition-colors"
+                                                                            className="ml-1 text-white/50 hover:text-white transition-colors"
+                                                                            title="Unassign Project"
                                                                         >
                                                                             <X size={10} />
                                                                         </button>
                                                                     </span>
-                                                                ))}
+                                                                )}
                                                                 
-                                                                {/* Add Project Dropdown */}
+                                                                {/* Transfer / Assign Project Dropdown */}
                                                                 <div className="relative group/add">
                                                                     <select 
                                                                         className="text-[10px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 outline-none appearance-none cursor-pointer pr-6 hover:bg-gray-100 hover:text-gray-600 transition-all"
@@ -610,17 +612,28 @@ export default function Personnel() {
                                                                         onChange={(e) => {
                                                                             const newProjectId = e.target.value;
                                                                             if (!newProjectId) return;
+                                                                            
+                                                                            // 1. Remove from all current projects (Transfer logic)
+                                                                            assignedProjects.forEach(ap => {
+                                                                                updateProject(ap.id, {
+                                                                                    assignedPersonnel: (ap.assignedPersonnel || []).filter(id => id !== selectedPerson.id)
+                                                                                });
+                                                                            });
+
+                                                                            // 2. Add to new project
                                                                             const p = projects.find(proj => proj.id === newProjectId);
                                                                             if (p) {
                                                                                 updateProject(newProjectId, { 
                                                                                     assignedPersonnel: [...(p.assignedPersonnel || []), selectedPerson.id]
                                                                                 });
-                                                                                // Inherit PW flag if any project is PW
-                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: true === p.prevailingWage || assignedProjects.some(ap => ap.prevailingWage) });
+                                                                                // 3. Inherit PW flag from the single assigned project
+                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: !!p.prevailingWage });
                                                                             }
                                                                         }}
                                                                     >
-                                                                        <option value="">+ {t('personnel.assign_project', 'Assign Project')}</option>
+                                                                        <option value="">
+                                                                            {assignedProjects.length > 0 ? `+ ${t('personnel.transfer_project', 'Transfer Project')}` : `+ ${t('personnel.assign_project', 'Assign Project')}`}
+                                                                        </option>
                                                                         {projects
                                                                             .filter(p => p.status === 'Active' && !assignedProjects.some(ap => ap.id === p.id))
                                                                             .map(p => (
@@ -633,11 +646,9 @@ export default function Personnel() {
                                                             </div>
                                                         ) : assignedProjects.length > 0 ? (
                                                             <div className="flex flex-wrap items-center gap-2">
-                                                                {assignedProjects.map(p => (
-                                                                    <span key={p.id} className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2.5 py-1 rounded-full border border-brand-teal/20 flex items-center gap-1.5 shadow-sm">
-                                                                        <Briefcase size={10} /> {p.name}
-                                                                    </span>
-                                                                ))}
+                                                                <span className="text-[10px] font-bold text-brand-teal bg-brand-teal/10 px-2.5 py-1 rounded-full border border-brand-teal/20 flex items-center gap-1.5 shadow-sm">
+                                                                    <Briefcase size={10} /> {assignedProjects[0].name}
+                                                                </span>
                                                             </div>
                                                         ) : (
                                                             <span className="text-[10px] font-bold text-gray-400 italic px-2.5 py-1">{t('personnel.unassigned', 'Unassigned')}</span>
