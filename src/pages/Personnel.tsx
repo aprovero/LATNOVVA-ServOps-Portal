@@ -15,7 +15,7 @@ import { supabase } from '../lib/supabase';
 
 export default function Personnel() {
     const { t } = useTranslation();
-    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects, updateProject } = useStore();
+    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects, updateProject, transferPersonnel } = useStore();
     const location = useLocation();
 
     const [searchTerm, setSearchTerm] = useState(() => {
@@ -39,6 +39,12 @@ export default function Personnel() {
                 setSelectedPersonId(match.id);
                 setEditDraft({ ...match });
             }
+        }
+
+        // Deep linking for view mode
+        const view = params.get('view');
+        if (view === 'assignments') {
+            setViewMode('org');
         }
     }, [location.search, personnel]);
 
@@ -589,10 +595,10 @@ export default function Personnel() {
                                                                         {assignedProjects[0].name}
                                                                         <button 
                                                                             onClick={() => {
-                                                                                assignedProjects.forEach(ap => {
-                                                                                    updateProject(ap.id, { 
-                                                                                        assignedPersonnel: (ap.assignedPersonnel || []).filter(id => id !== selectedPerson.id) 
-                                                                                    });
+                                                                                 assignedProjects.forEach(ap => {
+                                                                                     updateProject(ap.id, {
+                                                                                         assignedPersonnel: (ap.assignedPersonnel || []).filter(id => id !== selectedPerson.id)
+                                                                                     });
                                                                                 });
                                                                                 updatePersonnel(selectedPerson.id, { prevailingWage: false });
                                                                             }}
@@ -610,25 +616,9 @@ export default function Personnel() {
                                                                         className="text-[10px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 outline-none appearance-none cursor-pointer pr-6 hover:bg-gray-100 hover:text-gray-600 transition-all"
                                                                         value=""
                                                                         onChange={(e) => {
-                                                                            const newProjectId = e.target.value;
-                                                                            if (!newProjectId) return;
-                                                                            
-                                                                            // 1. Remove from all current projects (Transfer logic)
-                                                                            assignedProjects.forEach(ap => {
-                                                                                updateProject(ap.id, {
-                                                                                    assignedPersonnel: (ap.assignedPersonnel || []).filter(id => id !== selectedPerson.id)
-                                                                                });
-                                                                            });
-
-                                                                            // 2. Add to new project
-                                                                            const p = projects.find(proj => proj.id === newProjectId);
-                                                                            if (p) {
-                                                                                updateProject(newProjectId, { 
-                                                                                    assignedPersonnel: [...(p.assignedPersonnel || []), selectedPerson.id]
-                                                                                });
-                                                                                // 3. Inherit PW flag from the single assigned project
-                                                                                updatePersonnel(selectedPerson.id, { prevailingWage: !!p.prevailingWage });
-                                                                            }
+                                                                             const newProjectId = e.target.value;
+                                                                             if (!newProjectId) return;
+                                                                             transferPersonnel(selectedPerson.id, newProjectId);
                                                                         }}
                                                                     >
                                                                         <option value="">

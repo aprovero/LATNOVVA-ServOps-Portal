@@ -421,6 +421,7 @@ interface AppState {
     rejectTimesheet: (id: string, approverId: string) => void;
     clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean) => void;
     assignSupervisor: (personnelId: string, supervisorId?: string, managerId?: string) => void;
+    transferPersonnel: (personnelId: string, targetProjectId: string | null) => Promise<void>;
     addScopeToProject: (projectId: string, scope: ProjectScope) => void;
     updateProjectScope: (projectId: string, scopeId: string, updates: Partial<ProjectScope>) => void;
     deleteProjectScope: (projectId: string, scopeId: string) => void;
@@ -857,9 +858,15 @@ export const useStore = create<AppState>()(
 
             processSyncQueue: async () => {
                 const { isSyncing, pendingSync } = get();
-                if (isSyncing || pendingSync.length === 0 || !navigator.onLine) return;
+                
+                // SAFETY GUARD: If sync has been "running" for > 30s, assume it hung and force reset
+                const now = Date.now();
+                const lastSyncAttempt = (get() as any).lastSyncTimestamp || 0;
+                const isHanging = isSyncing && (now - lastSyncAttempt > 30000);
 
-                set({ isSyncing: true, syncError: null });
+                if ((isSyncing && !isHanging) || pendingSync.length === 0 || !navigator.onLine) return;
+
+                set({ isSyncing: true, syncError: null, lastSyncTimestamp: now } as any);
 
                 try {
                     // Process while we have items and we are online
@@ -919,14 +926,13 @@ export const useStore = create<AppState>()(
             initDb: async () => {
                 try {
                     // Fetch real data from supabase
-                    const [{ data: clientsDB }, { data: projectsDB }, { data: personnelDB }, { data: reportsDB }, { data: timesheetsDB }, { data: toolsDB }] = await Promise.all([
-                        supabase.from('clients').select('*'),
-                        supabase.from('projects').select('*'),
-                        supabase.from('personnel').select('*'),
-                        supabase.from('reports').select('*'),
-                        supabase.from('timesheets').select('*'),
-                        supabase.from('tools').select('*')
-                    ]);
+                    // Fetch real data from supabase sequentially to prevent concurrent token refresh "Lock Stolen" errors
+                    const { data: clientsDB } = await supabase.from('clients').select('*');
+                    const { data: projectsDB } = await supabase.from('projects').select('*');
+                    const { data: personnelDB } = await supabase.from('personnel').select('*');
+                    const { data: reportsDB } = await supabase.from('reports').select('*');
+                    const { data: timesheetsDB } = await supabase.from('timesheets').select('*');
+                    const { data: toolsDB } = await supabase.from('tools').select('*');
 
                     // Guard: only overwrite store state if Supabase returned actual rows.
                     // An empty array [] is truthy in JS, so `data || fallback` would wipe
@@ -1894,6 +1900,74 @@ export const useStore = create<AppState>()(
                         p.id === personnelId ? { ...p, supervisorId, managerId } : p
                     )
                 })),
+            transferPersonnel: async (personnelId, targetProjectId) => {
+                const state = get();
+                const person = state.personnel.find(p => p.id === personnelId);
+                if (!person) return;
+
+                // 1. Find all projects currently containing this person
+                const currentProjects = state.projects.filter(p => p.assignedPersonnel?.includes(personnelId));
+                
+                // 2. Perform local update for all affected projects in one go
+                set((state) => ({
+                    projects: state.projects.map(proj => {
+                        let nextPersonnel = proj.assignedPersonnel || [];
+                        
+                        // Remove from old projects
+                        if (currentProjects.some(cp => cp.id === proj.id)) {
+                            nextPersonnel = nextPersonnel.filter(id => id !== personnelId);
+                        }
+                        
+                        // Add to new project (avoid duplicates)
+                        if (proj.id === targetProjectId) {
+                            if (!nextPersonnel.includes(personnelId)) {
+                                nextPersonnel = [...nextPersonnel, personnelId];
+                            }
+                        }
+                        
+                        return { ...proj, assignedPersonnel: nextPersonnel };
+                    })
+                }));
+
+                // 3. Update PW flag if needed
+                if (targetProjectId) {
+                    const targetProject = get().projects.find(p => p.id === targetProjectId);
+                    if (targetProject) {
+                        set((state) => ({
+                            personnel: state.personnel.map(p => 
+                                p.id === personnelId ? { ...p, prevailingWage: !!targetProject.prevailingWage } : p
+                            )
+                        }));
+                        await get().safeSync('personnel', personnelId, 'update', { prevailing_wage: !!targetProject.prevailingWage });
+                    }
+                } else if (targetProjectId === null) {
+                    set((state) => ({
+                        personnel: state.personnel.map(p => 
+                            p.id === personnelId ? { ...p, prevailingWage: false } : p
+                        )
+                    }));
+                    await get().safeSync('personnel', personnelId, 'update', { prevailing_wage: false });
+                }
+
+                // 4. Persist to DB
+                // Remove from old
+                for (const proj of currentProjects) {
+                    if (proj.id !== targetProjectId) {
+                        const nextList = (proj.assignedPersonnel || []).filter(id => id !== personnelId);
+                        await get().safeSync('projects', proj.id, 'update', { assigned_personnel: nextList });
+                    }
+                }
+                // Add to new
+                if (targetProjectId) {
+                    const targetProject = get().projects.find(p => p.id === targetProjectId);
+                    const currentList = targetProject?.assignedPersonnel || [];
+                    if (!currentList.includes(personnelId)) {
+                        await get().safeSync('projects', targetProjectId, 'update', { 
+                            assigned_personnel: [...currentList, personnelId] 
+                        });
+                    }
+                }
+            },
             addScopeToProject: (projectId, scope) => 
                 set((state) => ({
                     projects: state.projects.map((p) => 

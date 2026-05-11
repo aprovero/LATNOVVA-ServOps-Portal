@@ -145,7 +145,7 @@ export default function OrgChartView() {
     // Get team for selected project, sorted by lead > supervisor > tech
     const getTeamForProject = (project: typeof activeProjects[0]) => {
         const teamIds = project.assignedPersonnel || [];
-        const team = fieldPersonnel.filter(p => teamIds.includes(p.id));
+        const team = personnel.filter(p => teamIds.includes(p.id));
         team.sort((a, b) => {
             const isLeadA = project.siteLeadIds?.includes(a.id) ? 1 : 0;
             const isLeadB = project.siteLeadIds?.includes(b.id) ? 1 : 0;

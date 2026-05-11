@@ -164,9 +164,32 @@ export default function Projects() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-accent-greyDark flex items-center gap-3">
-                        {userRole === 'Customer' ? t('projects.customer_portal', 'Customer Portal') : t('projects.global_ops', 'Global Operations')}
+                        {userRole === 'Customer' ? (
+                            <div className="flex items-center gap-4">
+                                {(() => {
+                                    const client = clients.find(c => c.id === clientId);
+                                    return (
+                                        <>
+                                            {client?.logo ? (
+                                                <div className="w-12 h-12 rounded-xl border border-gray-100 bg-white p-1.5 shadow-sm overflow-hidden flex items-center justify-center">
+                                                    <img src={client.logo} alt="" className="w-full h-full object-contain" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-12 h-12 rounded-xl bg-brand-teal/10 flex items-center justify-center text-brand-teal">
+                                                    <Building2 size={24} />
+                                                </div>
+                                            )}
+                                            <div className="flex flex-col">
+                                                <span>{client?.name || t('projects.customer_portal', 'Customer Portal')}</span>
+                                                <span className="text-xs font-bold text-brand-teal uppercase tracking-widest mt-0.5">{t('projects.customer_portal', 'Service Portal')}</span>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        ) : t('projects.global_ops', 'Global Operations')}
                     </h1>
-                    <p className="text-gray-500 mt-1">{t('projects.subtitle', 'Real-time tracking and operational intelligence.')}</p>
+                    {userRole !== 'Customer' && <p className="text-gray-500 mt-1">{t('projects.subtitle', 'Real-time tracking and operational intelligence.')}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                     {userRole !== 'Customer' && (

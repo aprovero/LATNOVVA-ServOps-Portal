@@ -15,7 +15,10 @@ export function KPIRow() {
     const personnelIds = new Set(personnel.map(p => p.id));
     const techsDeployed = new Set(
         activeProjectsList
-            .flatMap(p => p.assignedPersonnel || [])
+            .flatMap(p => {
+                const list = p.assignedPersonnel || (p as any).assigned_personnel || [];
+                return Array.isArray(list) ? list : [];
+            })
             .filter(id => personnelIds.has(id))
     ).size;
 
@@ -31,7 +34,7 @@ export function KPIRow() {
 
     const kpis = [
         { label: 'Active Projects', value: activeProjects, diff: 'Live count', icon: Activity, color: 'text-brand-teal', bg: 'bg-brand-teal/10', link: '/projects?q=Active' },
-        { label: 'Techs Deployed', value: techsDeployed, diff: 'Active field staff', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', link: '/personnel' },
+        { label: 'Techs Deployed', value: techsDeployed, diff: 'Active field staff', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10', link: '/personnel?view=assignments' },
         { label: 'Open Reports', value: openReports, diff: 'Pending review', icon: FileText, color: 'text-status-warning', bg: 'bg-status-warning/10', link: '/reports?q=Pending' },
         { label: 'Reported Issues', value: criticalIssues, diff: criticalIssues === 0 ? 'No open issues' : `${criticalIssues} requiring attention`, icon: AlertCircle, color: 'text-status-error', bg: 'bg-status-error/10', link: '/projects?status=Critical' },
     ];
