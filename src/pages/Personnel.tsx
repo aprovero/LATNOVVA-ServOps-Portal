@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { supabase } from '../lib/supabase';
+import { MexicoHRForm } from '../components/personnel/MexicoHRForm';
 
 export default function Personnel() {
     const { t } = useTranslation();
-    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects, updateProject, transferPersonnel } = useStore();
+    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects, updateProject, transferPersonnel, activeSubsidiary } = useStore();
     const location = useLocation();
 
     const [searchTerm, setSearchTerm] = useState(() => {
@@ -134,6 +135,8 @@ export default function Personnel() {
                 truckAllowance: newPerson.truckAllowance,
                 leadPay: newPerson.leadPay,
                 totalPerdiem: newPerson.totalPerdiem,
+                subsidiary: activeSubsidiary,
+                subsidiaryMetadata: {}
             };
             
             // Sync locally & backend via zustand trigger updates
@@ -166,6 +169,7 @@ export default function Personnel() {
     // Filter + sort: active first, inactive at bottom
     const filteredPersonnel = personnel
         .filter(p => !['Customer', 'HR'].includes(p.appRole || ''))
+        .filter(p => (p.subsidiary || 'US') === activeSubsidiary)
         .filter(p => {
             if (filterRole === 'All') return true;
             if (filterRole === 'Prevailing Wage') return p.prevailingWage;
@@ -300,6 +304,7 @@ export default function Personnel() {
                                         <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> {t('personnel.columns.role')}</label>
                                         <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={newPerson?.appRole || 'Tech'} onChange={e => setNewPerson({ ...newPerson, appRole: e.target.value as any })}>
                                             <option value="Tech">Tech</option>
+                                            <option value="Office">Office</option>
                                             <option value="Supervisor">Supervisor</option>
                                             <option value="Manager">Manager</option>
                                             <option value="HR">HR</option>
@@ -334,46 +339,50 @@ export default function Personnel() {
                                         </div>
                                     </div>
 
-                                    {isHROrManager && (
-                                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
-                                            <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">
-                                                <Shield size={14} /> {t('personnel.finance.title')}
-                                            </h3>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.regularRate ?? 0} onChange={e => setNewPerson({ ...newPerson, regularRate: parseFloat(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.rainyDayRate ?? 0} onChange={e => setNewPerson({ ...newPerson, rainyDayRate: parseFloat(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.overtimeRate ?? 0} onChange={e => setNewPerson({ ...newPerson, overtimeRate: parseFloat(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.mealAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, mealAllowance: parseFloat(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.gasAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, gasAllowance: parseFloat(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.truckAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, truckAllowance: parseFloat(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.leadPay ?? 0} onChange={e => setNewPerson({ ...newPerson, leadPay: parseFloat(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-1 col-span-2">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.per_diem', 'Per Diem')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.totalPerdiem ?? 0} onChange={e => setNewPerson({ ...newPerson, totalPerdiem: parseFloat(e.target.value) || 0 })} />
+                                    {userRole === 'HR' && (
+                                        activeSubsidiary === 'US' ? (
+                                            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
+                                                <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">
+                                                    <Shield size={14} /> {t('personnel.finance.title')}
+                                                </h3>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.regularRate ?? 0} onChange={e => setNewPerson({ ...newPerson, regularRate: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.rainyDayRate ?? 0} onChange={e => setNewPerson({ ...newPerson, rainyDayRate: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.overtimeRate ?? 0} onChange={e => setNewPerson({ ...newPerson, overtimeRate: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.mealAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, mealAllowance: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.gasAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, gasAllowance: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.truckAllowance ?? 0} onChange={e => setNewPerson({ ...newPerson, truckAllowance: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.leadPay ?? 0} onChange={e => setNewPerson({ ...newPerson, leadPay: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
+                                                    <div className="space-y-1 col-span-2">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.per_diem', 'Per Diem')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={newPerson?.totalPerdiem ?? 0} onChange={e => setNewPerson({ ...newPerson, totalPerdiem: parseFloat(e.target.value) || 0 })} />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <MexicoHRForm data={newPerson || {}} onChange={(updates) => setNewPerson(p => p ? { ...p, ...updates } : p)} />
+                                        )
                                     )}
 
                                     <div className="space-y-2">
@@ -395,6 +404,7 @@ export default function Personnel() {
                                     />
                                 </div>
                             </div>
+
                             {newPerson && renderCertsEditor(newPerson, setNewPerson)}
                             <Button className="w-full mt-2 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAdd}>
                                 {t('personnel.create_user')}
@@ -739,6 +749,7 @@ export default function Personnel() {
                                                 <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><Shield size={14} className="text-brand-teal" /> {t('personnel.columns.role')}</label>
                                                 <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.appRole || 'Tech'} onChange={e => setEditDraft(d => d ? { ...d, appRole: e.target.value as any } : d)}>
                                                     <option value="Tech">Tech</option>
+                                                    <option value="Office">Office</option>
                                                     <option value="Supervisor">Supervisor</option>
                                                     <option value="Manager">Manager</option>
                                                     <option value="HR">HR</option>
@@ -774,46 +785,50 @@ export default function Personnel() {
                                         </div>
                                     </div>
 
-                                    {isHROrManager && (
-                                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
-                                            <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">
-                                                <Shield size={14} /> {t('personnel.finance.title')}
-                                            </h3>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.regularRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, regularRate: parseFloat(e.target.value) || 0 } : d)} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.rainyDayRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, rainyDayRate: parseFloat(e.target.value) || 0 } : d)} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.overtimeRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, overtimeRate: parseFloat(e.target.value) || 0 } : d)} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.mealAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, mealAllowance: parseFloat(e.target.value) || 0 } : d)} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.gasAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, gasAllowance: parseFloat(e.target.value) || 0 } : d)} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.truckAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, truckAllowance: parseFloat(e.target.value) || 0 } : d)} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.leadPay ?? 0} onChange={e => setEditDraft(d => d ? { ...d, leadPay: parseFloat(e.target.value) || 0 } : d)} />
-                                                </div>
-                                                <div className="space-y-1 col-span-2">
-                                                    <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.per_diem', 'Per Diem')}</label>
-                                                    <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.totalPerdiem ?? 0} onChange={e => setEditDraft(d => d ? { ...d, totalPerdiem: parseFloat(e.target.value) || 0 } : d)} />
+                                    {userRole === 'HR' && (
+                                        activeSubsidiary === 'US' ? (
+                                            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
+                                                <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">
+                                                    <Shield size={14} /> {t('personnel.finance.title')}
+                                                </h3>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.regular_hours')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.regularRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, regularRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.rainy_day')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.rainyDayRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, rainyDayRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.over_time')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.overtimeRate ?? 0} onChange={e => setEditDraft(d => d ? { ...d, overtimeRate: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.meal_days')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.mealAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, mealAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.gas_day')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.gasAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, gasAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.truck')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.truckAllowance ?? 0} onChange={e => setEditDraft(d => d ? { ...d, truckAllowance: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.lead_pay')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.leadPay ?? 0} onChange={e => setEditDraft(d => d ? { ...d, leadPay: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
+                                                    <div className="space-y-1 col-span-2">
+                                                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.finance.per_diem', 'Per Diem')}</label>
+                                                        <Input type="number" step="0.01" className="h-9 bg-white border-amber-200" value={editDraft.totalPerdiem ?? 0} onChange={e => setEditDraft(d => d ? { ...d, totalPerdiem: parseFloat(e.target.value) || 0 } : d)} />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <MexicoHRForm data={editDraft} onChange={(updates) => setEditDraft(d => d ? { ...d, ...updates } : d)} />
+                                        )
                                     )}
 
                                     <div className="space-y-2">

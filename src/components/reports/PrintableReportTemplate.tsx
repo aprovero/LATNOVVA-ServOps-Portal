@@ -160,7 +160,7 @@ export const PrintableReportTemplate = ({ report }: PrintableReportTemplateProps
   
   // Build absolute URLs for logos so @react-pdf/renderer can load them
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const corLogoUrl = `${origin}/cor-logo.png`;
+  const corLogoUrl = `${origin}/${state.activeSubsidiary === 'MX' ? 'S&S-logo.png' : 'cor-logo.png'}`;
   const latnovvaLogoUrl = `${origin}/latnovva-logo.png`;
 
   const hasLabor = (report.labor || []).length > 0;

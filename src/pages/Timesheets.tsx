@@ -367,7 +367,7 @@ export default function Timesheets() {
         .filter(t => filterEndDate ? new Date(t.date) <= new Date(filterEndDate) : true)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const totalHours = filteredTimesheets.reduce((sum, t) => sum + t.hours, 0);
+    const totalHours = Number(filteredTimesheets.reduce((sum, t) => sum + (t.hours || 0), 0).toFixed(1));
 
     return (
         <div className="space-y-6">
@@ -473,6 +473,7 @@ export default function Timesheets() {
                                             onChange={e => setNewEntry({ ...newEntry, type: e.target.value as any })}
                                         >
                                             <option value="On Site">{t('timesheets.types.on_site')}</option>
+                                            <option value="Home Office">{t('timesheets.types.home_office', 'Home Office')}</option>
                                             <option value="Travel">{t('timesheets.types.travel')}</option>
                                             <option value="Other">{t('timesheets.types.other')}</option>
                                         </select>
@@ -487,7 +488,7 @@ export default function Timesheets() {
                                         onChange={e => setNewEntry({ ...newEntry, projectId: e.target.value })}
                                     >
                                         <option value="">{t('timesheets.modals.none_admin')}</option>
-                                        {projects.filter(p => p.status === 'Active').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        {projects.filter(p => p.status === 'Active' || p.status === 'In Progress').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
 
@@ -586,7 +587,7 @@ export default function Timesheets() {
                                 >
                                     {t('timesheets.filters.all_projects')}
                                 </div>
-                                {projects.filter(p => p.status === 'Active' && (!projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase()))).map(p => (
+                                {projects.filter(p => (p.status === 'Active' || p.status === 'In Progress') && (!projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase()))).map(p => (
                                     <div 
                                         key={p.id}
                                         className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${filterProject === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
@@ -809,12 +810,14 @@ export default function Timesheets() {
                                                         {expandedPunchId === entry.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                                     </button>
                                                 ) : (
-                                                    <span
-                                                        className="text-[11px] px-2 py-1 bg-amber-50 text-amber-700 rounded-full font-semibold border border-amber-200 cursor-help"
+                                                    <button
+                                                        onClick={() => setExpandedPunchId(expandedPunchId === entry.id ? null : entry.id)}
+                                                        className="flex items-center gap-1.5 text-[11px] px-2 py-1 bg-amber-50 text-amber-700 rounded-full font-semibold border border-amber-200 cursor-pointer hover:bg-amber-100 transition-colors"
                                                         title={entry.manualReason || t('timesheets.table.manual')}
                                                     >
-                                                        ⚠ {t('timesheets.table.manual')}{entry.manualReason ? ' ·ℹ' : ''}
-                                                    </span>
+                                                        <AlertTriangle size={11} /> {t('timesheets.table.manual')}
+                                                        {expandedPunchId === entry.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                                    </button>
                                                 )}
                                             </td>
                                             <td className="p-4">
@@ -877,44 +880,118 @@ export default function Timesheets() {
                                                 </div>
                                             </td>
                                         </tr>
-                                        {/* GPS Punch Audit Trail */}
-                                        {expandedPunchId === entry.id && entry.punches && (
+                                        {/* GPS Punch Audit Trail or Manual Reason */}
+                                        {expandedPunchId === entry.id && (entry.punches || entry.manualReason) && (
                                             <tr key={`${entry.id}-punches`}>
                                                 <td colSpan={9} className="px-6 pb-4 pt-0 bg-gray-50/60">
                                                     <div className="border border-gray-100 rounded-xl p-4 bg-white shadow-sm">
-                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                                            <MapPin size={12} /> {t('timesheets.table.audit_trail')}
-                                                        </p>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                                                            {entry.punches.map((punch, i) => (
-                                                                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                                                    <div className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ backgroundColor: punchDotColor[punch.type] }} />
-                                                                    <div className="min-w-0">
-                                                                        <p className="text-xs font-bold text-gray-700">{punchLabel[punch.type] || punch.type}</p>
-                                                                        <p className="text-xs text-gray-500 font-mono">{formatPunchTime(punch.timestamp)}</p>
-                                                                        {punch.lat !== 0 ? (
-                                                                            <a
-                                                                                href={`https://maps.google.com/?q=${punch.lat},${punch.lng}`}
-                                                                                target="_blank"
-                                                                                rel="noreferrer"
-                                                                                className="text-[10px] text-teal-600 hover:underline flex items-center gap-1 mt-0.5"
-                                                                            >
-                                                                                <MapPin size={9} />
-                                                                                {punch.lat.toFixed(4)}, {punch.lng.toFixed(4)} · ±{Math.round(punch.accuracy)}m
-                                                                            </a>
-                                                                        ) : <p className="text-[10px] text-gray-400">{t('timesheets.table.no_gps')}</p>}
-                                                                        {punch.manualAdjustment && (
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2 m-0">
+                                                                {entry.punches && entry.punches.length > 0 ? <MapPin size={12} /> : <AlertTriangle size={12} />}
+                                                                {entry.punches && entry.punches.length > 0 ? t('timesheets.table.audit_trail') : t('timesheets.table.manual')}
+                                                            </p>
+                                                            {entry.type && (
+                                                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider ${
+                                                                    entry.type === 'Home Office' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                                                                    entry.type === 'On Site' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                                                    'bg-gray-100 text-gray-700 border border-gray-200'
+                                                                }`}>
+                                                                    {entry.type === 'Home Office' ? t('timesheets.types.home_office', 'Home Office') : entry.type === 'On Site' ? t('timesheets.types.on_site', 'On Site') : entry.type}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {entry.punches && entry.punches.length > 0 ? (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                                {entry.punches.map((punch, i) => (
+                                                                    <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                                        <div className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ backgroundColor: punchDotColor[punch.type] }} />
+                                                                        <div className="min-w-0">
+                                                                            <p className="text-xs font-bold text-gray-700">{punchLabel[punch.type] || punch.type}</p>
+                                                                            <p className="text-xs text-gray-500 font-mono">{formatPunchTime(punch.timestamp)}</p>
+                                                                            {punch.lat !== 0 ? (
+                                                                                <a
+                                                                                    href={`https://maps.google.com/?q=${punch.lat},${punch.lng}`}
+                                                                                    target="_blank"
+                                                                                    rel="noreferrer"
+                                                                                    className="text-[10px] text-teal-600 hover:underline flex items-center gap-1 mt-0.5"
+                                                                                >
+                                                                                    <MapPin size={9} />
+                                                                                    {punch.lat.toFixed(4)}, {punch.lng.toFixed(4)} · ±{Math.round(punch.accuracy)}m
+                                                                                </a>
+                                                                            ) : <p className="text-[10px] text-gray-400">{t('timesheets.table.no_gps')}</p>}
+                                                                            {punch.manualAdjustment && (
+                                                                                <span className="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full font-bold">
+                                                                                    ✏ {t('timesheets.table.manual_adj')}
+                                                                                </span>
+                                                                            )}
+                                                                            {punch.adjustmentNote && (
+                                                                                <p className="text-[10px] text-gray-400 italic mt-0.5 truncate" title={punch.adjustmentNote}>"{punch.adjustmentNote}"</p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                                {entry.timeIn && (
+                                                                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                                        <div className="w-2.5 h-2.5 rounded-full mt-1 shrink-0 bg-[#0f766e]" />
+                                                                        <div className="min-w-0">
+                                                                            <p className="text-xs font-bold text-gray-700">{t('timesheets.punches.clock_in')}</p>
+                                                                            <p className="text-xs text-gray-500 font-mono">
+                                                                                {(() => {
+                                                                                    try {
+                                                                                        const [h, m] = entry.timeIn.split(':');
+                                                                                        const d = new Date();
+                                                                                        d.setHours(Number(h), Number(m));
+                                                                                        return format(d, 'hh:mm a');
+                                                                                    } catch { return entry.timeIn; }
+                                                                                })()}
+                                                                            </p>
+                                                                            <p className="text-[10px] text-gray-400 mt-0.5">{t('timesheets.table.no_gps')}</p>
                                                                             <span className="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full font-bold">
                                                                                 ✏ {t('timesheets.table.manual_adj')}
                                                                             </span>
-                                                                        )}
-                                                                        {punch.adjustmentNote && (
-                                                                            <p className="text-[10px] text-gray-400 italic mt-0.5 truncate" title={punch.adjustmentNote}>"{punch.adjustmentNote}"</p>
-                                                                        )}
+                                                                            <p className="text-[10px] text-gray-400 italic mt-0.5 truncate" title={entry.manualReason || ''}>
+                                                                                "{entry.manualReason || t('timesheets.table.manual_entry')}"
+                                                                            </p>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                                                )}
+                                                                {entry.timeOut && (
+                                                                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                                        <div className="w-2.5 h-2.5 rounded-full mt-1 shrink-0 bg-[#ef4444]" />
+                                                                        <div className="min-w-0">
+                                                                            <p className="text-xs font-bold text-gray-700">{t('timesheets.punches.clock_out')}</p>
+                                                                            <p className="text-xs text-gray-500 font-mono">
+                                                                                {(() => {
+                                                                                    try {
+                                                                                        const [h, m] = entry.timeOut.split(':');
+                                                                                        const d = new Date();
+                                                                                        d.setHours(Number(h), Number(m));
+                                                                                        return format(d, 'hh:mm a');
+                                                                                    } catch { return entry.timeOut; }
+                                                                                })()}
+                                                                            </p>
+                                                                            <p className="text-[10px] text-gray-400 mt-0.5">{t('timesheets.table.no_gps')}</p>
+                                                                            <span className="mt-1 inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-full font-bold">
+                                                                                ✏ {t('timesheets.table.manual_adj')}
+                                                                            </span>
+                                                                            <p className="text-[10px] text-gray-400 italic mt-0.5 truncate" title={entry.manualReason || ''}>
+                                                                                "{entry.manualReason || t('timesheets.table.manual_entry')}"
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {!entry.timeIn && !entry.timeOut && (
+                                                                    <div className="col-span-full p-4 bg-amber-50/50 rounded-xl border border-amber-100/50 flex flex-col gap-2">
+                                                                        <p className="text-sm font-medium text-amber-900">
+                                                                            {entry.manualReason || 'No reason provided for this manual entry.'}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -986,7 +1063,7 @@ export default function Timesheets() {
                                     }}
                                 >
                                     <option value="">{t('timesheets.modals.project_optional').split(' (')[0]}...</option>
-                                    {projects.filter(p => p.status === 'Active').map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
+                                    {projects.filter(p => p.status === 'Active' || p.status === 'In Progress').map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">

@@ -14,13 +14,6 @@ const MOCK_DATA = [
     "id": "bdc422cb-4261-431c-a6f4-9ec32a7f2548",
     "employee_id": "MX-SYS-0001",
     "name": "CAAMAL HERNANDEZ LUIS ALBERTO",
-    "position": "RESPONSABLE DE INGENIERIA Y OFICINA TECNICA",
-    "email": "lcaamal@latnovva.com",
-    "phoneNumber": "983 113 3012",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "19/03/2026",
     "emergencyContactName": "MARLENE GARCIA SALINAS",
     "emergencyContactPhone": "983 101 71 83",
     "subsidiaryMetadata": {
@@ -54,13 +47,6 @@ const MOCK_DATA = [
     "id": "4cdb73e7-4aba-4131-bdf6-ef80055093ae",
     "employee_id": "MX-SYS-0002",
     "name": "FERNANDEZ RIVERA FERNANDO BENJAMIN",
-    "position": "ANALISTA JURIDICO",
-    "email": "benjamin.fernandezrv@gmail.com",
-    "phoneNumber": "999 486 0227",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "07/04/2026",
     "emergencyContactName": "NOEMI RAQUEL RIVERA GODINEZ",
     "emergencyContactPhone": "983 835 8866",
     "subsidiaryMetadata": {
@@ -94,13 +80,6 @@ const MOCK_DATA = [
     "id": "dd408924-77f9-4059-af8d-ed50773ac592",
     "employee_id": "MX-SYS-0003",
     "name": "FLORES PEREGRINO CESAR EDUARDO",
-    "position": "RESPONSABLE DE LOGISTICA Y ALMACEN",
-    "email": "cperegrino@latnovva.com",
-    "phoneNumber": "961 806 2071",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "19/02/2026",
     "emergencyContactName": null,
     "emergencyContactPhone": null,
     "subsidiaryMetadata": {
@@ -134,13 +113,6 @@ const MOCK_DATA = [
     "id": "e8655a11-ee7a-474e-9f08-857431d971c1",
     "employee_id": "MX-LNV-0001",
     "name": "JALDO RONQUILLO DANIEL",
-    "position": "DIRECTOR DE CONSTRUCCIÓN EN GENERACIÓN DISTRIBUIDA",
-    "email": "djaldo@latnovva.com",
-    "phoneNumber": "5651080471",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "17/03/2026",
     "emergencyContactName": null,
     "emergencyContactPhone": null,
     "subsidiaryMetadata": {
@@ -174,13 +146,6 @@ const MOCK_DATA = [
     "id": "e929c8f1-13a0-4732-8e85-2715e7165678",
     "employee_id": "MX-SYS-0004",
     "name": "JIMENEZ OLVERA BRENDA EVELYN",
-    "position": "COORDINADOR DE GESTION DE RECURSOS HUMANO",
-    "email": "brenda152962@gmail.com",
-    "phoneNumber": "55 7788 3079",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "07/04/2026",
     "emergencyContactName": "LUIS MELENDEZ CAMPOS",
     "emergencyContactPhone": "5561167314",
     "subsidiaryMetadata": {
@@ -214,13 +179,6 @@ const MOCK_DATA = [
     "id": "ec4be14a-7149-4d24-ba2b-a38d6c3252da",
     "employee_id": "MX-SYS-0005",
     "name": "MARIN HERES MARIA DEL ROCIO MAVILA",
-    "position": "ESPECIALISTA SENIOR EN RECLUTAMIENTO Y SELECCIÓN",
-    "email": "mmarin@latnovva.com",
-    "phoneNumber": null,
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "10/02/2026",
     "emergencyContactName": null,
     "emergencyContactPhone": null,
     "subsidiaryMetadata": {
@@ -254,13 +212,6 @@ const MOCK_DATA = [
     "id": "9efbd072-c3ad-4922-bd70-3c976b3be323",
     "employee_id": "MX-LNV-0002",
     "name": "MARTINEZ BRISEÑO JACQUELINE",
-    "position": "RESPONSABLE DE NOMINA",
-    "email": "jacqueline.martinez@latnovva.com",
-    "phoneNumber": "55 3434 9048",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "09/09/2024",
     "emergencyContactName": "ROSA BRISEÑO CARMONA",
     "emergencyContactPhone": "5521899405",
     "subsidiaryMetadata": {
@@ -294,13 +245,6 @@ const MOCK_DATA = [
     "id": "9e83f008-b5c6-4d3b-aa2a-14b164802043",
     "employee_id": "MX-SYS-0006",
     "name": "MIRANDA COCOM LUIS ANTONIO",
-    "position": "TECNICO DE LOGISTICA Y ALMACEN",
-    "email": "lmiranda@latnovva.com",
-    "phoneNumber": "9991645523",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "29/03/2023",
     "emergencyContactName": null,
     "emergencyContactPhone": null,
     "subsidiaryMetadata": {
@@ -334,13 +278,6 @@ const MOCK_DATA = [
     "id": "60d5577f-8407-4e6a-b562-2bba752981d1",
     "employee_id": "MX-SYS-0007",
     "name": "MIRANDA MONTIEL MARCO ANTONIO",
-    "position": "AUXILIAR DE RH",
-    "email": "mmiranda@latnovva.com",
-    "phoneNumber": "5568947059",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "19/02/2024",
     "emergencyContactName": "ABIGAIL VILCHIS LOPEZ",
     "emergencyContactPhone": "5561124126",
     "subsidiaryMetadata": {
@@ -374,13 +311,6 @@ const MOCK_DATA = [
     "id": "644d56f8-ed44-4bea-bef6-1978722f0bb6",
     "employee_id": "MX-LNV-0003",
     "name": "ORTIZ MEDINA MANUEL JESUS",
-    "position": "GERENTE DE COMPRAS",
-    "email": "compras@latnovva.com",
-    "phoneNumber": "3 465 289 7391",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "13/10/2025",
     "emergencyContactName": "ORTIZ MERINO MANUEL",
     "emergencyContactPhone": "34605949411",
     "subsidiaryMetadata": {
@@ -414,13 +344,6 @@ const MOCK_DATA = [
     "id": "16bd6e89-de14-417c-8701-60da51dfead0",
     "employee_id": "MX-SYS-0008",
     "name": "RANGEL RAMOS NANCY SANDI",
-    "position": "TECNICO DE CUENTAS POR COBRAR Y PAGAR",
-    "email": "nrangel@latnovva.com",
-    "phoneNumber": "5534420575",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "22/04/2026",
     "emergencyContactName": "SUSANA GUADALUPE RAMOS AVALOS",
     "emergencyContactPhone": "5544784761",
     "subsidiaryMetadata": {
@@ -454,13 +377,6 @@ const MOCK_DATA = [
     "id": "eabdaa71-a05c-41a9-8a82-14bcebebb584",
     "employee_id": "MX-SYS-0009",
     "name": "REYES BAQUEDANO SILVIA MARIELA",
-    "position": "TECNICO DE SELECCION",
-    "email": "seleccion.rrhh@latnovva.com",
-    "phoneNumber": "9992568410",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "23/10/2023",
     "emergencyContactName": "SILVIA NOEMI BAQUEDANO ARCILA",
     "emergencyContactPhone": "9991389960",
     "subsidiaryMetadata": {
@@ -494,13 +410,6 @@ const MOCK_DATA = [
     "id": "a5ebfe1d-7941-48bb-b78d-053642a3de8c",
     "employee_id": "MX-SYS-0010",
     "name": "REYES MONTES DE OCA JUANA DEL CARMEN",
-    "position": "GERENTE DE ADMINISTRACION Y CONTABILIDAD",
-    "email": "jreyes@latnovva.com",
-    "phoneNumber": "5538814859",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "02/12/2024",
     "emergencyContactName": "MONTES DE OCA ISABEL",
     "emergencyContactPhone": "5532383146",
     "subsidiaryMetadata": {
@@ -534,13 +443,6 @@ const MOCK_DATA = [
     "id": "1f8e6c5a-2e3d-4b5c-8a7b-9c0d1e2f3a4b",
     "employee_id": "MX-SYS-0011",
     "name": "SANTIAGO CASTRO MIGUEL ANGEL",
-    "position": "TECNICO DE ESTUDIO Y OFERTA",
-    "email": "mascpr99@gmail.com",
-    "phoneNumber": "782 168 0567",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "05/01/2026",
     "emergencyContactName": "DESIREE CASTRO PACHECO",
     "emergencyContactPhone": "7821954534",
     "subsidiaryMetadata": {
@@ -574,13 +476,6 @@ const MOCK_DATA = [
     "id": "2a3b4c5d-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
     "employee_id": "MX-LNV-0004",
     "name": "TOMASINI ANZA ALEJANDRO",
-    "position": "TECNICO DE COSTOS",
-    "email": "alejandro.tomasini@latnovva.com",
-    "phoneNumber": "962 141 5248",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "01/02/2026",
     "emergencyContactName": "MARIA TERESA ANZA PEREZ DUARTE",
     "emergencyContactPhone": "9621078129",
     "subsidiaryMetadata": {
@@ -614,13 +509,6 @@ const MOCK_DATA = [
     "id": "3b4c5d6e-7f8a-9b0c-1d2e-3f4a5b6c7d8e",
     "employee_id": "MX-SYS-0012",
     "name": "TRINIDAD OLVERA AURELIO",
-    "position": "RESPONSABLE DE COMPRAS",
-    "email": "atrinidad@latnovva.com",
-    "phoneNumber": "5559435322",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "11/10/2021",
     "emergencyContactName": "TAPIA ESLAVA MARIANA",
     "emergencyContactPhone": "7757531917",
     "subsidiaryMetadata": {
@@ -654,13 +542,6 @@ const MOCK_DATA = [
     "id": "4c5d6e7f-8a9b-0c1d-2e3f-4a5b6c7d8e9f",
     "employee_id": "MX-SYS-0013",
     "name": "VALERIO LUNA ARTURO",
-    "position": "RESPONSABLE DE COMPRAS",
-    "email": "avaleriol1000@gmail.com",
-    "phoneNumber": "55 7891 6894",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "23/02/2026",
     "emergencyContactName": "SERGIO VALERIO LUNA",
     "emergencyContactPhone": "5523063244",
     "subsidiaryMetadata": {
@@ -694,13 +575,6 @@ const MOCK_DATA = [
     "id": "5d6e7f8a-9b0c-1d2e-3f4a-5b6c7d8e9f0a",
     "employee_id": "MX-SYS-0014",
     "name": "VILLANUEVA PALMA NICOLE MARINA",
-    "position": "RESPONSABLE JURIDICO",
-    "email": "nvillanueva@latnovva.com",
-    "phoneNumber": "999 272 8509",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "16/10/2025",
     "emergencyContactName": "WILBERT JESUS VILLANUEVA ALVAREZ",
     "emergencyContactPhone": "999 199 4663",
     "subsidiaryMetadata": {
@@ -734,13 +608,6 @@ const MOCK_DATA = [
     "id": "6e7f8a9b-0c1d-2e3f-4a5b-6c7d8e9f0a1b",
     "employee_id": "MX-SYS-0015",
     "name": "YAM ORTIZ JOSUE YOVANI",
-    "position": "OFICINA TECNICA",
-    "email": "jyovani13@gmail.com",
-    "phoneNumber": "999 198 4320",
-    "status": "Active",
-    "appRole": "Office",
-    "subsidiary": "MX",
-    "onboardingDate": "05/01/2026",
     "emergencyContactName": "FIDEL PEREIRA PECH",
     "emergencyContactPhone": "9991996287",
     "subsidiaryMetadata": {
@@ -772,44 +639,57 @@ const MOCK_DATA = [
   }
 ];
 
+// Helper to clean currency strings to numbers
+function cleanCurrency(val: any) {
+    if (!val) return null;
+    if (typeof val === 'number') return val;
+    // Remove $, commas
+    const cleaned = val.replace(/[$,]/g, '');
+    return parseFloat(cleaned) || null;
+}
+
 async function run() {
-    console.log(`🚀 Starting Personnel Update...`);
+    console.log(`🚀 Reprocessing Metadata for Payload...`);
     
-    // Check if the emergency columns exist first by pulling a sample
-    const { data: cols } = await supabaseAdmin.from('personnel').select('*').limit(1);
-    const hasEmergency = cols && cols[0] && ('emergency_contact_name' in cols[0]);
+    // First, map IDs if they don't match exactly. The best way is to fetch personnel by employee_id since IDs might have been generated as uuidv4.
+    const { data: dbPersonnel, error } = await supabaseAdmin.from('personnel').select('id, employee_number, subsidiary_metadata');
+    
+    if (error) {
+        console.error("❌ Failed to query DB personnel", error);
+        return;
+    }
 
     for (const emp of MOCK_DATA) {
-        const updateObj: any = {
-            employee_number: emp.employee_id,
-            name: emp.name,
-            position: emp.position,
-            email: emp.email,
-            phone_number: emp.phoneNumber,
-            status: emp.status,
-            app_role: 'Tech', // Overriding 'Office' since the DB check constraint hasn't been updated to accept it yet
-            subsidiary: emp.subsidiary,
-            subsidiary_metadata: emp.subsidiaryMetadata
-        };
-
-        if (hasEmergency) {
-            updateObj.emergency_contact_name = emp.emergencyContactName;
-            updateObj.emergency_contact_phone = emp.emergencyContactPhone;
+        const dbRecord = dbPersonnel.find(p => p.employee_number === emp.employee_id);
+        if (!dbRecord) {
+            console.log(`⚠️ Could not find DB record for ${emp.name} (${emp.employee_id})`);
+            continue;
         }
 
-        const { error } = await supabaseAdmin
-            .from('personnel')
-            .update(updateObj)
-            .eq('id', emp.id);
+        // We merge the old metadata with the new cleansed metadata
+        const updatedMetadata = {
+            ...dbRecord.subsidiary_metadata,
+            ...emp.subsidiaryMetadata,
+            emergencyContactName: emp.emergencyContactName,
+            emergencyContactPhone: emp.emergencyContactPhone,
+            nominaPpp: cleanCurrency(emp.subsidiaryMetadata.nominaPpp),
+            nominaImss: cleanCurrency(emp.subsidiaryMetadata.nominaImss),
+            totalGross: cleanCurrency(emp.subsidiaryMetadata.totalGross),
+        };
 
-        if (error) {
-            console.error(`❌ Error updating ${emp.name}:`, error);
+        const { error: updateError } = await supabaseAdmin
+            .from('personnel')
+            .update({ subsidiary_metadata: updatedMetadata })
+            .eq('id', dbRecord.id);
+
+        if (updateError) {
+            console.error(`❌ Error updating ${emp.name}:`, updateError);
         } else {
-            console.log(`✅ Updated: ${emp.name}`);
+            console.log(`✅ Fixed Metadata for: ${emp.name}`);
         }
     }
 
-    console.log(`🎉 Finished Updating Personnel!`);
+    console.log(`🎉 Finished Reprocessing Metadata!`);
 }
 
 run().catch(console.error);

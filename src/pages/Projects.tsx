@@ -55,7 +55,7 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 
 export default function Projects() {
     const { t } = useTranslation();
-    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject } = useStore();
+    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject, activeSubsidiary } = useStore();
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
@@ -69,7 +69,8 @@ export default function Projects() {
         scopes: [],
         assignedPersonnel: [],
         siteLeadIds: [],
-        prevailingWage: false
+        prevailingWage: false,
+        subsidiary: activeSubsidiary
     });
     const [personnelSearch, setPersonnelSearch] = useState('');
     const [isVaidatingNewMap, setIsValidatingNewMap] = useState(false);
@@ -104,7 +105,7 @@ export default function Projects() {
 
     // Filter projects for the selected client and user role
     const visibleProjects = useMemo(() => {
-        let filtered = projects;
+        let filtered = projects.filter(p => (p.subsidiary || 'US') === activeSubsidiary);
 
         if (userRole === 'Customer') {
             filtered = filtered.filter(p => p.clientId === clientId);

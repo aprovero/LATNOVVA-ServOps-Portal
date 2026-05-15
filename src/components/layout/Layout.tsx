@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, FileSpreadsheet } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
@@ -33,7 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings } = useStore();
+    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings, activeSubsidiary, setActiveSubsidiary } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -189,16 +189,17 @@ export default function Layout() {
             name: t('nav.operations'),
             links: [
                 { name: t('nav.live_map'), path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
-                { name: t('nav.projects'), path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer'] },
-                { name: t('nav.reports'), path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] },
+                { name: t('nav.projects'), path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer', 'Office'] },
+                ...(activeSubsidiary === 'US' ? [{ name: t('nav.reports'), path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] }] : []),
             ]
         },
         {
             name: t('nav.resources'),
             links: [
                 { name: t('nav.personnel'), path: '/personnel', icon: User, roles: ['Supervisor', 'Manager', 'HR'] },
-                { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager', 'HR'] },
+                { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager', 'HR', 'Office'] },
                 { name: t('nav.tools'), path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager', 'HR'] },
+                ...(activeSubsidiary === 'MX' ? [{ name: 'Nómina', path: '/nomina', icon: FileSpreadsheet, roles: ['Manager', 'HR'] }] : []),
             ]
         },
         {
@@ -362,13 +363,13 @@ export default function Layout() {
                 <div className="px-6 py-6 pb-2">
                     {/* Logo Setup */}
                     <div className="flex items-center gap-4 mb-8">
-                        <img src="/cor-logo.png" alt="COR Solutions" className="h-[26px] object-contain" />
+                        <img src={activeSubsidiary === 'MX' ? "/S&S-logo.png" : "/cor-logo.png"} alt={activeSubsidiary === 'MX' ? "Servicios y Soluciones" : "COR Solutions"} className="h-[26px] object-contain" />
                         <div className="w-px h-6 bg-gray-300"></div>
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-[26px] object-contain" />
                     </div>
                     <nav className="space-y-6">
-                        {/* Clock In — pinned above nav groups, visible to Tech + Supervisor */}
-                        {['Tech', 'Supervisor'].includes(userRole) && (() => {
+                        {/* Clock In — pinned above nav groups, visible to Tech + Supervisor + Office */}
+                        {['Tech', 'Supervisor', 'Office'].includes(userRole) && (() => {
                             const isClockActive = location.pathname.startsWith('/clock-in');
                             return (
                                 <Link
@@ -458,6 +459,24 @@ export default function Layout() {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
+
+                        {/* Subsidiary Toggle for Managers/HR */}
+                        {['Manager', 'HR'].includes(userRole) && (
+                            <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-100 mr-2">
+                                <button
+                                    onClick={() => setActiveSubsidiary('US')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeSubsidiary === 'US' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    LATNOVVA US
+                                </button>
+                                <button
+                                    onClick={() => setActiveSubsidiary('MX')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeSubsidiary === 'MX' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    LATNOVVA MX
+                                </button>
+                            </div>
+                        )}
 
                         {/* PWA Install Button — only shown when installable */}
                         {canInstall && (
@@ -609,7 +628,7 @@ export default function Layout() {
                 {/* Mobile Header */}
                 <header className="md:hidden bg-white p-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                     <div className="flex items-center gap-3">
-                        <img src="/cor-logo.png" alt="COR" className="h-4 object-contain" />
+                        <img src={activeSubsidiary === 'MX' ? "/S&S-logo.png" : "/cor-logo.png"} alt={activeSubsidiary === 'MX' ? "S&S" : "COR"} className="h-4 object-contain" />
                         <div className="w-px h-4 bg-gray-200"></div>
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-4 object-contain" />
                     </div>
@@ -786,8 +805,8 @@ export default function Layout() {
 
             {/* Bottom Nav Mobile */}
             <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-gray-100 flex overflow-x-auto no-scrollbar items-center p-3 z-30 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] gap-1">
-                {/* Clock In pinned first for Tech/Supervisor */}
-                {['Tech', 'Supervisor'].includes(userRole) && (
+                {/* Clock In pinned first for Tech/Supervisor/Office */}
+                {['Tech', 'Supervisor', 'Office'].includes(userRole) && (
                     <Link
                         to="/clock-in"
                         className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors shrink-0 min-w-[72px] ${location.pathname.startsWith('/clock-in') ? 'text-emerald-600' : 'text-emerald-500'}`}

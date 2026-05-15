@@ -23,6 +23,7 @@ import Timesheets from './pages/Timesheets';
 import LiveMap from './pages/LiveMap';
 import ProjectDetail from './pages/ProjectDetail';
 import ClockIn from './pages/ClockIn';
+import Nomina from './pages/Nomina';
 import SplashScreen from './components/common/SplashScreen';
 
 // Register GSAP plugins
@@ -40,6 +41,18 @@ const HomeRedirect = () => {
     const userRole = useStore(s => s.userRole);
     const to = userRole === 'Tech' ? '/clock-in' : '/projects';
     return <Navigate to={to} replace />;
+};
+
+const USOnlyRoute = ({ children }: { children: React.ReactNode }) => {
+    const activeSubsidiary = useStore(s => s.activeSubsidiary);
+    if (activeSubsidiary === 'MX') return <Navigate to="/projects" replace />;
+    return <>{children}</>;
+};
+
+const MXOnlyRoute = ({ children }: { children: React.ReactNode }) => {
+    const activeSubsidiary = useStore(s => s.activeSubsidiary);
+    if (activeSubsidiary === 'US') return <Navigate to="/projects" replace />;
+    return <>{children}</>;
 };
 
 function App() {
@@ -69,9 +82,9 @@ function App() {
                         <Route path="projects" element={<Projects />} />
                     <Route path="projects/:id" element={<ProjectDetail />} />
                     <Route path="live-map" element={<LiveMap />} />
-                    <Route path="reports" element={<ReportList />} />
-                    <Route path="reports/:id" element={<ReportEditor />} />
-                    <Route path="sub-reports/:id" element={<SubReportEditor />} />
+                    <Route path="reports" element={<USOnlyRoute><ReportList /></USOnlyRoute>} />
+                    <Route path="reports/:id" element={<USOnlyRoute><ReportEditor /></USOnlyRoute>} />
+                    <Route path="sub-reports/:id" element={<USOnlyRoute><SubReportEditor /></USOnlyRoute>} />
                     <Route path="analysis" element={<DataAnalysis />} />
                     <Route path="tools" element={<Tools />} />
                     <Route path="templates" element={<Templates />} />
@@ -79,6 +92,7 @@ function App() {
                     <Route path="settings" element={<ManagerRoute><Settings /></ManagerRoute>} />
                     <Route path="personnel" element={<Personnel />} />
                     <Route path="timesheets" element={<Timesheets />} />
+                    <Route path="nomina" element={<MXOnlyRoute><Nomina /></MXOnlyRoute>} />
                     <Route path="clock-in" element={<ClockIn />} />
                 </Route>
                 </Route>

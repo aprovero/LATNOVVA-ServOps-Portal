@@ -181,7 +181,7 @@ export interface Personnel {
     status: 'Active' | 'Inactive';
     sharedFolderLink?: string; // Link to certifications folder
     certifications: Certification[];
-    appRole?: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR';
+    appRole?: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR' | 'Office';
     clientId?: string; // For assigned customers to limit scopes
     supervisorId?: string;
     managerId?: string;
@@ -204,6 +204,8 @@ export interface Personnel {
     /** If true, this person appears in project/report selectors but never on the Deployments bench. */
     benchExempt?: boolean;
     hasPassword?: boolean;
+    subsidiary?: 'US' | 'MX';
+    subsidiaryMetadata?: any;
 }
 
 export interface ChecklistTemplate {
@@ -287,7 +289,7 @@ export interface TimesheetEntry {
     timeIn?: string; // HH:mm
     timeOut?: string; // HH:mm
     hours: number;
-    type: 'On Site' | 'Travel' | 'Other';
+    type: 'On Site' | 'Travel' | 'Other' | 'Home Office';
     classification?: 'Regular' | 'Overtime' | 'Double Time' | 'Unclassified';
     projectId?: string;
     notes?: string;
@@ -330,7 +332,7 @@ export interface Project {
     clientId: string;
     name: string;
     type: 'Complete' | 'Simple';
-    status: 'Active' | 'Completed' | 'On Hold';
+    status: 'Active' | 'Completed' | 'On Hold' | 'In Progress';
     progress: number;
     scopes: ProjectScope[];
     hasNoDefinedScope?: boolean; // Labor only
@@ -348,6 +350,8 @@ export interface Project {
     siteLeadIds?: string[]; // Multiple leads per project
     expectedDuration?: string; // e.g., '12 Months', '4 Weeks'
     prevailingWage?: boolean;
+    subsidiary?: 'US' | 'MX';
+    subsidiaryMetadata?: any;
 }
 
 // Allowed report state transitions — prevents workflow bypass (C-03)
@@ -360,9 +364,10 @@ export const ALLOWED_REPORT_TRANSITIONS: Record<ReportState, ReportState[]> = {
 };
 
 interface AppState {
-    userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR';
+    userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR' | 'Office';
     userId: string;
     userEmail?: string;
+    activeSubsidiary: 'US' | 'MX';
     clientId: string | null;
     clients: Client[];
     reports: Report[];
@@ -382,7 +387,8 @@ interface AppState {
     initDb: () => Promise<void>;
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
-    setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR') => void;
+    setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR' | 'Office') => void;
+    setActiveSubsidiary: (sub: 'US' | 'MX') => void;
     setClientId: (id: string | null) => void;
     addClient: (client: Client) => void;
     updateClient: (id: string, updates: Partial<Client>) => void;
@@ -471,6 +477,7 @@ export const useStore = create<AppState>()(
         (set, get) => ({
             userRole: 'Tech',
             userId: 'USR-Current',
+            activeSubsidiary: 'US',
             clientId: 'CUST_POWER_ELEC',
             clients: [],
             reports: [],
@@ -963,7 +970,9 @@ export const useStore = create<AppState>()(
                                 hasNoDefinedScope: p.has_no_defined_scope || false,
                                 disciplines: p.disciplines || [],
                                 scopes: p.scopes || [],
-                                prevailingWage: p.prevailing_wage || false
+                                prevailingWage: p.prevailing_wage || false,
+                                subsidiary: p.subsidiary || 'US',
+                                subsidiaryMetadata: p.subsidiary_metadata || {}
                             }))
                             : state.projects,
                         personnel: (() => {
@@ -994,7 +1003,9 @@ export const useStore = create<AppState>()(
                                     totalPerdiem: p.per_diem,
                                     dbo: p.dbo,
                                     emergencyContactName: p.emergency_contact_name,
-                                    emergencyContactPhone: p.emergency_contact_phone
+                                    emergencyContactPhone: p.emergency_contact_phone,
+                                    subsidiary: p.subsidiary || 'US',
+                                    subsidiaryMetadata: p.subsidiary_metadata || {}
                                 }))
                                 : state.personnel;
 
@@ -1207,6 +1218,7 @@ export const useStore = create<AppState>()(
             },
             setAuthData: (id, email) => set({ userId: id, userEmail: email }),
             setUserRole: (role) => set({ userRole: role }),
+            setActiveSubsidiary: (sub) => set({ activeSubsidiary: sub }),
             setClientId: (id) => set({ clientId: id }),
             addClient: async (client) => {
                 set((state) => ({ clients: [...state.clients, client] }));
@@ -1241,7 +1253,9 @@ export const useStore = create<AppState>()(
                     site_lead_ids: project.siteLeadIds || [],
                     has_no_defined_scope: project.hasNoDefinedScope || false,
                     disciplines: project.disciplines || [],
-                    prevailing_wage: project.prevailingWage || false
+                    prevailing_wage: project.prevailingWage || false,
+                    subsidiary: project.subsidiary || 'US',
+                    subsidiary_metadata: project.subsidiaryMetadata || {}
                 };
                 await get().safeSync('projects', project.id, 'insert', dbPayload);
 
@@ -1340,6 +1354,8 @@ export const useStore = create<AppState>()(
                 if (updates.siteLeadIds !== undefined) dbPayload.site_lead_ids = updates.siteLeadIds;
                 if (updates.disciplines !== undefined) dbPayload.disciplines = updates.disciplines;
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
+                if (updates.subsidiary !== undefined) dbPayload.subsidiary = updates.subsidiary;
+                if (updates.subsidiaryMetadata !== undefined) dbPayload.subsidiary_metadata = updates.subsidiaryMetadata;
                 
                 if (Object.keys(dbPayload).length > 0) {
                     await get().safeSync('projects', id, 'update', dbPayload);
@@ -1552,7 +1568,9 @@ export const useStore = create<AppState>()(
                     lead_pay: person.leadPay,
                     per_diem: person.totalPerdiem,
                     emergency_contact_name: person.emergencyContactName,
-                    emergency_contact_phone: person.emergencyContactPhone
+                    emergency_contact_phone: person.emergencyContactPhone,
+                    subsidiary: person.subsidiary || 'US',
+                    subsidiary_metadata: person.subsidiaryMetadata || {}
                 };
                 await get().safeSync('personnel', person.id, 'upsert', dbPayload);
             },
@@ -1586,6 +1604,8 @@ export const useStore = create<AppState>()(
                 if (updates.totalPerdiem !== undefined) dbPayload.per_diem = updates.totalPerdiem;
                 if (updates.emergencyContactName !== undefined) dbPayload.emergency_contact_name = updates.emergencyContactName;
                 if (updates.emergencyContactPhone !== undefined) dbPayload.emergency_contact_phone = updates.emergencyContactPhone;
+                if (updates.subsidiary !== undefined) dbPayload.subsidiary = updates.subsidiary;
+                if (updates.subsidiaryMetadata !== undefined) dbPayload.subsidiary_metadata = updates.subsidiaryMetadata;
                 if (Object.keys(dbPayload).length > 0) {
                     await get().safeSync('personnel', id, 'update', dbPayload);
 

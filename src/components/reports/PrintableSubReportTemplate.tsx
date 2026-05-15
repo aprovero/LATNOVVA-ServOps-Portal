@@ -78,7 +78,7 @@ export const PrintableSubReportTemplate = ({ subReport }: PrintableSubReportTemp
 
   // Build absolute URLs for logos so @react-pdf/renderer can load them
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const corLogoUrl = `${origin}/cor-logo.png`;
+  const corLogoUrl = `${origin}/${state.activeSubsidiary === 'MX' ? 'S&S-logo.png' : 'cor-logo.png'}`;
   const latnovvaLogoUrl = `${origin}/latnovva-logo.png`;
 
   const formatDateTime = (isoString?: string) => {

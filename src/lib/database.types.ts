@@ -51,6 +51,8 @@ export interface Database {
           start_date: string | null
           expected_duration: string | null
           created_at: string | null
+          subsidiary: string | null
+          subsidiary_metadata: Json | null
         }
         Insert: {
           id?: string
@@ -76,6 +78,8 @@ export interface Database {
           start_date?: string | null
           expected_duration?: string | null
           created_at?: string | null
+          subsidiary?: string | null
+          subsidiary_metadata?: Json | null
         }
         Update: {
           id?: string
@@ -101,6 +105,8 @@ export interface Database {
           start_date?: string | null
           expected_duration?: string | null
           created_at?: string | null
+          subsidiary?: string | null
+          subsidiary_metadata?: Json | null
         }
       }
       personnel: {
@@ -129,6 +135,8 @@ export interface Database {
           truck_allowance: number | null
           lead_pay: number | null
           per_diem: number | null
+          subsidiary: string | null
+          subsidiary_metadata: Json | null
         }
         Insert: {
           id?: string
@@ -155,6 +163,8 @@ export interface Database {
           truck_allowance?: number | null
           lead_pay?: number | null
           per_diem?: number | null
+          subsidiary?: string | null
+          subsidiary_metadata?: Json | null
         }
         Update: {
           id?: string
@@ -181,6 +191,8 @@ export interface Database {
           truck_allowance?: number | null
           lead_pay?: number | null
           per_diem?: number | null
+          subsidiary?: string | null
+          subsidiary_metadata?: Json | null
         }
       }
       reports: {
@@ -295,6 +307,7 @@ export interface Database {
           source: string | null
           manual_reason: string | null
           created_at: string | null
+          subsidiary: string | null
         }
         Insert: {
           id?: string
@@ -315,6 +328,7 @@ export interface Database {
           source?: string | null
           manual_reason?: string | null
           created_at?: string | null
+          subsidiary?: string | null
         }
         Update: {
           id?: string
@@ -335,6 +349,7 @@ export interface Database {
           source?: string | null
           manual_reason?: string | null
           created_at?: string | null
+          subsidiary?: string | null
         }
       }
       tools: {

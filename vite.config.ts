@@ -137,4 +137,24 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 2000, // Increase warning limit to 2MB
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) return 'vendor-react';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('gsap')) return 'vendor-gsap';
+            if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
+            return 'vendor'; // Catch-all for other dependencies
+          }
+          if (id.includes('src/i18n.ts') || id.includes('src/locales/')) {
+            return 'i18n';
+          }
+        }
+      }
+    }
+  }
 });

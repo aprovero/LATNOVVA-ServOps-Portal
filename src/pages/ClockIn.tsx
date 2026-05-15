@@ -283,7 +283,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const { getAttendanceState } = useAttendance();
 
     const [selectedProject, setSelectedProject] = useState(() => {
-        const assigned = projects.find(p => p.status === 'Active' && p.assignedPersonnel?.includes(supervisorId));
+        const assigned = projects.find(p => (p.status === 'Active' || p.status === 'In Progress') && p.assignedPersonnel?.includes(supervisorId));
         return assigned?.id ?? '';
     });
     const [screen, setScreen] = useState<BatchScreen>('list');
@@ -294,7 +294,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const [lastBatch, setLastBatch] = useState<{ names: string[]; action: string; time: string } | null>(null);
     const [countdown, setCountdown] = useState(4);
 
-    const activeProjects = projects.filter((p: any) => p.status === 'Active');
+    const activeProjects = projects.filter((p: any) => p.status === 'Active' || p.status === 'In Progress');
 
     const sortedPersonnel = useCallback(() => {
         const eligible = personnel.filter(p =>
@@ -644,11 +644,11 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
     const [selectedProject, setSelectedProject] = useState(() => {
         if (todayEntry?.projectId) return todayEntry.projectId;
-        const assigned = projects.find(p => p.status === 'Active' && p.assignedPersonnel?.includes(personnelId));
+        const assigned = projects.find(p => (p.status === 'Active' || p.status === 'In Progress') && p.assignedPersonnel?.includes(personnelId));
         return assigned?.id ?? '';
     });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
-    const activeProjects = projects.filter((p: any) => p.status === 'Active');
+    const activeProjects = projects.filter((p: any) => p.status === 'Active' || p.status === 'In Progress');
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';
     const gpsDenied = gps.status === 'denied';
 
