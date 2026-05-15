@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useAuthStore } from '../../lib/authStore';
 
 export const AuthRoute: React.FC = () => {
@@ -8,6 +8,15 @@ export const AuthRoute: React.FC = () => {
     // This stops the infinite render loop caused by watching the whole store.
     const session = useAuthStore(state => state.session);
     const loading = useAuthStore(state => state.loading);
+
+    React.useEffect(() => {
+        // Hardened Auth Guard: Imperative redirect if initialized but no session
+        if (!loading && !session) {
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+    }, [loading, session]);
 
     if (loading) {
         return (
@@ -21,7 +30,7 @@ export const AuthRoute: React.FC = () => {
     }
 
     if (!session) {
-        return <Navigate to="/login" replace />;
+        return null; // The useEffect will handle the redirect imperatively to completely wipe memory state
     }
 
     // Pass the wall smoothly. Logic for identity is now strictly handled by

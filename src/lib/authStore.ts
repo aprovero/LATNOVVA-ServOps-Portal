@@ -81,35 +81,47 @@ export const useAuthStore = create<AuthState>((set, get) => {
         supabase.auth.onAuthStateChange(async (event, newSession) => {
             console.log(`[Auth] State Change: ${event}`);
 
-            // Handle "Invalid Refresh Token" or "Refresh Token Not Found"
-            // If Supabase encounters a catastrophic refresh failure, we must purge local state.
-            if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !newSession)) {
-                useStore.getState().resetDb();
-                set({ session: null, user: null, profile: null, loading: false });
-                return;
+            try {
+                // Handle "Invalid Refresh Token" or "Refresh Token Not Found"
+                // If Supabase encounters a catastrophic refresh failure, we must purge local state.
+                if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !newSession)) {
+                    useStore.getState().resetDb();
+                    set({ session: null, user: null, profile: null, loading: false });
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (!newSession?.user) {
+                    set({ loading: false });
+                    return;
+                }
+
+                // IDEMPOTENCY CHECK: Only update store if the session is truly different.
+                // This prevents the #310 re-render loop if Supabase fires redundant events.
+                const currentSession = get().session;
+                if (currentSession?.access_token === newSession.access_token && currentSession?.user?.id === newSession.user.id) {
+                    set({ loading: false });
+                    return;
+                }
+
+                // ── STEP 1: Unblock the router and Sync App Data ─────────────────
+                useStore.getState().initDb();
+                useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
+                set({ session: newSession, user: newSession.user, loading: false });
+
+                // ── STEP 2: Fetch account data in background ────────────────────
+                const { profile, personnel } = await fetchAccountData(newSession.user.id);
+                set({ identity: profile, profile: personnel });
+            } catch (err: any) {
+                console.error('[Auth Error] Catastrophic failure in auth listener:', err);
+                // Hardened fallback: if this is an AuthApiError or related to token invalidation, wipe and reboot
+                if (err?.name === 'AuthApiError' || err?.message?.includes('Refresh Token') || err?.message?.includes('token')) {
+                    localStorage.clear();
+                    window.location.href = '/login';
+                } else {
+                    set({ loading: false, error: 'Authentication failed' });
+                }
             }
-
-            if (!newSession?.user) {
-                set({ loading: false });
-                return;
-            }
-
-            // IDEMPOTENCY CHECK: Only update store if the session is truly different.
-            // This prevents the #310 re-render loop if Supabase fires redundant events.
-            const currentSession = get().session;
-            if (currentSession?.access_token === newSession.access_token && currentSession?.user?.id === newSession.user.id) {
-                set({ loading: false });
-                return;
-            }
-
-            // ── STEP 1: Unblock the router and Sync App Data ─────────────────
-            useStore.getState().initDb();
-            useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
-            set({ session: newSession, user: newSession.user, loading: false });
-
-            // ── STEP 2: Fetch account data in background ────────────────────
-            const { profile, personnel } = await fetchAccountData(newSession.user.id);
-            set({ identity: profile, profile: personnel });
         });
     }
 
