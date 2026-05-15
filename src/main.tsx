@@ -5,17 +5,26 @@ import './index.css';
 import './i18n';
 
 import { ensureInitialized } from './lib/microsoftGraph';
-import { useStore } from './store/useStore';
 
-// --- Hard Update Logic ---
+// --- Hard Update Logic (Web APIs only — no store imports here) ---
+// IMPORTANT: Do NOT import useStore or authStore at module level before React mounts.
+// Doing so triggers Zustand/Supabase module-level side effects that invoke React hooks
+// before ReactDOM.createRoot(), causing "Cannot read properties of undefined (reading 'useState')".
 const currentVersion = __APP_VERSION__;
 const storedVersion = localStorage.getItem('latnovva_app_version');
 
 if (storedVersion !== currentVersion) {
     console.warn(`[App] Version mismatch: ${storedVersion} -> ${currentVersion}. Forcing cache wipe...`);
     
-    // 1. Clear Zustand IndexedDB and other local DBs
-    useStore.getState().resetDb();
+    // 1. Wipe IndexedDB natively (no store import needed)
+    if (typeof indexedDB !== 'undefined') {
+        indexedDB.databases?.().then(dbs => {
+            dbs.forEach(db => db.name && indexedDB.deleteDatabase(db.name));
+        }).catch(() => {
+            // Fallback: blindly delete known DB names
+            ['latnovva-db', 'supabase', 'keyval-store'].forEach(name => indexedDB.deleteDatabase(name));
+        });
+    }
     
     // 2. Clear Local & Session Storage
     localStorage.clear();
@@ -24,9 +33,7 @@ if (storedVersion !== currentVersion) {
     // 3. Clear Service Worker Caches
     if ('caches' in window) {
         caches.keys().then((names) => {
-            names.forEach(name => {
-                caches.delete(name);
-            });
+            names.forEach(name => caches.delete(name));
         });
     }
     
@@ -63,8 +70,6 @@ Promise.race([
     ),
 ])
     .catch(err => {
-        // Log but don't crash — SharePoint/OneDrive features will gracefully
-        // degrade; core app auth via Supabase is completely unaffected.
         console.warn('[MSAL] Initialization skipped or timed out:', err?.message ?? err);
     })
     .finally(() => {
