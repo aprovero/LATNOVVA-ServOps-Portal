@@ -1,8 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { Input } from '../components/ui/input';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { PrintableNomina, EditableNominaRow } from '../components/nomina/PrintableNomina';
+export interface EditableNominaRow {
+    id: string; personnelId: string; name: string; status: string;
+    nss: string; curp: string; rfc: string; hireDate: string;
+    project: string; role: string; payrollType: string;
+    dailyRate: string; monthlyRate: string; daysWorked: string;
+    normalHours: string; overtimeHours: string; grossPay: string;
+    isr: string; imss: string; infonavit: string;
+    aguinaldo: string; sueldoNeto: string;
+}
 import { FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -118,6 +125,44 @@ export default function Nomina() {
     const totalGross = editableRows.reduce((acc, row) => acc + (parseFloat(row.grossPay.replace(/[^0-9.-]+/g, "")) || 0), 0);
     const totalNet = editableRows.reduce((acc, row) => acc + (parseFloat(row.sueldoNeto.replace(/[^0-9.-]+/g, "")) || 0), 0);
 
+    const exportToExcel = () => {
+        if (editableRows.length === 0) return;
+
+        const headers = [
+            t('nomina.columns.status'), t('nomina.columns.nss'), t('nomina.columns.hire_date'),
+            t('nomina.columns.name'), t('nomina.columns.project'), t('nomina.columns.role'),
+            t('nomina.columns.payroll_type'), t('nomina.columns.days_worked'), t('nomina.columns.normal_hours'),
+            t('nomina.columns.overtime_hours'), t('nomina.columns.gross_pay'), t('nomina.columns.isr'),
+            t('nomina.columns.imss'), t('nomina.columns.infonavit'), t('nomina.columns.aguinaldo'),
+            t('nomina.columns.net_pay')
+        ];
+
+        let csvContent = headers.join(',') + '\n';
+
+        editableRows.forEach(row => {
+            const clean = (val: string) => `"${String(val).replace(/"/g, '""')}"`;
+            const rowData = [
+                row.status, row.nss, row.hireDate, row.name, row.project, row.role,
+                row.payrollType, row.daysWorked, row.normalHours, row.overtimeHours,
+                row.grossPay, row.isr, row.imss, row.infonavit, row.aguinaldo, row.sueldoNeto
+            ].map(clean);
+            
+            csvContent += rowData.join(',') + '\n';
+        });
+
+        csvContent += '\n';
+        csvContent += `"${t('nomina.total_general')}",,,,,,,,,,,"${t('nomina.bruto')} $${totalGross.toFixed(2)}","${t('nomina.neto')} $${totalNet.toFixed(2)}"\n`;
+
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Nomina_${startDate}_${endDate}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const CellInput = ({ value, onChange, className = "" }: { value: string, onChange: (v: string) => void, className?: string }) => (
         <input 
             type="text" 
@@ -176,21 +221,14 @@ export default function Nomina() {
                         {t('nomina.generate')}
                     </button>
 
-                    <PDFDownloadLink
-                        document={<PrintableNomina rows={editableRows} projectName={projectName} startDate={startDate} endDate={endDate} />}
-                        fileName={`Nomina_${startDate}_${endDate}.pdf`}
+                    <button 
+                        onClick={exportToExcel}
+                        disabled={editableRows.length === 0}
+                        className="h-10 px-4 bg-brand-teal text-white rounded-xl text-sm font-bold shadow-md shadow-brand-teal/20 hover:bg-teal-700 transition-all disabled:opacity-50 flex items-center gap-2"
                     >
-                        {/* @ts-ignore */}
-                        {({ loading }) => (
-                            <button 
-                                disabled={loading || editableRows.length === 0}
-                                className="h-10 px-4 bg-brand-teal text-white rounded-xl text-sm font-bold shadow-md shadow-brand-teal/20 hover:bg-teal-700 transition-all disabled:opacity-50 flex items-center gap-2"
-                            >
-                                <Download size={16} />
-                                {loading ? t('nomina.generating') : t('nomina.export_pdf')}
-                            </button>
-                        )}
-                    </PDFDownloadLink>
+                        <Download size={16} />
+                        Excel (CSV)
+                    </button>
                 </div>
             </div>
 
