@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, FileSpreadsheet } from 'lucide-react';
+import { Home, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, FileSpreadsheet } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
@@ -33,7 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings, activeSubsidiary, setActiveSubsidiary } = useStore();
+    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -190,7 +190,6 @@ export default function Layout() {
             links: [
                 { name: t('nav.live_map'), path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
                 { name: t('nav.projects'), path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer', 'Office'] },
-                ...(activeSubsidiary === 'US' ? [{ name: t('nav.reports'), path: '/reports', icon: FileText, roles: ['Supervisor', 'Manager', 'Customer'] }] : []),
             ]
         },
         {
@@ -198,17 +197,9 @@ export default function Layout() {
             links: [
                 { name: t('nav.personnel'), path: '/personnel', icon: User, roles: ['Supervisor', 'Manager', 'HR'] },
                 { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager', 'HR', 'Office'] },
-                { name: t('nav.tools'), path: '/tools', icon: Wrench, roles: ['Supervisor', 'Manager', 'HR'] },
-                ...(activeSubsidiary === 'MX' ? [{ name: 'Nómina', path: '/nomina', icon: FileSpreadsheet, roles: ['Manager', 'HR'] }] : []),
+                { name: 'Nómina', path: '/nomina', icon: FileSpreadsheet, roles: ['Manager', 'HR'] },
             ]
-        },
-        {
-            name: t('nav.intelligence'),
-            links: [
-                { name: t('nav.analysis'), path: '/analysis', icon: Activity, roles: ['Supervisor', 'Manager', 'HR'] },
-                { name: t('nav.calendar'), path: '/calendar', icon: CalendarIcon, roles: ['Supervisor', 'Manager', 'HR'] },
-            ]
-        },
+        }
     ];
 
     const flatNavLinks = navGroups.flatMap(g => g.links).filter(link => link.roles.includes(userRole));
@@ -363,7 +354,7 @@ export default function Layout() {
                 <div className="px-6 py-6 pb-2">
                     {/* Logo Setup */}
                     <div className="flex items-center gap-4 mb-8">
-                        <img src={activeSubsidiary === 'MX' ? "/S&S-logo.png" : "/cor-logo.png"} alt={activeSubsidiary === 'MX' ? "Servicios y Soluciones" : "COR Solutions"} className="h-[26px] object-contain" />
+                        <img src="/S&S-logo.png" alt="Servicios y Soluciones" className="h-[26px] object-contain" />
                         <div className="w-px h-6 bg-gray-300"></div>
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-[26px] object-contain" />
                     </div>
@@ -460,23 +451,9 @@ export default function Layout() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
 
-                        {/* Subsidiary Toggle for Managers/HR */}
-                        {['Manager', 'HR'].includes(userRole) && (
-                            <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-100 mr-2">
-                                <button
-                                    onClick={() => setActiveSubsidiary('US')}
-                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeSubsidiary === 'US' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                                >
-                                    LATNOVVA US
-                                </button>
-                                <button
-                                    onClick={() => setActiveSubsidiary('MX')}
-                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeSubsidiary === 'MX' ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                                >
-                                    LATNOVVA MX
-                                </button>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-100 mr-2 px-3">
+                            <span className="text-xs font-bold text-gray-500">LATNOVVA MEXICO</span>
+                        </div>
 
                         {/* PWA Install Button — only shown when installable */}
                         {canInstall && (
@@ -580,11 +557,7 @@ export default function Layout() {
                                             </DropdownMenuItem>
                                         )}
                                         
-                                        {['Manager', 'Supervisor'].includes(userRole) && (
-                                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/templates')}>
-                                                <CheckSquare size={14} className="text-gray-400" /> {t('nav.templates')}
-                                            </DropdownMenuItem>
-                                        )}
+
                                         <DropdownMenuSeparator />
                                     </>
                                 )}
@@ -628,7 +601,7 @@ export default function Layout() {
                 {/* Mobile Header */}
                 <header className="md:hidden bg-white p-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                     <div className="flex items-center gap-3">
-                        <img src={activeSubsidiary === 'MX' ? "/S&S-logo.png" : "/cor-logo.png"} alt={activeSubsidiary === 'MX' ? "S&S" : "COR"} className="h-4 object-contain" />
+                        <img src="/S&S-logo.png" alt="S&S" className="h-4 object-contain" />
                         <div className="w-px h-4 bg-gray-200"></div>
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-4 object-contain" />
                     </div>

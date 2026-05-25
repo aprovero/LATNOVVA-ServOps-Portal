@@ -477,7 +477,7 @@ export const useStore = create<AppState>()(
         (set, get) => ({
             userRole: 'Tech',
             userId: 'USR-Current',
-            activeSubsidiary: 'US',
+            activeSubsidiary: 'MX',
             clientId: 'CUST_POWER_ELEC',
             clients: [],
             reports: [],
@@ -936,9 +936,9 @@ export const useStore = create<AppState>()(
                     // Fetch real data from supabase sequentially to prevent concurrent token refresh "Lock Stolen" errors
                     const { data: clientsDB } = await supabase.from('clients').select('*');
                     const { data: projectsDB } = await supabase.from('projects').select('*');
-                    const { data: personnelDB } = await supabase.from('personnel').select('*');
+                    const { data: personnelDB } = await supabase.from('mx_personnel').select('*');
                     const { data: reportsDB } = await supabase.from('reports').select('*');
-                    const { data: timesheetsDB } = await supabase.from('timesheets').select('*');
+                    const { data: timesheetsDB } = await supabase.from('mx_timesheets').select('*');
                     const { data: toolsDB } = await supabase.from('tools').select('*');
 
                     // Guard: only overwrite store state if Supabase returned actual rows.
@@ -1091,9 +1091,9 @@ export const useStore = create<AppState>()(
                             const tableToKey: Record<string, keyof AppState> = {
                                 'clients': 'clients',
                                 'projects': 'projects',
-                                'personnel': 'personnel',
+                                'mx_personnel': 'personnel',
                                 'reports': 'reports',
-                                'timesheets': 'timesheets',
+                                'mx_timesheets': 'timesheets',
                                 'tools': 'tools',
                                 'scope_templates': 'scopeTemplates',
                                 'sub_report_templates': 'subReportTemplates'
@@ -1132,7 +1132,7 @@ export const useStore = create<AppState>()(
             },
             refreshAttendance: async () => {
                 try {
-                    const { data: timesheetsDB } = await supabase.from('timesheets').select('*');
+                    const { data: timesheetsDB } = await supabase.from('mx_timesheets').select('*');
                     if (timesheetsDB) {
                         set({
                             timesheets: timesheetsDB.map(t => ({
@@ -1268,7 +1268,7 @@ export const useStore = create<AppState>()(
                     }));
                     // Sync individual personnel records to ensure we don't violate NOT NULL constraints with partial upserts
                     for (const pid of project.assignedPersonnel) {
-                        await get().safeSync('personnel', pid, 'update', { prevailing_wage: true });
+                        await get().safeSync('mx_personnel', pid, 'update', { prevailing_wage: true });
                     }
                 }
             },
@@ -1333,7 +1333,7 @@ export const useStore = create<AppState>()(
                         }));
                         // Sync individual personnel records to ensure we don't violate NOT NULL constraints with partial upserts
                         for (const pid of peopleToUpdate) {
-                            await get().safeSync('personnel', pid, 'update', { prevailing_wage: targetWage });
+                            await get().safeSync('mx_personnel', pid, 'update', { prevailing_wage: targetWage });
                         }
                     }
                 }
@@ -1572,7 +1572,7 @@ export const useStore = create<AppState>()(
                     subsidiary: person.subsidiary || 'US',
                     subsidiary_metadata: person.subsidiaryMetadata || {}
                 };
-                await get().safeSync('personnel', person.id, 'upsert', dbPayload);
+                await get().safeSync('mx_personnel', person.id, 'upsert', dbPayload);
             },
             updatePersonnel: async (id, updates) => {
                 set((state) => ({
@@ -1607,7 +1607,7 @@ export const useStore = create<AppState>()(
                 if (updates.subsidiary !== undefined) dbPayload.subsidiary = updates.subsidiary;
                 if (updates.subsidiaryMetadata !== undefined) dbPayload.subsidiary_metadata = updates.subsidiaryMetadata;
                 if (Object.keys(dbPayload).length > 0) {
-                    await get().safeSync('personnel', id, 'update', dbPayload);
+                    await get().safeSync('mx_personnel', id, 'update', dbPayload);
 
                     // HR-04: Sync core identity fields to the 'profiles' table.
                     // This ensures the next login or multi-tab fetch gets the correct role/client assignment.
@@ -1629,7 +1629,7 @@ export const useStore = create<AppState>()(
                 set((state) => ({
                     personnel: state.personnel.filter((p) => p.id !== id),
                 }));
-                await get().safeSync('personnel', id, 'update', { status: 'Inactive' });
+                await get().safeSync('mx_personnel', id, 'update', { status: 'Inactive' });
             },
             addTemplate: (template) => set((state) => ({ templates: [...state.templates, template] })),
             updateTemplate: (id, updates) =>
@@ -1745,7 +1745,7 @@ export const useStore = create<AppState>()(
                     punches: timesheet.punches,
                     gps_verified: timesheet.gpsVerified
                 };
-                await get().safeSync('timesheets', timesheet.id, 'insert', dbPayload);
+                await get().safeSync('mx_timesheets', timesheet.id, 'insert', dbPayload);
             },
             updateTimesheet: async (id, updates) => {
                 set((state) => ({
@@ -1769,14 +1769,14 @@ export const useStore = create<AppState>()(
                 if (updates.source !== undefined) dbPayload.source = updates.source;             
                 if (updates.manualReason !== undefined) dbPayload.manual_reason = updates.manualReason; 
                 if (Object.keys(dbPayload).length > 0) {
-                    await get().safeSync('timesheets', id, 'update', dbPayload);
+                    await get().safeSync('mx_timesheets', id, 'update', dbPayload);
                 }
             },
             deleteTimesheet: async (id) => {
                 set((state) => ({
                     timesheets: state.timesheets.filter((t) => t.id !== id),
                 }));
-                await get().safeSync('timesheets', id, 'delete', null);
+                await get().safeSync('mx_timesheets', id, 'delete', null);
             },
             approveTimesheet: async (id, approverId) => {
                 set((state) => ({
@@ -1785,7 +1785,7 @@ export const useStore = create<AppState>()(
                     )
                 }));
                 // H-03: persist actual approver id
-                await get().safeSync('timesheets', id, 'update', { status: 'Approved', approved_by: approverId });
+                await get().safeSync('mx_timesheets', id, 'update', { status: 'Approved', approved_by: approverId });
             },
             rejectTimesheet: async (id, approverId) => {
                 set((state) => ({
@@ -1793,7 +1793,7 @@ export const useStore = create<AppState>()(
                         t.id === id ? { ...t, status: 'Rejected', approvedBy: approverId } : t
                     )
                 }));
-                await get().safeSync('timesheets', id, 'update', { status: 'Rejected', approved_by: approverId });
+                await get().safeSync('mx_timesheets', id, 'update', { status: 'Rejected', approved_by: approverId });
             },
             clockPunch: async (personnelId, punch, projectId) => {
                 const _d = new Date();
@@ -1904,10 +1904,10 @@ export const useStore = create<AppState>()(
                         if ((updated as any).manualReason) dbPayload.manual_reason = (updated as any).manualReason;
 
                         if (isNewEntry) {
-                            await get().safeSync('timesheets', updated.id, 'insert', dbPayload);
+                            await get().safeSync('mx_timesheets', updated.id, 'insert', dbPayload);
                         } else {
                             // Use upsert for existing to handle potential race conditions or missing local records
-                            await get().safeSync('timesheets', updated.id, 'upsert', dbPayload);
+                            await get().safeSync('mx_timesheets', updated.id, 'upsert', dbPayload);
                         }
                     }
                 } catch (e) {
@@ -1958,7 +1958,7 @@ export const useStore = create<AppState>()(
                                 p.id === personnelId ? { ...p, prevailingWage: !!targetProject.prevailingWage } : p
                             )
                         }));
-                        await get().safeSync('personnel', personnelId, 'update', { prevailing_wage: !!targetProject.prevailingWage });
+                        await get().safeSync('mx_personnel', personnelId, 'update', { prevailing_wage: !!targetProject.prevailingWage });
                     }
                 } else if (targetProjectId === null) {
                     set((state) => ({
@@ -1966,7 +1966,7 @@ export const useStore = create<AppState>()(
                             p.id === personnelId ? { ...p, prevailingWage: false } : p
                         )
                     }));
-                    await get().safeSync('personnel', personnelId, 'update', { prevailing_wage: false });
+                    await get().safeSync('mx_personnel', personnelId, 'update', { prevailing_wage: false });
                 }
 
                 // 4. Persist to DB
