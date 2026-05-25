@@ -189,7 +189,7 @@ export default function Layout() {
             name: t('nav.operations'),
             links: [
                 { name: t('nav.live_map'), path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
-                { name: t('nav.projects'), path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer', 'Office'] },
+                { name: t('nav.projects'), path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer', 'Office', 'HR'] },
             ]
         },
         {
