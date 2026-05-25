@@ -452,17 +452,17 @@ export default function Layout() {
                     <div className="flex items-center gap-4">
 
                         <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-100 mr-2 px-3">
-                            <span className="text-sm mr-2" title="Mexico Portal">🇲🇽</span>
+                            <img src="https://flagcdn.com/w20/mx.png" srcSet="https://flagcdn.com/w40/mx.png 2x" width="20" alt="MX" className="mr-2 rounded-sm" title="Mexico Portal" />
                             <span className="text-xs font-bold text-gray-500 hidden sm:inline">LATNOVVA MEXICO</span>
                             {['Admin', 'Manager', 'HR'].includes(userRole || '') && (
                                 <>
                                     <div className="w-px h-4 bg-gray-200 mx-2"></div>
                                     <button 
                                         onClick={() => window.location.href = "https://latnovvaus.onrender.com"}
-                                        className="text-sm opacity-50 hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center p-1 rounded-md hover:bg-gray-200"
+                                        className="opacity-50 hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center p-1 rounded-md hover:bg-gray-200"
                                         title="Switch to US Portal"
                                     >
-                                        🇺🇸
+                                        <img src="https://flagcdn.com/w20/us.png" srcSet="https://flagcdn.com/w40/us.png 2x" width="20" alt="US" className="rounded-sm" />
                                     </button>
                                 </>
                             )}
