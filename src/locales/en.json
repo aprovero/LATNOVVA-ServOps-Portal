@@ -954,8 +954,9 @@
       "navigate": "navigate",
       "open": "open",
       "close": "close"
-    },
-    "nomina": {
+    }
+  },
+  "nomina": {
       "title": "Weekly Payroll",
       "subtitle": "Mexico Subsidiary Payroll Generation",
       "from": "From",

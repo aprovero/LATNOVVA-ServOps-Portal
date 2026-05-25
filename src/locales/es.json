@@ -948,8 +948,9 @@
       "navigate": "navegar",
       "open": "abrir",
       "close": "cerrar"
-    },
-    "nomina": {
+    }
+  },
+  "nomina": {
       "title": "Nómina Semanal",
       "subtitle": "Generación de Nómina Subsidiaria México",
       "from": "Desde",
