@@ -451,8 +451,21 @@ export default function Layout() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-4">
 
-                        <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-100 mr-2 px-3">
-                            <span className="text-xs font-bold text-gray-500">LATNOVVA MEXICO</span>
+                        <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-100 mr-2 px-3">
+                            <span className="text-sm mr-2" title="Mexico Portal">🇲🇽</span>
+                            <span className="text-xs font-bold text-gray-500 hidden sm:inline">LATNOVVA MEXICO</span>
+                            {['Admin', 'Manager', 'HR'].includes(userRole || '') && (
+                                <>
+                                    <div className="w-px h-4 bg-gray-200 mx-2"></div>
+                                    <button 
+                                        onClick={() => window.location.href = "https://latnovvaus.onrender.com"}
+                                        className="text-sm opacity-50 hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center p-1 rounded-md hover:bg-gray-200"
+                                        title="Switch to US Portal"
+                                    >
+                                        🇺🇸
+                                    </button>
+                                </>
+                            )}
                         </div>
 
                         {/* PWA Install Button — only shown when installable */}
