@@ -954,6 +954,44 @@
       "navigate": "navigate",
       "open": "open",
       "close": "close"
+    },
+    "nomina": {
+      "title": "Weekly Payroll",
+      "subtitle": "Mexico Subsidiary Payroll Generation",
+      "from": "From",
+      "to": "To",
+      "project": "Project",
+      "all_projects": "All Projects",
+      "generate": "Generate",
+      "export_pdf": "Export PDF",
+      "generating": "Generating...",
+      "empty_state": "Click \"Generate\" to calculate payroll for the selected period.",
+      "total_general": "GRAND TOTAL:",
+      "period": "Period:",
+      "bruto": "Gross:",
+      "neto": "Net:",
+      "columns": {
+        "status": "Status",
+        "nss": "SSN",
+        "curp": "CURP",
+        "rfc": "RFC",
+        "hire_date": "Hire Date",
+        "name": "Name",
+        "project": "Project",
+        "role": "Role",
+        "payroll_type": "Payroll Type",
+        "daily_rate": "Daily Rate",
+        "monthly_rate": "Monthly Rate",
+        "days_worked": "Days Wk.",
+        "normal_hours": "Reg. Hrs.",
+        "overtime_hours": "OT Hrs.",
+        "gross_pay": "Gross Pay",
+        "isr": "Tax",
+        "imss": "SS",
+        "infonavit": "Housing",
+        "aguinaldo": "Bonus",
+        "net_pay": "Net Pay"
+      }
     }
   }
 }

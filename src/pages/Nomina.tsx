@@ -4,8 +4,10 @@ import { Input } from '../components/ui/input';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PrintableNomina, EditableNominaRow } from '../components/nomina/PrintableNomina';
 import { FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function Nomina() {
+    const { t } = useTranslation();
     const { personnel, timesheets, projects } = useStore();
     
     const [startDate, setStartDate] = useState(() => {
@@ -30,7 +32,7 @@ export default function Nomina() {
     }, [projects]);
 
     const selectedProjectObj = selectedProject !== 'all' ? projects.find(p => p.id === selectedProject) || null : null;
-    const projectName = selectedProjectObj ? (selectedProjectObj.codeName || selectedProjectObj.name) : 'All Projects';
+    const projectName = selectedProjectObj ? (selectedProjectObj.codeName || selectedProjectObj.name) : t('nomina.all_projects');
 
     const generatePayroll = () => {
         const result: EditableNominaRow[] = [];
@@ -134,32 +136,32 @@ export default function Nomina() {
                         <div className="p-2.5 bg-brand-teal/10 rounded-xl text-brand-teal">
                             <FileSpreadsheet size={24} />
                         </div>
-                        Nómina Semanal
+                        {t('nomina.title')}
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        Mexico Subsidiary Payroll Generation
+                        {t('nomina.subtitle')}
                     </p>
                 </div>
                 
                 <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
                     <div className="flex flex-col gap-1 px-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase">From</label>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase">{t('nomina.from')}</label>
                         <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8 text-xs border-0 bg-gray-50 rounded-lg w-32" />
                     </div>
                     <div className="w-px h-8 bg-gray-100"></div>
                     <div className="flex flex-col gap-1 px-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase">To</label>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase">{t('nomina.to')}</label>
                         <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8 text-xs border-0 bg-gray-50 rounded-lg w-32" />
                     </div>
                     <div className="w-px h-8 bg-gray-100"></div>
                     <div className="flex flex-col gap-1 px-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase">Project</label>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase">{t('nomina.project')}</label>
                         <select 
                             value={selectedProject} 
                             onChange={e => setSelectedProject(e.target.value)}
                             className="h-8 text-xs border-0 bg-gray-50 rounded-lg outline-none px-2 w-40 focus:ring-2 focus:ring-brand-teal"
                         >
-                            <option value="all">All Projects</option>
+                            <option value="all">{t('nomina.all_projects')}</option>
                             {activeProjects.map(p => (
                                 <option key={p.id} value={p.id}>{p.codeName || p.name}</option>
                             ))}
@@ -171,7 +173,7 @@ export default function Nomina() {
                         className="ml-2 h-10 px-4 bg-gray-900 text-white rounded-xl text-sm font-bold shadow-md shadow-gray-900/20 hover:bg-gray-800 transition-all flex items-center gap-2"
                     >
                         <RefreshCw size={16} />
-                        Generate
+                        {t('nomina.generate')}
                     </button>
 
                     <PDFDownloadLink
@@ -185,7 +187,7 @@ export default function Nomina() {
                                 className="h-10 px-4 bg-brand-teal text-white rounded-xl text-sm font-bold shadow-md shadow-brand-teal/20 hover:bg-teal-700 transition-all disabled:opacity-50 flex items-center gap-2"
                             >
                                 <Download size={16} />
-                                {loading ? 'Generating...' : 'Export PDF'}
+                                {loading ? t('nomina.generating') : t('nomina.export_pdf')}
                             </button>
                         )}
                     </PDFDownloadLink>
@@ -197,29 +199,29 @@ export default function Nomina() {
                 {editableRows.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8">
                         <FileSpreadsheet size={48} className="mb-4 opacity-20" />
-                        <p className="text-sm font-medium">Click "Generate" to calculate payroll for the selected period.</p>
+                        <p className="text-sm font-medium">{t('nomina.empty_state')}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto flex-1">
                         <table className="w-full text-left border-collapse min-w-[2000px]">
                             <thead className="bg-[#0f766e] text-white sticky top-0 z-10">
                                 <tr>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap">Estatus</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">NSS (IMSS)</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Ingreso</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Nombre</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Proyecto</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Puesto</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Tipo Nómina</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Días Trab.</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Hrs. Norm.</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">Hrs. Extras</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-[#005c56]">Sueldo Bruto</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">ISR</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">IMSS</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">Infonavit</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-900/40">Aguinaldo</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-[#0f766e]">Neto a Pagar</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap">{t('nomina.columns.status')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.nss')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.hire_date')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.name')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.project')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.role')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.payroll_type')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.days_worked')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.normal_hours')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.overtime_hours')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-[#005c56]">{t('nomina.columns.gross_pay')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">{t('nomina.columns.isr')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">{t('nomina.columns.imss')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">{t('nomina.columns.infonavit')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-900/40">{t('nomina.columns.aguinaldo')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-[#0f766e]">{t('nomina.columns.net_pay')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
@@ -278,7 +280,7 @@ export default function Nomina() {
                             </tbody>
                             <tfoot className="bg-gray-50 sticky bottom-0 border-t-2 border-gray-200">
                                 <tr>
-                                    <td colSpan={10} className="px-4 py-3 text-xs font-black text-right text-gray-500">TOTAL GENERAL:</td>
+                                    <td colSpan={10} className="px-4 py-3 text-xs font-black text-right text-gray-500">{t('nomina.total_general')}</td>
                                     <td className="px-4 py-3 text-sm font-black text-brand-teal border-l border-gray-200 bg-white">
                                         ${totalGross.toFixed(2)}
                                     </td>

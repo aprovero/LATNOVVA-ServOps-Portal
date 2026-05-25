@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import i18n from '../../i18n';
 
 const clean = (text: any): string => {
   if (typeof text !== 'string') return String(text || '');
@@ -138,35 +139,35 @@ export const PrintableNomina = ({ rows, projectName, startDate, endDate }: Print
             <Image src={ssLogoUrl} style={{ height: 24, objectFit: 'contain' }} />
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.title}>Nómina Semanal</Text>
-            <Text style={styles.subtitle}>Period: {startDate} to {endDate}</Text>
-            <Text style={styles.subtitle}>Project: {projectName}</Text>
+            <Text style={styles.title}>{i18n.t('nomina.title')}</Text>
+            <Text style={styles.subtitle}>{i18n.t('nomina.period')} {startDate} - {endDate}</Text>
+            <Text style={styles.subtitle}>{i18n.t('nomina.project')}: {projectName}</Text>
           </View>
         </View>
 
         <View style={styles.table}>
           {/* Table Header */}
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableCellHeader, { width: colWidths.name }]}>NOMBRE</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.status }]}>ESTATUS</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.reg }]}>NSS (IMSS)</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.curp }]}>CURP</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.rfc }]}>RFC</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.hireDate }]}>INGRESO</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.project }]}>PROYECTO</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.role }]}>PUESTO</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.payrollType }]}>TIPO NOMINA</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.rate }]}>NOM. DIARIO</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.monthly }]}>NOMINA MENS.</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.days }]}>DIAS TRAB.</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.normal }]}>HRS. NORM.</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.overtime }]}>HRS. EXTRAS</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.gross }]}>BRUTO</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.isr }]}>ISR</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.imss }]}>IMSS</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.infonavit }]}>INFONAVIT</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.aguinaldo }]}>AGUINALDO</Text>
-            <Text style={[styles.tableCellHeader, { width: colWidths.net }]}>NETO A PAGAR</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.name }]}>{i18n.t('nomina.columns.name').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.status }]}>{i18n.t('nomina.columns.status').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.reg }]}>{i18n.t('nomina.columns.nss').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.curp }]}>{i18n.t('nomina.columns.curp').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.rfc }]}>{i18n.t('nomina.columns.rfc').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.hireDate }]}>{i18n.t('nomina.columns.hire_date').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.project }]}>{i18n.t('nomina.columns.project').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.role }]}>{i18n.t('nomina.columns.role').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.payrollType }]}>{i18n.t('nomina.columns.payroll_type').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.rate }]}>{i18n.t('nomina.columns.daily_rate').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.monthly }]}>{i18n.t('nomina.columns.monthly_rate').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.days }]}>{i18n.t('nomina.columns.days_worked').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.normal }]}>{i18n.t('nomina.columns.normal_hours').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.overtime }]}>{i18n.t('nomina.columns.overtime_hours').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.gross }]}>{i18n.t('nomina.columns.gross_pay').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.isr }]}>{i18n.t('nomina.columns.isr').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.imss }]}>{i18n.t('nomina.columns.imss').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.infonavit }]}>{i18n.t('nomina.columns.infonavit').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.aguinaldo }]}>{i18n.t('nomina.columns.aguinaldo').toUpperCase()}</Text>
+            <Text style={[styles.tableCellHeader, { width: colWidths.net }]}>{i18n.t('nomina.columns.net_pay').toUpperCase()}</Text>
           </View>
 
           {/* Table Rows */}
@@ -199,8 +200,8 @@ export const PrintableNomina = ({ rows, projectName, startDate, endDate }: Print
           
           {/* Footer Totals */}
           <View style={[styles.tableRow, { backgroundColor: '#f8fafc' }]}>
-             <Text style={[styles.tableCell, { width: '70%', fontFamily: 'Helvetica-Bold', textAlign: 'right' }]}>TOTAL GENERAL:</Text>
-             <Text style={[styles.tableCell, { width: '30%', fontFamily: 'Helvetica-Bold', textAlign: 'right' }]}>Bruto: ${totalGross.toFixed(2)}  |  Neto: ${totalNet.toFixed(2)}</Text>
+             <Text style={[styles.tableCell, { width: '70%', fontFamily: 'Helvetica-Bold', textAlign: 'right' }]}>{i18n.t('nomina.total_general')}</Text>
+             <Text style={[styles.tableCell, { width: '30%', fontFamily: 'Helvetica-Bold', textAlign: 'right' }]}>{i18n.t('nomina.bruto')} ${totalGross.toFixed(2)}  |  {i18n.t('nomina.neto')} ${totalNet.toFixed(2)}</Text>
           </View>
         </View>
       </Page>

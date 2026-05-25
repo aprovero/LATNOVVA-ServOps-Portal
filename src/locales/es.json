@@ -948,6 +948,44 @@
       "navigate": "navegar",
       "open": "abrir",
       "close": "cerrar"
+    },
+    "nomina": {
+      "title": "Nómina Semanal",
+      "subtitle": "Generación de Nómina Subsidiaria México",
+      "from": "Desde",
+      "to": "Hasta",
+      "project": "Proyecto",
+      "all_projects": "Todos los Proyectos",
+      "generate": "Generar",
+      "export_pdf": "Exportar PDF",
+      "generating": "Generando...",
+      "empty_state": "Haz clic en \"Generar\" para calcular la nómina del periodo seleccionado.",
+      "total_general": "TOTAL GENERAL:",
+      "period": "Periodo:",
+      "bruto": "Bruto:",
+      "neto": "Neto:",
+      "columns": {
+        "status": "Estatus",
+        "nss": "NSS (IMSS)",
+        "curp": "CURP",
+        "rfc": "RFC",
+        "hire_date": "Ingreso",
+        "name": "Nombre",
+        "project": "Proyecto",
+        "role": "Puesto",
+        "payroll_type": "Tipo Nómina",
+        "daily_rate": "Nom. Diario",
+        "monthly_rate": "Nómina Mens.",
+        "days_worked": "Días Trab.",
+        "normal_hours": "Hrs. Norm.",
+        "overtime_hours": "Hrs. Extras",
+        "gross_pay": "Sueldo Bruto",
+        "isr": "ISR",
+        "imss": "IMSS",
+        "infonavit": "Infonavit",
+        "aguinaldo": "Aguinaldo",
+        "net_pay": "Neto a Pagar"
+      }
     }
   }
 }
