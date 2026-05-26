@@ -56,10 +56,19 @@ export const Login: React.FC = () => {
                 style={{ backgroundImage: 'radial-gradient(#424242 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
 
             {/* Left Side: Branding / Marketing Pattern */}
-            <div className="hidden lg:flex flex-col flex-1 p-12 justify-between bg-gradient-to-br from-[#0097A7] to-[#00606B] relative overflow-hidden">
-                {/* Abstract Glass shapes */}
-                <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#000000]/10 rounded-[3rem] rotate-12 blur-2xl" />
+            <div className="hidden lg:flex flex-col flex-1 p-12 justify-between relative overflow-hidden bg-[#00606B]">
+                {/* Video Background */}
+                <video 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline 
+                    className="absolute inset-0 w-full h-full object-cover z-0"
+                >
+                    <source src="/HOME-LATNOVVA.mp4" type="video/mp4" />
+                </video>
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-black/40 z-0" />
 
                 <div className="relative z-10 flex items-center gap-6 bg-white p-4 rounded-full w-max shadow-float border border-white/20">
                     <img src="/cor-logo.png" alt="COR Solutions" className="h-8 object-contain" />
@@ -70,13 +79,13 @@ export const Login: React.FC = () => {
                 <div className="relative z-10 mb-20">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white/90 text-sm font-medium mb-6 border border-white/20">
                         <Component className="w-4 h-4" />
-                        Digital Instrument PWA
+                        Sustainable Engineering Portal
                     </div>
                     <h1 className="text-5xl lg:text-6xl font-bold text-white leading-tight mb-6 tracking-tight">
-                        Precision field <br /> management.
+                        Green, efficient & safe <br /> industrial solutions.
                     </h1>
                     <p className="text-xl text-teal-50 max-w-lg font-light leading-relaxed">
-                        Offline-first data capability meets high-fidelity analytics. Streamline daily reports, asset commissioning, and multi-tenant operational visibility.
+                        Your partner for sustainable and innovative development in renewable energy, mechanical and electrical installations, maintenance, and construction.
                     </p>
                 </div>
 
@@ -97,8 +106,8 @@ export const Login: React.FC = () => {
 
                 <div className="max-w-md w-full mx-auto">
                     <div className="mb-10">
-                        <h2 className="text-3xl font-bold text-[#424242] tracking-tight mb-2">Welcome System Operator</h2>
-                        <p className="text-slate-500 font-medium">Please authenticate to access mission data.</p>
+                        <h2 className="text-3xl font-bold text-[#424242] tracking-tight mb-2">Welcome to LATNOVVA</h2>
+                        <p className="text-slate-500 font-medium">Please authenticate to access operational data.</p>
                     </div>
 
                     {/* Status Alert */}
