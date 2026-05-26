@@ -458,7 +458,7 @@ export default function Layout() {
                                 <>
                                     <div className="w-px h-4 bg-gray-200 mx-2"></div>
                                     <button 
-                                        onClick={() => window.location.href = "https://latnovvaus.onrender.com"}
+                                        onClick={() => window.location.href = "https://latnovvaservops.onrender.com"}
                                         className="opacity-50 hover:opacity-100 hover:scale-110 transition-all flex items-center justify-center p-1 rounded-md hover:bg-gray-200"
                                         title="Switch to US Portal"
                                     >
