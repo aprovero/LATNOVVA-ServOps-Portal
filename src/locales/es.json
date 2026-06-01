@@ -794,7 +794,7 @@
     "subtitle": "Gestione su asistencia diaria y check-ins de equipo.",
     "select_project": "Seleccionar Proyecto",
     "project_placeholder": "— Seleccione un proyecto —",
-    "team_count": "Equipo · {{count}} personas",
+    "team_count": "Equipo · {{num}} personas",
     "status": {
       "not_in": "Sin Entrada",
       "on_site": "En Sitio",
