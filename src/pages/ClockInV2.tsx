@@ -91,7 +91,7 @@ interface VerificationModalProps {
     workerName: string;
     punchType: ClockPunch['type'];
     gps: GpsState;
-    onConfirm: (selfieBlob: string, sigBlob: string) => void;
+    onConfirm: (selfieBlob: string, sigBlob: string, comment?: string) => void;
     onCancel: () => void;
 }
 
@@ -99,6 +99,7 @@ function VerificationModal({ workerName, punchType, gps, onConfirm, onCancel }: 
     const { t } = useTranslation();
     const [selfie, setSelfie] = useState<string | null>(null);
     const [signature, setSignature] = useState<string | null>(null);
+    const [reason, setReason] = useState('');
 
     const isOut = punchType === 'clockOut';
     const gpsReady = gps.status === 'locked' || gps.status === 'poor';
@@ -142,6 +143,25 @@ function VerificationModal({ workerName, punchType, gps, onConfirm, onCancel }: 
                             placeholder={t('attendance.signature.sign_here', 'Please draw your signature to verify identity')}
                         />
                     </div>
+
+                    {/* Step 3: Manual Entry Comment Fallback */}
+                    {!gpsReady && (
+                        <div className="space-y-1.5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl animate-fade-in">
+                            <label className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+                                <AlertTriangle size={13} className="text-amber-600" />
+                                {t('timesheets.modals.manual_reason', 'Reason for Manual Entry')} *
+                            </label>
+                            <p className="text-[10px] text-amber-600/80">
+                                {t('timesheets.modals.manual_reason_help', 'Required — GPS is weak or unavailable. Explain why below.')}
+                            </p>
+                            <textarea
+                                value={reason}
+                                onChange={e => setReason(e.target.value)}
+                                placeholder="e.g., Working underground, GPS permissions restricted, or remote site area..."
+                                className="w-full bg-white border border-amber-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-amber-500 h-16 resize-none"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer Buttons */}
@@ -153,14 +173,14 @@ function VerificationModal({ workerName, punchType, gps, onConfirm, onCancel }: 
                         {t('common.cancel', 'Cancel')}
                     </button>
                     <button
-                        onClick={() => selfie && signature && onConfirm(selfie, signature)}
-                        disabled={!selfie || !signature || !gpsReady}
+                        onClick={() => selfie && signature && onConfirm(selfie, signature, !gpsReady ? reason.trim() : undefined)}
+                        disabled={!selfie || !signature || (!gpsReady && !reason.trim())}
                         className={`flex-1 py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                             isOut ? 'bg-gradient-to-r from-rose-500 to-rose-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'
                         }`}
                     >
                         <Check size={16} />
-                        {!selfie ? t('personnel.profile_photo', 'Capture Photo') : !signature ? t('reports.labor_section.click_to_sign', 'Sign to Verify') : t('attendance.manual.submit', 'Confirm Punch')}
+                        {!selfie ? t('personnel.profile_photo', 'Capture Photo') : !signature ? t('reports.labor_section.click_to_sign', 'Sign to Verify') : (!gpsReady && !reason.trim()) ? 'Comment Required' : t('attendance.manual.submit', 'Confirm Punch')}
                     </button>
                 </div>
             </div>
@@ -282,7 +302,7 @@ export default function ClockInV2() {
     };
 
     // Commit verification and execute clock punch
-    const handleCommitVerification = (selfieBlob: string, sigBlob: string) => {
+    const handleCommitVerification = (selfieBlob: string, sigBlob: string, comment?: string) => {
         if (!verificationTarget) return;
         const { workerId, punchType } = verificationTarget;
         const best = getBestTimestampISO(gps);
@@ -295,7 +315,8 @@ export default function ClockInV2() {
             type: punchType,
             timeSource: best.source,
             selfieBlob,
-            supervisorSignatureBlob: sigBlob
+            supervisorSignatureBlob: sigBlob,
+            ...(comment ? { manualAdjustment: true, adjustmentNote: comment } : {})
         };
 
         clockPunch(workerId, punch, selectedProject || undefined);
@@ -520,7 +541,7 @@ export default function ClockInV2() {
                                 <div className="space-y-3">
                                     <button 
                                         onClick={() => handleIndividualPunch('clockIn')} 
-                                        disabled={!selectedProject || (gps.status !== 'locked' && gps.status !== 'poor')}
+                                        disabled={!selectedProject}
                                         className="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-lg shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                                     >
                                         <LogIn size={22} />
@@ -546,7 +567,6 @@ export default function ClockInV2() {
                                     </button>
                                     <button 
                                         onClick={() => handleIndividualPunch('clockOut')}
-                                        disabled={(gps.status !== 'locked' && gps.status !== 'poor')}
                                         className="py-4 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         <LogOut size={18} />
@@ -675,7 +695,7 @@ export default function ClockInV2() {
                                                                 workerName: worker.name,
                                                                 punchType: nextPunchType
                                                             })}
-                                                            disabled={(gps.status !== 'locked' && gps.status !== 'poor') || !selectedProject}
+                                                            disabled={!selectedProject}
                                                             className={`px-3.5 py-2 text-xs font-bold rounded-xl shadow-sm transition-all border shrink-0 ${
                                                                 nextPunchType === 'clockIn' 
                                                                     ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-100 text-emerald-700' 

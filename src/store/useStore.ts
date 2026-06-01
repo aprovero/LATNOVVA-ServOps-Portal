@@ -1841,10 +1841,14 @@ export const useStore = create<AppState>()(
                         if (computedHours < 0) computedHours = 0;
                     }
 
+                    const hasManual = updatedPunches.some(p => p.manualAdjustment);
+                    const manualReasonText = updatedPunches.find(p => p.manualAdjustment)?.adjustmentNote;
+
                     const entryUpdates: Partial<TimesheetEntry> = {
                         punches: updatedPunches,
-                        gpsVerified: allAccurate,
-                        source: 'gps',
+                        gpsVerified: allAccurate && !hasManual,
+                        source: hasManual ? 'manual' : 'gps',
+                        ...(hasManual && manualReasonText ? { manualReason: manualReasonText } : {}),
                         ...(clockIn ? { timeIn: toHHMM(clockIn.timestamp) } : {}),
                         ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
                         ...(computedHours > 0 ? { hours: computedHours } : {}),
