@@ -104,7 +104,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* 3-Ring Concentric SVG - Replaces static image for internal animation */}
-                    <div className="relative w-14 h-14 sm:w-24 sm:h-24 flex items-center justify-center p-0.5 bg-white rounded-full z-10 -ml-2 sm:-ml-5">
+                    <div className="relative w-14 h-14 sm:w-24 sm:h-24 flex items-center justify-center p-0.5 bg-white rounded-full z-10 mx-1 sm:mx-2">
                         <svg viewBox="0 0 100 100" className="w-full h-full">
                             {/* Outer Ring */}
                             <circle 
@@ -128,7 +128,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* VVA letters - Adjusted gap to prevent logo overlap */}
-                    <div className="flex -ml-0.5 sm:-ml-1">
+                    <div className="flex ml-1 sm:ml-2">
                         {['V', 'V', 'A'].map((char, i) => (
                             <span 
                                 key={`suffix-${i}`} 
