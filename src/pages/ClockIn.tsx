@@ -53,8 +53,8 @@ function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'dev
 }
 
 function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
-    // Look for any active session (in with no out) across any date
-    const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+    const today = getLocalDate();
+    const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeIn && !t.timeOut);
     if (openEntry) return 'clocked-in';
     return 'idle';
 }
@@ -491,7 +491,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        {t('attendance.team_count', { count: sorted.length + outsourcedList.length })}
+                        {t('attendance.team_count', { num: sorted.length + outsourcedList.length })}
                     </p>
                     <button
                         onClick={() => setShowAddOutsourced(true)}
