@@ -73,10 +73,13 @@ const getStepMeta = (t: any): Record<PunchStep, { label: string; dot: string; bg
 const getPunchLabel = (t: any): Record<ClockPunch['type'], string> => ({
     clockIn: t('attendance.punches.clockIn'), 
     clockOut: t('attendance.punches.clockOut'),
+    lunchOut: t('timesheets.punches.lunch_out', 'Lunch Out'),
+    lunchIn: t('timesheets.punches.lunch_in', 'Back from Lunch'),
 });
 
 const punchColor: Record<ClockPunch['type'], string> = {
     clockIn: '#00B4A6', clockOut: '#EF4444',
+    lunchOut: '#F59E0B', lunchIn: '#10B981',
 };
 
 const formatShort = (iso: string) => formatTime(iso);
@@ -145,6 +148,8 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
     const actionLabel: Record<ClockPunch['type'], { label: string; color: string }> = {
         clockIn:  { label: t('attendance.labels.action_in'),        color: 'text-teal-700 bg-teal-50' },
         clockOut: { label: t('attendance.labels.action_out'),       color: 'text-rose-700 bg-rose-50' },
+        lunchOut: { label: t('timesheets.punches.lunch_out', 'Lunch Out'), color: 'text-amber-700 bg-amber-50' },
+        lunchIn:  { label: t('timesheets.punches.lunch_in', 'Back from Lunch'), color: 'text-emerald-700 bg-emerald-50' },
     };
 
     // Group by action type for the header
@@ -595,7 +600,12 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                             <LogIn size={15} />
                             {(() => {
                                 const a = dominantAction();
-                                const labelMap = { clockIn: t('attendance.labels.action_in'), clockOut: t('attendance.labels.action_out') };
+                                const labelMap = { 
+                                    clockIn: t('attendance.labels.action_in'), 
+                                    clockOut: t('attendance.labels.action_out'),
+                                    lunchOut: t('timesheets.punches.lunch_out', 'Lunch Out'),
+                                    lunchIn: t('timesheets.punches.lunch_in', 'Back from Lunch'),
+                                };
                                 return labelMap[a];
                             })()} {selCount}
                         </button>

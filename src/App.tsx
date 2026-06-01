@@ -22,7 +22,7 @@ import Personnel from './pages/Personnel';
 import Timesheets from './pages/Timesheets';
 import LiveMap from './pages/LiveMap';
 import ProjectDetail from './pages/ProjectDetail';
-import ClockIn from './pages/ClockIn';
+import ClockIn from './pages/ClockInV2';
 import SplashScreen from './components/common/SplashScreen';
 
 // Register GSAP plugins

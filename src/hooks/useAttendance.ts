@@ -32,10 +32,12 @@ export function useAttendance() {
      * Checks if a person is allowed to perform a specific punch action.
      * Prevents double clock-ins or clock-outs without a session.
      */
-    const canPunch = (personnelId: string, type: 'clockIn' | 'clockOut'): boolean => {
+    const canPunch = (personnelId: string, type: ClockPunch['type']): boolean => {
         const state = getAttendanceState(personnelId);
         if (type === 'clockIn') return state === 'idle' || state === 'clocked-out'; // Allow multiple shifts if logic supports it
         if (type === 'clockOut') return state === 'clocked-in';
+        if (type === 'lunchOut') return state === 'clocked-in';
+        if (type === 'lunchIn') return true; // always allowed if in an active session
         return false;
     };
 

@@ -270,7 +270,7 @@ export interface ClockPunch {
     lat: number;
     lng: number;
     accuracy: number;    // GPS accuracy in meters
-    type: 'clockIn' | 'clockOut';
+    type: 'clockIn' | 'clockOut' | 'lunchOut' | 'lunchIn';
     timeSource: 'gps' | 'device'; // gps = satellite atomic clock, device = system clock
     manualAdjustment?: boolean; // true if time was entered retroactively
     adjustmentNote?: string;
@@ -302,6 +302,8 @@ export interface TimesheetEntry {
     gpsVerified?: boolean;      // true when all punches have accuracy <= 50m
     source?: 'gps' | 'manual'; // H-04: explicit audit flag
     manualReason?: string;      // H-04: required justification for manual entries
+    isOutsourced?: boolean;
+    outsourcedName?: string;
 }
 
 export interface ProjectActivity {
@@ -1823,8 +1825,20 @@ export const useStore = create<AppState>()(
 
                     let computedHours = 0;
                     if (clockIn && clockOut) {
-                        const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
+                        let totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
+                        
+                        // Handle lunch duration subtraction
+                        const lunchOut = updatedPunches.find(p => p.type === 'lunchOut');
+                        const lunchIn = updatedPunches.find(p => p.type === 'lunchIn');
+                        if (lunchOut && lunchIn) {
+                            const lunchDurationMs = new Date(lunchIn.timestamp).getTime() - new Date(lunchOut.timestamp).getTime();
+                            if (lunchDurationMs > 0) {
+                                totalMs -= lunchDurationMs;
+                            }
+                        }
+                        
                         computedHours = Math.round((totalMs / 3600000) * 100) / 100;
+                        if (computedHours < 0) computedHours = 0;
                     }
 
                     const entryUpdates: Partial<TimesheetEntry> = {
