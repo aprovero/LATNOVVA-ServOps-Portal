@@ -76,15 +76,15 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
             ref={containerRef}
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white"
         >
-            <div className="flex flex-col items-start">
+            <div className="flex flex-col items-center">
                 {/* Main Logo + Branding Container */}
-                <div className="flex items-center">
+                <div className="flex items-center justify-center">
                     {/* LATN letters */}
-                    <div className="flex">
+                    <div className="flex mr-1 sm:mr-3">
                         {['L', 'A', 'T', 'N'].map((char, i) => (
                             <span 
                                 key={`prefix-${i}`} 
-                                className="brand-letter text-5xl sm:text-7xl font-black text-brand-teal tracking-tighter"
+                                className="brand-letter text-4xl sm:text-6xl font-black text-brand-teal tracking-tighter"
                             >
                                 {char}
                             </span>
@@ -92,7 +92,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* Concentric Circles (The "O") */}
-                    <div className="relative w-14 h-14 sm:w-[5.5rem] sm:h-[5.5rem] mx-0.5 sm:mx-1">
+                    <div className="relative w-16 h-16 sm:w-24 sm:h-24 mx-1 sm:mx-2">
                         <svg viewBox="0 0 100 100" className="w-full h-full">
                             <circle 
                                 id="outer-circle" 
@@ -113,11 +113,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* VVA letters */}
-                    <div className="flex">
+                    <div className="flex ml-1 sm:ml-3">
                         {['V', 'V', 'A'].map((char, i) => (
                             <span 
                                 key={`suffix-${i}`} 
-                                className="brand-letter text-5xl sm:text-7xl font-black text-brand-teal tracking-tighter"
+                                className="brand-letter text-4xl sm:text-6xl font-black text-brand-teal tracking-tighter"
                             >
                                 {char}
                             </span>
@@ -126,8 +126,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 </div>
 
                 {/* Subtitle */}
-                {/* Aligned to the left, slightly offset to visually center under LATNOVVA without looking disjointed. A tiny ml-1 or ml-2 matches the L's visual weight. */}
-                <div className="brand-subtitle mt-2 sm:mt-3 ml-1 sm:ml-2 text-sm sm:text-lg font-medium tracking-[0.3em] text-accent-greyLight uppercase">
+                <div className="brand-subtitle mt-6 text-sm sm:text-lg font-medium tracking-[0.3em] text-accent-greyLight uppercase">
                     Service Operations
                 </div>
             </div>
