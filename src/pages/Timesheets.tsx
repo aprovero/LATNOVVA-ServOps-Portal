@@ -360,7 +360,7 @@ export default function Timesheets() {
     const getProjectName = (id?: string) => id ? projects.find(p => p.id === id)?.name || 'Unknown' : '-';
 
     const filteredTimesheets = timesheets
-        .filter(t => filterProject.length > 0 ? filterProject.includes(t.projectId) : true)
+        .filter(t => filterProject.length > 0 ? filterProject.includes(t.projectId ?? '') : true)
         .filter(t => filterPersonnel ? t.personnelId === filterPersonnel : true)
         .filter(t => userRole === 'Tech' ? t.personnelId === resolvedPersonnelId : true)
         .filter(t => filterStartDate ? new Date(t.date) >= new Date(filterStartDate) : true)
