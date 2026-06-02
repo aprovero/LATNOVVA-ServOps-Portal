@@ -45,19 +45,19 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
                         <Input value={md.rfc || ''} onChange={e => updateMeta('rfc', e.target.value.toUpperCase())} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase flex items-center gap-1">
+                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">
                             CP <span className="normal-case text-[9px] font-normal text-amber-600/70">(Constancia Fiscal)</span>
                         </label>
                         <Input value={md.rfcPostalCode || ''} onChange={e => updateMeta('rfcPostalCode', e.target.value)} placeholder="Código Postal" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
-                    {/* Row 3: AGE | DOB */}
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">Age</label>
-                        <Input type="number" value={md.age || ''} onChange={e => updateMeta('age', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
+                    {/* Row 3: DOB | AGE */}
                     <div className="space-y-1">
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">Date of Birth</label>
                         <Input value={md.birthDate || ''} onChange={e => updateMeta('birthDate', e.target.value)} placeholder="DD/MM/YYYY" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">Age</label>
+                        <Input type="number" value={md.age || ''} onChange={e => updateMeta('age', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
                     {/* Row 4: GENDER | MARITAL STATUS */}
                     <div className="space-y-1">
