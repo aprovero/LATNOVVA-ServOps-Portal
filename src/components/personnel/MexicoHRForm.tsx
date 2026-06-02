@@ -30,14 +30,27 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
             <div className="space-y-4 p-4 bg-white/60 rounded-2xl border border-amber-200/60">
                 <h4 className="text-xs font-bold text-amber-800/80 uppercase tracking-widest">Identification & Demographics</h4>
                 <div className="grid grid-cols-2 gap-4">
+                    {/* Row 1: CURP | INE */}
                     <div className="space-y-1">
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">CURP</label>
                         <Input value={md.curp || ''} onChange={e => updateMeta('curp', e.target.value.toUpperCase())} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
                     <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">INE</label>
+                        <Input value={md.ine || ''} onChange={e => updateMeta('ine', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
+                    </div>
+                    {/* Row 2: RFC | CP (RFC Postal Code from Constancia de Situación Fiscal) */}
+                    <div className="space-y-1">
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">RFC</label>
                         <Input value={md.rfc || ''} onChange={e => updateMeta('rfc', e.target.value.toUpperCase())} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-amber-700/60 uppercase flex items-center gap-1">
+                            CP <span className="normal-case text-[9px] font-normal text-amber-600/70">(Constancia Fiscal)</span>
+                        </label>
+                        <Input value={md.rfcPostalCode || ''} onChange={e => updateMeta('rfcPostalCode', e.target.value)} placeholder="Código Postal" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
+                    </div>
+                    {/* Row 3: AGE | DOB */}
                     <div className="space-y-1">
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">Age</label>
                         <Input type="number" value={md.age || ''} onChange={e => updateMeta('age', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
@@ -46,10 +59,7 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">Date of Birth</label>
                         <Input value={md.birthDate || ''} onChange={e => updateMeta('birthDate', e.target.value)} placeholder="DD/MM/YYYY" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">INE</label>
-                        <Input value={md.ine || ''} onChange={e => updateMeta('ine', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
+                    {/* Row 4: GENDER | MARITAL STATUS */}
                     <div className="space-y-1">
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">Gender</label>
                         <select className="w-full bg-white border border-amber-200 rounded-xl px-3 h-9 text-sm outline-none focus:ring-2 focus:ring-amber-500" value={md.gender || ''} onChange={e => updateMeta('gender', e.target.value)}>
