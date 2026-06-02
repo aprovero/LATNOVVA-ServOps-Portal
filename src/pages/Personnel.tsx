@@ -334,8 +334,16 @@ export default function Personnel() {
                                             <Input type="date" value={newPerson?.onboardingDate || ''} onChange={e => setNewPerson({ ...newPerson, onboardingDate: e.target.value })} />
                                         </div>
                                         <div className="space-y-2 col-span-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo')}</label>
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
                                             <Input type="date" value={newPerson?.dbo || ''} onChange={e => setNewPerson({ ...newPerson, dbo: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">RFC</label>
+                                            <Input placeholder="RFC" value={newPerson?.rfc || ''} onChange={e => setNewPerson({ ...newPerson, rfc: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">RFC Postal Code (CP)</label>
+                                            <Input placeholder="Postal Code" value={newPerson?.rfcPostalCode || ''} onChange={e => setNewPerson({ ...newPerson, rfcPostalCode: e.target.value })} />
                                         </div>
                                     </div>
 
@@ -779,9 +787,17 @@ export default function Personnel() {
                                             <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
                                             <Input type="date" value={editDraft.onboardingDate || ''} onChange={e => setEditDraft(d => d ? { ...d, onboardingDate: e.target.value } : d)} />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo')}</label>
+                                        <div className="space-y-2 col-span-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
                                             <Input type="date" value={editDraft.dbo || ''} onChange={e => setEditDraft(d => d ? { ...d, dbo: e.target.value } : d)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">RFC</label>
+                                            <Input placeholder="RFC" value={editDraft.rfc || ''} onChange={e => setEditDraft(d => d ? { ...d, rfc: e.target.value } : d)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-accent-greyDark">RFC Postal Code (CP)</label>
+                                            <Input placeholder="Postal Code" value={editDraft.rfcPostalCode || ''} onChange={e => setEditDraft(d => d ? { ...d, rfcPostalCode: e.target.value } : d)} />
                                         </div>
                                     </div>
 

@@ -206,6 +206,9 @@ export interface Personnel {
     hasPassword?: boolean;
     subsidiary?: 'US' | 'MX';
     subsidiaryMetadata?: any;
+    rfc?: string;
+    rfcPostalCode?: string;
+    documents?: { id: string; name: string; url: string; type: string; uploadDate: string; }[];
 }
 
 export interface ChecklistTemplate {

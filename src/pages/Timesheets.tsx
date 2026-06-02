@@ -70,7 +70,7 @@ export default function Timesheets() {
         manualReason: '', // H-04: required justification for manual entries
     });
 
-    const [filterProject, setFilterProject] = useState('');
+    const [filterProject, setFilterProject] = useState<string[]>([]);
     const [filterPersonnel, setFilterPersonnel] = useState('');
     const [filterStartDate, setFilterStartDate] = useState('');
     const [filterEndDate, setFilterEndDate] = useState('');
@@ -360,7 +360,7 @@ export default function Timesheets() {
     const getProjectName = (id?: string) => id ? projects.find(p => p.id === id)?.name || 'Unknown' : '-';
 
     const filteredTimesheets = timesheets
-        .filter(t => filterProject ? t.projectId === filterProject : true)
+        .filter(t => filterProject.length > 0 ? filterProject.includes(t.projectId) : true)
         .filter(t => filterPersonnel ? t.personnelId === filterPersonnel : true)
         .filter(t => userRole === 'Tech' ? t.personnelId === resolvedPersonnelId : true)
         .filter(t => filterStartDate ? new Date(t.date) >= new Date(filterStartDate) : true)
@@ -564,7 +564,7 @@ export default function Timesheets() {
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus-within:ring-2 focus-within:ring-brand-teal flex items-center justify-between cursor-pointer"
                         onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
                     >
-                        <span className="truncate">{filterProject ? projects.find(p => p.id === filterProject)?.codeName || projects.find(p => p.id === filterProject)?.name : t('timesheets.filters.all_projects')}</span>
+                        <span className="truncate">{filterProject.length > 0 ? `${filterProject.length} Selected` : t('timesheets.filters.all_projects')}</span>
                         <ChevronDown className={`text-gray-400 transition-transform ${isProjectDropdownOpen ? 'rotate-180': ''}`} size={16} />
                     </div>
                     {isProjectDropdownOpen && (
@@ -582,18 +582,22 @@ export default function Timesheets() {
                             </div>
                             <div className="max-h-[240px] overflow-y-auto custom-scrollbar p-1">
                                 <div 
-                                    className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${!filterProject ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
-                                    onClick={() => { setFilterProject(''); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}
+                                    className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${filterProject.length === 0 ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                    onClick={() => { setFilterProject([]); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}
                                 >
                                     {t('timesheets.filters.all_projects')}
                                 </div>
-                                {projects.filter(p => (p.status === 'Active' || p.status === 'In Progress') && (!projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase()))).map(p => (
+                                {projects.filter(p => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX' && (!projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase()))).map(p => (
                                     <div 
                                         key={p.id}
-                                        className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold transition-colors ${filterProject === p.id ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
-                                        onClick={() => { setFilterProject(p.id); setIsProjectDropdownOpen(false); setProjectSearchDropdown(''); }}
+                                        className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold flex items-center gap-2 transition-colors ${filterProject.includes(p.id) ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
+                                        onClick={(e) => { 
+                                            e.stopPropagation();
+                                            setFilterProject(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]); 
+                                        }}
                                     >
-                                        {p.codeName || p.name}
+                                        <input type="checkbox" checked={filterProject.includes(p.id)} readOnly className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal cursor-pointer" />
+                                        <span className="truncate">{p.codeName || p.name}</span>
                                     </div>
                                 ))}
                                 {projects.filter(p => !projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase())).length === 0 && (
@@ -668,8 +672,8 @@ export default function Timesheets() {
                         onChange={e => setFilterEndDate(e.target.value)}
                     />
                 </div>
-                {(filterProject || filterPersonnel || filterStartDate || filterEndDate) && (
-                    <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl px-4 py-2.5 h-auto text-sm font-bold" onClick={() => { setFilterProject(''); setFilterPersonnel(''); setFilterStartDate(''); setFilterEndDate(''); }}>
+                {(filterProject.length > 0 || filterPersonnel || filterStartDate || filterEndDate) && (
+                    <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl px-4 py-2.5 h-auto text-sm font-bold" onClick={() => { setFilterProject([]); setFilterPersonnel(''); setFilterStartDate(''); setFilterEndDate(''); }}>
                         {t('timesheets.filters.clear')}
                     </Button>
                 )}

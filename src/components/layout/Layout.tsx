@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, FileSpreadsheet } from 'lucide-react';
+import { Home, FileText, Settings, User, Activity, Search, Bell, Wrench, CheckSquare, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, UploadCloud, Trash2, FileSpreadsheet } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
@@ -45,6 +45,7 @@ export default function Layout() {
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
     const [accountName, setAccountName] = useState('');
     const [accountPassword, setAccountPassword] = useState('');
+    const [accountDocuments, setAccountDocuments] = useState<{ id: string; name: string; url: string; type: string; uploadDate: string; }[]>([]);
     const [accountDbo, setAccountDbo] = useState('');
     const [accountEmployeeNumber, setAccountEmployeeNumber] = useState('');
     const [accountEmergencyContactName, setAccountEmergencyContactName] = useState('');
@@ -316,7 +317,8 @@ export default function Layout() {
                     employeeNumber: accountEmployeeNumber,
                     emergencyContactName: accountEmergencyContactName,
                     emergencyContactPhone: accountEmergencyContactPhone,
-                    image: accountImage
+                    image: accountImage,
+                    documents: accountDocuments
                 });
             }
 
@@ -343,6 +345,7 @@ export default function Layout() {
                 setAccountEmergencyContactName(person.emergencyContactName || '');
                 setAccountEmergencyContactPhone(person.emergencyContactPhone || '');
                 setAccountImage(person.image || '');
+                setAccountDocuments(person.documents || []);
             }
         }
     }, [isAccountModalOpen, user, personnel]);
@@ -1208,6 +1211,56 @@ export default function Layout() {
                                 disabled 
                                 className="bg-gray-50 border-gray-100 opacity-60"
                             />
+                        </div>
+
+                        <div className="space-y-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-bold text-blue-800 uppercase tracking-wider">My Documents</Label>
+                            </div>
+                            <div className="space-y-2">
+                                {accountDocuments.length === 0 ? (
+                                    <p className="text-xs text-gray-500 italic">No documents uploaded.</p>
+                                ) : (
+                                    accountDocuments.map(doc => (
+                                        <div key={doc.id} className="flex items-center justify-between bg-white p-2 border border-gray-100 rounded-lg shadow-sm">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <FileText size={14} className="text-blue-500 shrink-0" />
+                                                <span className="text-xs font-semibold truncate" title={doc.name}>{doc.name}</span>
+                                            </div>
+                                            <button 
+                                                className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                                onClick={() => setAccountDocuments(prev => prev.filter(d => d.id !== doc.id))}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                            <div className="pt-2">
+                                <Label className="flex items-center justify-center gap-2 cursor-pointer w-full bg-white border border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-xl py-4 transition-all">
+                                    <UploadCloud size={18} />
+                                    <span className="text-xs font-bold">Upload Document</span>
+                                    <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                const newDoc = {
+                                                    id: `doc-${Date.now()}`,
+                                                    name: file.name,
+                                                    url: '#', // Mock flow: don't upload anywhere yet
+                                                    type: file.type || 'document',
+                                                    uploadDate: new Date().toISOString()
+                                                };
+                                                setAccountDocuments(prev => [...prev, newDoc]);
+                                            }
+                                        }}
+                                    />
+                                </Label>
+                                <p className="text-[10px] text-gray-400 text-center mt-2">Upload driver's licenses, tax forms, etc. Max 5MB.</p>
+                            </div>
                         </div>
 
                         <div className="space-y-2 pt-2 border-t border-gray-100">
