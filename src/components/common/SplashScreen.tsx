@@ -92,7 +92,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* Concentric Circles (The "O") */}
-                    <div className="relative w-14 h-14 sm:w-[5.5rem] sm:h-[5.5rem] mx-0.5 sm:mx-1">
+                    <div className="relative w-12 h-12 sm:w-[5rem] sm:h-[5rem] mx-1 sm:mx-1.5">
                         <svg viewBox="0 0 100 100" className="w-full h-full">
                             <circle 
                                 id="outer-circle" 
