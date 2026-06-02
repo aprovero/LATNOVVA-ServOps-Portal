@@ -83,11 +83,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                 {/* Main Logo + Branding Container */}
                 <div className="flex items-center">
                     {/* LATN letters */}
-                    <div className="flex">
+                    <div className="flex gap-2 sm:gap-3">
                         {['L', 'A', 'T', 'N'].map((char, i) => (
                             <span 
                                 key={`prefix-${i}`} 
-                                className="brand-letter text-5xl sm:text-7xl font-black text-brand-teal tracking-tighter"
+                                className="brand-letter text-5xl sm:text-7xl font-black text-brand-teal"
                             >
                                 {char}
                             </span>
@@ -95,7 +95,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* Concentric Circles (The "O") */}
-                    <div className="relative w-12 h-12 sm:w-[5rem] sm:h-[5rem] mx-1 sm:mx-1.5">
+                    <div className="relative w-12 h-12 sm:w-[5rem] sm:h-[5rem] mx-2 sm:mx-3">
                         <svg viewBox="0 0 100 100" className="w-full h-full">
                             <circle 
                                 id="outer-circle" 
@@ -116,11 +116,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     </div>
 
                     {/* VVA letters */}
-                    <div className="flex">
+                    <div className="flex gap-2 sm:gap-3">
                         {['V', 'V', 'A'].map((char, i) => (
                             <span 
                                 key={`suffix-${i}`} 
-                                className="brand-letter text-5xl sm:text-7xl font-black text-brand-teal tracking-tighter"
+                                className="brand-letter text-5xl sm:text-7xl font-black text-brand-teal"
                             >
                                 {char}
                             </span>
