@@ -32,7 +32,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     duration: 0.8,
                     delay: 1.2,
                     ease: "power2.inOut",
-                    onComplete: onComplete
+                    onComplete: () => {
+                        setShouldShow(false);
+                        onComplete();
+                    }
                 });
             }
         });
