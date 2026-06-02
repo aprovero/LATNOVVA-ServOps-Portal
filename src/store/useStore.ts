@@ -861,14 +861,9 @@ export const useStore = create<AppState>()(
             processSyncQueue: async () => {
                 const { isSyncing, pendingSync } = get();
                 
-                // SAFETY GUARD: If sync has been "running" for > 30s, assume it hung and force reset
-                const now = Date.now();
-                const lastSyncAttempt = (get() as any).lastSyncTimestamp || 0;
-                const isHanging = isSyncing && (now - lastSyncAttempt > 30000);
+                if (isSyncing || pendingSync.length === 0 || !navigator.onLine) return;
 
-                if ((isSyncing && !isHanging) || pendingSync.length === 0 || !navigator.onLine) return;
-
-                set({ isSyncing: true, syncError: null, lastSyncTimestamp: now } as any);
+                set({ isSyncing: true, syncError: null });
 
                 try {
                     // Process while we have items and we are online
@@ -887,7 +882,13 @@ export const useStore = create<AppState>()(
                             }
 
                             if (query) {
-                                const { error } = await query;
+                                const timeoutPromise = new Promise<never>((_, reject) =>
+                                    setTimeout(() => reject(new Error('Request Timeout (15s)')), 15000)
+                                );
+                                const { error } = await Promise.race([
+                                    query,
+                                    timeoutPromise
+                                ]) as any;
                                 if (error) throw error;
                             }
 
@@ -917,8 +918,8 @@ export const useStore = create<AppState>()(
                     syncError: null 
                 }));
 
-                // Immediately try to process the queue
-                await get().processSyncQueue();
+                // Immediately try to process the queue in the background
+                get().processSyncQueue();
             },
 
             clearSyncQueue: () => {
@@ -1841,10 +1842,14 @@ export const useStore = create<AppState>()(
                         if (computedHours < 0) computedHours = 0;
                     }
 
+                    const hasManual = updatedPunches.some(p => p.manualAdjustment);
+                    const manualReasonText = updatedPunches.find(p => p.manualAdjustment)?.adjustmentNote;
+
                     const entryUpdates: Partial<TimesheetEntry> = {
                         punches: updatedPunches,
-                        gpsVerified: allAccurate,
-                        source: 'gps',
+                        gpsVerified: allAccurate && !hasManual,
+                        source: hasManual ? 'manual' : 'gps',
+                        ...(hasManual && manualReasonText ? { manualReason: manualReasonText } : {}),
                         ...(clockIn ? { timeIn: toHHMM(clockIn.timestamp) } : {}),
                         ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
                         ...(computedHours > 0 ? { hours: computedHours } : {}),

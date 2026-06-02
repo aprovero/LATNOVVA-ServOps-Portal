@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore, TimesheetEntry } from '../store/useStore';
 import { format, parseISO } from 'date-fns';
-import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Clock, Plus, Calendar as CalendarIcon, User, Users, Briefcase, Filter, Download, Edit2, Trash2, PenTool, MapPin, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Coffee } from 'lucide-react';
 
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
 import {
@@ -776,7 +776,25 @@ export default function Timesheets() {
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
-                                                {entry.timeIn && entry.timeOut ? `${entry.timeIn} - ${entry.timeOut}` : '-'}
+                                                <div>{entry.timeIn && entry.timeOut ? `${entry.timeIn} - ${entry.timeOut}` : '-'}</div>
+                                                {(() => {
+                                                    const lunchOut = entry.punches?.find(p => p.type === 'lunchOut');
+                                                    const lunchIn = entry.punches?.find(p => p.type === 'lunchIn');
+                                                    if (lunchOut && lunchIn) {
+                                                        const toLocalTime = (iso: string) => {
+                                                            const d = new Date(iso);
+                                                            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                                                        };
+                                                        const durationMs = new Date(lunchIn.timestamp).getTime() - new Date(lunchOut.timestamp).getTime();
+                                                        const durationMins = Math.round(durationMs / 60000);
+                                                        return (
+                                                            <div className="text-[10px] text-amber-600 font-bold mt-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-100/50 w-fit flex items-center gap-1">
+                                                                <Coffee size={10} /> Lunch: {toLocalTime(lunchOut.timestamp)} - {toLocalTime(lunchIn.timestamp)} ({durationMins} mins)
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                             </td>
                                             <td className="p-4">
                                                 <span className="font-bold text-lg text-brand-teal">{entry.hours}</span> <span className="text-xs text-gray-500 font-medium">hrs</span>
