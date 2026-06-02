@@ -71,11 +71,9 @@ export const Login: React.FC = () => {
                 <div className="absolute inset-0 bg-black/40 z-0" />
 
                 <div className="relative z-10 flex items-center gap-6 bg-white p-4 rounded-full w-max shadow-float border border-white/20">
-                    <img src="/cor-logo.png" alt="COR Solutions" className="h-8 object-contain" />
+                    <img src="/S&S-logo.png" alt="SyS" className="h-8 object-contain" />
                     <div className="w-px h-8 bg-slate-200" />
                     <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-6 object-contain" />
-                    <div className="w-px h-8 bg-slate-200" />
-                    <img src="/S&S-logo.png" alt="SyS" className="h-8 object-contain" />
                 </div>
 
                 <div className="relative z-10 mb-20">
@@ -101,11 +99,9 @@ export const Login: React.FC = () => {
             <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-20 relative z-10 bg-white shadow-[-20px_0_40px_-5px_rgba(0,0,0,0.05)]">
                 {/* Mobile Logos */}
                 <div className="lg:hidden flex items-center gap-4 mb-12 border border-slate-100 p-4 rounded-3xl bg-slate-50 shadow-soft w-max">
-                     <img src="/cor-logo.png" alt="COR Solutions" className="h-6 object-contain" />
+                     <img src="/S&S-logo.png" alt="SyS" className="h-6 object-contain" />
                      <div className="w-px h-6 bg-slate-200" />
                      <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-5 object-contain" />
-                     <div className="w-px h-6 bg-slate-200" />
-                     <img src="/S&S-logo.png" alt="SyS" className="h-6 object-contain" />
                 </div>
 
                 <div className="max-w-md w-full mx-auto">
