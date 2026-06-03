@@ -2,13 +2,45 @@ import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { Input } from '../components/ui/input';
 export interface EditableNominaRow {
-    id: string; personnelId: string; name: string; status: string;
-    nss: string; curp: string; rfc: string; hireDate: string;
-    project: string; role: string; payrollType: string;
-    dailyRate: string; monthlyRate: string; daysWorked: string;
-    normalHours: string; overtimeHours: string; grossPay: string;
-    isr: string; imss: string; infonavit: string;
-    aguinaldo: string; sueldoNeto: string;
+    id: string;
+    personnelId: string;
+    status: string;
+    registroPatronal: string;
+    empresa: string;
+    altaImss: string;
+    fechaIngreso: string;
+    nombre: string;
+    proyecto: string;
+    puesto: string;
+    tipoNomina: string;
+    totalNominaMensual: string;
+    sd: string;
+    sdi: string;
+    sueldoBrutoImss: string;
+    nominaImss: string;
+    nominaPpp: string;
+    totalNominaSys: string;
+    totalNominaProductividad: string;
+    salarioTotalQuincenal: string;
+    diasTrabajados: string;
+    faltas: string;
+    incapacidades: string;
+    vacaciones: string;
+    sueldo: string;
+    aguinaldo: string;
+    vacacionesPrima: string;
+    ingresosVarios: string;
+    viaticos: string;
+    horasExtrasCarta: string;
+    horasExtras: string;
+    infonavit: string;
+    isrFiscal: string;
+    imss: string;
+    descuentos: string;
+    totalPercepcion: string;
+    totalDeduccion: string;
+    totalPerceptionsSubtotal: string;
+    netoAPagar: string;
 }
 import { FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +73,39 @@ export default function Nomina() {
     const selectedProjectObj = selectedProject !== 'all' ? projects.find(p => p.id === selectedProject) || null : null;
     const projectName = selectedProjectObj ? (selectedProjectObj.codeName || selectedProjectObj.name) : t('nomina.all_projects');
 
+    const parseMoney = (val: string) => parseFloat(String(val).replace(/[^0-9.-]+/g, "")) || 0;
+
+    const calculateRowTotals = (row: Partial<EditableNominaRow>): { totalPercepcion: string, totalDeduccion: string, totalPerceptionsSubtotal: string, netoAPagar: string } => {
+        const sueldo = parseMoney(row.sueldo || '0');
+        const aguinaldo = parseMoney(row.aguinaldo || '0');
+        const vacacionesPrima = parseMoney(row.vacacionesPrima || '0');
+        const ingresosVarios = parseMoney(row.ingresosVarios || '0');
+        const viaticos = parseMoney(row.viaticos || '0');
+        const horasExtrasCarta = parseMoney(row.horasExtrasCarta || '0');
+        const horasExtras = parseMoney(row.horasExtras || '0');
+
+        const infonavit = parseMoney(row.infonavit || '0');
+        const isrFiscal = parseMoney(row.isrFiscal || '0');
+        const imss = parseMoney(row.imss || '0');
+        const descuentos = parseMoney(row.descuentos || '0');
+
+        // TOTAL PERCEPCIÓN = SUM(SUELDO, AGUINALDO, VACACIONES, HORAS EXTRAS, etc.)
+        const totalPercepcion = sueldo + aguinaldo + vacacionesPrima + ingresosVarios + viaticos + horasExtrasCarta + horasExtras;
+        // TOTAL DEDUCCIÓN = SUM(INFONAVIT, ISR-FISCAL, IMSS, DESCUENTOS)
+        const totalDeduccion = infonavit + isrFiscal + imss + descuentos;
+        // TOTAL (Perceptions Subtotal)
+        const totalPerceptionsSubtotal = totalPercepcion;
+        // NETO A PAGAR = TOTAL PERCEPCIÓN - TOTAL DEDUCCIÓN
+        const netoAPagar = totalPercepcion - totalDeduccion;
+
+        return {
+            totalPercepcion: `$${totalPercepcion.toFixed(2)}`,
+            totalDeduccion: `$${totalDeduccion.toFixed(2)}`,
+            totalPerceptionsSubtotal: `$${totalPerceptionsSubtotal.toFixed(2)}`,
+            netoAPagar: `$${netoAPagar.toFixed(2)}`
+        };
+    };
+
     const generatePayroll = () => {
         const result: EditableNominaRow[] = [];
         
@@ -58,45 +123,67 @@ export default function Nomina() {
             const uniqueDates = new Set(pTimesheets.map(ts => ts.date));
             const daysWorked = uniqueDates.size;
 
-            const normalHours = Math.min(totalHours, 48);
-            const overtimeHours = Math.max(totalHours - 48, 0);
-
-            // Format to 1 decimal place max (drops trailing zeros)
-            const fmtHours = (h: number) => Number(h.toFixed(1)).toString();
-
-            const regRate = p.regularRate || 0;
-            const otRate = p.overtimeRate || (regRate * 1.5);
-
-            const grossPay = (normalHours * regRate) + (overtimeHours * otRate);
-
             const md = p.subsidiaryMetadata || {};
-            const dailyRate = p.regularRate ? (p.regularRate * 8).toFixed(2) : '0.00';
-            const monthlyRate = p.regularRate ? (p.regularRate * 8 * 30).toFixed(2) : '0.00';
 
-            result.push({
+            const nominaPpp = parseFloat(md.nominaPpp || '0');
+            const nominaImss = parseFloat(md.nominaImss || '0');
+            const totalNominaMensual = nominaPpp + nominaImss;
+            const sd = totalNominaMensual / 30;
+            const sdi = parseFloat(md.sdi || '0');
+            const sueldoBrutoImss = sdi * daysWorked;
+
+            const totalNominaSys = nominaImss + nominaPpp;
+            const totalNominaProductividad = parseFloat(md.bonuses || '0');
+            const salarioTotalQuincenal = totalNominaSys / 2;
+
+            const sueldo = sd * daysWorked;
+            const viaticos = parseFloat(md.viaticosMonthly || '0') / 2; // Assuming bi-weekly split
+            const infonavit = parseFloat(md.infonavitAmount || '0') / 2; // Assuming bi-weekly split
+
+            const initialRow: Partial<EditableNominaRow> = {
                 id: crypto.randomUUID(),
                 personnelId: p.id,
-                name: p.name,
                 status: p.status,
-                nss: p.employeeNumber || 'NA',
-                curp: md.curp || '',
-                rfc: md.rfc || '',
-                hireDate: md.hireDate || p.dbo || '',
-                project: projectName,
-                role: p.position || '',
-                payrollType: md.payrollType || '',
-                dailyRate: `$${dailyRate}`,
-                monthlyRate: `$${monthlyRate}`,
-                daysWorked: daysWorked.toString(),
-                normalHours: fmtHours(normalHours),
-                overtimeHours: fmtHours(overtimeHours),
-                grossPay: `$${grossPay.toFixed(2)}`,
-                isr: '$0.00',
-                imss: '$0.00',
-                infonavit: '$0.00',
+                registroPatronal: md.registroPatronal || '',
+                empresa: md.company || '',
+                altaImss: md.imssDate || '',
+                fechaIngreso: md.hireDate || p.dbo || p.onboardingDate || '',
+                nombre: p.name,
+                proyecto: projectName,
+                puesto: p.position || '',
+                tipoNomina: md.payrollType || '',
+                totalNominaMensual: `$${totalNominaMensual.toFixed(2)}`,
+                sd: `$${sd.toFixed(2)}`,
+                sdi: `$${sdi.toFixed(2)}`,
+                sueldoBrutoImss: `$${sueldoBrutoImss.toFixed(2)}`,
+                nominaImss: `$${nominaImss.toFixed(2)}`,
+                nominaPpp: `$${nominaPpp.toFixed(2)}`,
+                totalNominaSys: `$${totalNominaSys.toFixed(2)}`,
+                totalNominaProductividad: `$${totalNominaProductividad.toFixed(2)}`,
+                salarioTotalQuincenal: `$${salarioTotalQuincenal.toFixed(2)}`,
+                diasTrabajados: daysWorked.toString(),
+                faltas: '0',
+                incapacidades: '0',
+                vacaciones: '0',
+                sueldo: `$${sueldo.toFixed(2)}`,
                 aguinaldo: '$0.00',
-                sueldoNeto: `$${grossPay.toFixed(2)}`
-            });
+                vacacionesPrima: '$0.00',
+                ingresosVarios: '$0.00',
+                viaticos: `$${viaticos.toFixed(2)}`,
+                horasExtrasCarta: '$0.00',
+                horasExtras: `$${(totalHours > 48 ? (totalHours - 48) * (p.overtimeRate || (p.regularRate || 0) * 1.5) : 0).toFixed(2)}`,
+                infonavit: `$${infonavit.toFixed(2)}`,
+                isrFiscal: '$0.00',
+                imss: '$0.00',
+                descuentos: '$0.00'
+            };
+
+            const totals = calculateRowTotals(initialRow);
+
+            result.push({
+                ...initialRow,
+                ...totals
+            } as EditableNominaRow);
         });
 
         setEditableRows(result);
@@ -104,54 +191,78 @@ export default function Nomina() {
 
     const updateRow = (index: number, field: keyof EditableNominaRow, value: string) => {
         const newRows = [...editableRows];
-        newRows[index] = { ...newRows[index], [field]: value };
+        const updatedRow = { ...newRows[index], [field]: value };
         
-        // Auto-recalculate Net Pay if related fields are modified
-        if (['grossPay', 'isr', 'imss', 'infonavit', 'aguinaldo'].includes(field)) {
-            const parseMoney = (val: string) => parseFloat(val.replace(/[^0-9.-]+/g, "")) || 0;
-            const gross = parseMoney(newRows[index].grossPay);
-            const isr = parseMoney(newRows[index].isr);
-            const imss = parseMoney(newRows[index].imss);
-            const info = parseMoney(newRows[index].infonavit);
-            const agui = parseMoney(newRows[index].aguinaldo);
-            
-            const net = gross - isr - imss - info + agui;
-            newRows[index].sueldoNeto = `$${net.toFixed(2)}`;
+        // Auto-recalculate SDI or Sueldo if days worked changes
+        if (field === 'diasTrabajados') {
+            const days = parseFloat(value) || 0;
+            const sdVal = parseMoney(updatedRow.sd);
+            const sdiVal = parseMoney(updatedRow.sdi);
+            updatedRow.sueldo = `$${(sdVal * days).toFixed(2)}`;
+            updatedRow.sueldoBrutoImss = `$${(sdiVal * days).toFixed(2)}`;
         }
+
+        // Recalculate totals
+        const totals = calculateRowTotals(updatedRow);
+        newRows[index] = { ...updatedRow, ...totals };
 
         setEditableRows(newRows);
     };
 
-    const totalGross = editableRows.reduce((acc, row) => acc + (parseFloat(row.grossPay.replace(/[^0-9.-]+/g, "")) || 0), 0);
-    const totalNet = editableRows.reduce((acc, row) => acc + (parseFloat(row.sueldoNeto.replace(/[^0-9.-]+/g, "")) || 0), 0);
+    const totalPercepcionSum = editableRows.reduce((acc, row) => acc + parseMoney(row.totalPercepcion), 0);
+    const totalDeduccionSum = editableRows.reduce((acc, row) => acc + parseMoney(row.totalDeduccion), 0);
+    const totalNetoSum = editableRows.reduce((acc, row) => acc + parseMoney(row.netoAPagar), 0);
 
     const exportToExcel = () => {
         if (editableRows.length === 0) return;
 
         const headers = [
-            t('nomina.columns.status'), t('nomina.columns.nss'), t('nomina.columns.hire_date'),
-            t('nomina.columns.name'), t('nomina.columns.project'), t('nomina.columns.role'),
-            t('nomina.columns.payroll_type'), t('nomina.columns.days_worked'), t('nomina.columns.normal_hours'),
-            t('nomina.columns.overtime_hours'), t('nomina.columns.gross_pay'), t('nomina.columns.isr'),
-            t('nomina.columns.imss'), t('nomina.columns.infonavit'), t('nomina.columns.aguinaldo'),
-            t('nomina.columns.net_pay')
+            t('nomina.columns.status'), t('nomina.columns.registro_patronal'), t('nomina.columns.empresa'),
+            t('nomina.columns.alta_imss'), t('nomina.columns.hire_date'), t('nomina.columns.name'),
+            t('nomina.columns.project'), t('nomina.columns.role'), t('nomina.columns.payroll_type'),
+            t('nomina.columns.total_nomina_mensual'), t('nomina.columns.sd'), t('nomina.columns.sdi'),
+            t('nomina.columns.sueldo_bruto_imss'), t('nomina.columns.nomina_imss'), t('nomina.columns.nomina_ppp'),
+            t('nomina.columns.total_nomina_sys'), t('nomina.columns.total_nomina_productividad'), t('nomina.columns.salario_total_quincenal'),
+            t('nomina.columns.days_worked'), t('nomina.columns.faltas'), t('nomina.columns.incapacidades'),
+            t('nomina.columns.vacaciones'), t('nomina.columns.sueldo'), t('nomina.columns.aguinaldo'),
+            t('nomina.columns.vacaciones_prima'), t('nomina.columns.ingresos_varios'), t('nomina.columns.viaticos'),
+            t('nomina.columns.horas_extras'), t('nomina.columns.infonavit'), t('nomina.columns.isr_fiscal'),
+            t('nomina.columns.imss'), t('nomina.columns.descuentos'), t('nomina.columns.total_percepcion'),
+            t('nomina.columns.total_deduccion'), t('nomina.columns.total_perceptions_subtotal', 'TOTAL (Perceptions Subtotal)'), t('nomina.columns.net_pay')
         ];
 
         let csvContent = headers.join(',') + '\n';
 
-        editableRows.forEach(row => {
+        editableRows.forEach((row, index) => {
             const clean = (val: string) => `"${String(val).replace(/"/g, '""')}"`;
+            
+            // Excel row index is 2-based (header is row 1)
+            const rIdx = index + 2;
+
+            // Excel Formulas matching the exact column layout:
+            // W: SUELDO, X: AGUINALDO, Y: VACACIONES/PRIMA, Z: INGRESOS VARIOS, AA: VIATICOS, AB: HORAS EXTRAS
+            const formulaTotalPercepcion = `=SUM(W${rIdx}:AB${rIdx})`;
+            // AC: INFONAVIT, AD: ISR-FISCAL, AE: IMSS, AF: DESCUENTOS
+            const formulaTotalDeduccion = `=SUM(AC${rIdx}:AF${rIdx})`;
+            // AG: TOTAL PERCEPCIÓN
+            const formulaTotalSubtotal = `=AG${rIdx}`;
+            // AJ: NETO A PAGAR = TOTAL PERCEPCIÓN (AG) - TOTAL DEDUCCIÓN (AH)
+            const formulaNetoAPagar = `=AG${rIdx}-AH${rIdx}`;
+
             const rowData = [
-                row.status, row.nss, row.hireDate, row.name, row.project, row.role,
-                row.payrollType, row.daysWorked, row.normalHours, row.overtimeHours,
-                row.grossPay, row.isr, row.imss, row.infonavit, row.aguinaldo, row.sueldoNeto
+                row.status, row.registroPatronal, row.empresa, row.altaImss, row.fechaIngreso, row.nombre,
+                row.proyecto, row.puesto, row.tipoNomina, row.totalNominaMensual, row.sd, row.sdi,
+                row.sueldoBrutoImss, row.nominaImss, row.nominaPpp, row.totalNominaSys, row.totalNominaProductividad, row.salarioTotalQuincenal,
+                row.diasTrabajados, row.faltas, row.incapacidades, row.vacaciones, row.sueldo, row.aguinaldo,
+                row.vacacionesPrima, row.ingresosVarios, row.viaticos, row.horasExtras, row.infonavit, row.isrFiscal,
+                row.imss, row.descuentos, formulaTotalPercepcion, formulaTotalDeduccion, formulaTotalSubtotal, formulaNetoAPagar
             ].map(clean);
             
             csvContent += rowData.join(',') + '\n';
         });
 
         csvContent += '\n';
-        csvContent += `"${t('nomina.total_general')}",,,,,,,,,,,"${t('nomina.bruto')} $${totalGross.toFixed(2)}","${t('nomina.neto')} $${totalNet.toFixed(2)}"\n`;
+        csvContent += `"${t('nomina.total_general')}",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"${totalPercepcionSum.toFixed(2)}","${totalDeduccionSum.toFixed(2)}",,"${totalNetoSum.toFixed(2)}"\n`;
 
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -245,21 +356,40 @@ export default function Nomina() {
                             <thead className="bg-[#0f766e] text-white sticky top-0 z-10">
                                 <tr>
                                     <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap">{t('nomina.columns.status')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.nss')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.registro_patronal')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.empresa')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.alta_imss')}</th>
                                     <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.hire_date')}</th>
                                     <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.name')}</th>
                                     <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.project')}</th>
                                     <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.role')}</th>
                                     <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.payroll_type')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.total_nomina_mensual')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.sd')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.sdi')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.sueldo_bruto_imss')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.nomina_imss')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.nomina_ppp')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.total_nomina_sys')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.total_nomina_productividad')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.salario_total_quincenal')}</th>
                                     <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.days_worked')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.normal_hours')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.overtime_hours')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-[#005c56]">{t('nomina.columns.gross_pay')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">{t('nomina.columns.isr')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">{t('nomina.columns.imss')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-900/40">{t('nomina.columns.infonavit')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-900/40">{t('nomina.columns.aguinaldo')}</th>
-                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-[#0f766e]">{t('nomina.columns.net_pay')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.faltas')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.incapacidades')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20">{t('nomina.columns.vacaciones')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-800/20">{t('nomina.columns.sueldo')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-800/20">{t('nomina.columns.aguinaldo')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-800/20">{t('nomina.columns.vacaciones_prima')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-800/20">{t('nomina.columns.ingresos_varios')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-800/20">{t('nomina.columns.viaticos')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-green-800/20">{t('nomina.columns.horas_extras')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-800/20">{t('nomina.columns.infonavit')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-800/20">{t('nomina.columns.isr_fiscal')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-800/20">{t('nomina.columns.imss')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-800/20">{t('nomina.columns.descuentos')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-brand-teal/30">{t('nomina.columns.total_percepcion')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-red-950/20">{t('nomina.columns.total_deduccion')}</th>
+                                    <th className="px-2 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-l border-white/20 bg-brand-teal/40">{t('nomina.columns.net_pay')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
@@ -269,62 +399,121 @@ export default function Nomina() {
                                             <CellInput value={row.status} onChange={(v: string) => updateRow(i, 'status', v)} />
                                         </td>
                                         <td className="px-1 py-1 border-l border-gray-100">
-                                            <CellInput value={row.nss} onChange={(v: string) => updateRow(i, 'nss', v)} />
+                                            <CellInput value={row.registroPatronal} onChange={(v: string) => updateRow(i, 'registroPatronal', v)} />
                                         </td>
                                         <td className="px-1 py-1 border-l border-gray-100">
-                                            <CellInput value={row.hireDate} onChange={(v: string) => updateRow(i, 'hireDate', v)} />
+                                            <CellInput value={row.empresa} onChange={(v: string) => updateRow(i, 'empresa', v)} />
                                         </td>
                                         <td className="px-1 py-1 border-l border-gray-100">
-                                            <CellInput value={row.name} onChange={(v: string) => updateRow(i, 'name', v)} className="font-bold text-accent-greyDark" />
+                                            <CellInput value={row.altaImss} onChange={(v: string) => updateRow(i, 'altaImss', v)} />
                                         </td>
                                         <td className="px-1 py-1 border-l border-gray-100">
-                                            <CellInput value={row.project} onChange={(v: string) => updateRow(i, 'project', v)} />
+                                            <CellInput value={row.fechaIngreso} onChange={(v: string) => updateRow(i, 'fechaIngreso', v)} />
                                         </td>
                                         <td className="px-1 py-1 border-l border-gray-100">
-                                            <CellInput value={row.role} onChange={(v: string) => updateRow(i, 'role', v)} />
+                                            <CellInput value={row.nombre} onChange={(v: string) => updateRow(i, 'nombre', v)} className="font-bold text-accent-greyDark" />
                                         </td>
                                         <td className="px-1 py-1 border-l border-gray-100">
-                                            <CellInput value={row.payrollType} onChange={(v: string) => updateRow(i, 'payrollType', v)} />
+                                            <CellInput value={row.proyecto} onChange={(v: string) => updateRow(i, 'proyecto', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.puesto} onChange={(v: string) => updateRow(i, 'puesto', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.tipoNomina} onChange={(v: string) => updateRow(i, 'tipoNomina', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.totalNominaMensual} onChange={(v: string) => updateRow(i, 'totalNominaMensual', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.sd} onChange={(v: string) => updateRow(i, 'sd', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.sdi} onChange={(v: string) => updateRow(i, 'sdi', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.sueldoBrutoImss} onChange={(v: string) => updateRow(i, 'sueldoBrutoImss', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.nominaImss} onChange={(v: string) => updateRow(i, 'nominaImss', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.nominaPpp} onChange={(v: string) => updateRow(i, 'nominaPpp', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.totalNominaSys} onChange={(v: string) => updateRow(i, 'totalNominaSys', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.totalNominaProductividad} onChange={(v: string) => updateRow(i, 'totalNominaProductividad', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100">
+                                            <CellInput value={row.salarioTotalQuincenal} onChange={(v: string) => updateRow(i, 'salarioTotalQuincenal', v)} />
                                         </td>
                                         <td className="px-1 py-1 border-l border-gray-100 bg-teal-50/10 w-20">
-                                            <CellInput value={row.daysWorked} onChange={(v: string) => updateRow(i, 'daysWorked', v)} className="text-center font-bold" />
+                                            <CellInput value={row.diasTrabajados} onChange={(v: string) => updateRow(i, 'diasTrabajados', v)} className="text-center font-bold" />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-teal-50/10 w-20">
-                                            <CellInput value={row.normalHours} onChange={(v: string) => updateRow(i, 'normalHours', v)} className="text-center font-bold" />
+                                        <td className="px-1 py-1 border-l border-gray-100 w-20">
+                                            <CellInput value={row.faltas} onChange={(v: string) => updateRow(i, 'faltas', v)} className="text-center" />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-teal-50/10 w-20">
-                                            <CellInput value={row.overtimeHours} onChange={(v: string) => updateRow(i, 'overtimeHours', v)} className="text-center font-bold text-orange-600" />
+                                        <td className="px-1 py-1 border-l border-gray-100 w-20">
+                                            <CellInput value={row.incapacidades} onChange={(v: string) => updateRow(i, 'incapacidades', v)} className="text-center" />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-teal-50/30">
-                                            <CellInput value={row.grossPay} onChange={(v: string) => updateRow(i, 'grossPay', v)} className="font-black text-brand-teal" />
+                                        <td className="px-1 py-1 border-l border-gray-100 w-20">
+                                            <CellInput value={row.vacaciones} onChange={(v: string) => updateRow(i, 'vacaciones', v)} className="text-center" />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-red-50/20">
-                                            <CellInput value={row.isr} onChange={(v: string) => updateRow(i, 'isr', v)} className="text-red-500 text-right" />
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-green-50/10">
+                                            <CellInput value={row.sueldo} onChange={(v: string) => updateRow(i, 'sueldo', v)} className="font-bold" />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-red-50/20">
-                                            <CellInput value={row.imss} onChange={(v: string) => updateRow(i, 'imss', v)} className="text-red-500 text-right" />
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-green-50/10">
+                                            <CellInput value={row.aguinaldo} onChange={(v: string) => updateRow(i, 'aguinaldo', v)} />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-red-50/20">
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-green-50/10">
+                                            <CellInput value={row.vacacionesPrima} onChange={(v: string) => updateRow(i, 'vacacionesPrima', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-green-50/10">
+                                            <CellInput value={row.ingresosVarios} onChange={(v: string) => updateRow(i, 'ingresosVarios', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-green-50/10">
+                                            <CellInput value={row.viaticos} onChange={(v: string) => updateRow(i, 'viaticos', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-green-50/10">
+                                            <CellInput value={row.horasExtras} onChange={(v: string) => updateRow(i, 'horasExtras', v)} />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-red-50/10">
                                             <CellInput value={row.infonavit} onChange={(v: string) => updateRow(i, 'infonavit', v)} className="text-red-500 text-right" />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-green-50/20">
-                                            <CellInput value={row.aguinaldo} onChange={(v: string) => updateRow(i, 'aguinaldo', v)} className="text-green-600 text-right" />
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-red-50/10">
+                                            <CellInput value={row.isrFiscal} onChange={(v: string) => updateRow(i, 'isrFiscal', v)} className="text-red-500 text-right" />
                                         </td>
-                                        <td className="px-1 py-1 border-l border-gray-100 bg-teal-50/40">
-                                            <CellInput value={row.sueldoNeto} onChange={(v: string) => updateRow(i, 'sueldoNeto', v)} className="font-black text-brand-teal text-right" />
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-red-50/10">
+                                            <CellInput value={row.imss} onChange={(v: string) => updateRow(i, 'imss', v)} className="text-red-500 text-right" />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-gray-100 bg-red-50/10">
+                                            <CellInput value={row.descuentos} onChange={(v: string) => updateRow(i, 'descuentos', v)} className="text-red-500 text-right" />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-brand-teal/20 bg-brand-teal/5">
+                                            <CellInput value={row.totalPercepcion} onChange={(v: string) => updateRow(i, 'totalPercepcion', v)} className="font-black text-brand-teal text-right" />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-red-900/20 bg-red-950/5">
+                                            <CellInput value={row.totalDeduccion} onChange={(v: string) => updateRow(i, 'totalDeduccion', v)} className="font-black text-red-700 text-right" />
+                                        </td>
+                                        <td className="px-1 py-1 border-l border-brand-teal/20 bg-brand-teal/10">
+                                            <CellInput value={row.netoAPagar} onChange={(v: string) => updateRow(i, 'netoAPagar', v)} className="font-black text-brand-teal text-right" />
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                             <tfoot className="bg-gray-50 sticky bottom-0 border-t-2 border-gray-200">
                                 <tr>
-                                    <td colSpan={10} className="px-4 py-3 text-xs font-black text-right text-gray-500">{t('nomina.total_general')}</td>
-                                    <td className="px-4 py-3 text-sm font-black text-brand-teal border-l border-gray-200 bg-white">
-                                        ${totalGross.toFixed(2)}
+                                    <td colSpan={32} className="px-4 py-3 text-xs font-black text-right text-gray-500">{t('nomina.total_general')}</td>
+                                    <td className="px-4 py-3 text-sm font-black text-brand-teal border-l border-gray-200 bg-white text-right">
+                                        ${totalPercepcionSum.toFixed(2)}
                                     </td>
-                                    <td colSpan={4} className="border-l border-gray-200 bg-white"></td>
+                                    <td className="px-4 py-3 text-sm font-black text-red-700 border-l border-gray-200 bg-white text-right">
+                                        ${totalDeduccionSum.toFixed(2)}
+                                    </td>
                                     <td className="px-4 py-3 text-sm font-black text-brand-teal text-right border-l border-gray-200 bg-white shadow-inner">
-                                        ${totalNet.toFixed(2)}
+                                        ${totalNetoSum.toFixed(2)}
                                     </td>
                                 </tr>
                             </tfoot>

@@ -152,6 +152,10 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
                         <Input value={md.imssDate || ''} onChange={e => updateMeta('imssDate', e.target.value)} placeholder="DD/MM/YYYY" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
                     <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">Registro Patronal</label>
+                        <Input value={md.registroPatronal || ''} onChange={e => updateMeta('registroPatronal', e.target.value)} placeholder="Registro Patronal ID" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
+                    </div>
+                    <div className="space-y-1">
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">Date of Hire</label>
                         <Input value={md.hireDate || ''} onChange={e => updateMeta('hireDate', e.target.value)} placeholder="DD/MM/YYYY" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
@@ -180,7 +184,7 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
                     </div>
                     
                     {/* Salary Split */}
-                    <div className="col-span-2 grid grid-cols-3 gap-2 mt-2 pt-2 border-t">
+                    <div className="col-span-2 grid grid-cols-4 gap-2 mt-2 pt-2 border-t">
                         <div className="space-y-1">
                             <label className="text-[10px] font-bold text-amber-700/60 uppercase">Nomina PPP</label>
                             <Input type="number" step="0.01" value={md.nominaPpp || ''} onChange={e => updateMeta('nominaPpp', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
@@ -190,7 +194,11 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
                             <Input type="number" step="0.01" value={md.nominaImss || ''} onChange={e => updateMeta('nominaImss', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-brand-teal uppercase">Total Monthly Gross</label>
+                            <label className="text-[10px] font-bold text-amber-700/60 uppercase">SDI (Daily IMSS)</label>
+                            <Input type="number" step="0.01" value={md.sdi || ''} onChange={e => updateMeta('sdi', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-brand-teal uppercase">Monthly Gross</label>
                             <div className="h-9 px-3 bg-amber-100/50 rounded-xl flex items-center text-sm font-bold text-amber-900">
                                 ${totalMonthlyGross.toFixed(2)}
                             </div>
