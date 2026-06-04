@@ -19,12 +19,12 @@ export default function ProjectDetail() {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole } = useStore();
+    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, activeSubsidiary } = useStore();
 
     const project = projects.find(p => p.id === id);
     const client = clients.find(c => c.id === project?.clientId);
     const allProjectReports = reports.filter(r => r.projectId === id).sort((a, b) => b.date.localeCompare(a.date));
-    const projectHours = timesheets.filter(t => t.projectId === id).reduce((sum, t) => sum + t.hours, 0);
+    const projectHours = Math.ceil(timesheets.filter(t => t.projectId === id).reduce((sum, t) => sum + t.hours, 0));
 
     // Edit mode
     const [isEditing, setIsEditing] = useState(false);
@@ -73,7 +73,7 @@ export default function ProjectDetail() {
     // Modals
     const [manageScopesProject, setManageScopesProject] = useState<any>(null);
 
-    const canEdit = ['Manager', 'Supervisor'].includes(userRole);
+    const canEdit = ['Manager', 'Supervisor'].includes(userRole) || activeSubsidiary === 'MX';
     const canEditPersonnel = canEdit && project?.status !== 'Completed';
 
     // People already assigned to OTHER projects (conflict check)
@@ -671,9 +671,11 @@ export default function ProjectDetail() {
                                         <option value="Approved">{t('reports.approved')}</option>
                                         <option value="Closed">{t('reports.closed')}</option>
                                     </select>
-                                    <Button size="sm" onClick={handleCreateReport} className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
-                                        <Plus size={14} /> {t('reports.new_report', 'New Report')}
-                                    </Button>
+                                    {activeSubsidiary !== 'MX' && (
+                                        <Button size="sm" onClick={handleCreateReport} className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs gap-1.5">
+                                            <Plus size={14} /> {t('reports.new_report', 'New Report')}
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
 

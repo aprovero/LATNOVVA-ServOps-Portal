@@ -95,7 +95,7 @@ export default function CommandSearch({
 }: CommandSearchProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const { projects, reports, personnel, tools, clients, userRole } = useStore();
+    const { projects, reports, personnel, tools, clients, userRole, activeSubsidiary } = useStore();
     const config = CATEGORY_CONFIG(t);
 
     const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -156,7 +156,7 @@ export default function CommandSearch({
     // ── Build Quick Actions (role-aware) ─────────────────────────────────────
     const quickActions = useCallback((): SearchResult[] => {
         const actions: SearchResult[] = [];
-        if (['Supervisor', 'Manager'].includes(userRole)) {
+        if (['Supervisor', 'Manager'].includes(userRole) && activeSubsidiary !== 'MX') {
             actions.push({
                 id: 'qa-new-report',
                 category: 'action',

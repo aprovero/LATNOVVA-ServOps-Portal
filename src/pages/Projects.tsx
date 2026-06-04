@@ -277,7 +277,7 @@ export default function Projects() {
                                         {visibleProjects.map(proj => (
                                             <tr key={proj.id} className="project-card hover:bg-gray-50/50 transition-colors group">
                                                 <td className="p-4 align-middle">
-                                                    {['Supervisor', 'Manager'].includes(userRole) ? (
+                                                    {['Supervisor', 'Manager'].includes(userRole) || activeSubsidiary === 'MX' ? (
                                                         <Link to={`/projects/${proj.id}`} className="font-bold text-accent-greyDark hover:text-brand-teal block">
                                                             {proj.name}
                                                         </Link>
@@ -346,7 +346,7 @@ export default function Projects() {
                                                     <div className="flex items-center gap-1.5">
                                                         <Clock size={12} className="text-gray-400" />
                                                         <span className="text-xs font-bold text-gray-600">
-                                                            {timesheets.filter(t => t.projectId === proj.id).reduce((sum, t) => sum + t.hours, 0)} hrs
+                                                            {Math.ceil(timesheets.filter(t => t.projectId === proj.id).reduce((sum, t) => sum + t.hours, 0))} hrs
                                                         </span>
                                                     </div>
                                                 </td>

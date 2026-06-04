@@ -46,7 +46,7 @@ function getStateDisplay(state: string, isOverdue: boolean, t: any) {
 
 export default function ReportList() {
     const { t } = useTranslation();
-    const { reports, subReportInstances, projects, userRole, clientId, addReport, clients, userId, deleteReport, deleteSubReportInstance } = useStore();
+    const { reports, subReportInstances, projects, userRole, clientId, addReport, clients, userId, deleteReport, deleteSubReportInstance, activeSubsidiary } = useStore();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const projectIdFilter = searchParams.get('project');
@@ -198,7 +198,7 @@ export default function ReportList() {
                     </h1>
                     <p className="text-gray-500 mt-1">{t('reports.subtitle')}</p>
                 </div>
-                {['Manager', 'Supervisor', 'Tech'].includes(userRole) && (
+                {['Manager', 'Supervisor', 'Tech'].includes(userRole) && activeSubsidiary !== 'MX' && (
                     <Dialog open={isCreateReportOpen} onOpenChange={setIsCreateReportOpen}>
                         <DialogTrigger asChild>
                             <Button className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
