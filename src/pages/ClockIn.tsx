@@ -686,7 +686,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
             workMode,
         };
-        doPunch(personnelId, punch, workMode === 'Home Office' ? undefined : (selectedProject || undefined));
+        
+        const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
+        const finalProjectId = workMode === 'Home Office'
+            ? (assignedProj?.id || selectedProject || undefined)
+            : (selectedProject || undefined);
+            
+        doPunch(personnelId, punch, finalProjectId);
     };
 
     return (
