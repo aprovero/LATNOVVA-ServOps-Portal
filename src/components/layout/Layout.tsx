@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, UploadCloud, Trash2, FileSpreadsheet } from 'lucide-react';
+import { Home, FileText, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, UploadCloud, Trash2, FileSpreadsheet, Calendar } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
@@ -198,6 +198,7 @@ export default function Layout() {
             links: [
                 { name: t('nav.personnel'), path: '/personnel', icon: User, roles: ['Supervisor', 'Manager', 'HR'] },
                 { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager', 'HR', 'Office'] },
+                { name: t('nav.attendance', 'Asistencias'), path: '/attendance', icon: Calendar, roles: ['Manager', 'HR'] },
                 { name: 'Nómina', path: '/nomina', icon: FileSpreadsheet, roles: ['Manager', 'HR'] },
             ]
         }

@@ -1,4 +1,4 @@
-import { Client, Project, Personnel, Tool, TimesheetEntry, Report } from './useStore';
+import { Client, Project, Personnel, Tool, TimesheetEntry, Report, AttendanceOverride, WorkSchedule } from './useStore';
 
 export const mockClients: Client[] = [
     { id: 'CUST_SUNGROW', name: 'SUNGROW', logo: 'https://ui-avatars.com/api/?name=SUNGROW&background=F59E0B&color=fff' },
@@ -21,38 +21,38 @@ export const mockClients: Client[] = [
 ];
 
 export const mockPersonnel: Personnel[] = [
-    { id: 'PERS-SV1', name: 'RICARDO OLIVA', position: 'TEAM LEADER', employeeNumber: 'EMP-SV01', appRole: 'Supervisor', status: 'Active', certifications: [{ name: 'OSHA 30', expirationDate: '2028-12-31' }] },
-    { id: 'PERS-SV2', name: 'PEDRO LUIS RAMIREZ MORENO', position: 'TECHNICIAN', employeeNumber: 'EMP-SV02', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-SV3', name: 'JUAN ALBERTO GARCIA SARIOL', position: 'TECHNICIAN', employeeNumber: 'EMP-SV03', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-SV4', name: 'JORGE LUIS CALDERON PEREZ', position: 'TECHNICIAN', employeeNumber: 'EMP-SV04', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-TW1', name: 'MAYLENE TORRES MALDONADO', position: 'TEAM LEADER', employeeNumber: 'EMP-TW01', appRole: 'Supervisor', status: 'Active', certifications: [] },
-    { id: 'PERS-TW2', name: 'LAZARO RODRIGUEZ MARTINEZ', position: 'ASSEMBLER', employeeNumber: 'EMP-TW02', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF1', name: 'SEBASTIAN YANCA', position: 'TEAM LEADER', employeeNumber: 'EMP-BF01', appRole: 'Supervisor', status: 'Active', certifications: [] },
-    { id: 'PERS-BF2', name: 'JOHN ANTHONY AGUILAR JR', position: 'TECHNICIAN', employeeNumber: 'EMP-BF02', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF3', name: 'JUAN GONZALEZ', position: 'TECHNICIAN', employeeNumber: 'EMP-BF03', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF4', name: 'EDIAGNEL RIVERA', position: 'TECHNICIAN', employeeNumber: 'EMP-BF04', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF5', name: 'BRAINE GAMBOA', position: 'TECHNICIAN', employeeNumber: 'EMP-BF05', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF6', name: 'RICHARD RADAMES NUNES ROMERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF06', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF7', name: 'JOSHUA SANCHEZ', position: 'TECHNICIAN', employeeNumber: 'EMP-BF07', appRole: 'Tech', status: 'Active', certifications: [], email: 'jsanchez@latnovva.com' },
-    { id: 'PERS-BF8', name: 'VINCENT TORRES MALDONADO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF08', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF9', name: 'ARIEL CABALLERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF09', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF10', name: 'FRANCISCO MARTINEZ MARRERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF10', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF11', name: 'JOSE LOPEZ', position: 'TECHNICIAN', employeeNumber: 'EMP-BF11', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF12', name: 'GEORDANIS RODRIGUEZ', position: 'ASSEMBLER', employeeNumber: 'EMP-BF12', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF13', name: 'LUIS ANGEL GONZALEZ ROMERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF13', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BF14', name: 'CRISTIAN FURE HERNANDEZ', position: 'ASSEMBLER', employeeNumber: 'EMP-BF14', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-AL1', name: 'JESUS ORTEGA', position: 'TECHNICIAN', employeeNumber: 'EMP-AL01', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-AL2', name: 'ADRIAN RASCON', position: 'TECHNICIAN', employeeNumber: 'EMP-AL02', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-PR1', name: 'JAIME VAZQUEZ', position: 'SUPERVISOR', employeeNumber: 'EMP-PR01', appRole: 'Supervisor', status: 'Active', certifications: [] },
-    { id: 'PERS-BY1', name: 'MILDRED BAYARD BOLANOS', position: 'ASSEMBLER', employeeNumber: 'EMP-BY01', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-BY2', name: 'MARIN LEDEZMA SALAYA', position: 'OPERATION LEADER', employeeNumber: 'EMP-BY02', appRole: 'Supervisor', status: 'Active', certifications: [], email: 'mledezma@latnovva.com', hasPassword: true },
-    { id: 'PERS-MR1', name: 'JUAN MANUEL RUBIO', position: 'PROJECT MANAGER', employeeNumber: 'EMP-MR01', appRole: 'Manager', status: 'Active', certifications: [] },
-    { id: 'PERS-RG1', name: 'ROSARIO GONZALEZ', position: 'INSPECTOR', employeeNumber: 'EMP-RG01', appRole: 'Tech', status: 'Active', certifications: [] },
-    { id: 'PERS-NEW1', name: 'FERNANDO ASENSIO', position: 'MANAGER', employeeNumber: 'EMP-NEW01', appRole: 'Manager', status: 'Active', certifications: [], email: 'fasensio@latnovva.com' },
-    { id: 'PERS-NEW2', name: 'JESUS REINA', position: 'MANAGER', employeeNumber: 'EMP-NEW02', appRole: 'Manager', status: 'Active', certifications: [], email: 'jreina@latnovva.com' },
-    { id: 'PERS-NEW3', name: 'JUAN MARIA DIAZ', position: 'MANAGER', employeeNumber: 'EMP-NEW03', appRole: 'Manager', status: 'Active', certifications: [], email: 'jmdiaz@latnovva.com' },
-    { id: 'PERS-HR1', name: 'ALICIA MENDEZ', position: 'HR MANAGER', employeeNumber: 'EMP-HR01', appRole: 'HR', status: 'Active', certifications: [], email: 'amendez@latnovva.com' },
-    { id: 'PERS-GOD', name: 'Andres Provero', position: 'MANAGER', employeeNumber: 'EMP-GOD', appRole: 'Manager', status: 'Active', certifications: [], email: 'aprovero@latnovva.com', hasPassword: true },
+    { id: 'PERS-SV1', name: 'RICARDO OLIVA', position: 'TEAM LEADER', employeeNumber: 'EMP-SV01', appRole: 'Supervisor', status: 'Active', certifications: [{ name: 'OSHA 30', expirationDate: '2028-12-31' }], onboardingDate: '2025-01-10', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-SV2', name: 'PEDRO LUIS RAMIREZ MORENO', position: 'TECHNICIAN', employeeNumber: 'EMP-SV02', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-15', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-SV3', name: 'JUAN ALBERTO GARCIA SARIOL', position: 'TECHNICIAN', employeeNumber: 'EMP-SV03', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-15', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-SV4', name: 'JORGE LUIS CALDERON PEREZ', position: 'TECHNICIAN', employeeNumber: 'EMP-SV04', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-15', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-TW1', name: 'MAYLENE TORRES MALDONADO', position: 'TEAM LEADER', employeeNumber: 'EMP-TW01', appRole: 'Supervisor', status: 'Active', certifications: [], onboardingDate: '2025-03-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-TW2', name: 'LAZARO RODRIGUEZ MARTINEZ', position: 'ASSEMBLER', employeeNumber: 'EMP-TW02', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-10', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF1', name: 'SEBASTIAN YANCA', position: 'TEAM LEADER', employeeNumber: 'EMP-BF01', appRole: 'Supervisor', status: 'Active', certifications: [], onboardingDate: '2025-01-15', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF2', name: 'JOHN ANTHONY AGUILAR JR', position: 'TECHNICIAN', employeeNumber: 'EMP-BF02', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF3', name: 'JUAN GONZALEZ', position: 'TECHNICIAN', employeeNumber: 'EMP-BF03', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF4', name: 'EDIAGNEL RIVERA', position: 'TECHNICIAN', employeeNumber: 'EMP-BF04', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF5', name: 'BRAINE GAMBOA', position: 'TECHNICIAN', employeeNumber: 'EMP-BF05', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF6', name: 'RICHARD RADAMES NUNES ROMERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF06', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-15', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF7', name: 'JOSHUA SANCHEZ', position: 'TECHNICIAN', employeeNumber: 'EMP-BF07', appRole: 'Tech', status: 'Active', certifications: [], email: 'jsanchez@latnovva.com', onboardingDate: '2025-02-20', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF8', name: 'VINCENT TORRES MALDONADO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF08', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-20', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF9', name: 'ARIEL CABALLERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF09', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-02-20', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF10', name: 'FRANCISCO MARTINEZ MARRERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF10', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF11', name: 'JOSE LOPEZ', position: 'TECHNICIAN', employeeNumber: 'EMP-BF11', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF12', name: 'GEORDANIS RODRIGUEZ', position: 'ASSEMBLER', employeeNumber: 'EMP-BF12', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-05', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF13', name: 'LUIS ANGEL GONZALEZ ROMERO', position: 'ASSEMBLER', employeeNumber: 'EMP-BF13', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-05', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BF14', name: 'CRISTIAN FURE HERNANDEZ', position: 'ASSEMBLER', employeeNumber: 'EMP-BF14', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-05', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-AL1', name: 'JESUS ORTEGA', position: 'TECHNICIAN', employeeNumber: 'EMP-AL01', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-01-20', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-AL2', name: 'ADRIAN RASCON', position: 'TECHNICIAN', employeeNumber: 'EMP-AL02', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-01-20', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-PR1', name: 'JAIME VAZQUEZ', position: 'SUPERVISOR', employeeNumber: 'EMP-PR01', appRole: 'Supervisor', status: 'Active', certifications: [], onboardingDate: '2025-01-05', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BY1', name: 'MILDRED BAYARD BOLANOS', position: 'ASSEMBLER', employeeNumber: 'EMP-BY01', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-15', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-BY2', name: 'MARIN LEDEZMA SALAYA', position: 'OPERATION LEADER', employeeNumber: 'EMP-BY02', appRole: 'Supervisor', status: 'Active', certifications: [], email: 'mledezma@latnovva.com', hasPassword: true, onboardingDate: '2025-02-10', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-MR1', name: 'JUAN MANUEL RUBIO', position: 'PROJECT MANAGER', employeeNumber: 'EMP-MR01', appRole: 'Manager', status: 'Active', certifications: [], onboardingDate: '2025-01-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-RG1', name: 'ROSARIO GONZALEZ', position: 'INSPECTOR', employeeNumber: 'EMP-RG01', appRole: 'Tech', status: 'Active', certifications: [], onboardingDate: '2025-03-20', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-NEW1', name: 'FERNANDO ASENSIO', position: 'MANAGER', employeeNumber: 'EMP-NEW01', appRole: 'Manager', status: 'Active', certifications: [], email: 'fasensio@latnovva.com', onboardingDate: '2025-01-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-NEW2', name: 'JESUS REINA', position: 'MANAGER', employeeNumber: 'EMP-NEW02', appRole: 'Manager', status: 'Active', certifications: [], email: 'jreina@latnovva.com', onboardingDate: '2025-01-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-NEW3', name: 'JUAN MARIA DIAZ', position: 'MANAGER', employeeNumber: 'EMP-NEW03', appRole: 'Manager', status: 'Active', certifications: [], email: 'jmdiaz@latnovva.com', onboardingDate: '2025-01-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-HR1', name: 'ALICIA MENDEZ', position: 'HR MANAGER', employeeNumber: 'EMP-HR01', appRole: 'HR', status: 'Active', certifications: [], email: 'amendez@latnovva.com', onboardingDate: '2025-01-01', defaultScheduleId: 'SCH-STD-MX' },
+    { id: 'PERS-GOD', name: 'Andres Provero', position: 'MANAGER', employeeNumber: 'EMP-GOD', appRole: 'Manager', status: 'Active', certifications: [], email: 'aprovero@latnovva.com', hasPassword: true, onboardingDate: '2025-01-01', defaultScheduleId: 'SCH-STD-MX' },
 ];
 
 export const mockProjects: Project[] = [
@@ -272,5 +272,70 @@ export const mockTools: Tool[] = [
         certificationExpiry: '2027-10-20',
         assignedProjectId: 'P0001',
         history: [{ date: '2024-01-10', description: 'Calibrated.' }]
+    }
+];
+
+export const mockWorkSchedules: WorkSchedule[] = [
+    {
+        id: 'SCH-STD-MX',
+        name: 'Horario Estándar México',
+        startTime: '08:00',
+        lunchStart: '13:00',
+        lunchEnd: '14:00',
+        endTime: '17:30',
+        standardDailyHours: 8.5,
+        workDays: [1, 2, 3, 4, 5] // Mon-Fri
+    },
+    {
+        id: 'SCH-SHIFT-A',
+        name: 'Turno A (Sabatino)',
+        startTime: '07:00',
+        lunchStart: '12:00',
+        lunchEnd: '13:00',
+        endTime: '16:00',
+        standardDailyHours: 8.0,
+        workDays: [1, 2, 3, 4, 5, 6] // Mon-Sat
+    }
+];
+
+export const mockAttendanceOverrides: AttendanceOverride[] = [
+    {
+        id: 'OVR-1',
+        employeeId: 'PERS-BF2',
+        startDate: '2026-06-01',
+        endDate: '2026-06-05',
+        type: 'vacation',
+        duration: 'full_day',
+        notes: 'Vacaciones anuales aprobadas por gerencia',
+        approvedBy: 'Andres Provero',
+        createdBy: 'ALICIA MENDEZ',
+        createdAt: '2026-05-25T10:00:00Z',
+        updatedAt: '2026-05-25T10:00:00Z'
+    },
+    {
+        id: 'OVR-2',
+        employeeId: 'PERS-BF3',
+        startDate: '2026-06-03',
+        endDate: '2026-06-03',
+        type: 'sick_leave',
+        duration: 'full_day',
+        notes: 'Justificante médico por resfriado',
+        approvedBy: 'ALICIA MENDEZ',
+        createdBy: 'ALICIA MENDEZ',
+        createdAt: '2026-06-03T08:30:00Z',
+        updatedAt: '2026-06-03T08:30:00Z'
+    },
+    {
+        id: 'OVR-3',
+        employeeId: 'PERS-BF4',
+        startDate: '2026-06-02',
+        endDate: '2026-06-04',
+        type: 'home_office',
+        duration: 'full_day',
+        notes: 'Trabajo remoto por mantenimiento domiciliario',
+        approvedBy: 'RICARDO OLIVA',
+        createdBy: 'ALICIA MENDEZ',
+        createdAt: '2026-06-01T15:45:00Z',
+        updatedAt: '2026-06-01T15:45:00Z'
     }
 ];

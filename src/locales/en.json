@@ -59,7 +59,8 @@
     "clock_in": "Clock In",
     "notifications": "Alerts & Notifications",
     "preview_branding": "Preview Branding",
-    "my_profile": "My Profile"
+    "my_profile": "My Profile",
+    "attendance": "Attendance"
   },
   "auth": {
     "logout": "Log out",
@@ -854,8 +855,8 @@
     }
   },
   "attendance": {
-    "title": "Clock In / Out",
-    "subtitle": "Manage your daily attendance and team check-ins.",
+    "title": "Attendance",
+    "subtitle": "Daily monitoring, vacations, disabilities and record reconciliation",
     "select_project": "Select Project",
     "project_placeholder": "— Select a project —",
     "team_count": "Team · {{num}} people",
@@ -870,7 +871,99 @@
       "on_site": "On Site",
       "already_on_site": "Already on site",
       "done": "Done",
-      "worked_today": "Worked Today"
+      "worked_today": "Worked Today",
+      "present": "Present",
+      "absent": "Absent",
+      "vacation": "Vacation",
+      "sick_leave": "Sick Leave",
+      "home_office": "Home Office",
+      "personal_leave": "Personal Leave",
+      "unpaid_leave": "Unpaid Leave",
+      "training": "Training",
+      "holiday": "Holiday",
+      "rest_day": "Rest Day",
+      "suspension": "Suspension",
+      "conflict": "Conflict",
+      "missing_punch": "Missing Punch"
+    },
+    "override": {
+      "add_btn": "Add",
+      "add_title": "Add Attendance / Absence",
+      "employee": "Employee",
+      "select_employee": "Select Employee",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "type": "Registration Type",
+      "duration": "Duration",
+      "custom_hours": "Specific Hours",
+      "notes": "Notes / Comments",
+      "notes_placeholder": "Write a reason...",
+      "validation_alert": "Please complete all mandatory fields.",
+      "date_alert": "The start date cannot be later than the end date."
+    },
+    "duration": {
+      "full": "Full Day",
+      "half": "Half Day",
+      "hours": "Custom Hours"
+    },
+    "filters": {
+      "search_placeholder": "Search by name...",
+      "active_status": "Employee Contract",
+      "active_only": "Active Only",
+      "inactive_only": "Inactive Only",
+      "all": "All",
+      "conflicts": "Conflicts",
+      "missing_punches": "Missing Punches",
+      "overtime": "Overtime",
+      "no_results": "No corresponding personnel found.",
+      "clocked_in_today": "Present Today"
+    },
+    "dashboard": {
+      "active_employees": "Active Employees",
+      "present_today": "Present Today",
+      "on_vacation": "On Vacation",
+      "sick_leave": "Sick Leave",
+      "home_office": "Home Office",
+      "absent_today": "Absent Today",
+      "missing_punch": "Missing Punches",
+      "conflicts": "Conflicts",
+      "overtime_hours": "Overtime Today"
+    },
+    "grid": {
+      "onboarding": "Joined"
+    },
+    "unassigned": "No Project",
+    "detail": {
+      "title": "Shift Details",
+      "calculated_status": "Calculated Status",
+      "regular_hours": "Regular Hours",
+      "overtime_hours": "Overtime Hours",
+      "schedule_expect": "Schedule Expectation",
+      "schedule_name": "Assigned Schedule",
+      "expected_hours": "Theoretical Hours",
+      "expected_times": "Expected Shift",
+      "raw_logs": "Punches Logged",
+      "hr_override": "Authorized Absence / Status (HR)",
+      "approved_by": "Approved By",
+      "audit_history": "Audit Log",
+      "corrected_by": "Corrected By",
+      "corrected_at": "Correction Date",
+      "correct_btn": "Correct Punch Manually"
+    },
+    "correction": {
+      "reason": "Reason for Correction",
+      "reason_required": "You must enter a reason for the manual correction.",
+      "success_alert": "Record corrected successfully.",
+      "panel_title": "Manual Correction of Day",
+      "audit_help": "Every manual correction saves an audit log with the person, date, and reason.",
+      "lunch_start": "Lunch Start",
+      "lunch_end": "Lunch End"
+    },
+    "alerts": {
+      "conflict_found": "Record Conflict Detected",
+      "conflict_desc": "The employee has clock-in punches or manual corrections on a day registered with an authorized absence (such as vacation or sick leave).",
+      "missing_punch_found": "Missing Punch",
+      "missing_punch_desc": "The employee has a Clock-in or Clock-out registered, but the counterpart is missing."
     },
     "alerts": {
       "double_shift": "Shift completed today. Start a new shift?",

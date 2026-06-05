@@ -294,7 +294,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const [lastBatch, setLastBatch] = useState<{ names: string[]; action: string; time: string } | null>(null);
     const [countdown, setCountdown] = useState(4);
 
-    const activeProjects = projects.filter((p: any) => p.status === 'Active' || p.status === 'In Progress');
+    const activeProjects = projects.filter((p: any) => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX');
 
     const sortedPersonnel = useCallback(() => {
         const eligible = personnel.filter(p =>
@@ -648,8 +648,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         return assigned?.id ?? '';
     });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
-    const activeProjects = projects.filter((p: any) => p.status === 'Active' || p.status === 'In Progress');
-    const gpsReady = gps.status === 'locked' || gps.status === 'poor';
+    const [workMode, setWorkMode] = useState<'On Site' | 'Home Office'>('On Site');
+    const activeProjects = projects.filter((p: any) => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX');
+    const gpsReady = workMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
     const gpsDenied = gps.status === 'denied';
 
     const executePunch = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
@@ -666,8 +667,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             accuracy: gps.accuracy ?? 9999, type,
             timeSource: overrideTime ? 'device' : best.source,
             ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
+            workMode,
         };
-        doPunch(personnelId, punch, selectedProject || undefined);
+        doPunch(personnelId, punch, workMode === 'Home Office' ? undefined : (selectedProject || undefined));
     };
 
     return (
@@ -697,22 +699,46 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             )}
 
             {step === 'idle' && (
-                <div className="relative">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.select_project')}</label>
-                    <div className="relative">
-                        <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
-                            className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10">
-                            <option value="">{t('attendance.project_placeholder')}</option>
-                            {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}{p.codeName ? ` (${p.codeName})` : ''}</option>)}
-                        </select>
-                        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.labels.work_mode', 'Modo de Trabajo')}</label>
+                        <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => setWorkMode('On Site')}
+                                className={`py-2 text-xs font-bold rounded-lg transition-all ${workMode === 'On Site' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                {t('attendance.work_mode.on_site', 'Presencial (On Site)')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setWorkMode('Home Office')}
+                                className={`py-2 text-xs font-bold rounded-lg transition-all ${workMode === 'Home Office' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                {t('attendance.work_mode.home_office', 'Home Office')}
+                            </button>
+                        </div>
                     </div>
+
+                    {workMode === 'On Site' && (
+                        <div className="relative animate-in fade-in duration-200">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.select_project')}</label>
+                            <div className="relative">
+                                <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
+                                    className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10">
+                                    <option value="">{t('attendance.project_placeholder')}</option>
+                                    {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}{p.codeName ? ` (${p.codeName})` : ''}</option>)}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
             {step === 'idle' && (
                 <div className="space-y-3">
-                    {!gpsReady && gps.status === 'acquiring' && (
+                    {workMode === 'On Site' && !gpsReady && gps.status === 'acquiring' && (
                         <p className="text-center text-sm text-blue-500 animate-pulse">{t('attendance.gps.waiting')}</p>
                     )}
                     {/* Warning if already worked today */}
@@ -727,7 +753,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     )}
 
                     {/* M-01: GPS denied — amber enabled button, opens manual modal automatically */}
-                    {gpsDenied ? (
+                    {workMode === 'On Site' && gpsDenied ? (
                         <>
                             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
                                 <AlertTriangle size={16} className="shrink-0" />
@@ -745,12 +771,12 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         <button onClick={() => {
                             if (hasFinishedToday && !window.confirm(t('attendance.alerts.double_shift'))) return;
                             executePunch('clockIn');
-                        }} disabled={!gpsReady || !selectedProject}
+                        }} disabled={!gpsReady || (workMode === 'On Site' && !selectedProject)}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.labels.action_in')}
                         </button>
                     )}
-                    {gps.status === 'poor' && (
+                    {workMode === 'On Site' && gps.status === 'poor' && (
                         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
                             <AlertTriangle size={16} className="shrink-0" />
                             <span>GPS signal is weak (±{Math.round(gps.accuracy!)}m). Punch will be flagged.</span>

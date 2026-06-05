@@ -253,7 +253,7 @@ export default function ProjectDetail() {
                                 </div>
                                 <h1 className="text-2xl md:text-3xl font-bold text-accent-greyDark mb-1 flex items-center gap-2">
                                     {project.name}
-                                    {project.prevailingWage && (
+                                    {project.subsidiary !== 'MX' && project.prevailingWage && (
                                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/10 text-amber-600 border border-amber-400/20 shadow-sm animate-in fade-in zoom-in duration-500">
                                             <CheckCircle2 size={10} /> Prevailing Wage
                                         </span>
@@ -437,21 +437,23 @@ export default function ProjectDetail() {
                                     />
                                     <Label htmlFor="dp-labor-only" className="cursor-pointer font-bold">No Defined Scope (Labor Only / IE Support)</Label>
                                 </div>
-                                <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
-                                    <Checkbox 
-                                        id="dp-prevailing-wage" 
-                                        checked={editPrevailingWage}
-                                        onCheckedChange={(checked) => setEditPrevailingWage(!!checked)}
-                                    />
-                                    <div className="grid gap-1 leading-none">
-                                        <Label htmlFor="dp-prevailing-wage" className="cursor-pointer font-bold text-accent-greyDark flex items-center gap-1.5">
-                                            Prevailing Wage Project
-                                        </Label>
-                                        <p className="text-xs text-gray-500">
-                                            Updates all assigned personnel to match this status.
-                                        </p>
+                                {project.subsidiary !== 'MX' && (
+                                    <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
+                                        <Checkbox 
+                                            id="dp-prevailing-wage" 
+                                            checked={editPrevailingWage}
+                                            onCheckedChange={(checked) => setEditPrevailingWage(!!checked)}
+                                        />
+                                        <div className="grid gap-1 leading-none">
+                                            <Label htmlFor="dp-prevailing-wage" className="cursor-pointer font-bold text-accent-greyDark flex items-center gap-1.5">
+                                                Prevailing Wage Project
+                                            </Label>
+                                            <p className="text-xs text-gray-500">
+                                                Updates all assigned personnel to match this status.
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                                 <div className="sm:col-span-2 grid gap-1.5">
                                     <Label>Active Disciplines / Streams</Label>
                                     <div className="flex flex-wrap gap-2 mt-1">

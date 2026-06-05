@@ -103,7 +103,11 @@ BEGIN
 
   -- 3. Create the profile (IDENTITY BRIDGE)
   INSERT INTO public.profiles (id, name, email, role)
-  VALUES (new_user_id, user_name, user_email, user_role);
+  VALUES (new_user_id, user_name, user_email, user_role)
+  ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    email = EXCLUDED.email,
+    role = EXCLUDED.role;
 
   -- 4. Create personnel record ONLY if they are NOT a Customer
   IF user_role <> 'Customer' THEN
@@ -116,7 +120,12 @@ BEGIN
       'Active', 
       'EMP-' || upper(substr(md5(random()::text), 1, 6)),
       user_role || ' (Admin Invited)'
-    );
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      name = EXCLUDED.name,
+      email = EXCLUDED.email,
+      app_role = EXCLUDED.app_role,
+      position = EXCLUDED.position;
   END IF;
 
   RETURN new_user_id;

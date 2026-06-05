@@ -534,30 +534,31 @@ export default function Projects() {
                                     onChange={e => setNewProject({...newProject, systemType: e.target.value})}
                                 >
                                     <option value="Solar">Solar</option>
-                                    <option value="BESS">BESS</option>
+                                                        <option value="BESS">BESS</option>
                                     <option value="Hybrid">Hybrid</option>
                                     <option value="Other">{t('common.other')}</option>
                                 </select>
                             </div>
-
-                            <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
-                                <Checkbox 
-                                    id="prevailingWage" 
-                                    checked={newProject.prevailingWage}
-                                    onCheckedChange={(checked) => setNewProject({...newProject, prevailingWage: !!checked})}
-                                />
-                                <div className="grid gap-1.5 leading-none">
-                                    <Label
-                                        htmlFor="prevailingWage"
-                                        className="text-sm font-bold text-accent-greyDark leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                    >
-                                        Prevailing Wage Project
-                                    </Label>
-                                    <p className="text-xs text-gray-500">
-                                        All personnel assigned will be automatically flagged for prevailing wage.
-                                    </p>
+                            {activeSubsidiary !== 'MX' && (
+                                <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
+                                    <Checkbox 
+                                        id="prevailingWage" 
+                                        checked={newProject.prevailingWage}
+                                        onCheckedChange={(checked) => setNewProject({...newProject, prevailingWage: !!checked})}
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <Label
+                                            htmlFor="prevailingWage"
+                                            className="text-sm font-bold text-accent-greyDark leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            Prevailing Wage Project
+                                        </Label>
+                                        <p className="text-xs text-gray-500">
+                                            All personnel assigned will be automatically flagged for prevailing wage.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                        </div>
 
                        <div className="space-y-4 pt-4 border-t border-gray-100">

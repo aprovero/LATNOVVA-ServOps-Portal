@@ -60,7 +60,8 @@
     "clock_in": "Registrar entrada",
     "notifications": "Alertas y Notificaciones",
     "preview_branding": "Vista previa de marca",
-    "my_profile": "Mi Perfil"
+    "my_profile": "Mi Perfil",
+    "attendance": "Asistencias"
   },
   "auth": {
     "logout": "Cerrar sesión",
@@ -854,8 +855,8 @@
     }
   },
   "attendance": {
-    "title": "Registro de Entrada / Salida",
-    "subtitle": "Gestione su asistencia diaria y check-ins de equipo.",
+    "title": "Asistencias",
+    "subtitle": "Monitoreo diario, vacaciones, incapacidades y conciliación de registros",
     "select_project": "Seleccionar Proyecto",
     "project_placeholder": "— Seleccione un proyecto —",
     "team_count": "Equipo · {{num}} personas",
@@ -870,7 +871,99 @@
       "on_site": "En Sitio",
       "already_on_site": "Ya en sitio",
       "done": "Finalizado",
-      "worked_today": "Trabajó Hoy"
+      "worked_today": "Trabajó Hoy",
+      "present": "Presente",
+      "absent": "Ausente",
+      "vacation": "Vacaciones",
+      "sick_leave": "Incapacidad",
+      "home_office": "Home Office",
+      "personal_leave": "Permiso",
+      "unpaid_leave": "Permiso sin goce",
+      "training": "Capacitación",
+      "holiday": "Feriado",
+      "rest_day": "Descanso",
+      "suspension": "Suspensión",
+      "conflict": "Conflicto",
+      "missing_punch": "Marcaje Incompleto"
+    },
+    "override": {
+      "add_btn": "Agregar",
+      "add_title": "Agregar Asistencia / Ausencia",
+      "employee": "Colaborador",
+      "select_employee": "Seleccionar Colaborador",
+      "start_date": "Fecha Inicio",
+      "end_date": "Fecha Fin",
+      "type": "Tipo de Registro",
+      "duration": "Duración",
+      "custom_hours": "Horas específicas",
+      "notes": "Notas / Comentarios",
+      "notes_placeholder": "Escriba un motivo...",
+      "validation_alert": "Por favor complete todos los campos obligatorios.",
+      "date_alert": "La fecha de inicio no puede ser posterior a la fecha de fin."
+    },
+    "duration": {
+      "full": "Día Completo",
+      "half": "Medio Día",
+      "hours": "Horas Personalizadas"
+    },
+    "filters": {
+      "search_placeholder": "Buscar por nombre...",
+      "active_status": "Contrato Empleado",
+      "active_only": "Solo Activos",
+      "inactive_only": "Solo Bajas (Inactivos)",
+      "all": "Todos",
+      "conflicts": "Conflictos",
+      "missing_punches": "Marcajes Incompletos",
+      "overtime": "Horas Extras",
+      "no_results": "No se encontraron colaboradores correspondientes.",
+      "clocked_in_today": "Presentes Hoy"
+    },
+    "dashboard": {
+      "active_employees": "Empleados Activos",
+      "present_today": "Presentes Hoy",
+      "on_vacation": "En Vacaciones",
+      "sick_leave": "Incapacidad",
+      "home_office": "Home Office",
+      "absent_today": "Ausentes Hoy",
+      "missing_punch": "Marcajes Faltantes",
+      "conflicts": "Conflictos",
+      "overtime_hours": "Horas Extras Hoy"
+    },
+    "grid": {
+      "onboarding": "Ingreso"
+    },
+    "unassigned": "Sin Proyecto",
+    "detail": {
+      "title": "Detalle de Jornada",
+      "calculated_status": "Estado Calculado",
+      "regular_hours": "Horas Regulares",
+      "overtime_hours": "Horas Extras",
+      "schedule_expect": "Expectativa de Horario",
+      "schedule_name": "Horario Asignado",
+      "expected_hours": "Horas Teóricas",
+      "expected_times": "Jornada Esperada",
+      "raw_logs": "Registros Registrados",
+      "hr_override": "Ausencia / Estatus Autorizado (HR)",
+      "approved_by": "Aprobado Por",
+      "audit_history": "Registro de Auditoría",
+      "corrected_by": "Corregido Por",
+      "corrected_at": "Fecha Corrección",
+      "correct_btn": "Corregir Marcaje Manual"
+    },
+    "correction": {
+      "reason": "Motivo de Corrección",
+      "reason_required": "Debe ingresar un motivo para la corrección manual.",
+      "success_alert": "Registro corregido exitosamente.",
+      "panel_title": "Corrección Manual del Día",
+      "audit_help": "Toda corrección manual guarda un registro de auditoría con la persona, fecha y motivo.",
+      "lunch_start": "Inicio Almuerzo",
+      "lunch_end": "Fin Almuerzo"
+    },
+    "alerts": {
+      "conflict_found": "Conflicto de Registros Detectado",
+      "conflict_desc": "El colaborador tiene marcajes de asistencia o correcciones manuales en un día registrado con una ausencia autorizada (como vacaciones o incapacidad).",
+      "missing_punch_found": "Marcaje Faltante",
+      "missing_punch_desc": "El colaborador tiene un marcaje de Entrada o Salida registrado, pero falta la contraparte."
     },
     "alerts": {
       "double_shift": "¿Turno completado hoy. Iniciar un nuevo turno?",

@@ -17,6 +17,7 @@ import LiveMap from './pages/LiveMap';
 import ProjectDetail from './pages/ProjectDetail';
 import ClockIn from './pages/ClockIn';
 import Nomina from './pages/Nomina';
+import Attendance from './pages/Attendance';
 import SplashScreen from './components/common/SplashScreen';
 
 // Register GSAP plugins
@@ -26,6 +27,13 @@ gsap.registerPlugin(ScrollTrigger);
 const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
     const userRole = useStore(s => s.userRole);
     if (!['Manager', 'Supervisor'].includes(userRole)) return <Navigate to="/projects" replace />;
+    return <>{children}</>;
+};
+
+// Guard: only Managers and HR can access Attendance & Leave Control.
+const ManagerHRRoute = ({ children }: { children: React.ReactNode }) => {
+    const userRole = useStore(s => s.userRole);
+    if (!['Manager', 'HR'].includes(userRole)) return <Navigate to="/projects" replace />;
     return <>{children}</>;
 };
 
@@ -66,6 +74,7 @@ function App() {
                     <Route path="settings" element={<ManagerRoute><Settings /></ManagerRoute>} />
                     <Route path="personnel" element={<Personnel />} />
                     <Route path="timesheets" element={<Timesheets />} />
+                    <Route path="attendance" element={<ManagerHRRoute><Attendance /></ManagerHRRoute>} />
                     <Route path="nomina" element={<Nomina />} />
                     <Route path="clock-in" element={<ClockIn />} />
                 </Route>

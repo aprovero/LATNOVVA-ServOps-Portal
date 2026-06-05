@@ -73,7 +73,12 @@ BEGIN
     'Active', 
     'EMP-' || upper(substr(md5(random()::text), 1, 6)),
     user_role || ' (Admin Invited)'
-  );
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    email = EXCLUDED.email,
+    app_role = EXCLUDED.app_role,
+    position = EXCLUDED.position;
 
   RETURN new_user_id;
 END;

@@ -209,6 +209,8 @@ export interface Personnel {
     rfc?: string;
     rfcPostalCode?: string;
     documents?: { id: string; name: string; url: string; type: string; uploadDate: string; }[];
+    defaultScheduleId?: string;
+    projectId?: string;
 }
 
 export interface ChecklistTemplate {
@@ -283,6 +285,7 @@ export interface ClockPunch {
     supervisorSignatureBlob?: string; // base64 PNG — supervisor's drawn signature for batch punches
     isOutsourced?: boolean; // true for non-registered / contract personnel
     outsourcedName?: string; // display name when isOutsourced is true
+    workMode?: 'On Site' | 'Home Office';
 }
 
 export interface TimesheetEntry {
@@ -290,6 +293,8 @@ export interface TimesheetEntry {
     personnelId: string;
     date: string; // ISO yyyy-mm-dd
     timeIn?: string; // HH:mm
+    lunchStart?: string; // HH:mm
+    lunchEnd?: string; // HH:mm
     timeOut?: string; // HH:mm
     hours: number;
     type: 'On Site' | 'Travel' | 'Other' | 'Home Office';
@@ -307,6 +312,9 @@ export interface TimesheetEntry {
     gpsVerified?: boolean;      // true when all punches have accuracy <= 50m
     source?: 'gps' | 'manual'; // H-04: explicit audit flag
     manualReason?: string;      // H-04: required justification for manual entries
+    correctedBy?: string;
+    correctedAt?: string;
+    correctionReason?: string;
 }
 
 export interface ProjectActivity {
@@ -365,6 +373,48 @@ export const ALLOWED_REPORT_TRANSITIONS: Record<ReportState, ReportState[]> = {
     'Approved': ['Closed'],
     'Closed': [],
 };
+
+export interface AttendanceOverride {
+    id: string;
+    employeeId: string;
+    startDate: string;
+    endDate: string;
+    type: 'vacation' | 'sick_leave' | 'home_office' | 'personal_leave' | 'unpaid_leave' | 'training' | 'holiday' | 'rest_day' | 'suspension';
+    duration: 'full_day' | 'half_day' | 'custom_hours';
+    customHours?: number;
+    notes?: string;
+    approvedBy?: string;
+    createdBy?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface WorkSchedule {
+    id: string;
+    name: string;
+    startTime: string; // HH:mm
+    lunchStart?: string; // HH:mm
+    lunchEnd?: string; // HH:mm
+    endTime: string; // HH:mm
+    standardDailyHours: number;
+    workDays: number[]; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+}
+
+export interface AttendanceDayView {
+    employeeId: string;
+    date: string;
+    displayStatus: 'Present' | 'Vacation' | 'Sick Leave' | 'Home Office' | 'Personal Leave' | 'Unpaid Leave' | 'Training' | 'Holiday' | 'Rest Day' | 'Suspension' | 'Absent' | 'Missing Punch' | 'Conflict' | 'Blank';
+    clockIn?: string;
+    lunchStart?: string;
+    lunchEnd?: string;
+    clockOut?: string;
+    regularHours?: number;
+    overtimeHours?: number;
+    missingPunch: boolean;
+    conflict: boolean;
+    source?: 'clockin' | 'manual' | 'import' | 'gps' | 'schedule';
+    notes?: string;
+}
 
 interface AppState {
     userRole: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR' | 'Office';
@@ -429,6 +479,14 @@ interface AppState {
     approveTimesheet: (id: string, approverId: string) => void;
     rejectTimesheet: (id: string, approverId: string) => void;
     clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean) => void;
+    attendanceOverrides: AttendanceOverride[];
+    workSchedules: WorkSchedule[];
+    addAttendanceOverride: (override: AttendanceOverride) => void;
+    updateAttendanceOverride: (id: string, updates: Partial<AttendanceOverride>) => void;
+    deleteAttendanceOverride: (id: string) => void;
+    addWorkSchedule: (schedule: WorkSchedule) => void;
+    updateWorkSchedule: (id: string, updates: Partial<WorkSchedule>) => void;
+    deleteWorkSchedule: (id: string) => void;
     assignSupervisor: (personnelId: string, supervisorId?: string, managerId?: string) => void;
     transferPersonnel: (personnelId: string, targetProjectId: string | null) => Promise<void>;
     addScopeToProject: (projectId: string, scope: ProjectScope) => void;
@@ -803,6 +861,8 @@ export const useStore = create<AppState>()(
                 }
             ],
             timesheets: [],
+            attendanceOverrides: [],
+            workSchedules: [],
             sharepointConfig: {
                 siteUrl: import.meta.env.VITE_SHAREPOINT_SITE_URL || ''
             },
@@ -944,6 +1004,21 @@ export const useStore = create<AppState>()(
                     const { data: timesheetsDB } = await supabase.from('mx_timesheets').select('*');
                     const { data: toolsDB } = await supabase.from('tools').select('*');
 
+                    let overridesDB = null;
+                    let schedulesDB = null;
+                    try {
+                        const { data } = await supabase.from('mx_attendance_overrides').select('*');
+                        overridesDB = data;
+                    } catch (e) {
+                        console.warn('Supabase mx_attendance_overrides table load skipped:', e);
+                    }
+                    try {
+                        const { data } = await supabase.from('mx_work_schedules').select('*');
+                        schedulesDB = data;
+                    } catch (e) {
+                        console.warn('Supabase mx_work_schedules table load skipped:', e);
+                    }
+
                     // Guard: only overwrite store state if Supabase returned actual rows.
                     // An empty array [] is truthy in JS, so `data || fallback` would wipe
                     // persisted local state when RLS blocks reads or the DB is empty.
@@ -1079,6 +1154,34 @@ export const useStore = create<AppState>()(
                                 history: t.history || []
                             }))
                             : state.tools,
+                        attendanceOverrides: overridesDB?.length
+                            ? overridesDB.map(o => ({
+                                id: o.id,
+                                employeeId: o.employee_id,
+                                startDate: o.start_date,
+                                endDate: o.end_date,
+                                type: o.type,
+                                duration: o.duration,
+                                customHours: o.custom_hours,
+                                notes: o.notes,
+                                approvedBy: o.approved_by,
+                                createdBy: o.created_by,
+                                createdAt: o.created_at,
+                                updatedAt: o.updated_at
+                            }))
+                            : [],
+                        workSchedules: schedulesDB?.length
+                            ? schedulesDB.map(s => ({
+                                id: s.id,
+                                name: s.name,
+                                startTime: s.start_time,
+                                lunchStart: s.lunch_start,
+                                lunchEnd: s.lunch_end,
+                                endTime: s.end_time,
+                                standardDailyHours: s.standard_daily_hours,
+                                workDays: s.work_days
+                            }))
+                            : [],
                     }));
 
                     // ── SMART MERGE ──
@@ -1798,6 +1901,82 @@ export const useStore = create<AppState>()(
                 }));
                 await get().safeSync('mx_timesheets', id, 'update', { status: 'Rejected', approved_by: approverId });
             },
+            addAttendanceOverride: (override) => {
+                set((state) => ({ attendanceOverrides: [...state.attendanceOverrides, override] }));
+                get().safeSync('mx_attendance_overrides', override.id, 'insert', {
+                    id: override.id,
+                    employee_id: override.employeeId,
+                    start_date: override.startDate,
+                    end_date: override.endDate,
+                    type: override.type,
+                    duration: override.duration,
+                    custom_hours: override.customHours,
+                    notes: override.notes,
+                    approved_by: override.approvedBy,
+                    created_by: override.createdBy,
+                    created_at: override.createdAt,
+                    updated_at: override.updatedAt
+                }).catch(() => {});
+            },
+            updateAttendanceOverride: (id, updates) => {
+                set((state) => ({
+                    attendanceOverrides: state.attendanceOverrides.map((o) => o.id === id ? { ...o, ...updates } : o)
+                }));
+                const dbPayload: any = {};
+                if (updates.employeeId !== undefined) dbPayload.employee_id = updates.employeeId;
+                if (updates.startDate !== undefined) dbPayload.start_date = updates.startDate;
+                if (updates.endDate !== undefined) dbPayload.end_date = updates.endDate;
+                if (updates.type !== undefined) dbPayload.type = updates.type;
+                if (updates.duration !== undefined) dbPayload.duration = updates.duration;
+                if (updates.customHours !== undefined) dbPayload.custom_hours = updates.customHours;
+                if (updates.notes !== undefined) dbPayload.notes = updates.notes;
+                if (updates.approvedBy !== undefined) dbPayload.approved_by = updates.approvedBy;
+                if (updates.updatedAt !== undefined) dbPayload.updated_at = updates.updatedAt;
+                if (Object.keys(dbPayload).length > 0) {
+                    get().safeSync('mx_attendance_overrides', id, 'update', dbPayload).catch(() => {});
+                }
+            },
+            deleteAttendanceOverride: (id) => {
+                set((state) => ({
+                    attendanceOverrides: state.attendanceOverrides.filter((o) => o.id !== id)
+                }));
+                get().safeSync('mx_attendance_overrides', id, 'delete', null).catch(() => {});
+            },
+            addWorkSchedule: (schedule) => {
+                set((state) => ({ workSchedules: [...state.workSchedules, schedule] }));
+                get().safeSync('mx_work_schedules', schedule.id, 'insert', {
+                    id: schedule.id,
+                    name: schedule.name,
+                    start_time: schedule.startTime,
+                    lunch_start: schedule.lunchStart,
+                    lunch_end: schedule.lunchEnd,
+                    end_time: schedule.endTime,
+                    standard_daily_hours: schedule.standardDailyHours,
+                    work_days: schedule.workDays
+                }).catch(() => {});
+            },
+            updateWorkSchedule: (id, updates) => {
+                set((state) => ({
+                    workSchedules: state.workSchedules.map((s) => s.id === id ? { ...s, ...updates } : s)
+                }));
+                const dbPayload: any = {};
+                if (updates.name !== undefined) dbPayload.name = updates.name;
+                if (updates.startTime !== undefined) dbPayload.start_time = updates.startTime;
+                if (updates.lunchStart !== undefined) dbPayload.lunch_start = updates.lunchStart;
+                if (updates.lunchEnd !== undefined) dbPayload.lunch_end = updates.lunchEnd;
+                if (updates.endTime !== undefined) dbPayload.end_time = updates.endTime;
+                if (updates.standardDailyHours !== undefined) dbPayload.standard_daily_hours = updates.standardDailyHours;
+                if (updates.workDays !== undefined) dbPayload.work_days = updates.workDays;
+                if (Object.keys(dbPayload).length > 0) {
+                    get().safeSync('mx_work_schedules', id, 'update', dbPayload).catch(() => {});
+                }
+            },
+            deleteWorkSchedule: (id) => {
+                set((state) => ({
+                    workSchedules: state.workSchedules.filter((s) => s.id !== id)
+                }));
+                get().safeSync('mx_work_schedules', id, 'delete', null).catch(() => {});
+            },
             clockPunch: async (personnelId, punch, projectId) => {
                 const _d = new Date();
                 const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
@@ -1858,6 +2037,7 @@ export const useStore = create<AppState>()(
                         ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
                         ...(computedHours > 0 ? { hours: computedHours } : {}),
                         ...(projectId ? { projectId } : {}),
+                        ...(punch.workMode ? { type: punch.workMode } : {}),
                     };
 
                     if (sessionToUpdate) {
@@ -1873,7 +2053,7 @@ export const useStore = create<AppState>()(
                             personnelId,
                             date: today,
                             hours: 0,
-                            type: 'On Site',
+                            type: punch.workMode || 'On Site',
                             status: 'Pending',
                             ...entryUpdates,
                         };
