@@ -4,6 +4,52 @@
 export const GPS_ACCURACY_THRESHOLD = 100;
 
 /**
+ * Detects if the current device is a mobile browser.
+ */
+export const isMobileDevice = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+/**
+ * Gets the standard GPS accuracy threshold (meters) based on device type.
+ */
+export const getGPSAccuracyThreshold = (): number => {
+    return isMobileDevice() ? 50 : 150;
+};
+
+/**
+ * Calculates distance in meters between two coordinates using Haversine formula.
+ */
+export const getDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in meters
+};
+
+/**
+ * Parses coordinates string like "19.4293, -99.1724" into lat/lng numeric object.
+ */
+export const parseCoordinates = (locationStr?: string): { lat: number; lng: number } | null => {
+    if (!locationStr) return null;
+    const parts = locationStr.split(',');
+    if (parts.length !== 2) return null;
+    const lat = parseFloat(parts[0].trim());
+    const lng = parseFloat(parts[1].trim());
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return { lat, lng };
+};
+
+/**
  * Calculates decimal hours between two HH:mm strings.
  * Handles overnight shifts by adding 24 hours if out < in.
  */

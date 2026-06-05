@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabaseUntyped as supabase } from '../lib/supabase';
 import { createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from '../lib/idbStorage';
+import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates } from '../utils/datetime.utils';
 
 export interface PendingSyncItem {
     table: string;
@@ -528,6 +529,7 @@ interface AppState {
         enableShiftNotifications: boolean;
         enableAutoClockOut: boolean;
         autoClockOutThreshold: number;
+        geofenceRadius: number;
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     checkZombieSessions: () => Promise<void>;
@@ -890,6 +892,7 @@ export const useStore = create<AppState>()(
                 enableShiftNotifications: true,
                 enableAutoClockOut: true,
                 autoClockOutThreshold: 14,
+                geofenceRadius: 250,
             },
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
@@ -1049,6 +1052,7 @@ export const useStore = create<AppState>()(
                                 status: p.status,
                                 progress: p.progress,
                                 location: p.location,
+                                locationValidated: p.location_validated ?? true,
                                 projectSize: p.project_size,
                                 systemType: p.system_type,
                                 codeName: p.code_name,
@@ -1367,6 +1371,7 @@ export const useStore = create<AppState>()(
                     project_size: project.projectSize,
                     system_type: project.systemType,
                     location: project.location,
+                    location_validated: project.locationValidated ?? true,
                     code_name: project.codeName,
                     scopes: project.scopes || [],
                     assigned_personnel: project.assignedPersonnel || [],
@@ -1468,6 +1473,7 @@ export const useStore = create<AppState>()(
                 if (updates.projectSize !== undefined) dbPayload.project_size = updates.projectSize;
                 if (updates.systemType !== undefined) dbPayload.system_type = updates.systemType;
                 if (updates.location !== undefined) dbPayload.location = updates.location;
+                if (updates.locationValidated !== undefined) dbPayload.location_validated = updates.locationValidated;
                 if (updates.codeName !== undefined) dbPayload.code_name = updates.codeName;
                 if (updates.scopes !== undefined) dbPayload.scopes = updates.scopes;
                 if (updates.assignedPersonnel !== undefined) dbPayload.assigned_personnel = updates.assignedPersonnel;
@@ -2036,8 +2042,22 @@ export const useStore = create<AppState>()(
                     // Re-find in current state for the setter using ID if existing was found
                     let sessionToUpdate = existing ? state.timesheets.find(t => t.id === existing.id) : null;
 
+                    const activeProjId = projectId || sessionToUpdate?.projectId || '';
+                    const targetProject = activeProjId ? state.projects.find(p => p.id === activeProjId) : null;
+                    const geofenceRequired = targetProject?.locationValidated ?? false;
+                    const projCoords = parseCoordinates(targetProject?.location);
+                    const threshold = getGPSAccuracyThreshold();
+
                     const updatedPunches = [...(sessionToUpdate?.punches ?? []), punch];
-                    const allAccurate = updatedPunches.every(p => p.accuracy <= 50);
+                    const radius = state.platformSettings?.geofenceRadius ?? 250;
+                    const allAccurate = updatedPunches.every(p => {
+                        if (p.accuracy > threshold) return false;
+                        if (geofenceRequired && projCoords && p.workMode !== 'Home Office') {
+                            const dist = getDistanceMeters(p.lat, p.lng, projCoords.lat, projCoords.lng);
+                            if (dist > radius) return false;
+                        }
+                        return true;
+                    });
 
                     const clockIn = updatedPunches.find(p => p.type === 'clockIn');
                     const clockOut = updatedPunches.find(p => p.type === 'clockOut');

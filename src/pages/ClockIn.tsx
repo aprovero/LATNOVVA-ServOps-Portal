@@ -7,7 +7,7 @@ import { useStore, ClockPunch, Personnel } from '../store/useStore';
 import { formatTime } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { useAttendance } from '../hooks/useAttendance';
-import { isCertExpired } from '../utils/datetime.utils';
+import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates } from '../utils/datetime.utils';
 import QuickAddWorker from '../components/shared/QuickAddWorker';
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
 
@@ -636,11 +636,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     clockPunch: (...args: any[]) => void;
 }) {
     const { t } = useTranslation();
+    const { platformSettings } = useStore();
     const today = getLocalDate(getBestDate(gps));
     const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut); // find a finished one for summary
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
     const step = getPunchStep(timesheets, personnelId);
     const hasFinishedToday = hasFinishedShiftToday(timesheets, personnelId);
+    const activeEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
 
     const [selectedProject, setSelectedProject] = useState(() => {
         if (todayEntry?.projectId) return todayEntry.projectId;
@@ -649,6 +651,21 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
     const [workMode, setWorkMode] = useState<'On Site' | 'Home Office'>('On Site');
+    
+    const currentProjId = step === 'clocked-in' ? (activeEntry?.projectId ?? '') : selectedProject;
+    const targetProject = currentProjId ? projects.find((p: any) => p.id === currentProjId) : null;
+    const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
+    const isOutsideGeofence = !!(
+        workMode === 'On Site' &&
+        targetProject?.locationValidated &&
+        projCoords &&
+        gps.lat !== null &&
+        gps.lng !== null &&
+        getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng) > platformSettings.geofenceRadius
+    );
+    const geofenceDistance = projCoords && gps.lat !== null && gps.lng !== null
+        ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
+        : 0;
     const activeProjects = projects.filter((p: any) => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX');
     const gpsReady = workMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
     const gpsDenied = gps.status === 'denied';
@@ -782,6 +799,12 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             <span>GPS signal is weak (±{Math.round(gps.accuracy!)}m). Punch will be flagged.</span>
                         </div>
                     )}
+                    {isOutsideGeofence && (
+                        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-in slide-in-from-top-1 duration-300">
+                            <AlertTriangle size={16} className="shrink-0" />
+                            <span>You are outside the {platformSettings.geofenceRadius}m project geofence (approx. {geofenceDistance}m away). Punch will be flagged.</span>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -804,6 +827,12 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogOut size={26} /> {t('attendance.labels.action_out')}
                         </button>
+                    )}
+                    {isOutsideGeofence && (
+                        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-in slide-in-from-top-1 duration-300">
+                            <AlertTriangle size={16} className="shrink-0" />
+                            <span>You are outside the {platformSettings.geofenceRadius}m project geofence (approx. {geofenceDistance}m away). Punch will be flagged.</span>
+                        </div>
                     )}
                 </div>
             )}
@@ -887,7 +916,7 @@ export default function ClockIn() {
             pos => setGps({
                 lat: pos.coords.latitude, lng: pos.coords.longitude,
                 accuracy: pos.coords.accuracy,
-                status: pos.coords.accuracy <= 50 ? 'locked' : 'poor',
+                status: pos.coords.accuracy <= getGPSAccuracyThreshold() ? 'locked' : 'poor',
                 gpsTimestampMs: pos.timestamp,
                 gpsReceivedAt: performance.now(),
             }),

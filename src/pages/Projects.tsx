@@ -55,7 +55,7 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 
 export default function Projects() {
     const { t } = useTranslation();
-    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject, activeSubsidiary } = useStore();
+    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject, activeSubsidiary, platformSettings } = useStore();
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
@@ -70,6 +70,7 @@ export default function Projects() {
         assignedPersonnel: [],
         siteLeadIds: [],
         prevailingWage: false,
+        locationValidated: true,
         subsidiary: activeSubsidiary
     });
     const [personnelSearch, setPersonnelSearch] = useState('');
@@ -559,6 +560,24 @@ export default function Projects() {
                                     </div>
                                 </div>
                             )}
+                            <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
+                                <Checkbox 
+                                    id="locationValidated" 
+                                    checked={newProject.locationValidated}
+                                    onCheckedChange={(checked) => setNewProject({...newProject, locationValidated: !!checked})}
+                                />
+                                <div className="grid gap-1.5 leading-none">
+                                    <Label
+                                        htmlFor="locationValidated"
+                                        className="text-sm font-bold text-accent-greyDark leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                    >
+                                        Require {platformSettings.geofenceRadius}m Geofence Validation
+                                    </Label>
+                                    <p className="text-xs text-gray-500">
+                                        Enforce clock in/out within {platformSettings.geofenceRadius}m of project coordinates. Requires coordinates format.
+                                    </p>
+                                </div>
+                            </div>
                        </div>
 
                        <div className="space-y-4 pt-4 border-t border-gray-100">

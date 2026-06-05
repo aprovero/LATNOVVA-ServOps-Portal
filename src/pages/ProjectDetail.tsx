@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { parseCoordinates } from '../utils/datetime.utils';
 import { useStore } from '../store/useStore';
 import {
     MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText, Wrench,
@@ -19,7 +20,7 @@ export default function ProjectDetail() {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, activeSubsidiary } = useStore();
+    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, activeSubsidiary, platformSettings } = useStore();
 
     const project = projects.find(p => p.id === id);
     const client = clients.find(c => c.id === project?.clientId);
@@ -43,6 +44,7 @@ export default function ProjectDetail() {
     const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
     const [editSiteLeadIds, setEditSiteLeadIds] = useState<string[]>([]);
     const [editPrevailingWage, setEditPrevailingWage] = useState(false);
+    const [editLocationValidated, setEditLocationValidated] = useState(true);
 
     const [locationError, setLocationError] = useState('');
 
@@ -117,6 +119,7 @@ export default function ProjectDetail() {
         setEditDisciplines(project.disciplines || []);
         setEditSiteLeadIds(project.siteLeadIds || []);
         setEditPrevailingWage(!!project.prevailingWage);
+        setEditLocationValidated(project.locationValidated !== false);
         setIsEditing(true);
     };
 
@@ -138,6 +141,7 @@ export default function ProjectDetail() {
             disciplines: editDisciplines,
             siteLeadIds: editSiteLeadIds,
             prevailingWage: editPrevailingWage,
+            locationValidated: editLocationValidated,
         });
         setIsEditing(false);
     };
@@ -258,6 +262,11 @@ export default function ProjectDetail() {
                                             <CheckCircle2 size={10} /> Prevailing Wage
                                         </span>
                                     )}
+                                    {project.locationValidated && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-500/10 text-teal-600 border border-teal-500/20 shadow-sm animate-in fade-in zoom-in duration-500">
+                                            <CheckCircle2 size={10} /> Geofencing Active
+                                        </span>
+                                    )}
                                     {project.hasNoDefinedScope && (
                                         <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">{t('projects.labor_only', 'Labor Only')}</span>
                                     )}
@@ -286,37 +295,44 @@ export default function ProjectDetail() {
                                 )}
                                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500 font-medium">
                                     {project.location && (
-                                        <div className="flex items-center gap-2">
-                                            <a 
-                                                href={`https://www.google.com/maps?q=${project.location}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1.5 text-brand-teal hover:underline font-bold"
-                                            >
-                                                <MapPin size={14} />
-                                                <span>{project.location}</span>
-                                                <ExternalLink size={12} />
-                                            </a>
-                                            
-                                            {canEdit && (
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="outline" 
-                                                    className="h-6 text-[10px] uppercase font-bold border-brand-teal/30 text-brand-teal hover:bg-brand-teal/10 px-2 group flex items-center gap-1 ml-2"
-                                                    onClick={() => {
-                                                        if (navigator.geolocation) {
-                                                            navigator.geolocation.getCurrentPosition((pos) => {
-                                                                updateProject(project.id, { location: `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}` });
-                                                            }, () => {
-                                                                alert('Unable to retrieve location. Please allow location permissions in your browser.');
-                                                            });
-                                                        } else {
-                                                            alert('Geolocation is not supported by your browser.');
-                                                        }
-                                                    }}
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <a 
+                                                    href={`https://www.google.com/maps?q=${project.location}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1.5 text-brand-teal hover:underline font-bold"
                                                 >
-                                                    <MapPin size={10} className="group-hover:animate-ping" /> {t('projects.update_gps', 'Update via GPS')}
-                                                </Button>
+                                                    <MapPin size={14} />
+                                                    <span>{project.location}</span>
+                                                    <ExternalLink size={12} />
+                                                </a>
+                                                
+                                                {canEdit && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline" 
+                                                        className="h-6 text-[10px] uppercase font-bold border-brand-teal/30 text-brand-teal hover:bg-brand-teal/10 px-2 group flex items-center gap-1 ml-2"
+                                                        onClick={() => {
+                                                            if (navigator.geolocation) {
+                                                                navigator.geolocation.getCurrentPosition((pos) => {
+                                                                    updateProject(project.id, { location: `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}` });
+                                                                }, () => {
+                                                                    alert('Unable to retrieve location. Please allow location permissions in your browser.');
+                                                                });
+                                                            } else {
+                                                                alert('Geolocation is not supported by your browser.');
+                                                            }
+                                                        }}
+                                                    >
+                                                        <MapPin size={10} className="group-hover:animate-ping" /> {t('projects.update_gps', 'Update via GPS')}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            {project.locationValidated && !parseCoordinates(project.location) && (
+                                                <div className="text-xs text-amber-500 font-semibold flex items-center gap-1 mt-0.5">
+                                                    <AlertCircle size={12} /> Geofencing requires coordinates format (lat, lng). Currently inactive.
+                                                </div>
                                             )}
                                         </div>
                                     )}
@@ -454,6 +470,21 @@ export default function ProjectDetail() {
                                         </div>
                                     </div>
                                 )}
+                                <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10 animate-in fade-in duration-200">
+                                    <Checkbox 
+                                        id="dp-location-validated" 
+                                        checked={editLocationValidated}
+                                        onCheckedChange={(checked) => setEditLocationValidated(!!checked)}
+                                    />
+                                    <div className="grid gap-1 leading-none">
+                                        <Label htmlFor="dp-location-validated" className="cursor-pointer font-bold text-accent-greyDark flex items-center gap-1.5">
+                                            Require {platformSettings.geofenceRadius}m Geofence Validation
+                                        </Label>
+                                        <p className="text-xs text-gray-500">
+                                            Enforce clock in/out within {platformSettings.geofenceRadius}m of project coordinates. Requires coordinates format.
+                                        </p>
+                                    </div>
+                                </div>
                                 <div className="sm:col-span-2 grid gap-1.5">
                                     <Label>Active Disciplines / Streams</Label>
                                     <div className="flex flex-wrap gap-2 mt-1">

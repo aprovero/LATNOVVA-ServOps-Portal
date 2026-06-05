@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore, Client, Personnel } from '../store/useStore';
 import { useTranslation } from 'react-i18next';
-import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2, Key, Bell, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Building2, Pencil, Camera, Trash2, Shield, Plus, ListChecks, X, Cloud, LogIn, LogOut, CheckCircle2, Globe, Link2, Languages, Loader2, Key, Bell, ShieldCheck, AlertTriangle, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { 
     msalInstance, 
@@ -665,6 +665,44 @@ export default function Settings() {
                                         <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-xs leading-relaxed flex items-start gap-3">
                                             <div className="mt-0.5"><AlertTriangle size={14} /></div>
                                             <p>When enabled, any shift active for more than {platformSettings.autoClockOutThreshold} hours will be automatically closed. This prevents "Zombie Sessions" from distorting timesheet metrics.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Geofencing Settings Card */}
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-teal-100 text-teal-600 rounded-xl">
+                                                <MapPin size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-accent-greyDark">Geofence Validation</h3>
+                                                <p className="text-sm text-gray-500">Configure geofence validation options and limits.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 pt-2">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Geofence Radius (meters)</Label>
+                                            <div className="flex items-center gap-4">
+                                                <Input 
+                                                    type="number"
+                                                    min="50"
+                                                    max="5000"
+                                                    step="50"
+                                                    className="h-11 border-gray-200 w-32 font-bold"
+                                                    value={platformSettings.geofenceRadius}
+                                                    onChange={e => updatePlatformSettings({ geofenceRadius: parseInt(e.target.value) || 250 })}
+                                                />
+                                                <span className="text-sm text-gray-400 font-medium italic">meters radius around project coordinates</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 bg-teal-50 border border-teal-100 rounded-xl text-teal-700 text-xs leading-relaxed flex items-start gap-3">
+                                            <div className="mt-0.5"><ShieldCheck size={14} /></div>
+                                            <p>This setting controls the validation boundary for project geofencing. Punches outside of this radius will be flagged as unverified when geofence validation is active on the project.</p>
                                         </div>
                                     </div>
                                 </div>
