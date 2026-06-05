@@ -27,7 +27,7 @@ DROP POLICY IF EXISTS "Employees can read their own mx_timesheets"      ON publi
 DROP POLICY IF EXISTS "Employees can insert their own mx_timesheets"    ON public.mx_timesheets;
 DROP POLICY IF EXISTS "Supervisors can read subsidiary mx_timesheets"   ON public.mx_timesheets;
 
--- ── 4. HR / Manager: full access ──────────────────────────────────────────────
+-- ── 4. HR / Manager / Office: full access ──────────────────────────────────────────────
 CREATE POLICY "HR and Managers can manage all mx_timesheets"
 ON public.mx_timesheets
 FOR ALL
@@ -36,14 +36,14 @@ USING (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('Manager', 'HR')
+        AND profiles.role IN ('Manager', 'HR', 'Office')
     )
 )
 WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('Manager', 'HR')
+        AND profiles.role IN ('Manager', 'HR', 'Office')
     )
 );
 
@@ -71,6 +71,13 @@ CREATE POLICY "Employees can insert their own mx_timesheets"
 ON public.mx_timesheets
 FOR INSERT
 TO authenticated
+WITH CHECK (personnel_id = auth.uid()::text);
+
+CREATE POLICY "Employees can update their own mx_timesheets"
+ON public.mx_timesheets
+FOR UPDATE
+TO authenticated
+USING (personnel_id = auth.uid()::text)
 WITH CHECK (personnel_id = auth.uid()::text);
 
 -- ── Done ───────────────────────────────────────────────────────────────────────

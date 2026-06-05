@@ -47,6 +47,18 @@ export default function Attendance() {
 
     // Modal state
     const [isAddOverrideOpen, setIsAddOverrideOpen] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await refreshAttendance();
+        } finally {
+            setTimeout(() => {
+                setIsRefreshing(false);
+            }, 600);
+        }
+    };
 
     // Compute stats for today
     const computeStats = () => {
@@ -159,11 +171,12 @@ export default function Attendance() {
 
                 <div className="flex flex-wrap gap-2.5">
                     <button
-                        onClick={refreshAttendance}
-                        className="p-3 bg-white text-gray-500 hover:text-brand-teal rounded-xl border hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className="p-3 bg-white text-gray-500 hover:text-brand-teal rounded-xl border hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
                         title={t('common.refresh', 'Actualizar')}
                     >
-                        <RefreshCw size={18} />
+                        <RefreshCw size={18} className={isRefreshing ? 'animate-spin text-brand-teal' : ''} />
                     </button>
                     
                     <button 

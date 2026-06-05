@@ -2021,18 +2021,11 @@ export const useStore = create<AppState>()(
                 // But for robustness, if punch is clockIn and we have an active session, we'll just append the punch.
                 
                 const isNewEntry = !existing && punch.type === 'clockIn';
+                const targetId = existing ? existing.id : crypto.randomUUID();
 
                 set((state) => {
-                    // Re-find in current state for the setter
-                    let sessionToUpdate = state.timesheets.find(
-                        t => t.personnelId === personnelId && t.timeIn && !t.timeOut
-                    );
-                    
-                    if (punch.type === 'clockOut' && !sessionToUpdate) {
-                        sessionToUpdate = [...state.timesheets]
-                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                            .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
-                    }
+                    // Re-find in current state for the setter using ID if existing was found
+                    let sessionToUpdate = existing ? state.timesheets.find(t => t.id === existing.id) : null;
 
                     const updatedPunches = [...(sessionToUpdate?.punches ?? []), punch];
                     const allAccurate = updatedPunches.every(p => p.accuracy <= 50);
@@ -2064,9 +2057,8 @@ export const useStore = create<AppState>()(
                             )
                         };
                     } else {
-                        // Create a NEW unique timesheet ID to allow multiple per day
                         const newEntry: TimesheetEntry = {
-                            id: crypto.randomUUID(),
+                            id: targetId,
                             personnelId,
                             date: today,
                             hours: 0,
@@ -2079,10 +2071,8 @@ export const useStore = create<AppState>()(
                 });
 
                 try {
-                    // Find the actual updated entry from the new state
-                    const updated = get().timesheets.find(
-                        t => t.personnelId === personnelId && (t.date === today || (punch.type === 'clockOut' && !t.timeOut))
-                    );
+                    // Find the actual updated entry from the new state by its unique targetId
+                    const updated = get().timesheets.find(t => t.id === targetId);
                     
                     if (updated) {
                         const dbPayload: any = {

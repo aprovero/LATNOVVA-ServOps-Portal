@@ -781,7 +781,7 @@ export default function Timesheets() {
                                                 </div>
                                             </td>
                                             <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
-                                                {entry.timeIn && entry.timeOut ? `${entry.timeIn} - ${entry.timeOut}` : '-'}
+                                                {entry.timeIn ? `${entry.timeIn} - ${entry.timeOut || ''}` : '-'}
                                             </td>
                                             <td className="p-4">
                                                 <span className="font-bold text-lg text-brand-teal">{entry.hours}</span> <span className="text-xs text-gray-500 font-medium">hrs</span>
