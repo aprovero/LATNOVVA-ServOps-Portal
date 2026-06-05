@@ -45,17 +45,16 @@ const HomeRedirect = () => {
 };
 
 function App() {
-    const { initDb } = useStore();
+    useStore();
 
     useEffect(() => {
-        // Initialize mock DB / offline storage on startup
-        initDb();
+        // Initialize global templates
         useStore.getState().initializeGlobalTemplates();
         
         // initializeAuth is now a no-op — onAuthStateChange in authStore fires automatically.
         // We still call it to avoid breaking any callers that may depend on it.
         useAuthStore.getState().initializeAuth();
-    }, [initDb]);
+    }, []);
 
     return (
         <>

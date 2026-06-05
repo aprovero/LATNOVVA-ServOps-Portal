@@ -17,10 +17,10 @@ export function minutesToTime(minutes: number): string {
 
 /** Calculate worked hours for a day (subtracting 1 hour fixed lunch) */
 export function calculateWorkedHours(
-    clockIn?: string,
-    _lunchStart?: string,
-    _lunchEnd?: string,
-    clockOut?: string
+    clockIn?: string | null,
+    _lunchStart?: string | null,
+    _lunchEnd?: string | null,
+    clockOut?: string | null
 ): { totalWorkedMinutes: number; lunchMinutes: number; error: boolean } {
     if (!clockIn || !clockOut) {
         return { totalWorkedMinutes: 0, lunchMinutes: 0, error: true };
@@ -93,10 +93,10 @@ export function calculateDailyAttendance(
             employeeId: employee.id,
             date,
             displayStatus: 'Blank',
-            clockIn: dayTimesheet?.timeIn,
-            lunchStart: dayTimesheet?.lunchStart,
-            lunchEnd: dayTimesheet?.lunchEnd,
-            clockOut: dayTimesheet?.timeOut,
+            clockIn: dayTimesheet?.timeIn ?? undefined,
+            lunchStart: dayTimesheet?.lunchStart ?? undefined,
+            lunchEnd: dayTimesheet?.lunchEnd ?? undefined,
+            clockOut: dayTimesheet?.timeOut ?? undefined,
             regularHours: dayTimesheet ? Number((dayTimesheet.hours || 0).toFixed(2)) : 0,
             overtimeHours: 0,
             missingPunch: false,
@@ -141,10 +141,10 @@ export function calculateDailyAttendance(
     let displayStatus: AttendanceDayView['displayStatus'] = isScheduledWorkday 
         ? (isFuture ? 'Blank' : 'Absent') 
         : 'Rest Day';
-    let clockIn = dayTimesheet?.timeIn;
-    let lunchStart = dayTimesheet?.lunchStart;
-    let lunchEnd = dayTimesheet?.lunchEnd;
-    let clockOut = dayTimesheet?.timeOut;
+    let clockIn = dayTimesheet?.timeIn ?? undefined;
+    let lunchStart = dayTimesheet?.lunchStart ?? undefined;
+    let lunchEnd = dayTimesheet?.lunchEnd ?? undefined;
+    let clockOut = dayTimesheet?.timeOut ?? undefined;
     let regularHours = 0;
     let overtimeHours = 0;
     let missingPunch = false;
@@ -205,10 +205,10 @@ export function calculateDailyAttendance(
     // 6. Calculate hours
     if (dayTimesheet && dayTimesheet.timeIn && dayTimesheet.timeOut) {
         const calc = calculateWorkedHours(
-            dayTimesheet.timeIn,
-            dayTimesheet.lunchStart,
-            dayTimesheet.lunchEnd,
-            dayTimesheet.timeOut
+            dayTimesheet.timeIn ?? undefined,
+            dayTimesheet.lunchStart ?? undefined,
+            dayTimesheet.lunchEnd ?? undefined,
+            dayTimesheet.timeOut ?? undefined
         );
         if (!calc.error) {
             const workedHours = calc.totalWorkedMinutes / 60;

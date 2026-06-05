@@ -104,14 +104,19 @@ export const useAuthStore = create<AuthState>((set, get) => {
                     return;
                 }
 
-                // ── STEP 1: Unblock the router and Sync App Data ─────────────────
-                useStore.getState().initDb();
+                // ── STEP 1: Fetch account data to set user role first ──────────
                 useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
-                set({ session: newSession, user: newSession.user, loading: false });
-
-                // ── STEP 2: Fetch account data in background ────────────────────
                 const { profile, personnel } = await fetchAccountData(newSession.user.id);
-                set({ identity: profile, profile: personnel });
+
+                // ── STEP 2: Initialize Database and Unblock Router ──────────────
+                await useStore.getState().initDb();
+                set({ 
+                    session: newSession, 
+                    user: newSession.user, 
+                    identity: profile, 
+                    profile: personnel, 
+                    loading: false 
+                });
             } catch (err: any) {
                 console.error('[Auth Error] Catastrophic failure in auth listener:', err);
                 // Hardened fallback: if this is an AuthApiError or related to token invalidation, wipe and reboot
@@ -148,9 +153,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 
                 if (data.session) {
                     useStore.getState().setAuthData(data.session.user.id, data.session.user.email ?? '');
-                    set({ session: data.session, user: data.session.user, loading: false, error: null });
-                    fetchAccountData(data.session.user.id).then(({ profile, personnel }) => {
-                        set({ identity: profile, profile: personnel });
+                    const { profile, personnel } = await fetchAccountData(data.session.user.id);
+                    await useStore.getState().initDb();
+                    set({ 
+                        session: data.session, 
+                        user: data.session.user, 
+                        identity: profile, 
+                        profile: personnel, 
+                        loading: false, 
+                        error: null 
                     });
                 }
             } catch (error: any) {

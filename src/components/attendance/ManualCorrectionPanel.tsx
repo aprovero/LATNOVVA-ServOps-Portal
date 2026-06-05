@@ -42,12 +42,12 @@ export default function ManualCorrectionPanel({ employeeId, date, existingTimesh
         const timestamp = new Date().toISOString();
 
         const payload: Partial<TimesheetEntry> = {
-            timeIn: timeIn || undefined,
-            lunchStart: lunchStart || undefined,
-            lunchEnd: lunchEnd || undefined,
-            timeOut: timeOut || undefined,
+            timeIn: timeIn || null,
+            lunchStart: lunchStart || null,
+            lunchEnd: lunchEnd || null,
+            timeOut: timeOut || null,
             hours: Number(hours.toFixed(2)),
-            notes: notes || undefined,
+            notes: notes || null,
             correctedBy: username,
             correctedAt: timestamp,
             correctionReason: correctionReason,

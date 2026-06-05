@@ -292,15 +292,15 @@ export interface TimesheetEntry {
     id: string;
     personnelId: string;
     date: string; // ISO yyyy-mm-dd
-    timeIn?: string; // HH:mm
-    lunchStart?: string; // HH:mm
-    lunchEnd?: string; // HH:mm
-    timeOut?: string; // HH:mm
+    timeIn?: string | null; // HH:mm
+    lunchStart?: string | null; // HH:mm
+    lunchEnd?: string | null; // HH:mm
+    timeOut?: string | null; // HH:mm
     hours: number;
     type: 'On Site' | 'Travel' | 'Other' | 'Home Office';
     classification?: 'Regular' | 'Overtime' | 'Double Time' | 'Unclassified';
     projectId?: string;
-    notes?: string;
+    notes?: string | null;
     status?: 'Pending' | 'Approved' | 'Rejected';
     approvedBy?: string;
     signature?: {
@@ -404,16 +404,16 @@ export interface AttendanceDayView {
     employeeId: string;
     date: string;
     displayStatus: 'Present' | 'Vacation' | 'Sick Leave' | 'Home Office' | 'Personal Leave' | 'Unpaid Leave' | 'Training' | 'Holiday' | 'Rest Day' | 'Suspension' | 'Absent' | 'Missing Punch' | 'Conflict' | 'Blank';
-    clockIn?: string;
-    lunchStart?: string;
-    lunchEnd?: string;
-    clockOut?: string;
+    clockIn?: string | null;
+    lunchStart?: string | null;
+    lunchEnd?: string | null;
+    clockOut?: string | null;
     regularHours?: number;
     overtimeHours?: number;
     missingPunch: boolean;
     conflict: boolean;
     source?: 'clockin' | 'manual' | 'import' | 'gps' | 'schedule';
-    notes?: string;
+    notes?: string | null;
 }
 
 interface AppState {
@@ -1873,14 +1873,14 @@ export const useStore = create<AppState>()(
                 if (updates.personnelId !== undefined) dbPayload.personnel_id = updates.personnelId;
                 if (updates.projectId !== undefined) dbPayload.project_id = updates.projectId;
                 if (updates.date !== undefined) dbPayload.date = updates.date;
-                if (updates.timeIn !== undefined) dbPayload.time_in = updates.timeIn;
-                if (updates.lunchStart !== undefined) dbPayload.lunch_start = updates.lunchStart;
-                if (updates.lunchEnd !== undefined) dbPayload.lunch_end = updates.lunchEnd;
-                if (updates.timeOut !== undefined) dbPayload.time_out = updates.timeOut;
+                if (updates.timeIn !== undefined) dbPayload.time_in = updates.timeIn ?? null;
+                if (updates.lunchStart !== undefined) dbPayload.lunch_start = updates.lunchStart ?? null;
+                if (updates.lunchEnd !== undefined) dbPayload.lunch_end = updates.lunchEnd ?? null;
+                if (updates.timeOut !== undefined) dbPayload.time_out = updates.timeOut ?? null;
                 if (updates.hours !== undefined) dbPayload.hours = updates.hours;
                 if (updates.type !== undefined) dbPayload.type = updates.type;
                 if (updates.classification !== undefined) dbPayload.classification = updates.classification;
-                if (updates.notes !== undefined) dbPayload.notes = updates.notes;
+                if (updates.notes !== undefined) dbPayload.notes = updates.notes ?? null;
                 if (updates.status !== undefined) dbPayload.status = updates.status;
                 if (updates.approvedBy !== undefined) dbPayload.approved_by = updates.approvedBy;
                 if (updates.signature !== undefined) dbPayload.signature = updates.signature;
