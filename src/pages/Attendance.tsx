@@ -116,11 +116,15 @@ export default function Attendance() {
         setMissingPunchesOnly(false);
         setOvertimeOnly(false);
         setStatusFilter(null);
+        setClockedInTodayOnly(false);
 
         if (filter === 'conflict') setConflictsOnly(true);
         else if (filter === 'missing_punch') setMissingPunchesOnly(true);
         else if (filter === 'overtime') setOvertimeOnly(true);
-        else if (filter === 'present') setStatusFilter('Present');
+        else if (filter === 'present') {
+            setStatusFilter('Present');
+            setClockedInTodayOnly(true);
+        }
         else if (filter === 'vacation') setStatusFilter('Vacation');
         else if (filter === 'sick_leave') setStatusFilter('Sick Leave');
         else if (filter === 'home_office') setStatusFilter('Home Office');
