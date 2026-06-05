@@ -4,6 +4,7 @@ import { useStore, AttendanceOverride } from '../../store/useStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 interface AddOverrideModalProps {
     isOpen: boolean;
@@ -63,6 +64,15 @@ export default function AddOverrideModal({ isOpen, onClose }: AddOverrideModalPr
         setNotes('');
     };
 
+    const formatDateDisplay = (dateStr: string) => {
+        if (!dateStr) return 'dd/mm/yyyy';
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return dateStr;
+    };
+
     const activePersonnel = personnel.filter(p => p.status === 'Active');
 
     return (
@@ -95,23 +105,39 @@ export default function AddOverrideModal({ isOpen, onClose }: AddOverrideModalPr
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block">
                                 {t('attendance.override.start_date', 'Fecha Inicio')} <span className="text-red-500">*</span>
                             </label>
-                            <Input
-                                type="date"
-                                value={startDate}
-                                onChange={e => setStartDate(e.target.value)}
-                                className="rounded-xl"
-                            />
+                            <div className="relative h-9">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={e => setStartDate(e.target.value)}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
+                                <div className="flex h-9 w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm shadow-sm justify-between items-center text-gray-700 pointer-events-none">
+                                    <span className={!startDate ? "text-gray-400" : ""}>
+                                        {formatDateDisplay(startDate)}
+                                    </span>
+                                    <CalendarIcon className="text-gray-400 shrink-0" size={16} />
+                                </div>
+                            </div>
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block">
                                 {t('attendance.override.end_date', 'Fecha Fin')} <span className="text-red-500">*</span>
                             </label>
-                            <Input
-                                type="date"
-                                value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
-                                className="rounded-xl"
-                            />
+                            <div className="relative h-9">
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={e => setEndDate(e.target.value)}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
+                                <div className="flex h-9 w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm shadow-sm justify-between items-center text-gray-700 pointer-events-none">
+                                    <span className={!endDate ? "text-gray-400" : ""}>
+                                        {formatDateDisplay(endDate)}
+                                    </span>
+                                    <CalendarIcon className="text-gray-400 shrink-0" size={16} />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
