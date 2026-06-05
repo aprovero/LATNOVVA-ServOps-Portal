@@ -138,8 +138,32 @@ export const useAuthStore = create<AuthState>((set, get) => {
         loading: true,
         error: null,
 
-        initializeAuth: () => {
-            // No-op: handled by the top-level listener during store creation.
+        initializeAuth: async () => {
+            console.log('[Auth] Initializing auth state explicitly...');
+            try {
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                if (!currentSession) {
+                    console.log('[Auth] No active session found on initialization.');
+                    set({ loading: false });
+                    return;
+                }
+
+                console.log('[Auth] Active session found on initialization, loading profile and DB...');
+                useStore.getState().setAuthData(currentSession.user.id, currentSession.user.email ?? '');
+                const { profile, personnel } = await fetchAccountData(currentSession.user.id);
+                await useStore.getState().initDb();
+                
+                set({
+                    session: currentSession,
+                    user: currentSession.user,
+                    identity: profile,
+                    profile: personnel,
+                    loading: false
+                });
+            } catch (err) {
+                console.error('[Auth Error] Explicit initialization failed:', err);
+                set({ loading: false });
+            }
         },
 
         signInWithEmail: async (email, password) => {
