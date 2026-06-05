@@ -73,7 +73,7 @@ export default function AttendanceGrid({
         if (filters.clockedInTodayOnly) {
             const todayStr = new Date().toLocaleDateString('en-CA');
             const todayView = calculateDailyAttendance(emp, todayStr, timesheets, overrides, schedules, lang);
-            const clockedInToday = ['present', 'home_office', 'conflict', 'missing_punch'].includes(todayView.displayStatus.toLowerCase());
+            const clockedInToday = ['present', 'home_office', 'home office', 'conflict', 'missing_punch', 'missing punch'].includes(todayView.displayStatus.toLowerCase());
             if (!clockedInToday) return false;
         }
 
