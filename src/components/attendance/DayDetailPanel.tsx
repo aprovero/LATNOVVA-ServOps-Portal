@@ -129,14 +129,11 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                     </div>
                 </div>
 
-                {/* Expected Schedule vs Raw Logs */}
                 <div className="space-y-4">
                     <div>
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('attendance.detail.schedule_expect', 'Expectativa de Horario')}</h4>
                         <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3.5 space-y-2 text-xs text-gray-600">
                             <div className="flex justify-between"><span className="font-semibold">{t('attendance.detail.schedule_name', 'Horario Asignado')}</span><span>{schedule.name}</span></div>
-                            <div className="flex justify-between"><span>{t('attendance.detail.expected_hours', 'Horas Teoricas')}</span><span>{schedule.standardDailyHours} hrs</span></div>
-                            <div className="flex justify-between"><span>{t('attendance.detail.expected_times', 'Jornada Esperada')}</span><span>{schedule.startTime} - {schedule.endTime}</span></div>
                         </div>
                     </div>
 
