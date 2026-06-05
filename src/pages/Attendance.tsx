@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search } from 'lucide-react';
@@ -10,7 +10,15 @@ import { calculateDailyAttendance, formatDisplayDate } from '../utils/attendance
 
 export default function Attendance() {
     const { t, i18n } = useTranslation();
-    const { personnel, projects, timesheets, attendanceOverrides, workSchedules, refreshAttendance } = useStore();
+    const { personnel, projects, timesheets, attendanceOverrides, workSchedules, refreshAttendance, activeSubsidiary } = useStore();
+
+    const filteredPersonnel = useMemo(() => {
+        return personnel.filter(p => (p.subsidiary || 'US') === activeSubsidiary);
+    }, [personnel, activeSubsidiary]);
+
+    const filteredProjects = useMemo(() => {
+        return projects.filter(p => (p.subsidiary || 'US') === activeSubsidiary);
+    }, [projects, activeSubsidiary]);
 
     // Default dates: Current Week (Monday to Sunday)
     const getFormattedDate = (date: Date) => date.toISOString().split('T')[0];
@@ -42,7 +50,7 @@ export default function Attendance() {
 
     // Compute stats for today
     const computeStats = () => {
-        const activeCount = personnel.filter(p => p.status === 'Active').length;
+        const activeCount = filteredPersonnel.filter(p => p.status === 'Active').length;
         const todayStr = getFormattedDate(new Date());
         
         let presentToday = 0;
@@ -54,7 +62,7 @@ export default function Attendance() {
         let pendingConflicts = 0;
         let overtimeHours = 0;
 
-        personnel.forEach(emp => {
+        filteredPersonnel.forEach(emp => {
             const dv = calculateDailyAttendance(emp, todayStr, timesheets, attendanceOverrides, workSchedules);
             if (dv.displayStatus === 'Present') presentToday++;
             if (dv.displayStatus === 'Vacation') onVacation++;
@@ -84,7 +92,7 @@ export default function Attendance() {
     const handleExport = () => {
         const lang = i18n.language === 'en' ? 'en' : 'es';
         // Filter out employees depending on active / inactive toggle before passing
-        const filteredEmp = personnel.filter(emp => {
+        const filteredEmp = filteredPersonnel.filter(emp => {
             if (activeFilter === 'active' && emp.status !== 'Active') return false;
             if (activeFilter === 'inactive' && emp.status !== 'Inactive') return false;
             return true;
@@ -205,7 +213,7 @@ export default function Attendance() {
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-teal outline-none h-11 cursor-pointer"
                         >
                             <option value="">{t('timesheets.filters.all_projects', 'Todos los Proyectos')}</option>
-                            {projects.filter(p => p.status === 'Active' || p.status === 'In Progress').map(p => (
+                            {filteredProjects.filter(p => p.status === 'Active' || p.status === 'In Progress').map(p => (
                                 <option key={p.id} value={p.id}>{p.codeName || p.name}</option>
                             ))}
                         </select>
@@ -307,8 +315,8 @@ export default function Attendance() {
 
             {/* Attendance Spreadsheet Grid */}
             <AttendanceGrid
-                employees={personnel}
-                projects={projects}
+                employees={filteredPersonnel}
+                projects={filteredProjects}
                 timesheets={timesheets}
                 overrides={attendanceOverrides}
                 schedules={workSchedules}

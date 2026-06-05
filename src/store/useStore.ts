@@ -1129,6 +1129,8 @@ export const useStore = create<AppState>()(
                                 projectId: t.project_id,
                                 date: t.date,
                                 timeIn: t.time_in,
+                                lunchStart: t.lunch_start,
+                                lunchEnd: t.lunch_end,
                                 timeOut: t.time_out,
                                 hours: t.hours,
                                 type: t.type,
@@ -1141,6 +1143,9 @@ export const useStore = create<AppState>()(
                                 gpsVerified: t.gps_verified,
                                 source: (t as any).source || 'manual',
                                 manualReason: (t as any).manual_reason,
+                                correctedBy: (t as any).corrected_by,
+                                correctedAt: (t as any).corrected_at,
+                                correctionReason: (t as any).correction_reason,
                             }))
                             : state.timesheets,
                         tools: toolsDB?.length
@@ -1840,6 +1845,8 @@ export const useStore = create<AppState>()(
                     project_id: timesheet.projectId,
                     date: timesheet.date,
                     time_in: timesheet.timeIn,
+                    lunch_start: timesheet.lunchStart,
+                    lunch_end: timesheet.lunchEnd,
                     time_out: timesheet.timeOut,
                     hours: timesheet.hours,
                     type: timesheet.type,
@@ -1849,7 +1856,12 @@ export const useStore = create<AppState>()(
                     approved_by: timesheet.approvedBy,
                     signature: timesheet.signature,
                     punches: timesheet.punches,
-                    gps_verified: timesheet.gpsVerified
+                    gps_verified: timesheet.gpsVerified,
+                    source: timesheet.source,
+                    manual_reason: timesheet.manualReason,
+                    corrected_by: timesheet.correctedBy,
+                    corrected_at: timesheet.correctedAt,
+                    correction_reason: timesheet.correctionReason
                 };
                 await get().safeSync('mx_timesheets', timesheet.id, 'insert', dbPayload);
             },
@@ -1862,6 +1874,8 @@ export const useStore = create<AppState>()(
                 if (updates.projectId !== undefined) dbPayload.project_id = updates.projectId;
                 if (updates.date !== undefined) dbPayload.date = updates.date;
                 if (updates.timeIn !== undefined) dbPayload.time_in = updates.timeIn;
+                if (updates.lunchStart !== undefined) dbPayload.lunch_start = updates.lunchStart;
+                if (updates.lunchEnd !== undefined) dbPayload.lunch_end = updates.lunchEnd;
                 if (updates.timeOut !== undefined) dbPayload.time_out = updates.timeOut;
                 if (updates.hours !== undefined) dbPayload.hours = updates.hours;
                 if (updates.type !== undefined) dbPayload.type = updates.type;
@@ -1874,6 +1888,9 @@ export const useStore = create<AppState>()(
                 if (updates.gpsVerified !== undefined) dbPayload.gps_verified = updates.gpsVerified;
                 if (updates.source !== undefined) dbPayload.source = updates.source;             
                 if (updates.manualReason !== undefined) dbPayload.manual_reason = updates.manualReason; 
+                if (updates.correctedBy !== undefined) dbPayload.corrected_by = updates.correctedBy;
+                if (updates.correctedAt !== undefined) dbPayload.corrected_at = updates.correctedAt;
+                if (updates.correctionReason !== undefined) dbPayload.correction_reason = updates.correctionReason;
                 if (Object.keys(dbPayload).length > 0) {
                     await get().safeSync('mx_timesheets', id, 'update', dbPayload);
                 }

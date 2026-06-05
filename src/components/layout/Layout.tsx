@@ -33,7 +33,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings } = useStore();
+    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings, activeSubsidiary } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -190,14 +190,21 @@ export default function Layout() {
             name: t('nav.operations'),
             links: [
                 { name: t('nav.live_map'), path: '/live-map', icon: MapIcon, roles: ['Supervisor', 'Manager'] },
-                { name: t('nav.projects'), path: '/projects', icon: Home, roles: ['Tech', 'Supervisor', 'Manager', 'Customer', 'Office', 'HR'] },
+                { 
+                    name: t('nav.projects'), 
+                    path: '/projects', 
+                    icon: Home, 
+                    roles: activeSubsidiary === 'MX'
+                        ? ['Supervisor', 'Manager', 'Customer', 'HR']
+                        : ['Tech', 'Supervisor', 'Manager', 'Customer', 'Office', 'HR']
+                },
             ]
         },
         {
             name: t('nav.resources'),
             links: [
                 { name: t('nav.personnel'), path: '/personnel', icon: User, roles: ['Supervisor', 'Manager', 'HR'] },
-                { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Manager', 'HR', 'Office'] },
+                { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Office'] },
                 { name: t('nav.attendance', 'Asistencias'), path: '/attendance', icon: Calendar, roles: ['Manager', 'HR'] },
                 { name: 'Nómina', path: '/nomina', icon: FileSpreadsheet, roles: ['Manager', 'HR'] },
             ]
