@@ -15,7 +15,7 @@ interface DayDetailPanelProps {
 export default function DayDetailPanel({ employee, date, project, onClose }: DayDetailPanelProps) {
     const { t, i18n } = useTranslation();
     const lang = i18n.language === 'en' ? 'en' : 'es';
-    const { timesheets, attendanceOverrides, workSchedules } = useStore();
+    const { timesheets, attendanceOverrides, workSchedules, projects } = useStore();
     const [isEditing, setIsEditing] = useState(false);
 
     // Compute details for this date
@@ -139,11 +139,33 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
 
                     <div>
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('attendance.detail.raw_logs', 'Registros Registrados')}</h4>
-                        <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3.5 space-y-2 text-xs text-gray-600">
-                            <div className="flex justify-between"><span>{t('timesheets.modals.time_in', 'Entrada')}</span><span className="font-bold">{dayView.clockIn || '—'}</span></div>
-                            <div className="flex justify-between"><span>{t('attendance.correction.lunch_start', 'Inicio Almuerzo')}</span><span>{dayView.lunchStart || '—'}</span></div>
-                            <div className="flex justify-between"><span>{t('attendance.correction.lunch_end', 'Fin Almuerzo')}</span><span>{dayView.lunchEnd || '—'}</span></div>
-                            <div className="flex justify-between"><span>{t('timesheets.modals.time_out', 'Salida')}</span><span className="font-bold">{dayView.clockOut || '—'}</span></div>
+                        <div className="space-y-3">
+                            {dayView.shifts && dayView.shifts.length > 0 ? (
+                                dayView.shifts.map((shift, sIdx) => {
+                                    const proj = projects.find(p => p.id === shift.projectId);
+                                    const projName = proj ? (proj.codeName || proj.name) : t('attendance.unassigned', 'Sin Proyecto');
+                                    return (
+                                        <div key={sIdx} className="bg-gray-50/50 border border-gray-100 rounded-xl p-3.5 space-y-2 text-xs text-gray-600 relative overflow-hidden">
+                                            <div className="border-b border-gray-200/50 pb-1.5 font-bold text-brand-teal flex justify-between items-center">
+                                                <span>{dayView.shifts!.length > 1 ? `${t('attendance.shift', 'Turno')} ${sIdx + 1}` : t('attendance.shift_detail', 'Detalle de Turno')}</span>
+                                                <span className="text-gray-400 font-medium text-[10px] truncate max-w-[200px]">{projName}</span>
+                                            </div>
+                                            <div className="flex justify-between mt-1.5"><span>{t('timesheets.modals.time_in', 'Entrada')}</span><span className="font-bold">{shift.timeIn || '—'}</span></div>
+                                            {shift.lunchStart && <div className="flex justify-between"><span>{t('attendance.correction.lunch_start', 'Inicio Almuerzo')}</span><span>{shift.lunchStart || '—'}</span></div>}
+                                            {shift.lunchEnd && <div className="flex justify-between"><span>{t('attendance.correction.lunch_end', 'Fin Almuerzo')}</span><span>{shift.lunchEnd || '—'}</span></div>}
+                                            <div className="flex justify-between"><span>{t('timesheets.modals.time_out', 'Salida')}</span><span className="font-bold">{shift.timeOut || '—'}</span></div>
+                                            <div className="flex justify-between border-t border-gray-100 pt-1 text-[11px]"><span className="text-gray-400">{t('attendance.shift_hours', 'Horas Turno')}</span><span className="font-semibold text-accent-greyDark">{shift.hours} hrs</span></div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3.5 space-y-2 text-xs text-gray-600">
+                                    <div className="flex justify-between"><span>{t('timesheets.modals.time_in', 'Entrada')}</span><span className="font-bold">{dayView.clockIn || '—'}</span></div>
+                                    <div className="flex justify-between"><span>{t('attendance.correction.lunch_start', 'Inicio Almuerzo')}</span><span>{dayView.lunchStart || '—'}</span></div>
+                                    <div className="flex justify-between"><span>{t('attendance.correction.lunch_end', 'Fin Almuerzo')}</span><span>{dayView.lunchEnd || '—'}</span></div>
+                                    <div className="flex justify-between"><span>{t('timesheets.modals.time_out', 'Salida')}</span><span className="font-bold">{dayView.clockOut || '—'}</span></div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

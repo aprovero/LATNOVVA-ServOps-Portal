@@ -112,9 +112,18 @@ export function calculateDailyAttendance(
     );
 
     // 2. Find manual/timesheet entries for this employee and date
-    const dayTimesheet = timesheets.find(t => 
+    const dayTimesheets = timesheets.filter(t => 
         t.personnelId === employee.id && t.date === date
     );
+
+    // Sort chronologically by timeIn
+    const sortedTimesheets = [...dayTimesheets].sort((a, b) => {
+        const timeA = a.timeIn || '00:00';
+        const timeB = b.timeIn || '00:00';
+        return timeA.localeCompare(timeB);
+    });
+
+    const primaryTimesheet = sortedTimesheets[0] || null;
 
     // 3. Find applicable schedule
     const scheduleId = employee.defaultScheduleId || 'SCH-STD-MX';
@@ -141,21 +150,21 @@ export function calculateDailyAttendance(
     let displayStatus: AttendanceDayView['displayStatus'] = isScheduledWorkday 
         ? (isFuture ? 'Blank' : 'Absent') 
         : 'Rest Day';
-    let clockIn = dayTimesheet?.timeIn ?? undefined;
-    let lunchStart = dayTimesheet?.lunchStart ?? undefined;
-    let lunchEnd = dayTimesheet?.lunchEnd ?? undefined;
-    let clockOut = dayTimesheet?.timeOut ?? undefined;
+    let clockIn = primaryTimesheet?.timeIn ?? undefined;
+    let lunchStart = primaryTimesheet?.lunchStart ?? undefined;
+    let lunchEnd = primaryTimesheet?.lunchEnd ?? undefined;
+    let clockOut = sortedTimesheets[sortedTimesheets.length - 1]?.timeOut ?? undefined;
     let regularHours = 0;
     let overtimeHours = 0;
     let missingPunch = false;
     let conflict = false;
     let source: AttendanceDayView['source'] = 'schedule';
-    let notes = dayTimesheet?.notes || dayOverride?.notes || '';
+    let notes = sortedTimesheets.map(t => t.notes).filter(Boolean).join(' | ') || dayOverride?.notes || '';
 
-    // Check missing punch (one is missing but not both)
-    if (dayTimesheet) {
-        const hasTimeIn = !!dayTimesheet.timeIn;
-        const hasTimeOut = !!dayTimesheet.timeOut;
+    // Check missing punch across all timesheets
+    for (const ts of sortedTimesheets) {
+        const hasTimeIn = !!ts.timeIn;
+        const hasTimeOut = !!ts.timeOut;
         if (hasTimeIn !== hasTimeOut) {
             const todayStr = new Date().toLocaleDateString('en-CA');
             if (date < todayStr && hasTimeIn && !hasTimeOut) {
@@ -169,9 +178,8 @@ export function calculateDailyAttendance(
     // 5. Apply calculation rules & hierarchy
     
     // Check conflicts first
-    // Conflict rules: If employee has clock-in/time entry data and an override type of vacation, sick_leave, unpaid_leave, rest_day, suspension, holiday
     const conflictTypes = ['vacation', 'sick_leave', 'unpaid_leave', 'rest_day', 'suspension', 'holiday'];
-    const hasWorked = dayTimesheet && (dayTimesheet.timeIn || dayTimesheet.timeOut);
+    const hasWorked = sortedTimesheets.length > 0;
     
     if (dayOverride && hasWorked && conflictTypes.includes(dayOverride.type)) {
         conflict = true;
@@ -192,37 +200,57 @@ export function calculateDailyAttendance(
         };
         displayStatus = labelsMap[dayOverride.type] || 'Present';
         source = 'manual';
-    } else if (dayTimesheet && (dayTimesheet.timeIn || dayTimesheet.timeOut)) {
+    } else if (hasWorked) {
         // Clock-in or Manual correction is priority 2 / 3
         if (missingPunch) {
             displayStatus = 'Missing Punch';
         } else {
-            displayStatus = dayTimesheet.type === 'Home Office' ? 'Home Office' : 'Present';
+            const hasHomeOffice = sortedTimesheets.some(t => t.type === 'Home Office');
+            displayStatus = hasHomeOffice ? 'Home Office' : 'Present';
         }
-        source = dayTimesheet.source === 'gps' ? 'gps' : 'manual';
+        source = sortedTimesheets.some(t => t.source === 'gps') ? 'gps' : 'manual';
     }
 
-    // 6. Calculate hours
-    if (dayTimesheet && dayTimesheet.timeIn && dayTimesheet.timeOut) {
-        const calc = calculateWorkedHours(
-            dayTimesheet.timeIn ?? undefined,
-            dayTimesheet.lunchStart ?? undefined,
-            dayTimesheet.lunchEnd ?? undefined,
-            dayTimesheet.timeOut ?? undefined
-        );
-        if (!calc.error) {
-            const workedHours = calc.totalWorkedMinutes / 60;
-            const standardHours = schedule.standardDailyHours;
-            
-            if (workedHours > standardHours) {
-                regularHours = standardHours;
-                overtimeHours = workedHours - standardHours;
-            } else {
-                regularHours = workedHours;
-                overtimeHours = 0;
+    // 6. Calculate hours across all shifts on this day
+    let totalWorkedMinutes = 0;
+    for (const ts of sortedTimesheets) {
+        if (ts.timeIn && ts.timeOut) {
+            const calc = calculateWorkedHours(
+                ts.timeIn ?? undefined,
+                ts.lunchStart ?? undefined,
+                ts.lunchEnd ?? undefined,
+                ts.timeOut ?? undefined
+            );
+            if (!calc.error) {
+                totalWorkedMinutes += calc.totalWorkedMinutes;
             }
+        } else if (ts.hours) {
+            totalWorkedMinutes += ts.hours * 60;
         }
     }
+
+    if (totalWorkedMinutes > 0) {
+        const workedHours = totalWorkedMinutes / 60;
+        const standardHours = schedule.standardDailyHours;
+        
+        if (workedHours > standardHours) {
+            regularHours = standardHours;
+            overtimeHours = workedHours - standardHours;
+        } else {
+            regularHours = workedHours;
+            overtimeHours = 0;
+        }
+    }
+
+    const shifts = sortedTimesheets.map(t => ({
+        timeIn: t.timeIn,
+        lunchStart: t.lunchStart,
+        lunchEnd: t.lunchEnd,
+        timeOut: t.timeOut,
+        hours: t.hours || 0,
+        projectId: t.projectId,
+        notes: t.notes
+    }));
 
     return {
         employeeId: employee.id,
@@ -237,7 +265,8 @@ export function calculateDailyAttendance(
         missingPunch,
         conflict,
         source,
-        notes
+        notes,
+        shifts
     };
 }
 

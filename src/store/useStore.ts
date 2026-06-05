@@ -414,6 +414,15 @@ export interface AttendanceDayView {
     conflict: boolean;
     source?: 'clockin' | 'manual' | 'import' | 'gps' | 'schedule';
     notes?: string | null;
+    shifts?: Array<{
+        timeIn?: string | null;
+        lunchStart?: string | null;
+        lunchEnd?: string | null;
+        timeOut?: string | null;
+        hours: number;
+        projectId?: string;
+        notes?: string | null;
+    }>;
 }
 
 interface AppState {
