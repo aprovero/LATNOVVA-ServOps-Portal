@@ -62,9 +62,12 @@ export default function AttendanceGrid({
         // Search text
         if (filters.search && !emp.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
 
-        // Assigned project
+        // Assigned project OR project clocked in during selected range
         const empProject = projects.find(p => p.assignedPersonnel?.includes(emp.id));
-        if (filters.project && empProject?.id !== filters.project) return false;
+        const hasClockedInProject = timesheets.some(
+            t => t.personnelId === emp.id && dates.includes(t.date) && t.projectId === filters.project
+        );
+        if (filters.project && empProject?.id !== filters.project && !hasClockedInProject) return false;
 
         // Filter by who clocked in today
         if (filters.clockedInTodayOnly) {
@@ -159,8 +162,19 @@ export default function AttendanceGrid({
                                 </tr>
                             ) : (
                                 filteredEmployees.map(emp => {
-                                    // Get employee project
-                                    const project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
+                                    // Get employee project: first try range clockins, then fallback to assigned project
+                                    const rangeTimesheets = timesheets.filter(t => t.personnelId === emp.id && dates.includes(t.date));
+                                    const latestWithProject = [...rangeTimesheets]
+                                        .sort((a, b) => b.date.localeCompare(a.date))
+                                        .find(t => t.projectId);
+
+                                    let project = null;
+                                    if (latestWithProject && latestWithProject.projectId) {
+                                        project = projects.find(p => p.id === latestWithProject.projectId);
+                                    }
+                                    if (!project) {
+                                        project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
+                                    }
                                     const projectName = project ? (project.codeName || project.name) : '—';
 
                                     return (
@@ -183,10 +197,15 @@ export default function AttendanceGrid({
                                                 const dayView = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
                                                 const style = statusStyles[dayView.displayStatus] || { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-l-slate-300', label: 'Off', es: 'Libre' };
 
+                                                const dayTimesheet = timesheets.find(t => t.personnelId === emp.id && t.date === date);
+                                                const cellProject = dayTimesheet?.projectId 
+                                                    ? (projects.find(p => p.id === dayTimesheet.projectId) || project)
+                                                    : project;
+
                                                 return (
                                                     <td
                                                         key={date}
-                                                        onClick={() => setSelectedCell({ employee: emp, date, project })}
+                                                        onClick={() => setSelectedCell({ employee: emp, date, project: cellProject || undefined })}
                                                         className="p-0 border-r border-b border-gray-100 text-center cursor-pointer transition-all hover:bg-brand-teal/5 relative"
                                                     >
                                                         <div className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 ${style.bg} ${style.text} ${style.border}`}>
@@ -240,7 +259,18 @@ export default function AttendanceGrid({
                     </div>
                 ) : (
                     filteredEmployees.map(emp => {
-                        const project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
+                        const rangeTimesheets = timesheets.filter(t => t.personnelId === emp.id && dates.includes(t.date));
+                        const latestWithProject = [...rangeTimesheets]
+                            .sort((a, b) => b.date.localeCompare(a.date))
+                            .find(t => t.projectId);
+
+                        let project = null;
+                        if (latestWithProject && latestWithProject.projectId) {
+                            project = projects.find(p => p.id === latestWithProject.projectId);
+                        }
+                        if (!project) {
+                            project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
+                        }
                         const projectName = project ? (project.codeName || project.name) : '—';
                         
                         // Compute summaries for this range
