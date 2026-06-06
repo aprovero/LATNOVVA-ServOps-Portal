@@ -230,15 +230,71 @@ export function calculateDailyAttendance(
     }
 
     if (totalWorkedMinutes > 0) {
-        const workedHours = totalWorkedMinutes / 60;
-        const standardHours = schedule.standardDailyHours;
-        
-        if (workedHours > standardHours) {
-            regularHours = standardHours;
-            overtimeHours = workedHours - standardHours;
+        if (employee.subsidiary === 'MX') {
+            // Mexico weekly calculation: 48 hours limit per week (Monday to Sunday)
+            // 1. Find the Monday of the week for the current date
+            const monday = new Date(date + 'T00:00:00');
+            const day = monday.getDay();
+            const diffToMonday = day === 0 ? -6 : 1 - day;
+            monday.setDate(monday.getDate() + diffToMonday);
+            
+            // 2. Sum the worked minutes for all prior days of this week
+            let priorMinsOfWeek = 0;
+            const temp = new Date(monday);
+            const currentDateObj = new Date(date + 'T00:00:00');
+            
+            while (temp < currentDateObj) {
+                const dateStr = temp.toISOString().split('T')[0];
+                
+                // Fetch timesheets for this employee on dateStr
+                const dayTS = timesheets.filter(t => t.personnelId === employee.id && t.date === dateStr);
+                for (const ts of dayTS) {
+                    if (ts.timeIn && ts.timeOut) {
+                        const calc = calculateWorkedHours(
+                            ts.timeIn ?? undefined,
+                            ts.lunchStart ?? undefined,
+                            ts.lunchEnd ?? undefined,
+                            ts.timeOut ?? undefined
+                        );
+                        if (!calc.error) {
+                            priorMinsOfWeek += calc.totalWorkedMinutes;
+                        }
+                    } else if (ts.hours) {
+                        priorMinsOfWeek += ts.hours * 60;
+                    }
+                }
+                
+                temp.setDate(temp.getDate() + 1);
+            }
+            
+            const maxRegularMins = 48 * 60; // 48 hours in minutes
+            
+            if (priorMinsOfWeek >= maxRegularMins) {
+                // All hours worked today are overtime
+                regularHours = 0;
+                overtimeHours = totalWorkedMinutes / 60;
+            } else if (priorMinsOfWeek + totalWorkedMinutes > maxRegularMins) {
+                // Part of today's hours are regular, part are overtime
+                const remainingRegularMins = maxRegularMins - priorMinsOfWeek;
+                regularHours = remainingRegularMins / 60;
+                overtimeHours = (totalWorkedMinutes - remainingRegularMins) / 60;
+            } else {
+                // All hours worked today are regular
+                regularHours = totalWorkedMinutes / 60;
+                overtimeHours = 0;
+            }
         } else {
-            regularHours = workedHours;
-            overtimeHours = 0;
+            // Standard US calculation (daily basis)
+            const workedHours = totalWorkedMinutes / 60;
+            const standardHours = schedule.standardDailyHours;
+            
+            if (workedHours > standardHours) {
+                regularHours = standardHours;
+                overtimeHours = workedHours - standardHours;
+            } else {
+                regularHours = workedHours;
+                overtimeHours = 0;
+            }
         }
     }
 

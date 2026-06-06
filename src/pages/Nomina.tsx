@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { Input } from '../components/ui/input';
+import { calculateDailyAttendance } from '../utils/attendanceCalculations';
 export interface EditableNominaRow {
     id: string;
     personnelId: string;
@@ -47,7 +48,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function Nomina() {
     const { t } = useTranslation();
-    const { personnel, timesheets, projects } = useStore();
+    const { personnel, timesheets, projects, attendanceOverrides, workSchedules } = useStore();
     
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -126,9 +127,14 @@ export default function Nomina() {
 
             if (pTimesheets.length === 0) return;
 
-            const totalHours = pTimesheets.reduce((acc, ts) => acc + (ts.hours || 0), 0);
             const uniqueDates = new Set(pTimesheets.map(ts => ts.date));
             const daysWorked = uniqueDates.size;
+
+            let totalOvertimeHours = 0;
+            pTimesheets.forEach(ts => {
+                const dv = calculateDailyAttendance(p, ts.date, timesheets, attendanceOverrides, workSchedules);
+                totalOvertimeHours += dv.overtimeHours || 0;
+            });
 
             const md = p.subsidiaryMetadata || {};
 
@@ -178,7 +184,7 @@ export default function Nomina() {
                 ingresosVarios: '$0.00',
                 viaticos: `$${viaticos.toFixed(2)}`,
                 horasExtrasCarta: '$0.00',
-                horasExtras: `$${(totalHours > 48 ? (totalHours - 48) * (p.overtimeRate || (p.regularRate || 0) * 1.5) : 0).toFixed(2)}`,
+                horasExtras: `$${(totalOvertimeHours * (p.overtimeRate || (p.regularRate || 0) * 1.5)).toFixed(2)}`,
                 infonavit: `$${infonavit.toFixed(2)}`,
                 isrFiscal: '$0.00',
                 imss: '$0.00',

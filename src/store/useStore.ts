@@ -2068,6 +2068,11 @@ export const useStore = create<AppState>()(
                         computedHours = Math.round((totalMs / 3600000) * 100) / 100;
                     }
 
+                    const existingNotes = sessionToUpdate?.notes || '';
+                    const newNotes = punch.adjustmentNote 
+                        ? (existingNotes ? `${existingNotes} | ${punch.adjustmentNote}` : punch.adjustmentNote)
+                        : existingNotes;
+
                     const entryUpdates: Partial<TimesheetEntry> = {
                         punches: updatedPunches,
                         gpsVerified: allAccurate,
@@ -2077,6 +2082,7 @@ export const useStore = create<AppState>()(
                         ...(computedHours > 0 ? { hours: computedHours } : {}),
                         ...(projectId ? { projectId } : {}),
                         ...(punch.workMode ? { type: punch.workMode } : {}),
+                        notes: newNotes || null,
                     };
 
                     if (sessionToUpdate) {
@@ -2116,6 +2122,7 @@ export const useStore = create<AppState>()(
                             status: updated.status || 'Pending',
                             punches: updated.punches || [],
                             gps_verified: updated.gpsVerified ?? false,
+                            notes: updated.notes || null,
                         };
 
                         // Optional columns - only include if they have values to avoid schema errors on older DBs
