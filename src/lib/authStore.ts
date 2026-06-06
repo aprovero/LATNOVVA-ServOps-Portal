@@ -139,31 +139,16 @@ export const useAuthStore = create<AuthState>((set, get) => {
         error: null,
 
         initializeAuth: async () => {
-            console.log('[Auth] Initializing auth state explicitly...');
-            try {
-                const { data: { session: currentSession } } = await supabase.auth.getSession();
-                if (!currentSession) {
-                    console.log('[Auth] No active session found on initialization.');
+            console.log('[Auth] initializeAuth called (handled by onAuthStateChange listener)');
+            
+            // Safety timeout: If the app remains in the loading state for more than 6 seconds
+            // without a session, force loading to false to unblock the router and let the user log in.
+            setTimeout(() => {
+                if (get().loading) {
+                    console.warn('[Auth] Initialization safety timeout reached. Forcing loading to false.');
                     set({ loading: false });
-                    return;
                 }
-
-                console.log('[Auth] Active session found on initialization, loading profile and DB...');
-                useStore.getState().setAuthData(currentSession.user.id, currentSession.user.email ?? '');
-                const { profile, personnel } = await fetchAccountData(currentSession.user.id);
-                await useStore.getState().initDb();
-                
-                set({
-                    session: currentSession,
-                    user: currentSession.user,
-                    identity: profile,
-                    profile: personnel,
-                    loading: false
-                });
-            } catch (err) {
-                console.error('[Auth Error] Explicit initialization failed:', err);
-                set({ loading: false });
-            }
+            }, 6000);
         },
 
         signInWithEmail: async (email, password) => {
