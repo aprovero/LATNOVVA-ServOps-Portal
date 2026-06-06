@@ -4,6 +4,8 @@
 
 **A comprehensive, multi-tenant web application designed for LATNOVVA's Service Operations.**
 
+[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](#license)
+
 </div>
 
 <br />
@@ -69,6 +71,20 @@ Several SQL migration and repair scripts are included in the repository root to 
 
 ---
 
+## License
+
+Copyright (c) 2026 Latnovva and/or Andres A. Provero D. All rights reserved.
+
+This repository contains proprietary software, workflows, interface designs, and operational logic developed for Latnovva-related business use.
+
+No permission is granted to copy, modify, distribute, sublicense, host, resell, or use this software or any substantial part of it for commercial purposes without prior written authorization.
+
+This repository is made available only for authorized review, development, or evaluation purposes.
+
+Public visibility of this repository does not grant any license or reuse rights.
+
+---
+
 <div align="center">
-  <i>Internal APROVERO Project. All rights reserved.</i>
+  <i>Internal LATNOVVA Project. All rights reserved.</i>
 </div>
