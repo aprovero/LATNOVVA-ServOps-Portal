@@ -856,6 +856,7 @@
   },
   "attendance": {
     "title": "Attendance",
+    "geofence_warning": "You are outside the {{radius}}m project geofence (approx. {{distance}} away). Punch will be flagged.",
     "subtitle": "Daily monitoring, vacations, disabilities and record reconciliation",
     "select_project": "Select Project",
     "project_placeholder": "— Select a project —",

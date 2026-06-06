@@ -808,7 +808,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     {isOutsideGeofence && (
                         <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-in slide-in-from-top-1 duration-300">
                             <AlertTriangle size={16} className="shrink-0" />
-                            <span>You are outside the {platformSettings.geofenceRadius}m project geofence (approx. {geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} away). Punch will be flagged.</span>
+                            <span>{t('attendance.geofence_warning', { radius: platformSettings.geofenceRadius, distance: geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m` })}</span>
                         </div>
                     )}
                 </div>
@@ -837,7 +837,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     {isOutsideGeofence && (
                         <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-in slide-in-from-top-1 duration-300">
                             <AlertTriangle size={16} className="shrink-0" />
-                            <span>You are outside the {platformSettings.geofenceRadius}m project geofence (approx. {geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} away). Punch will be flagged.</span>
+                            <span>{t('attendance.geofence_warning', { radius: platformSettings.geofenceRadius, distance: geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m` })}</span>
                         </div>
                     )}
                 </div>

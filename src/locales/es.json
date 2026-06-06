@@ -856,6 +856,7 @@
   },
   "attendance": {
     "title": "Asistencias",
+    "geofence_warning": "Te encuentras fuera de la geocerca de {{radius}}m del proyecto (aprox. a {{distance}} de distancia). El registro será marcado.",
     "subtitle": "Monitoreo diario, vacaciones, incapacidades y conciliación de registros",
     "select_project": "Seleccionar Proyecto",
     "project_placeholder": "— Seleccione un proyecto —",
