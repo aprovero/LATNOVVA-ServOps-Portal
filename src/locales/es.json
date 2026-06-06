@@ -916,7 +916,8 @@
       "missing_punches": "Marcajes Incompletos",
       "overtime": "Horas Extras",
       "no_results": "No se encontraron colaboradores correspondientes.",
-      "clocked_in_today": "Presentes Hoy"
+      "clocked_in_today": "Presentes Hoy",
+      "present_now": "Presente Ahora"
     },
     "dashboard": {
       "active_employees": "Empleados Activos",

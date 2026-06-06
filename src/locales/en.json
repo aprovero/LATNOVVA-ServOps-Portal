@@ -916,7 +916,8 @@
       "missing_punches": "Missing Punches",
       "overtime": "Overtime",
       "no_results": "No corresponding personnel found.",
-      "clocked_in_today": "Present Today"
+      "clocked_in_today": "Present Today",
+      "present_now": "Present Now"
     },
     "dashboard": {
       "active_employees": "Active Employees",

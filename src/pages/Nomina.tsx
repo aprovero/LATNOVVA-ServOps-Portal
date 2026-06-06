@@ -110,10 +110,17 @@ export default function Nomina() {
         const result: EditableNominaRow[] = [];
         
         mxPersonnel.forEach(p => {
+            const assignedProj = projects.find(proj => proj.assignedPersonnel?.includes(p.id));
+            const rowProjectName = assignedProj ? (assignedProj.codeName || assignedProj.name) : t('nomina.no_project', 'No Project');
+
             const pTimesheets = timesheets.filter(ts => {
                 if (ts.personnelId !== p.id) return false;
                 if (ts.date < startDate || ts.date > endDate) return false;
-                if (selectedProject !== 'all' && ts.projectId !== selectedProject) return false;
+                
+                // If it is a Home Office timesheet, or has no projectId, fallback to their assigned project.
+                const tsProjectId = ts.projectId || (ts.type === 'Home Office' ? assignedProj?.id : undefined);
+                
+                if (selectedProject !== 'all' && tsProjectId !== selectedProject) return false;
                 return true;
             });
 
@@ -149,7 +156,7 @@ export default function Nomina() {
                 altaImss: md.imssDate || '',
                 fechaIngreso: md.hireDate || p.dbo || p.onboardingDate || '',
                 nombre: p.name,
-                proyecto: projectName,
+                proyecto: selectedProject !== 'all' ? projectName : rowProjectName,
                 puesto: p.position || '',
                 tipoNomina: md.payrollType || '',
                 totalNominaMensual: `$${totalNominaMensual.toFixed(2)}`,

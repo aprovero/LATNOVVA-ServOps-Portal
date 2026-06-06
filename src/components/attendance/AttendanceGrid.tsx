@@ -21,6 +21,7 @@ interface AttendanceGridProps {
         overtimeOnly: boolean;
         conflictsOnly: boolean;
         clockedInTodayOnly: boolean;
+        presentAhoraOnly: boolean;
     };
 }
 
@@ -75,6 +76,14 @@ export default function AttendanceGrid({
             const todayView = calculateDailyAttendance(emp, todayStr, timesheets, overrides, schedules, lang);
             const clockedInToday = ['present', 'home_office', 'home office', 'conflict', 'missing_punch', 'missing punch'].includes(todayView.displayStatus.toLowerCase());
             if (!clockedInToday) return false;
+        }
+
+        // Filter by who is clocked in right now (Presente Ahora - open timesheet today)
+        if (filters.presentAhoraOnly) {
+            const todayStr = new Date().toLocaleDateString('en-CA');
+            const empTimesheets = timesheets.filter(t => t.personnelId === emp.id && t.date === todayStr);
+            const hasOpenTimesheet = empTimesheets.some(t => t.timeIn && !t.timeOut);
+            if (!hasOpenTimesheet) return false;
         }
 
         // Compute daily views to filter by KPIs/flags

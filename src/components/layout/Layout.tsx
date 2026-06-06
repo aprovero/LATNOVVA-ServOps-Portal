@@ -790,8 +790,11 @@ export default function Layout() {
                 
                 {/* Global Footer (Desktop & Mobile) */}
                 <div className="mt-auto py-6 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 w-full opacity-60 hover:opacity-100 transition-opacity bg-white/50 border-t border-gray-100 mix-blend-multiply">
-                    <div className="text-[10px] text-accent-grey/50 text-center md:text-left font-bold uppercase tracking-wider">
-                        &copy; {new Date().getFullYear()} LATNOVVA & COR Solutions. All Rights Reserved.
+                    <div className="text-[10px] text-accent-grey/50 text-center md:text-left font-semibold uppercase tracking-wider space-y-1">
+                        <div>&copy; {new Date().getFullYear()} LATNOVVA & COR Solutions. All Rights Reserved.</div>
+                        <div className="normal-case text-[9px] text-accent-grey/40 font-normal max-w-xl">
+                            This software and its source code are proprietary and confidential. Unauthorized copying, modification, distribution, or commercial use is prohibited.
+                        </div>
                     </div>
                     <div className="flex flex-col md:flex-row items-center gap-2">
                         <span className="text-[10px] italic text-accent-grey/60">Powered by</span>

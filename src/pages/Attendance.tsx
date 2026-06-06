@@ -44,6 +44,7 @@ export default function Attendance() {
     const [overtimeOnly, setOvertimeOnly] = useState(false);
     const [conflictsOnly, setConflictsOnly] = useState(false);
     const [clockedInTodayOnly, setClockedInTodayOnly] = useState(true); // Default show who clocked in today
+    const [presentAhoraOnly, setPresentAhoraOnly] = useState(false);
 
     // Modal state
     const [isAddOverrideOpen, setIsAddOverrideOpen] = useState(false);
@@ -76,7 +77,7 @@ export default function Attendance() {
 
         filteredPersonnel.forEach(emp => {
             const dv = calculateDailyAttendance(emp, todayStr, timesheets, attendanceOverrides, workSchedules);
-            if (dv.displayStatus === 'Present') presentToday++;
+            if (dv.displayStatus === 'Present' || dv.displayStatus === 'Home Office') presentToday++;
             if (dv.displayStatus === 'Vacation') onVacation++;
             if (dv.displayStatus === 'Sick Leave') onSickLeave++;
             if (dv.displayStatus === 'Home Office') onHomeOffice++;
@@ -129,12 +130,12 @@ export default function Attendance() {
         setOvertimeOnly(false);
         setStatusFilter(null);
         setClockedInTodayOnly(false);
+        setPresentAhoraOnly(false);
 
         if (filter === 'conflict') setConflictsOnly(true);
         else if (filter === 'missing_punch') setMissingPunchesOnly(true);
         else if (filter === 'overtime') setOvertimeOnly(true);
         else if (filter === 'present') {
-            setStatusFilter('Present');
             setClockedInTodayOnly(true);
         }
         else if (filter === 'vacation') setStatusFilter('Vacation');
@@ -147,7 +148,7 @@ export default function Attendance() {
         if (conflictsOnly) return 'conflict';
         if (missingPunchesOnly) return 'missing_punch';
         if (overtimeOnly) return 'overtime';
-        if (statusFilter === 'Present') return 'present';
+        if (clockedInTodayOnly) return 'present';
         if (statusFilter === 'Vacation') return 'vacation';
         if (statusFilter === 'Sick Leave') return 'sick_leave';
         if (statusFilter === 'Home Office') return 'home_office';
@@ -285,14 +286,19 @@ export default function Attendance() {
                 <div className="flex flex-wrap gap-3 border-t border-gray-100 pt-3">
                     <button
                         type="button"
-                        onClick={() => setClockedInTodayOnly(!clockedInTodayOnly)}
+                        onClick={() => {
+                            setPresentAhoraOnly(!presentAhoraOnly);
+                            if (!presentAhoraOnly) {
+                                setClockedInTodayOnly(false); // Disable clocked in today if present now is active
+                            }
+                        }}
                         className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                            clockedInTodayOnly 
+                            presentAhoraOnly 
                                 ? 'bg-brand-teal text-white border-brand-teal shadow-sm' 
                                 : 'bg-white text-brand-teal border-teal-200 hover:bg-teal-50'
                         }`}
                     >
-                        ✓ {t('attendance.filters.clocked_in_today', 'Presentes Hoy')}
+                        ✓ {t('attendance.filters.present_now', 'Presente Ahora')}
                     </button>
                     <button
                         type="button"
@@ -347,7 +353,8 @@ export default function Attendance() {
                     missingPunchesOnly,
                     overtimeOnly,
                     conflictsOnly,
-                    clockedInTodayOnly
+                    clockedInTodayOnly,
+                    presentAhoraOnly
                 }}
             />
 
