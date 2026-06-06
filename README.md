@@ -4,6 +4,8 @@
 
 **A comprehensive, multi-tenant web application designed for LATNOVVA's Service Operations.**
 
+[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](#license)
+
 </div>
 
 <br />
@@ -66,6 +68,20 @@ The portal is divided into several specialized modules tailored to operational n
 The application relies heavily on **Supabase** for its backend, utilizing **Row Level Security (RLS)** to enforce strict data isolation across different subsidiaries. 
 
 Several SQL migration and repair scripts are included in the repository root to manage identity, multi-tenancy rules, and permissions (e.g., `rls_mexico_subsidiary.sql`, `final_identity_multitenancy.sql`).
+
+---
+
+## License
+
+Copyright (c) 2026 Latnovva and/or Andres A. Provero D. All rights reserved.
+
+This repository contains proprietary software, workflows, interface designs, and operational logic developed for Latnovva-related business use.
+
+No permission is granted to copy, modify, distribute, sublicense, host, resell, or use this software or any substantial part of it for commercial purposes without prior written authorization.
+
+This repository is made available only for authorized review, development, or evaluation purposes.
+
+Public visibility of this repository does not grant any license or reuse rights.
 
 ---
 
