@@ -373,39 +373,6 @@ export default function Attendance() {
                         >
                             ✓ {t('attendance.filters.present_now', 'Presente Ahora')}
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setConflictsOnly(!conflictsOnly)}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                                conflictsOnly 
-                                    ? 'bg-orange-500 text-white border-orange-500 shadow-sm' 
-                                    : 'bg-white text-orange-700 border-orange-200 hover:bg-orange-50'
-                            }`}
-                        >
-                            ⚠️ {t('attendance.filters.conflicts', 'Conflictos')}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setMissingPunchesOnly(!missingPunchesOnly)}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                                missingPunchesOnly 
-                                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm' 
-                                    : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'
-                            }`}
-                        >
-                            ❓ {t('attendance.filters.missing_punches', 'Marcajes Incompletos')}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setOvertimeOnly(!overtimeOnly)}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                                overtimeOnly 
-                                    ? 'bg-teal-500 text-white border-teal-500 shadow-sm' 
-                                    : 'bg-white text-teal-700 border-teal-200 hover:bg-teal-50'
-                            }`}
-                        >
-                            ⏱️ {t('attendance.filters.overtime', 'Horas Extras')}
-                        </button>
                     </div>
 
                     {/* Week Navigation Controls */}
