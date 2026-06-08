@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
-import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search } from 'lucide-react';
+import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import AttendanceDashboard from '../components/attendance/AttendanceDashboard';
 import AttendanceGrid from '../components/attendance/AttendanceGrid';
 import AddOverrideModal from '../components/attendance/AddOverrideModal';
@@ -157,6 +157,38 @@ export default function Attendance() {
         return null;
     };
 
+    const handlePrevWeek = () => {
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T00:00:00');
+        start.setDate(start.getDate() - 7);
+        end.setDate(end.getDate() - 7);
+        setStartDate(getFormattedDate(start));
+        setEndDate(getFormattedDate(end));
+    };
+
+    const handleNextWeek = () => {
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T00:00:00');
+        start.setDate(start.getDate() + 7);
+        end.setDate(end.getDate() + 7);
+        setStartDate(getFormattedDate(start));
+        setEndDate(getFormattedDate(end));
+    };
+
+    const handleCurrentWeek = () => {
+        const todayVal = new Date();
+        const mondayVal = new Date(todayVal);
+        const dayVal = todayVal.getDay();
+        const diffToMondayVal = dayVal === 0 ? -6 : 1 - dayVal;
+        mondayVal.setDate(todayVal.getDate() + diffToMondayVal);
+        
+        const sundayVal = new Date(mondayVal);
+        sundayVal.setDate(mondayVal.getDate() + 6);
+        
+        setStartDate(getFormattedDate(mondayVal));
+        setEndDate(getFormattedDate(sundayVal));
+    };
+
     return (
         <div className="space-y-6 w-full max-w-[100%] ml-0 mr-auto p-4 md:p-6">
             {/* Header */}
@@ -283,57 +315,88 @@ export default function Attendance() {
                     </div>
                 </div>
 
-                {/* Quick Flags Toggles */}
-                <div className="flex flex-wrap gap-3 border-t border-gray-100 pt-3">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setPresentAhoraOnly(!presentAhoraOnly);
-                            if (!presentAhoraOnly) {
-                                setClockedInTodayOnly(false); // Disable clocked in today if present now is active
-                            }
-                        }}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                            presentAhoraOnly 
-                                ? 'bg-brand-teal text-white border-brand-teal shadow-sm' 
-                                : 'bg-white text-brand-teal border-teal-200 hover:bg-teal-50'
-                        }`}
-                    >
-                        ✓ {t('attendance.filters.present_now', 'Presente Ahora')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setConflictsOnly(!conflictsOnly)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                            conflictsOnly 
-                                ? 'bg-orange-500 text-white border-orange-500 shadow-sm' 
-                                : 'bg-white text-orange-700 border-orange-200 hover:bg-orange-50'
-                        }`}
-                    >
-                        ⚠️ {t('attendance.filters.conflicts', 'Conflictos')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setMissingPunchesOnly(!missingPunchesOnly)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                            missingPunchesOnly 
-                                ? 'bg-amber-500 text-white border-amber-500 shadow-sm' 
-                                : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'
-                        }`}
-                    >
-                        ❓ {t('attendance.filters.missing_punches', 'Marcajes Incompletos')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setOvertimeOnly(!overtimeOnly)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
-                            overtimeOnly 
-                                ? 'bg-teal-500 text-white border-teal-500 shadow-sm' 
-                                : 'bg-white text-teal-700 border-teal-200 hover:bg-teal-50'
-                        }`}
-                    >
-                        ⏱️ {t('attendance.filters.overtime', 'Horas Extras')}
-                    </button>
+                {/* Quick Flags Toggles & Week Navigation */}
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-3">
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setPresentAhoraOnly(!presentAhoraOnly);
+                                if (!presentAhoraOnly) {
+                                    setClockedInTodayOnly(false); // Disable clocked in today if present now is active
+                                }
+                            }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
+                                presentAhoraOnly 
+                                    ? 'bg-brand-teal text-white border-brand-teal shadow-sm' 
+                                    : 'bg-white text-brand-teal border-teal-200 hover:bg-teal-50'
+                            }`}
+                        >
+                            ✓ {t('attendance.filters.present_now', 'Presente Ahora')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setConflictsOnly(!conflictsOnly)}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
+                                conflictsOnly 
+                                    ? 'bg-orange-500 text-white border-orange-500 shadow-sm' 
+                                    : 'bg-white text-orange-700 border-orange-200 hover:bg-orange-50'
+                            }`}
+                        >
+                            ⚠️ {t('attendance.filters.conflicts', 'Conflictos')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMissingPunchesOnly(!missingPunchesOnly)}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
+                                missingPunchesOnly 
+                                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm' 
+                                    : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'
+                            }`}
+                        >
+                            ❓ {t('attendance.filters.missing_punches', 'Marcajes Incompletos')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setOvertimeOnly(!overtimeOnly)}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
+                                overtimeOnly 
+                                    ? 'bg-teal-500 text-white border-teal-500 shadow-sm' 
+                                    : 'bg-white text-teal-700 border-teal-200 hover:bg-teal-50'
+                            }`}
+                        >
+                            ⏱️ {t('attendance.filters.overtime', 'Horas Extras')}
+                        </button>
+                    </div>
+
+                    {/* Week Navigation Controls */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handlePrevWeek}
+                            className="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-600 hover:text-brand-teal transition-all flex items-center gap-1 shadow-sm h-8"
+                            title={t('attendance.filters.prev_week_title', 'Semana Anterior')}
+                        >
+                            <ChevronLeft size={14} />
+                            <span>{t('attendance.filters.prev_week', 'Anterior')}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleCurrentWeek}
+                            className="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-600 hover:text-brand-teal transition-all flex items-center gap-1 shadow-sm h-8"
+                        >
+                            <span>{t('attendance.filters.current_week', 'Semana Actual')}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleNextWeek}
+                            className="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-600 hover:text-brand-teal transition-all flex items-center gap-1 shadow-sm h-8"
+                            title={t('attendance.filters.next_week_title', 'Semana Siguiente')}
+                        >
+                            <span>{t('attendance.filters.next_week', 'Siguiente')}</span>
+                            <ChevronRight size={14} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
