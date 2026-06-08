@@ -128,19 +128,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
         signInWithEmail: async (email, password) => {
             set({ loading: true, error: null });
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) {
                     console.error('[Auth Error Details] signInWithPassword failed:', error);
                     throw error;
                 }
-                
-                if (data.session) {
-                    useStore.getState().setAuthData(data.session.user.id, data.session.user.email ?? '');
-                    set({ session: data.session, user: data.session.user, loading: false, error: null });
-                    fetchAccountData(data.session.user.id).then(({ profile, personnel }) => {
-                        set({ identity: profile, profile: personnel });
-                    });
-                }
+                // Profile loading, DB initialization, and loading: false are handled by onAuthStateChange listener
             } catch (error: any) {
                 set({ error: error.message, loading: false });
                 throw error;
