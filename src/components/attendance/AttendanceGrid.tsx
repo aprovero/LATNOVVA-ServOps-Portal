@@ -220,10 +220,10 @@ export default function AttendanceGrid({
                                                         <div className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 ${style.bg} ${style.text} ${style.border}`}>
                                                             {dayView.displayStatus === 'Present' ? (
                                                                 <div className="flex flex-col items-center justify-center">
-                                                                    <span className="text-[10px] font-mono font-bold leading-none tracking-tight block">
+                                                                    <span className="text-xs font-mono font-bold leading-none tracking-tight block">
                                                                         {dayView.clockIn || '—'}
                                                                     </span>
-                                                                    <span className="text-[10px] font-mono leading-none tracking-tight block text-gray-400/80 mt-0.5">
+                                                                    <span className="text-xs font-mono leading-none tracking-tight block text-gray-400/80 mt-0.5">
                                                                         {dayView.clockOut || '—'}
                                                                     </span>
                                                                     {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
@@ -233,7 +233,7 @@ export default function AttendanceGrid({
                                                                     ) : null}
                                                                 </div>
                                                             ) : (
-                                                                <span className="text-[9px] font-extrabold uppercase leading-none tracking-wider block truncate text-center">
+                                                                <span className="text-[10px] font-extrabold uppercase leading-none tracking-tight block truncate text-center">
                                                                     {dayView.displayStatus === 'Rest Day' && date >= new Date().toLocaleDateString('en-CA') 
                                                                         ? '' 
                                                                         : (lang === 'es' ? style.es : style.label)}

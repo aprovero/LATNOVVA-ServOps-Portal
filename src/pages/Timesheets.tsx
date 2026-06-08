@@ -114,7 +114,7 @@ export default function Timesheets() {
             hours: 9,
             type: 'On Site',
             classification: 'Regular',
-            personnelId: userRole === 'Tech' ? newEntry.personnelId : (personnel[0]?.id || ''),
+            personnelId: (userRole === 'Tech' || userRole === 'Office') ? newEntry.personnelId : (personnel[0]?.id || ''),
             status: 'Pending',
             notes: '',
             manualReason: '',
@@ -362,7 +362,7 @@ export default function Timesheets() {
     const filteredTimesheets = timesheets
         .filter(t => filterProject.length > 0 ? filterProject.includes(t.projectId ?? '') : true)
         .filter(t => filterPersonnel ? t.personnelId === filterPersonnel : true)
-        .filter(t => userRole === 'Tech' ? t.personnelId === resolvedPersonnelId : true)
+        .filter(t => (userRole === 'Tech' || userRole === 'Office') ? t.personnelId === resolvedPersonnelId : true)
         .filter(t => filterStartDate ? new Date(t.date) >= new Date(filterStartDate) : true)
         .filter(t => filterEndDate ? new Date(t.date) <= new Date(filterEndDate) : true)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -415,10 +415,10 @@ export default function Timesheets() {
                                         className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal disabled:bg-gray-50 disabled:text-gray-500"
                                         value={newEntry.personnelId}
                                         onChange={e => setNewEntry({ ...newEntry, personnelId: e.target.value })}
-                                        disabled={userRole === 'Tech'}
+                                        disabled={userRole === 'Tech' || userRole === 'Office'}
                                     >
                                         <option value="" disabled>{t('personnel.select_prompt')}...</option>
-                                        {personnel.filter(p => userRole === 'Tech' ? p.id === newEntry.personnelId : true).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        {personnel.filter(p => (userRole === 'Tech' || userRole === 'Office') ? p.id === newEntry.personnelId : true).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
 
@@ -607,7 +607,7 @@ export default function Timesheets() {
                         </div>
                     )}
                 </div>
-                {userRole !== 'Tech' && (
+                {!['Tech', 'Office'].includes(userRole) && (
                     <div className="space-y-1.5 flex-1 min-w-[200px] relative z-10" ref={personnelDropdownRef}>
                         <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><User size={12} /> {t('timesheets.filters.personnel')}</label>
                         <div 
@@ -856,9 +856,9 @@ export default function Timesheets() {
                                                         </button>
                                                     )}
 
-                                                    {/* Only Supervisors, Managers, or the Tech who owns the entry can edit/delete, AND it must not be approved */}
+                                                    {/* Only Supervisors, Managers, or the Tech/Office who owns the entry can edit/delete, AND it must not be approved */}
                                                     {(['Supervisor', 'Manager'].includes(userRole) || (
-                                                        userRole === 'Tech' && entry.personnelId === resolvedPersonnelId
+                                                        ['Tech', 'Office'].includes(userRole) && entry.personnelId === resolvedPersonnelId
                                                     )) && entry.status !== 'Approved' ? (
                                                         <>
                                                             <button

@@ -25,9 +25,10 @@ ALTER TABLE public.mx_timesheets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "HR and Managers can manage all mx_timesheets"   ON public.mx_timesheets;
 DROP POLICY IF EXISTS "Employees can read their own mx_timesheets"      ON public.mx_timesheets;
 DROP POLICY IF EXISTS "Employees can insert their own mx_timesheets"    ON public.mx_timesheets;
+DROP POLICY IF EXISTS "Employees can update their own mx_timesheets"    ON public.mx_timesheets;
 DROP POLICY IF EXISTS "Supervisors can read subsidiary mx_timesheets"   ON public.mx_timesheets;
 
--- ── 4. HR / Manager / Office: full access ──────────────────────────────────────────────
+-- ── 4. HR / Manager: full access ──────────────────────────────────────────────
 CREATE POLICY "HR and Managers can manage all mx_timesheets"
 ON public.mx_timesheets
 FOR ALL
@@ -36,14 +37,14 @@ USING (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('Manager', 'HR', 'Office')
+        AND profiles.role IN ('Manager', 'HR')
     )
 )
 WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('Manager', 'HR', 'Office')
+        AND profiles.role IN ('Manager', 'HR')
     )
 );
 
