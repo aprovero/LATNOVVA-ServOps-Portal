@@ -16,6 +16,9 @@ interface IdentityProfile {
 
 // Fetches the identity profile and optionally the personnel data.
 async function fetchAccountData(userId: string): Promise<{ profile: IdentityProfile | null; personnel: PersonnelRow | null }> {
+    let profile: IdentityProfile | null = null;
+    let personnel: PersonnelRow | null = null;
+
     try {
         // 1. Fetch the universal identity profile
         const { data: profileData } = await (supabase as any)
@@ -24,7 +27,7 @@ async function fetchAccountData(userId: string): Promise<{ profile: IdentityProf
             .eq('id', userId)
             .single();
 
-        const profile = (profileData as IdentityProfile | null) ?? null;
+        profile = (profileData as IdentityProfile | null) ?? null;
         
         if (profile?.role) {
             useStore.getState().setUserRole(profile.role as any);
@@ -35,22 +38,26 @@ async function fetchAccountData(userId: string): Promise<{ profile: IdentityProf
         } else {
             useStore.getState().setClientId(null);
         }
+    } catch (err) {
+        console.error('[Auth] Error fetching profile:', err);
+        return { profile: null, personnel: null };
+    }
 
-        // 2. If they are NOT a customer, fetch their heavy personnel data
-        let personnel: PersonnelRow | null = null;
-        if (profile && profile.role !== 'Customer') {
+    // 2. If they are NOT a customer, fetch their heavy personnel data (non-fatal if missing)
+    if (profile && profile.role !== 'Customer') {
+        try {
             const { data: personnelData } = await (supabase as any)
-                .from('personnel')
+                .from('mx_personnel')
                 .select('*')
                 .eq('id', userId)
                 .single();
             personnel = (personnelData as PersonnelRow | null) ?? null;
+        } catch (err) {
+            console.warn('[Auth] Error fetching mx_personnel record (non-fatal):', err);
         }
-
-        return { profile, personnel };
-    } catch {
-        return { profile: null, personnel: null };
     }
+
+    return { profile, personnel };
 }
 
 
