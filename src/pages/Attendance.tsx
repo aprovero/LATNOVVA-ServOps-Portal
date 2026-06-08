@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
+import { supabase } from '../lib/supabase';
 import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import AttendanceDashboard from '../components/attendance/AttendanceDashboard';
 import AttendanceGrid from '../components/attendance/AttendanceGrid';
@@ -50,6 +51,41 @@ export default function Attendance() {
     // Modal state
     const [isAddOverrideOpen, setIsAddOverrideOpen] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Real-time automatic refreshes for office/HR roles
+    useEffect(() => {
+        const channel = supabase
+            .channel('attendance-db-realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'timesheets' },
+                (payload) => {
+                    console.log('[Realtime] Timesheet change detected:', payload);
+                    refreshAttendance();
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'attendance_overrides' },
+                (payload) => {
+                    console.log('[Realtime] Attendance override change detected:', payload);
+                    refreshAttendance();
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'personnel' },
+                (payload) => {
+                    console.log('[Realtime] Personnel change detected:', payload);
+                    refreshAttendance();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [refreshAttendance]);
 
     const handleRefresh = async () => {
         setIsRefreshing(true);

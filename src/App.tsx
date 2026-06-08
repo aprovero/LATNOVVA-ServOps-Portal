@@ -37,10 +37,15 @@ const ManagerHRRoute = ({ children }: { children: React.ReactNode }) => {
     return <>{children}</>;
 };
 
-// Redirect / to /clock-in for Techs, /projects for others
+// Redirect / to /clock-in for Techs, /attendance for HR, /projects for others
 const HomeRedirect = () => {
     const userRole = useStore(s => s.userRole);
-    const to = userRole === 'Tech' ? '/clock-in' : '/projects';
+    let to = '/projects';
+    if (userRole === 'Tech') {
+        to = '/clock-in';
+    } else if (userRole === 'HR') {
+        to = '/attendance';
+    }
     return <Navigate to={to} replace />;
 };
 
