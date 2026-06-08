@@ -793,6 +793,7 @@ export default function Layout() {
                     <div className="text-[10px] text-accent-grey/50 text-center md:text-left font-semibold uppercase tracking-wider space-y-1">
                         <div>&copy; {new Date().getFullYear()} LATNOVVA & COR Solutions. All Rights Reserved.</div>
                         <div className="normal-case text-[9px] text-accent-grey/40 font-normal max-w-xl">
+                            Portal developed by Andres A. Provero D. Business content and operational data are property of LATNOVVA.
                             This software and its source code are proprietary and confidential. Unauthorized copying, modification, distribution, or commercial use is prohibited.
                         </div>
                     </div>
