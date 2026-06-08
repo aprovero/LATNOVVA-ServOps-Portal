@@ -88,35 +88,70 @@ export const useAuthStore = create<AuthState>((set, get) => {
         supabase.auth.onAuthStateChange(async (event, newSession) => {
             console.log(`[Auth] State Change: ${event}`);
 
-            // Handle "Invalid Refresh Token" or "Refresh Token Not Found"
-            // If Supabase encounters a catastrophic refresh failure, we must purge local state.
-            if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !newSession)) {
-                useStore.getState().resetDb();
-                set({ session: null, user: null, profile: null, loading: false });
-                return;
+            try {
+                // Handle "Invalid Refresh Token" or "Refresh Token Not Found"
+                // If Supabase encounters a catastrophic refresh failure, we must purge local state.
+                if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !newSession)) {
+                    useStore.getState().resetDb();
+                    set({ session: null, user: null, profile: null, loading: false });
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (!newSession?.user) {
+                    set({ loading: false });
+                    return;
+                }
+
+                // IDEMPOTENCY CHECK: Only update store if the session is truly different.
+                // This prevents the #310 re-render loop if Supabase fires redundant events.
+                const currentSession = get().session;
+                if (currentSession?.access_token === newSession.access_token && currentSession?.user?.id === newSession.user.id) {
+                    set({ loading: false });
+                    return;
+                }
+
+                // ── STEP 1: Fetch account data and init DB under a safety timeout race ──
+                const initPromise = (async () => {
+                    useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
+                    const account = await fetchAccountData(newSession.user.id);
+                    await useStore.getState().initDb();
+                    return account;
+                })();
+
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Initialization Timeout')), 8000)
+                );
+
+                const { profile, personnel } = await Promise.race([initPromise, timeoutPromise]);
+
+                set({ 
+                    session: newSession, 
+                    user: newSession.user, 
+                    identity: profile, 
+                    profile: personnel, 
+                    loading: false 
+                });
+            } catch (err: any) {
+                console.error('[Auth Error] Catastrophic failure in auth listener:', err);
+                // Hardened fallback: if this is an AuthApiError, token invalidation, or timeout, clear localStorage and redirect to login
+                const isAuthError = err?.name === 'AuthApiError' || 
+                                    err?.message?.includes('Refresh Token') || 
+                                    err?.message?.includes('token') ||
+                                    err?.message?.includes('Timeout') ||
+                                    err?.message?.includes('timeout');
+
+                if (isAuthError) {
+                    console.warn('[Auth] Clearing localStorage and forcing redirect due to auth hang/failure...');
+                    try {
+                        localStorage.clear();
+                    } catch (e) {}
+                    set({ session: null, user: null, profile: null, loading: false });
+                    window.location.href = '/login';
+                } else {
+                    set({ loading: false, error: 'Authentication failed' });
+                }
             }
-
-            if (!newSession?.user) {
-                set({ loading: false });
-                return;
-            }
-
-            // IDEMPOTENCY CHECK: Only update store if the session is truly different.
-            // This prevents the #310 re-render loop if Supabase fires redundant events.
-            const currentSession = get().session;
-            if (currentSession?.access_token === newSession.access_token && currentSession?.user?.id === newSession.user.id) {
-                set({ loading: false });
-                return;
-            }
-
-            // ── STEP 1: Unblock the router and Sync App Data ─────────────────
-            useStore.getState().initDb();
-            useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
-            set({ session: newSession, user: newSession.user, loading: false });
-
-            // ── STEP 2: Fetch account data in background ────────────────────
-            const { profile, personnel } = await fetchAccountData(newSession.user.id);
-            set({ identity: profile, profile: personnel });
         });
     }
 
@@ -128,8 +163,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
         loading: true,
         error: null,
 
-        initializeAuth: () => {
-            // No-op: handled by the top-level listener during store creation.
+        initializeAuth: async () => {
+            console.log('[Auth] initializeAuth called (handled by onAuthStateChange listener)');
+            
+            // Safety timeout: If the app remains in the loading state for more than 6 seconds
+            // without a session, force loading to false to unblock the router and let the user log in.
+            setTimeout(() => {
+                if (get().loading) {
+                    console.warn('[Auth] Initialization safety timeout reached. Forcing loading to false.');
+                    set({ loading: false });
+                }
+            }, 6000);
         },
 
         signInWithEmail: async (email, password) => {
