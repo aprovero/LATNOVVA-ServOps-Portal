@@ -73,7 +73,7 @@ Several SQL migration and repair scripts are included in the repository root to 
 
 ## License
 
-Copyright (c) 2026 Latnovva and/or Andres A. Provero D. All rights reserved.
+Copyright (c) 2026 Latnovva and/or Andres Provero. All rights reserved.
 
 This repository contains proprietary software, workflows, interface designs, and operational logic developed for Latnovva-related business use.
 
