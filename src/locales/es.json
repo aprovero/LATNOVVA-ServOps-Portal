@@ -929,7 +929,7 @@
       "absent_today": "Ausentes Hoy",
       "missing_punch": "Marcajes Faltantes",
       "conflicts": "Conflictos",
-      "overtime_hours": "Horas Extras Hoy"
+      "overtime_hours": "Horas Extras"
     },
     "grid": {
       "onboarding": "Ingreso"

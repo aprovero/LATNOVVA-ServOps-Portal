@@ -141,7 +141,7 @@ export default function AttendanceDashboard({ stats, activeFilter, setActiveFilt
                     active={activeFilter === 'active'}
                 />
                 <KPICard
-                    title={t('attendance.dashboard.overtime_hours', 'Overtime Today')}
+                    title={t('attendance.dashboard.overtime_hours', 'Overtime Hours')}
                     value={`${stats.overtimeHours.toFixed(1)} hrs`}
                     icon={Clock}
                     colorClass="text-teal-600"

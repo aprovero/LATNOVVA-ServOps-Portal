@@ -929,7 +929,7 @@
       "absent_today": "Absent Today",
       "missing_punch": "Missing Punches",
       "conflicts": "Conflicts",
-      "overtime_hours": "Overtime Today"
+      "overtime_hours": "Overtime Hours"
     },
     "grid": {
       "onboarding": "Joined"

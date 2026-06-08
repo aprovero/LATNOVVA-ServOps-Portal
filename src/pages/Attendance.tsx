@@ -98,7 +98,7 @@ export default function Attendance() {
         }
     };
 
-    // Compute stats for today
+    // Compute stats for today & selected date range (for overtime)
     const computeStats = () => {
         const activeCount = filteredPersonnel.filter(p => p.status === 'Active').length;
         const todayStr = getFormattedDate(new Date());
@@ -112,7 +112,22 @@ export default function Attendance() {
         let pendingConflicts = 0;
         let overtimeHours = 0;
 
+        // Helper to get dates in selected range
+        const getDatesInRange = (startStr: string, endStr: string): string[] => {
+            const dates: string[] = [];
+            const current = new Date(startStr + 'T00:00:00');
+            const end = new Date(endStr + 'T00:00:00');
+            while (current <= end) {
+                dates.push(current.toISOString().split('T')[0]);
+                current.setDate(current.getDate() + 1);
+            }
+            return dates;
+        };
+
+        const rangeDates = getDatesInRange(startDate, endDate);
+
         filteredPersonnel.forEach(emp => {
+            // Today's states
             const dv = calculateDailyAttendance(emp, todayStr, timesheets, attendanceOverrides, workSchedules);
             if (dv.displayStatus === 'Present' || dv.displayStatus === 'Home Office') presentToday++;
             if (dv.displayStatus === 'Vacation') onVacation++;
@@ -121,7 +136,12 @@ export default function Attendance() {
             if (dv.displayStatus === 'Absent') absentToday++;
             if (dv.missingPunch) missingPunches++;
             if (dv.conflict) pendingConflicts++;
-            overtimeHours += dv.overtimeHours || 0;
+            
+            // Overtime hours (accumulated across the entire active date range view!)
+            rangeDates.forEach(date => {
+                const dateDv = calculateDailyAttendance(emp, date, timesheets, attendanceOverrides, workSchedules);
+                overtimeHours += dateDv.overtimeHours || 0;
+            });
         });
 
         return {
