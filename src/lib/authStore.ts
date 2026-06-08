@@ -111,12 +111,20 @@ export const useAuthStore = create<AuthState>((set, get) => {
                     return;
                 }
 
-                // ── STEP 1: Fetch account data to set user role first ──────────
-                useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
-                const { profile, personnel } = await fetchAccountData(newSession.user.id);
+                // ── STEP 1: Fetch account data and init DB under a safety timeout race ──
+                const initPromise = (async () => {
+                    useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
+                    const account = await fetchAccountData(newSession.user.id);
+                    await useStore.getState().initDb();
+                    return account;
+                })();
 
-                // ── STEP 2: Initialize Database and Unblock Router ──────────────
-                await useStore.getState().initDb();
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Initialization Timeout')), 8000)
+                );
+
+                const { profile, personnel } = await Promise.race([initPromise, timeoutPromise]);
+
                 set({ 
                     session: newSession, 
                     user: newSession.user, 
@@ -126,9 +134,19 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 });
             } catch (err: any) {
                 console.error('[Auth Error] Catastrophic failure in auth listener:', err);
-                // Hardened fallback: if this is an AuthApiError or related to token invalidation, wipe and reboot
-                if (err?.name === 'AuthApiError' || err?.message?.includes('Refresh Token') || err?.message?.includes('token')) {
-                    localStorage.clear();
+                // Hardened fallback: if this is an AuthApiError, token invalidation, or timeout, clear localStorage and redirect to login
+                const isAuthError = err?.name === 'AuthApiError' || 
+                                    err?.message?.includes('Refresh Token') || 
+                                    err?.message?.includes('token') ||
+                                    err?.message?.includes('Timeout') ||
+                                    err?.message?.includes('timeout');
+
+                if (isAuthError) {
+                    console.warn('[Auth] Clearing localStorage and forcing redirect due to auth hang/failure...');
+                    try {
+                        localStorage.clear();
+                    } catch (e) {}
+                    set({ session: null, user: null, profile: null, loading: false });
                     window.location.href = '/login';
                 } else {
                     set({ loading: false, error: 'Authentication failed' });

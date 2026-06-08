@@ -14,7 +14,6 @@ export function exportAttendanceToCSV(
     const headers = lang === 'es' ? [
         'Nombre Completo',
         'Estado Empleado',
-        'Fecha de Ingreso',
         'Proyecto Asignado',
         'Fecha',
         'Entrada',
@@ -30,7 +29,6 @@ export function exportAttendanceToCSV(
     ] : [
         'Full Name',
         'Employee Status',
-        'Date Joined',
         'Assigned Project',
         'Date',
         'Clock In',
@@ -60,8 +58,6 @@ export function exportAttendanceToCSV(
     const rows: string[][] = [];
 
     employees.forEach(emp => {
-        const onboardingDate = emp.onboardingDate || '—';
-        
         // Find employee project
         const project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
         const projectName = project ? (project.codeName || project.name) : '—';
@@ -94,7 +90,6 @@ export function exportAttendanceToCSV(
             rows.push([
                 `"${emp.name}"`,
                 empStatus,
-                onboardingDate,
                 `"${projectName}"`,
                 date,
                 dayView.clockIn || '',

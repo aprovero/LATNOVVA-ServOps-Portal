@@ -45,7 +45,7 @@ export default function Attendance() {
     const [missingPunchesOnly, setMissingPunchesOnly] = useState(false);
     const [overtimeOnly, setOvertimeOnly] = useState(false);
     const [conflictsOnly, setConflictsOnly] = useState(false);
-    const [clockedInTodayOnly, setClockedInTodayOnly] = useState(true); // Default show who clocked in today
+    const [clockedInTodayOnly, setClockedInTodayOnly] = useState(false); // Default false to show active colaboradores
     const [presentAhoraOnly, setPresentAhoraOnly] = useState(false);
 
     // Modal state
@@ -179,6 +179,9 @@ export default function Attendance() {
         else if (filter === 'sick_leave') setStatusFilter('Sick Leave');
         else if (filter === 'home_office') setStatusFilter('Home Office');
         else if (filter === 'absent') setStatusFilter('Absent');
+        else if (filter === 'active') {
+            setActiveFilter('active');
+        }
     };
 
     const getActiveDashboardFilter = (): string | null => {
@@ -190,7 +193,7 @@ export default function Attendance() {
         if (statusFilter === 'Sick Leave') return 'sick_leave';
         if (statusFilter === 'Home Office') return 'home_office';
         if (statusFilter === 'Absent') return 'absent';
-        return null;
+        return 'active'; // Default active card selected
     };
 
     const handlePrevWeek = () => {
