@@ -897,7 +897,7 @@ export const useStore = create<AppState>()(
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
                 set({ platformSettings: next });
-                get().safeSync('platform_settings', 'global', 'upsert', next);
+                get().safeSync('platform_settings', 'global', 'upsert', { id: 'global', ...next });
             },
 
             checkZombieSessions: async () => {
@@ -956,12 +956,17 @@ export const useStore = create<AppState>()(
                         const item = get().pendingSync[0]; // Take the first one
                         try {
                             let query;
+                            const payload = { ...item.payload };
+                            if (item.table === 'platform_settings' && !payload.id) {
+                                payload.id = item.id;
+                            }
+
                             if (item.action === 'insert') {
-                                query = supabase.from(item.table).insert(item.payload);
+                                query = supabase.from(item.table).insert(payload);
                             } else if (item.action === 'update') {
-                                query = supabase.from(item.table).update(item.payload).eq('id', item.id);
+                                query = supabase.from(item.table).update(payload).eq('id', item.id);
                             } else if (item.action === 'upsert') {
-                                query = supabase.from(item.table).upsert(item.payload);
+                                query = supabase.from(item.table).upsert(payload);
                             } else if (item.action === 'delete') {
                                 query = supabase.from(item.table).delete().eq('id', item.id);
                             }
