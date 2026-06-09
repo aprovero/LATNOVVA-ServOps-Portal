@@ -1265,6 +1265,8 @@ export const useStore = create<AppState>()(
                                 projectId: t.project_id,
                                 date: t.date,
                                 timeIn: t.time_in,
+                                lunchStart: t.lunch_start,
+                                lunchEnd: t.lunch_end,
                                 timeOut: t.time_out,
                                 hours: t.hours,
                                 type: t.type,
@@ -1277,6 +1279,9 @@ export const useStore = create<AppState>()(
                                 gpsVerified: t.gps_verified,
                                 source: (t as any).source || 'manual',
                                 manualReason: (t as any).manual_reason,
+                                correctedBy: (t as any).corrected_by,
+                                correctedAt: (t as any).corrected_at,
+                                correctionReason: (t as any).correction_reason,
                             }))
                         });
                     }
