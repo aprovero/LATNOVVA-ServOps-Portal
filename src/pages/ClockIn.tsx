@@ -59,10 +59,7 @@ function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
     return 'idle';
 }
 
-function hasFinishedShiftToday(timesheets: any[], personnelId: string): boolean {
-    const today = new Date().toISOString().split('T')[0];
-    return timesheets.some((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut);
-}
+
 
 const getStepMeta = (t: any): Record<PunchStep, { label: string; dot: string; bg: string; text: string }> => ({
     idle:        { label: t('attendance.status.not_in'),   dot: '○', bg: 'bg-gray-100',    text: 'text-gray-500' },
@@ -639,9 +636,10 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const { platformSettings } = useStore();
     const today = getLocalDate(getBestDate(gps));
     const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut); // find a finished one for summary
+    const hasFinishedToday = !!todayEntry;
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
     const step = getPunchStep(timesheets, personnelId);
-    const hasFinishedToday = hasFinishedShiftToday(timesheets, personnelId);
+
     const activeEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
 
     const [selectedProject, setSelectedProject] = useState(() => {
@@ -698,7 +696,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     return (
         <div className="space-y-5">
             {/* Day complete summary — Only show if they actually finished a shift today and aren't currently clocked in */}
-            {hasFinishedToday && step === 'idle' && todayEntry && (
+            {step === 'idle' && todayEntry && (
                 <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-lg text-white mb-6">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
