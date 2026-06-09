@@ -4,6 +4,7 @@ import { useStore, Personnel, Project } from '../../store/useStore';
 import { calculateDailyAttendance, getStatusLabel, formatDisplayDate } from '../../utils/attendanceCalculations';
 import { X, AlertTriangle, AlertOctagon, Edit3 } from 'lucide-react';
 import ManualCorrectionPanel from './ManualCorrectionPanel';
+import { getDistanceMeters, parseCoordinates } from '../../utils/datetime.utils';
 
 interface DayDetailPanelProps {
     employee: Personnel;
@@ -15,7 +16,7 @@ interface DayDetailPanelProps {
 export default function DayDetailPanel({ employee, date, project, onClose }: DayDetailPanelProps) {
     const { t, i18n } = useTranslation();
     const lang = i18n.language === 'en' ? 'en' : 'es';
-    const { timesheets, attendanceOverrides, workSchedules, projects } = useStore();
+    const { timesheets, attendanceOverrides, workSchedules, projects, userRole, platformSettings } = useStore();
     const [isEditing, setIsEditing] = useState(false);
 
     // Compute details for this date
@@ -56,7 +57,13 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
     };
 
     return (
-        <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-white shadow-2xl z-50 border-l border-gray-100 flex flex-col animate-in slide-in-from-right duration-300">
+        <>
+            {/* Backdrop overlay */}
+            <div 
+                className="fixed inset-0 bg-black/20 backdrop-blur-xs z-40 animate-in fade-in duration-200" 
+                onClick={onClose}
+            />
+            <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-white shadow-2xl z-50 border-l border-gray-100 flex flex-col animate-in slide-in-from-right duration-300">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
                 <div>
@@ -84,11 +91,20 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                 {/* Final Status Indicator */}
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">{t('attendance.detail.calculated_status', 'Estado Calculado')}</label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${statusColor[dayView.displayStatus] || 'bg-gray-50'}`}>
                             {dayView.displayStatus === 'Conflict' && '⚠️ '}
                             {t(`attendance.status.${dayView.displayStatus.toLowerCase().replace(' ', '_')}`, dayView.displayStatus)}
                         </span>
+                        {timesheetEntry && timesheetEntry.punches && timesheetEntry.punches.length > 0 && (
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1 ${
+                                timesheetEntry.gpsVerified 
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                    : 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                            }`}>
+                                {timesheetEntry.gpsVerified ? '📍 GPS Verificado' : '⚠️ Alerta de Ubicación / Precisión'}
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -168,6 +184,71 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                             )}
                         </div>
                     </div>
+ 
+                    {/* GPS Punch Detail Trail */}
+                    {timesheetEntry?.punches && timesheetEntry.punches.length > 0 && (
+                        <div>
+                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                📍 {t('attendance.detail.gps_punches', 'Detalle de Marcajes GPS')}
+                            </h4>
+                            <div className="space-y-2">
+                                {timesheetEntry.punches.map((punch: any, pIdx: number) => {
+                                    const isPoorGps = punch.accuracy > 50;
+                                    const targetProjId = timesheetEntry.projectId;
+                                    const targetProject = targetProjId ? projects.find((p: any) => p.id === targetProjId) : null;
+                                    const geofenceRequired = targetProject?.locationValidated ?? false;
+                                    const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
+                                    const radius = platformSettings.geofenceRadius ?? 250;
+                                    const dist = projCoords && punch.lat !== 0 ? getDistanceMeters(punch.lat, punch.lng, projCoords.lat, projCoords.lng) : 0;
+                                    const isOutside = geofenceRequired && projCoords && punch.workMode !== 'Home Office' && dist > radius;
+
+                                    return (
+                                        <div key={pIdx} className="bg-gray-50/60 border border-gray-100 rounded-xl p-3 text-xs space-y-1 relative">
+                                            <div className="flex justify-between font-bold text-gray-600">
+                                                <span>
+                                                    {punch.type === 'clockIn' ? t('timesheets.modals.time_in', 'Entrada') : 
+                                                     punch.type === 'clockOut' ? t('timesheets.modals.time_out', 'Salida') : punch.type}
+                                                </span>
+                                                <span className="font-mono text-gray-500">
+                                                    {new Date(punch.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                            
+                                            {punch.lat !== 0 ? (
+                                                <div className="space-y-1">
+                                                    <a href={`https://maps.google.com/?q=${punch.lat},${punch.lng}`} target="_blank" rel="noreferrer"
+                                                        className="text-teal-600 hover:underline flex items-center gap-1 font-semibold mt-0.5">
+                                                        {punch.lat.toFixed(5)}, {punch.lng.toFixed(5)} · ±{Math.round(punch.accuracy)}m
+                                                    </a>
+                                                    
+                                                    {isPoorGps && (
+                                                        <p className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
+                                                            ⚠️ GPS con baja precisión ({Math.round(punch.accuracy)}m &gt; 50m)
+                                                        </p>
+                                                    )}
+                                                    
+                                                    {isOutside && (
+                                                        <p className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
+                                                            🚨 Fuera de geocerca ({Math.round(dist)}m de distancia, límite: {radius}m)
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-gray-400 text-[10px] italic">{t('timesheets.table.no_gps', 'Sin coordenadas GPS')}</p>
+                                            )}
+
+                                            {punch.adjustmentNote && (
+                                                <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-2 mt-1">
+                                                    <p className="text-[10px] text-amber-800 font-bold">💬 Justificación / Motivo:</p>
+                                                    <p className="text-[10px] text-amber-900 italic mt-0.5">"{punch.adjustmentNote}"</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {dayOverride && (
                         <div>
@@ -201,24 +282,27 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                 )}
 
                 {/* Edit Correction Section */}
-                {!isEditing ? (
-                    <button 
-                        onClick={() => setIsEditing(true)}
-                        className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold flex items-center justify-center gap-2 mt-4"
-                    >
-                        <Edit3 size={16} /> {t('attendance.detail.correct_btn', 'Corregir Marcaje Manual')}
-                    </button>
-                ) : (
-                    <ManualCorrectionPanel
-                        employeeId={employee.id}
-                        date={date}
-                        existingTimesheet={timesheetEntry}
-                        onClose={() => {
-                            setIsEditing(false);
-                        }}
-                    />
+                {['Manager', 'HR', 'Supervisor'].includes(userRole) && (
+                    !isEditing ? (
+                        <button 
+                            onClick={() => setIsEditing(true)}
+                            className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold flex items-center justify-center gap-2 mt-4"
+                        >
+                            <Edit3 size={16} /> {t('attendance.detail.correct_btn', 'Corregir Marcaje Manual')}
+                        </button>
+                    ) : (
+                        <ManualCorrectionPanel
+                            employeeId={employee.id}
+                            date={date}
+                            existingTimesheet={timesheetEntry}
+                            onClose={() => {
+                                setIsEditing(false);
+                            }}
+                        />
+                    )
                 )}
             </div>
         </div>
+        </>
     );
 }
