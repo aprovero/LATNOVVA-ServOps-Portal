@@ -114,6 +114,15 @@ export default function AttendanceDashboard({ stats, activeFilter, setActiveFilt
             {/* Second Row: 4 Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard
+                    title={t('attendance.dashboard.active_employees', 'Active Employees')}
+                    value={stats.activeCount}
+                    icon={Users}
+                    colorClass="text-blue-600"
+                    bgClass="bg-blue-50"
+                    onClick={() => handleToggleFilter('active')}
+                    active={activeFilter === 'active'}
+                />
+                <KPICard
                     title={t('attendance.dashboard.missing_punch', 'Missing Punches')}
                     value={stats.missingPunches}
                     icon={HelpCircle}
@@ -130,15 +139,6 @@ export default function AttendanceDashboard({ stats, activeFilter, setActiveFilt
                     bgClass="bg-orange-50"
                     onClick={() => handleToggleFilter('conflict')}
                     active={activeFilter === 'conflict'}
-                />
-                <KPICard
-                    title={t('attendance.dashboard.active_employees', 'Active Employees')}
-                    value={stats.activeCount}
-                    icon={Users}
-                    colorClass="text-blue-600"
-                    bgClass="bg-blue-50"
-                    onClick={() => handleToggleFilter('active')}
-                    active={activeFilter === 'active'}
                 />
                 <KPICard
                     title={t('attendance.dashboard.overtime_hours', 'Overtime Hours')}
