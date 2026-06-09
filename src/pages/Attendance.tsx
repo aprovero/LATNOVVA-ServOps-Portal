@@ -54,29 +54,34 @@ export default function Attendance() {
 
     // Real-time automatic refreshes for office/HR roles
     useEffect(() => {
+        const isMx = activeSubsidiary === 'MX';
+        const timesheetTable = isMx ? 'mx_timesheets' : 'timesheets';
+        const overridesTable = isMx ? 'mx_attendance_overrides' : 'attendance_overrides';
+        const personnelTable = isMx ? 'mx_personnel' : 'personnel';
+
         const channel = supabase
-            .channel('attendance-db-realtime')
+            .channel(`attendance-db-realtime-${activeSubsidiary}`)
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'timesheets' },
+                { event: '*', schema: 'public', table: timesheetTable },
                 (payload) => {
-                    console.log('[Realtime] Timesheet change detected:', payload);
+                    console.log(`[Realtime] Timesheet change detected on ${timesheetTable}:`, payload);
                     refreshAttendance();
                 }
             )
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'attendance_overrides' },
+                { event: '*', schema: 'public', table: overridesTable },
                 (payload) => {
-                    console.log('[Realtime] Attendance override change detected:', payload);
+                    console.log(`[Realtime] Attendance override change detected on ${overridesTable}:`, payload);
                     refreshAttendance();
                 }
             )
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'personnel' },
+                { event: '*', schema: 'public', table: personnelTable },
                 (payload) => {
-                    console.log('[Realtime] Personnel change detected:', payload);
+                    console.log(`[Realtime] Personnel change detected on ${personnelTable}:`, payload);
                     refreshAttendance();
                 }
             )
@@ -85,7 +90,7 @@ export default function Attendance() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [refreshAttendance]);
+    }, [refreshAttendance, activeSubsidiary]);
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
