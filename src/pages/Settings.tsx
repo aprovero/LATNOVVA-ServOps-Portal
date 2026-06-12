@@ -682,10 +682,11 @@ export default function Settings() {
                                             </div>
                                         </div>
                                     </div>
-
                                     <div className="grid gap-4 pt-2">
                                         <div className="space-y-2">
-                                            <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Geofence Radius (meters)</Label>
+                                            <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                {language === 'es' ? 'Radio de Geocerca (metros)' : 'Geofence Radius (meters)'}
+                                            </Label>
                                             <div className="flex items-center gap-4">
                                                 <Input 
                                                     type="number"
@@ -696,13 +697,44 @@ export default function Settings() {
                                                     value={platformSettings.geofenceRadius}
                                                     onChange={e => updatePlatformSettings({ geofenceRadius: parseInt(e.target.value) || 250 })}
                                                 />
-                                                <span className="text-sm text-gray-400 font-medium italic">meters radius around project coordinates</span>
+                                                <span className="text-sm text-gray-400 font-medium italic">
+                                                    {language === 'es' ? 'metros de radio alrededor de las coordenadas del proyecto' : 'meters radius around project coordinates'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                {language === 'es' ? 'Límite de Precisión GPS (metros)' : 'GPS Accuracy Limit (meters)'}
+                                            </Label>
+                                            <div className="flex items-center gap-4">
+                                                <Input 
+                                                    type="number"
+                                                    min="10"
+                                                    max="1000"
+                                                    step="10"
+                                                    className="h-11 border-gray-200 w-32 font-bold"
+                                                    value={platformSettings.gpsAccuracyThreshold}
+                                                    onChange={e => updatePlatformSettings({ gpsAccuracyThreshold: parseInt(e.target.value) || 100 })}
+                                                />
+                                                <span className="text-sm text-gray-400 font-medium italic">
+                                                    {language === 'es' ? 'radio máximo de precisión para un estado GPS válido' : 'maximum allowed accuracy radius for valid GPS status'}
+                                                </span>
                                             </div>
                                         </div>
 
                                         <div className="p-4 bg-teal-50 border border-teal-100 rounded-xl text-teal-700 text-xs leading-relaxed flex items-start gap-3">
                                             <div className="mt-0.5"><ShieldCheck size={14} /></div>
-                                            <p>This setting controls the validation boundary for project geofencing. Punches outside of this radius will be flagged as unverified when geofence validation is active on the project.</p>
+                                            <div>
+                                                <p className="font-bold uppercase tracking-wider mb-1">
+                                                    {language === 'es' ? 'Reglas de Geocerca y GPS:' : 'Geofence & GPS Rules:'}
+                                                </p>
+                                                <p>
+                                                    {language === 'es' 
+                                                        ? `Los marcajes fuera del radio de geocerca se marcarán como no verificados. Los marcajes con una precisión GPS superior a ${platformSettings.gpsAccuracyThreshold}m se marcarán como de baja precisión.`
+                                                        : `Punches outside of the geofence radius will be flagged as unverified. GPS signals with accuracy radius larger than ${platformSettings.gpsAccuracyThreshold}m will be flagged as low accuracy.`}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

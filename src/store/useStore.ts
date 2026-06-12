@@ -530,6 +530,7 @@ interface AppState {
         enableAutoClockOut: boolean;
         autoClockOutThreshold: number;
         geofenceRadius: number;
+        gpsAccuracyThreshold: number;
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     checkZombieSessions: () => Promise<void>;
@@ -893,6 +894,7 @@ export const useStore = create<AppState>()(
                 enableAutoClockOut: true,
                 autoClockOutThreshold: 14,
                 geofenceRadius: 250,
+                gpsAccuracyThreshold: 100,
             },
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
@@ -1219,6 +1221,7 @@ export const useStore = create<AppState>()(
                                 enableAutoClockOut: settingsDB.enableAutoClockOut !== null ? !!settingsDB.enableAutoClockOut : state.platformSettings.enableAutoClockOut,
                                 autoClockOutThreshold: Number(settingsDB.autoClockOutThreshold) || state.platformSettings.autoClockOutThreshold,
                                 geofenceRadius: Number(settingsDB.geofenceRadius) || state.platformSettings.geofenceRadius,
+                                gpsAccuracyThreshold: Number(settingsDB.gpsAccuracyThreshold) || state.platformSettings.gpsAccuracyThreshold,
                             }
                             : state.platformSettings,
                     }));
@@ -2072,7 +2075,7 @@ export const useStore = create<AppState>()(
                     const targetProject = activeProjId ? state.projects.find(p => p.id === activeProjId) : null;
                     const geofenceRequired = targetProject?.locationValidated ?? false;
                     const projCoords = parseCoordinates(targetProject?.location);
-                    const threshold = getGPSAccuracyThreshold();
+                    const threshold = getGPSAccuracyThreshold(state.platformSettings?.gpsAccuracyThreshold);
 
                     const updatedPunches = [...(sessionToUpdate?.punches ?? []), punch];
                     const radius = state.platformSettings?.geofenceRadius ?? 250;

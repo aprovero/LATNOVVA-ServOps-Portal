@@ -214,7 +214,8 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                             </h4>
                             <div className="space-y-2">
                                 {timesheetEntry.punches.map((punch: any, pIdx: number) => {
-                                    const isPoorGps = punch.accuracy > 50;
+                                    const gpsThreshold = platformSettings.gpsAccuracyThreshold ?? 100;
+                                    const isPoorGps = punch.accuracy > gpsThreshold;
                                     const targetProjId = timesheetEntry.projectId;
                                     const targetProject = targetProjId ? projects.find((p: any) => p.id === targetProjId) : null;
                                     const geofenceRequired = targetProject?.locationValidated ?? false;
@@ -222,6 +223,9 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                                     const radius = platformSettings.geofenceRadius ?? 250;
                                     const dist = projCoords && punch.lat !== 0 ? getDistanceMeters(punch.lat, punch.lng, projCoords.lat, projCoords.lng) : 0;
                                     const isOutside = geofenceRequired && projCoords && punch.workMode !== 'Home Office' && dist > radius;
+
+                                    const formattedDist = dist >= 1000 ? `${(dist / 1000).toFixed(1)}km` : `${Math.round(dist)}m`;
+                                    const formattedRadius = radius >= 1000 ? `${(radius / 1000).toFixed(1)}km` : `${radius}m`;
 
                                     return (
                                         <div key={pIdx} className="bg-gray-50/60 border border-gray-100 rounded-xl p-3 text-xs space-y-1 relative">
@@ -243,15 +247,15 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                                                     </a>
                                                     
                                                     {isPoorGps && (
-                                                        <p className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
-                                                            ⚠️ GPS con baja precisión ({Math.round(punch.accuracy)}m &gt; 50m)
-                                                        </p>
+                                                         <p className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
+                                                             ⚠️ GPS con baja precisión ({Math.round(punch.accuracy)}m &gt; {gpsThreshold}m)
+                                                         </p>
                                                     )}
                                                     
                                                     {isOutside && (
-                                                        <p className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
-                                                            🚨 Fuera de geocerca ({Math.round(dist)}m de distancia, límite: {radius}m)
-                                                        </p>
+                                                         <p className="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
+                                                             🚨 Fuera de geocerca ({formattedDist} de distancia, límite: {formattedRadius})
+                                                         </p>
                                                     )}
                                                 </div>
                                             ) : (

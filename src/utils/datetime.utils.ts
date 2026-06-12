@@ -14,8 +14,8 @@ export const isMobileDevice = (): boolean => {
 /**
  * Gets the standard GPS accuracy threshold (meters) based on device type.
  */
-export const getGPSAccuracyThreshold = (): number => {
-    return isMobileDevice() ? 50 : 150;
+export const getGPSAccuracyThreshold = (customMobileThreshold?: number): number => {
+    return isMobileDevice() ? (customMobileThreshold ?? 100) : 150;
 };
 
 /**

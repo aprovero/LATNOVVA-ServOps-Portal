@@ -898,7 +898,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 // ─── Main ClockIn Page ────────────────────────────────────────────────────────
 
 export default function ClockIn() {
-    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance } = useStore();
+    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings } = useStore();
 
     useEffect(() => {
         refreshAttendance();
@@ -920,7 +920,7 @@ export default function ClockIn() {
             pos => setGps({
                 lat: pos.coords.latitude, lng: pos.coords.longitude,
                 accuracy: pos.coords.accuracy,
-                status: pos.coords.accuracy <= getGPSAccuracyThreshold() ? 'locked' : 'poor',
+                status: pos.coords.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor',
                 gpsTimestampMs: pos.timestamp,
                 gpsReceivedAt: performance.now(),
             }),
