@@ -205,8 +205,15 @@ export default function AttendanceGrid({
                                             {dates.map(date => {
                                                 const dayView = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
                                                 const style = statusStyles[dayView.displayStatus] || { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-l-slate-300', label: 'Off', es: 'Libre' };
-
                                                 const dayTimesheet = timesheets.find(t => t.personnelId === emp.id && t.date === date);
+                                                
+                                                let cellBg = style.bg;
+                                                let cellBorder = style.border;
+                                                if (dayView.displayStatus === 'Present' && dayTimesheet && !dayTimesheet.gpsVerified) {
+                                                    cellBg = 'bg-amber-50/20';
+                                                    cellBorder = 'border-l-amber-500';
+                                                }
+
                                                 const cellProject = dayTimesheet?.projectId 
                                                     ? (projects.find(p => p.id === dayTimesheet.projectId) || project)
                                                     : project;
@@ -217,7 +224,7 @@ export default function AttendanceGrid({
                                                         onClick={() => setSelectedCell({ employee: emp, date, project: cellProject || undefined })}
                                                         className="p-0 border-r border-b border-gray-100 text-center cursor-pointer transition-all hover:bg-brand-teal/5 relative"
                                                     >
-                                                        <div className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 ${style.bg} ${style.text} ${style.border}`}>
+                                                        <div className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 ${cellBg} ${style.text} ${cellBorder}`}>
                                                             {dayView.displayStatus === 'Present' ? (
                                                                 <div className="flex flex-col items-center justify-center">
                                                                     <span className="text-xs font-mono font-bold leading-none tracking-tight block">
@@ -246,6 +253,9 @@ export default function AttendanceGrid({
                                                             )}
                                                             {dayView.missingPunch && !dayView.conflict && (
                                                                 <span className="absolute bottom-1 right-1 bg-amber-600 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Missing Punch">?</span>
+                                                            )}
+                                                            {dayView.displayStatus === 'Present' && dayTimesheet && !dayTimesheet.gpsVerified && !dayView.conflict && !dayView.missingPunch && (
+                                                                <span className="absolute bottom-1 right-1 bg-amber-500 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Alerta GPS">⚠</span>
                                                             )}
                                                         </div>
                                                     </td>

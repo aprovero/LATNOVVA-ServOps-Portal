@@ -5,6 +5,7 @@ import { calculateDailyAttendance, getStatusLabel, formatDisplayDate } from '../
 import { X, AlertTriangle, AlertOctagon, Edit3 } from 'lucide-react';
 import ManualCorrectionPanel from './ManualCorrectionPanel';
 import { getDistanceMeters, parseCoordinates } from '../../utils/datetime.utils';
+import { useAuthStore } from '../../lib/authStore';
 
 interface DayDetailPanelProps {
     employee: Personnel;
@@ -16,7 +17,7 @@ interface DayDetailPanelProps {
 export default function DayDetailPanel({ employee, date, project, onClose }: DayDetailPanelProps) {
     const { t, i18n } = useTranslation();
     const lang = i18n.language === 'en' ? 'en' : 'es';
-    const { timesheets, attendanceOverrides, workSchedules, projects, userRole, platformSettings } = useStore();
+    const { timesheets, attendanceOverrides, workSchedules, projects, userRole, platformSettings, updateTimesheet } = useStore();
     const [isEditing, setIsEditing] = useState(false);
 
     // Compute details for this date
@@ -97,13 +98,33 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                             {t(`attendance.status.${dayView.displayStatus.toLowerCase().replace(' ', '_')}`, dayView.displayStatus)}
                         </span>
                         {timesheetEntry && timesheetEntry.punches && timesheetEntry.punches.length > 0 && (
-                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1 ${
-                                timesheetEntry.gpsVerified 
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                    : 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
-                            }`}>
-                                {timesheetEntry.gpsVerified ? '📍 GPS Verificado' : '⚠️ Alerta de Ubicación / Precisión'}
-                            </span>
+                            <div className="flex flex-col gap-2 w-full">
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1 ${
+                                        timesheetEntry.gpsVerified 
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                            : 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                                    }`}>
+                                        {timesheetEntry.gpsVerified ? '📍 GPS Verificado' : '⚠️ Alerta de Ubicación / Precisión'}
+                                    </span>
+                                    {(!timesheetEntry.gpsVerified && ['Manager', 'HR', 'Supervisor'].includes(userRole)) && (
+                                        <button 
+                                            onClick={async () => {
+                                                const adminName = useAuthStore.getState().identity?.name || 'Administración';
+                                                await updateTimesheet(timesheetEntry.id, { 
+                                                    gpsVerified: true,
+                                                    notes: timesheetEntry.notes 
+                                                        ? `${timesheetEntry.notes} | Ubicación aprobada por ${adminName}` 
+                                                        : `Ubicación aprobada por ${adminName}`
+                                                });
+                                            }}
+                                            className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-sm cursor-pointer shrink-0"
+                                        >
+                                            {t('attendance.actions.approve_gps', 'Aprobar Ubicación')}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
