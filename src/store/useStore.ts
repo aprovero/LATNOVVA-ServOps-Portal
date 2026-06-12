@@ -1023,6 +1023,7 @@ export const useStore = create<AppState>()(
 
                     let overridesDB = null;
                     let schedulesDB = null;
+                    let settingsDB = null;
                     try {
                         const { data } = await supabase.from('mx_attendance_overrides').select('*');
                         overridesDB = data;
@@ -1034,6 +1035,12 @@ export const useStore = create<AppState>()(
                         schedulesDB = data;
                     } catch (e) {
                         console.warn('Supabase mx_work_schedules table load skipped:', e);
+                    }
+                    try {
+                        const { data } = await supabase.from('platform_settings').select('*').eq('id', 'global').single();
+                        settingsDB = data;
+                    } catch (e) {
+                        console.warn('Supabase platform_settings table load skipped:', e);
                     }
 
                     // Guard: only overwrite store state if Supabase returned actual rows.
@@ -1205,6 +1212,15 @@ export const useStore = create<AppState>()(
                                 workDays: s.work_days
                             }))
                             : [],
+                        platformSettings: settingsDB
+                            ? {
+                                shiftLengthThreshold: Number(settingsDB.shiftLengthThreshold) || state.platformSettings.shiftLengthThreshold,
+                                enableShiftNotifications: settingsDB.enableShiftNotifications !== null ? !!settingsDB.enableShiftNotifications : state.platformSettings.enableShiftNotifications,
+                                enableAutoClockOut: settingsDB.enableAutoClockOut !== null ? !!settingsDB.enableAutoClockOut : state.platformSettings.enableAutoClockOut,
+                                autoClockOutThreshold: Number(settingsDB.autoClockOutThreshold) || state.platformSettings.autoClockOutThreshold,
+                                geofenceRadius: Number(settingsDB.geofenceRadius) || state.platformSettings.geofenceRadius,
+                            }
+                            : state.platformSettings,
                     }));
 
                     // ── SMART MERGE ──

@@ -33,7 +33,7 @@ export function calculateWorkedHours(
     }
 
     // Crosses midnight adjustment
-    if (outM <= inM) {
+    if (outM < inM) {
         outM += 1440; // add 24 hours
     }
 
