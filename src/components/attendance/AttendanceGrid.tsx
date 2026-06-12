@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Personnel, Project, TimesheetEntry, AttendanceOverride, WorkSchedule } from '../../store/useStore';
+import { Personnel, Project, TimesheetEntry, AttendanceOverride, WorkSchedule, useStore } from '../../store/useStore';
 import { calculateDailyAttendance } from '../../utils/attendanceCalculations';
+import { parseCoordinates, getDistanceMeters } from '../../utils/datetime.utils';
 import DayDetailPanel from './DayDetailPanel';
 
 interface AttendanceGridProps {
@@ -39,6 +40,7 @@ export default function AttendanceGrid({
     const lang = i18n.language === 'en' ? 'en' : 'es';
 
     const [selectedCell, setSelectedCell] = useState<{ employee: Personnel; date: string; project?: Project } | null>(null);
+    const { platformSettings } = useStore();
 
     // Get date array in range
     const getDatesInRange = (startStr: string, endStr: string): string[] => {
@@ -206,10 +208,29 @@ export default function AttendanceGrid({
                                                 const dayView = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
                                                 const style = statusStyles[dayView.displayStatus] || { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-l-slate-300', label: 'Off', es: 'Libre' };
                                                 const dayTimesheet = timesheets.find(t => t.personnelId === emp.id && t.date === date);
+                                                const dynamicGpsVerified = !dayTimesheet ? true : (
+                                                    dayTimesheet.gpsVerified || (
+                                                        !dayTimesheet.punches || dayTimesheet.punches.every((p: any) => {
+                                                            const gpsThreshold = platformSettings.gpsAccuracyThreshold ?? 100;
+                                                            const radius = platformSettings.geofenceRadius ?? 250;
+                                                            const targetProjId = dayTimesheet.projectId;
+                                                            const targetProject = targetProjId ? projects.find((proj: any) => proj.id === targetProjId) : null;
+                                                            const geofenceRequired = targetProject?.locationValidated ?? false;
+                                                            const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
+                                                            
+                                                            if (p.accuracy > gpsThreshold) return false;
+                                                            if (geofenceRequired && projCoords && p.workMode !== 'Home Office') {
+                                                                const dist = projCoords && p.lat !== 0 ? getDistanceMeters(p.lat, p.lng, projCoords.lat, projCoords.lng) : 0;
+                                                                if (dist > radius) return false;
+                                                            }
+                                                            return true;
+                                                        })
+                                                    )
+                                                );
                                                 
                                                 let cellBg = style.bg;
                                                 let cellBorder = style.border;
-                                                if (dayView.displayStatus === 'Present' && dayTimesheet && !dayTimesheet.gpsVerified) {
+                                                if (dayView.displayStatus === 'Present' && dayTimesheet && !dynamicGpsVerified) {
                                                     cellBg = 'bg-amber-50/20';
                                                     cellBorder = 'border-l-amber-500';
                                                 }
@@ -254,7 +275,7 @@ export default function AttendanceGrid({
                                                             {dayView.missingPunch && !dayView.conflict && (
                                                                 <span className="absolute bottom-1 right-1 bg-amber-600 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Missing Punch">?</span>
                                                             )}
-                                                            {dayView.displayStatus === 'Present' && dayTimesheet && !dayTimesheet.gpsVerified && !dayView.conflict && !dayView.missingPunch && (
+                                                            {dayView.displayStatus === 'Present' && dayTimesheet && !dynamicGpsVerified && !dayView.conflict && !dayView.missingPunch && (
                                                                 <span className="absolute bottom-1 right-1 bg-amber-500 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Alerta GPS">⚠</span>
                                                             )}
                                                         </div>
