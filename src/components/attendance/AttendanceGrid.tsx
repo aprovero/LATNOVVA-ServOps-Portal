@@ -23,6 +23,7 @@ interface AttendanceGridProps {
         conflictsOnly: boolean;
         clockedInTodayOnly: boolean;
         presentAhoraOnly: boolean;
+        zombieShiftsOnly?: boolean;
     };
 }
 
@@ -88,26 +89,36 @@ export default function AttendanceGrid({
             if (!hasOpenTimesheet) return false;
         }
 
+        // Filter by today's status if a dashboard status filter is active (Vacation, Absent, Home Office, Sick Leave)
+        if (filters.statusFilter) {
+            const todayStr = new Date().toLocaleDateString('en-CA');
+            const todayView = calculateDailyAttendance(emp, todayStr, timesheets, overrides, schedules, lang);
+            if (todayView.displayStatus.toLowerCase() !== filters.statusFilter.toLowerCase()) {
+                return false;
+            }
+        }
+
         // Compute daily views to filter by KPIs/flags
         let hasConflict = false;
         let hasMissingPunch = false;
         let hasOvertime = false;
-        let matchedStatus = false;
+        let hasZombie = false;
 
         for (const date of dates) {
             const dv = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
             if (dv.conflict) hasConflict = true;
             if (dv.missingPunch) hasMissingPunch = true;
             if ((dv.overtimeHours || 0) > 0) hasOvertime = true;
-            if (filters.statusFilter && dv.displayStatus.toLowerCase() === filters.statusFilter.toLowerCase()) {
-                matchedStatus = true;
-            }
+
+            const timesheetEntry = timesheets.find(t => t.personnelId === emp.id && t.date === date);
+            const isZombie = !!(timesheetEntry && timesheetEntry.notes && timesheetEntry.notes.includes('System: Auto closed'));
+            if (isZombie) hasZombie = true;
         }
 
         if (filters.conflictsOnly && !hasConflict) return false;
         if (filters.missingPunchesOnly && !hasMissingPunch) return false;
         if (filters.overtimeOnly && !hasOvertime) return false;
-        if (filters.statusFilter && !matchedStatus) return false;
+        if (filters.zombieShiftsOnly && !hasZombie) return false;
 
         return true;
     });

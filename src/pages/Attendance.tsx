@@ -6,7 +6,7 @@ import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLe
 import AttendanceDashboard from '../components/attendance/AttendanceDashboard';
 import AttendanceGrid from '../components/attendance/AttendanceGrid';
 import AddOverrideModal from '../components/attendance/AddOverrideModal';
-import { exportAttendanceToCSV } from '../utils/attendanceExport';
+import { exportAttendanceToCSV, exportDetailedPunchesToCSV } from '../utils/attendanceExport';
 import { calculateDailyAttendance, formatDisplayDate } from '../utils/attendanceCalculations';
 
 export default function Attendance() {
@@ -47,6 +47,7 @@ export default function Attendance() {
     const [conflictsOnly, setConflictsOnly] = useState(false);
     const [clockedInTodayOnly, setClockedInTodayOnly] = useState(false); // Default false to show active colaboradores
     const [presentAhoraOnly, setPresentAhoraOnly] = useState(false);
+    const [zombieShiftsOnly, setZombieShiftsOnly] = useState(false);
 
     // Modal state
     const [isAddOverrideOpen, setIsAddOverrideOpen] = useState(false);
@@ -173,16 +174,33 @@ export default function Attendance() {
             return true;
         });
 
-        exportAttendanceToCSV(
-            filteredEmp,
-            projects,
-            timesheets,
-            attendanceOverrides,
-            workSchedules,
-            startDate,
-            endDate,
-            lang
-        );
+        const confirmMsg = lang === 'es' 
+            ? '¿Deseas exportar el reporte detallado con información de GPS y justificaciones individuales?\n\nAceptar = Reporte Detallado (GPS)\nCancelar = Reporte Básico (Diario)'
+            : 'Do you want to export the detailed report with GPS logs and justifications?\n\nOK = Detailed Report (GPS)\nCancel = Basic Report (Daily)';
+
+        const isDetailed = window.confirm(confirmMsg);
+
+        if (isDetailed) {
+            exportDetailedPunchesToCSV(
+                filteredEmp,
+                projects,
+                timesheets,
+                startDate,
+                endDate,
+                lang
+            );
+        } else {
+            exportAttendanceToCSV(
+                filteredEmp,
+                projects,
+                timesheets,
+                attendanceOverrides,
+                workSchedules,
+                startDate,
+                endDate,
+                lang
+            );
+        }
     };
 
     const handleDashboardFilterClick = (filter: string | null) => {
@@ -193,6 +211,7 @@ export default function Attendance() {
         setStatusFilter(null);
         setClockedInTodayOnly(false);
         setPresentAhoraOnly(false);
+        setZombieShiftsOnly(false);
 
         if (filter === 'conflict') setConflictsOnly(true);
         else if (filter === 'missing_punch') setMissingPunchesOnly(true);
@@ -387,7 +406,8 @@ export default function Attendance() {
                             onClick={() => {
                                 setPresentAhoraOnly(!presentAhoraOnly);
                                 if (!presentAhoraOnly) {
-                                    setClockedInTodayOnly(false); // Disable clocked in today if present now is active
+                                    setClockedInTodayOnly(false);
+                                    setZombieShiftsOnly(false); // disable zombie shifts if present now is active
                                 }
                             }}
                             className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
@@ -397,6 +417,23 @@ export default function Attendance() {
                             }`}
                         >
                             ✓ {t('attendance.filters.present_now', 'Presente Ahora')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setZombieShiftsOnly(!zombieShiftsOnly);
+                                if (!zombieShiftsOnly) {
+                                    setPresentAhoraOnly(false);
+                                    setClockedInTodayOnly(false);
+                                }
+                            }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${
+                                zombieShiftsOnly 
+                                    ? 'bg-red-500 text-white border-red-500 shadow-sm' 
+                                    : 'bg-white text-red-500 border-red-200 hover:bg-red-50'
+                            }`}
+                        >
+                            🧟 {t('attendance.filters.zombie_shifts', 'Turnos Zombie')}
                         </button>
                     </div>
 
@@ -449,7 +486,8 @@ export default function Attendance() {
                     overtimeOnly,
                     conflictsOnly,
                     clockedInTodayOnly,
-                    presentAhoraOnly
+                    presentAhoraOnly,
+                    zombieShiftsOnly
                 }}
             />
 
