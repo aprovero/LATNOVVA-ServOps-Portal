@@ -131,31 +131,45 @@ export function exportDetailedPunchesToCSV(
         'Estado Empleado',
         'Proyecto Registrado',
         'Fecha',
-        'Tipo de Marcaje',
-        'Hora',
-        'Latitud',
-        'Longitud',
-        'Precisión (metros)',
-        'GPS Verificado',
-        'Modo de Trabajo',
-        'Origen de Hora',
-        'Ajuste Manual',
-        'Comentarios / Justificación'
+        'Hora Entrada',
+        'Latitud Entrada',
+        'Longitud Entrada',
+        'Precisión Entrada (metros)',
+        'Modo de Trabajo Entrada',
+        'Origen de Hora Entrada',
+        'Ajuste Manual Entrada',
+        'Comentarios Entrada',
+        'Hora Salida',
+        'Latitud Salida',
+        'Longitud Salida',
+        'Precisión Salida (metros)',
+        'Modo de Trabajo Salida',
+        'Origen de Hora Salida',
+        'Ajuste Manual Salida',
+        'Comentarios Salida',
+        'GPS Verificado'
     ] : [
         'Full Name',
         'Employee Status',
         'Registered Project',
         'Date',
-        'Punch Type',
-        'Time',
-        'Latitude',
-        'Longitude',
-        'Accuracy (meters)',
-        'GPS Verified',
-        'Work Mode',
-        'Time Source',
-        'Manual Adjustment',
-        'Comments / Justification'
+        'Clock In Time',
+        'Clock In Latitude',
+        'Clock In Longitude',
+        'Clock In Accuracy (meters)',
+        'Clock In Work Mode',
+        'Clock In Time Source',
+        'Clock In Manual Adjustment',
+        'Clock In Comments',
+        'Clock Out Time',
+        'Clock Out Latitude',
+        'Clock Out Longitude',
+        'Clock Out Accuracy (meters)',
+        'Clock Out Work Mode',
+        'Clock Out Time Source',
+        'Clock Out Manual Adjustment',
+        'Clock Out Comments',
+        'GPS Verified'
     ];
 
     const getDatesArray = (start: string, end: string): string[] => {
@@ -182,72 +196,99 @@ export function exportDetailedPunchesToCSV(
             const project = projects.find(p => p.id === entry.projectId);
             const projectName = project ? (project.codeName || project.name) : (entry.projectId || '—');
 
-            if (entry.punches && entry.punches.length > 0) {
-                entry.punches.forEach(punch => {
-                    const punchTime = new Date(punch.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                    
-                    let punchTypeLabel: string = punch.type;
-                    if (lang === 'es') {
-                        const esPunchTypes: Record<string, string> = {
-                            'clockIn': 'Entrada',
-                            'clockOut': 'Salida',
-                            'lunchStart': 'Inicio Almuerzo',
-                            'lunchEnd': 'Fin Almuerzo'
-                        };
-                        punchTypeLabel = esPunchTypes[punch.type] || punch.type;
-                    }
+            // Extract clock-in and clock-out details
+            let clockInPunch = entry.punches?.find(p => p.type === 'clockIn');
+            let clockOutPunch = entry.punches?.find(p => p.type === 'clockOut');
 
-                    rows.push([
-                        `"${emp.name}"`,
-                        empStatus,
-                        `"${projectName}"`,
-                        date,
-                        punchTypeLabel,
-                        punchTime,
-                        punch.lat !== 0 ? punch.lat.toString() : '—',
-                        punch.lng !== 0 ? punch.lng.toString() : '—',
-                        punch.lat !== 0 ? Math.round(punch.accuracy).toString() : '—',
-                        entry.gpsVerified ? (lang === 'es' ? 'SÍ' : 'YES') : (lang === 'es' ? 'NO' : 'NO'),
-                        punch.workMode || 'On Site',
-                        punch.timeSource || 'device',
-                        punch.manualAdjustment ? (lang === 'es' ? 'SÍ' : 'YES') : (lang === 'es' ? 'NO' : 'NO'),
-                        `"${(punch.adjustmentNote || '').replace(/"/g, '""')}"`
-                    ]);
-                });
-            } else {
-                if (entry.timeIn) {
-                    rows.push([
-                        `"${emp.name}"`,
-                        empStatus,
-                        `"${projectName}"`,
-                        date,
-                        lang === 'es' ? 'Entrada (Manual)' : 'Clock In (Manual)',
-                        entry.timeIn,
-                        '—', '—', '—',
-                        'NO',
-                        entry.type || 'On Site',
-                        'device',
-                        'YES',
-                        `"${(entry.notes || '').replace(/"/g, '""')}"`
-                    ]);
-                }
-                if (entry.timeOut) {
-                    rows.push([
-                        `"${emp.name}"`,
-                        empStatus,
-                        `"${projectName}"`,
-                        date,
-                        lang === 'es' ? 'Salida (Manual)' : 'Clock Out (Manual)',
-                        entry.timeOut,
-                        '—', '—', '—',
-                        'NO',
-                        entry.type || 'On Site',
-                        'device',
-                        'YES',
-                        `"${(entry.notes || '').replace(/"/g, '""')}"`
-                    ]);
-                }
+                        // Fallbacks for manual inputs if punches list is empty
+            if (!clockInPunch && entry.timeIn) {
+                clockInPunch = {
+                    type: 'clockIn',
+                    timestamp: `${date}T${entry.timeIn}:00`,
+                    lat: 0,
+                    lng: 0,
+                    accuracy: 0,
+                    workMode: entry.type === 'Home Office' ? 'Home Office' : 'On Site',
+                    timeSource: 'device',
+                    manualAdjustment: true,
+                    adjustmentNote: entry.notes || ''
+                };
             }
+
+            if (!clockOutPunch && entry.timeOut) {
+                clockOutPunch = {
+                    type: 'clockOut',
+                    timestamp: `${date}T${entry.timeOut}:00`,
+                    lat: 0,
+                    lng: 0,
+                    accuracy: 0,
+                    workMode: entry.type === 'Home Office' ? 'Home Office' : 'On Site',
+                    timeSource: 'device',
+                    manualAdjustment: true,
+                    adjustmentNote: entry.notes || ''
+                };
+            }
+
+            // Skip if no records at all for this timesheet entry
+            if (!clockInPunch && !clockOutPunch) return;
+
+            const formatPunchTime = (punch: any) => {
+                if (!punch) return '';
+                try {
+                    // Try parsing or using time format directly if simulated
+                    const dt = new Date(punch.timestamp);
+                    if (isNaN(dt.getTime())) {
+                        return punch.timestamp.split('T')[1]?.substring(0, 5) || '';
+                    }
+                    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                } catch {
+                    return '';
+                }
+            };
+
+            const clockInTime = clockInPunch ? formatPunchTime(clockInPunch) : '—';
+            const clockInLat = clockInPunch && clockInPunch.lat !== 0 ? clockInPunch.lat.toString() : '—';
+            const clockInLng = clockInPunch && clockInPunch.lng !== 0 ? clockInPunch.lng.toString() : '—';
+            const clockInAcc = clockInPunch && clockInPunch.lat !== 0 ? Math.round(clockInPunch.accuracy).toString() : '—';
+            const clockInWorkMode = clockInPunch ? (clockInPunch.workMode || 'On Site') : '—';
+            const clockInSource = clockInPunch ? (clockInPunch.timeSource || 'device') : '—';
+            const clockInManual = clockInPunch ? (clockInPunch.manualAdjustment ? (lang === 'es' ? 'SÍ' : 'YES') : (lang === 'es' ? 'NO' : 'NO')) : '—';
+            const clockInComment = clockInPunch ? (clockInPunch.adjustmentNote || '') : '';
+
+            const clockOutTime = clockOutPunch ? formatPunchTime(clockOutPunch) : '—';
+            const clockOutLat = clockOutPunch && clockOutPunch.lat !== 0 ? clockOutPunch.lat.toString() : '—';
+            const clockOutLng = clockOutPunch && clockOutPunch.lng !== 0 ? clockOutPunch.lng.toString() : '—';
+            const clockOutAcc = clockOutPunch && clockOutPunch.lat !== 0 ? Math.round(clockOutPunch.accuracy).toString() : '—';
+            const clockOutWorkMode = clockOutPunch ? (clockOutPunch.workMode || 'On Site') : '—';
+            const clockOutSource = clockOutPunch ? (clockOutPunch.timeSource || 'device') : '—';
+            const clockOutManual = clockOutPunch ? (clockOutPunch.manualAdjustment ? (lang === 'es' ? 'SÍ' : 'YES') : (lang === 'es' ? 'NO' : 'NO')) : '—';
+            const clockOutComment = clockOutPunch ? (clockOutPunch.adjustmentNote || '') : '';
+
+            const gpsVerified = entry.gpsVerified ? (lang === 'es' ? 'SÍ' : 'YES') : (lang === 'es' ? 'NO' : 'NO');
+
+            rows.push([
+                `"${emp.name}"`,
+                empStatus,
+                `"${projectName}"`,
+                date,
+                clockInTime,
+                clockInLat,
+                clockInLng,
+                clockInAcc,
+                clockInWorkMode,
+                clockInSource,
+                clockInManual,
+                `"${clockInComment.replace(/"/g, '""')}"`,
+                clockOutTime,
+                clockOutLat,
+                clockOutLng,
+                clockOutAcc,
+                clockOutWorkMode,
+                clockOutSource,
+                clockOutManual,
+                `"${clockOutComment.replace(/"/g, '""')}"`,
+                gpsVerified
+            ]);
         });
     });
 
