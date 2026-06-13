@@ -9,7 +9,8 @@ export function exportAttendanceToCSV(
     schedules: WorkSchedule[],
     startDate: string,
     endDate: string,
-    lang: 'en' | 'es' = 'es'
+    lang: 'en' | 'es' = 'es',
+    subsidiary: string = 'US'
 ) {
     const headers = lang === 'es' ? [
         'Nombre Completo',
@@ -111,7 +112,7 @@ export function exportAttendanceToCSV(
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `reporte_asistencia_${startDate}_${endDate}.csv`);
+    link.setAttribute('download', `LATNOVVA${subsidiary}_reporte_asistencia_${startDate}_${endDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -124,7 +125,8 @@ export function exportDetailedPunchesToCSV(
     timesheets: TimesheetEntry[],
     startDate: string,
     endDate: string,
-    lang: 'en' | 'es' = 'es'
+    lang: 'en' | 'es' = 'es',
+    subsidiary: string = 'US'
 ) {
     const headers = lang === 'es' ? [
         'Nombre Completo',
@@ -297,7 +299,7 @@ export function exportDetailedPunchesToCSV(
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `reporte_detalle_marcajes_${startDate}_${endDate}.csv`);
+    link.setAttribute('download', `LATNOVVA${subsidiary}_reporte completo_asistencia_${startDate}_${endDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

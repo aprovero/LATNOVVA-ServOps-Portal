@@ -52,6 +52,7 @@ export default function Attendance() {
 
     // Modal state
     const [isAddOverrideOpen, setIsAddOverrideOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Real-time automatic refreshes for office/HR roles
@@ -167,41 +168,7 @@ export default function Attendance() {
     const stats = computeStats();
 
     const handleExport = () => {
-        const lang = i18n.language === 'en' ? 'en' : 'es';
-        // Filter out employees depending on active / inactive toggle before passing
-        const filteredEmp = filteredPersonnel.filter(emp => {
-            if (activeFilter === 'active' && emp.status !== 'Active') return false;
-            if (activeFilter === 'inactive' && emp.status !== 'Inactive') return false;
-            return true;
-        });
-
-        const confirmMsg = lang === 'es' 
-            ? '¿Deseas exportar el reporte detallado con información de GPS y justificaciones individuales?\n\nAceptar = Reporte Detallado (GPS)\nCancelar = Reporte Básico (Diario)'
-            : 'Do you want to export the detailed report with GPS logs and justifications?\n\nOK = Detailed Report (GPS)\nCancel = Basic Report (Daily)';
-
-        const isDetailed = window.confirm(confirmMsg);
-
-        if (isDetailed) {
-            exportDetailedPunchesToCSV(
-                filteredEmp,
-                projects,
-                timesheets,
-                startDate,
-                endDate,
-                lang
-            );
-        } else {
-            exportAttendanceToCSV(
-                filteredEmp,
-                projects,
-                timesheets,
-                attendanceOverrides,
-                workSchedules,
-                startDate,
-                endDate,
-                lang
-            );
-        }
+        setIsExportModalOpen(true);
     };
 
     const handleDashboardFilterClick = (filter: string | null) => {
@@ -562,6 +529,82 @@ export default function Attendance() {
                 isOpen={isAddOverrideOpen}
                 onClose={() => setIsAddOverrideOpen(false)}
             />
+
+            {/* Custom Export Modal */}
+            {isExportModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl border border-gray-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 text-accent-greyDark">
+                            <FileSpreadsheet className="text-brand-teal" size={24} />
+                            <h3 className="text-lg font-bold">
+                                {t('attendance.export.modal_title', 'Exportar Reporte de Asistencia')}
+                            </h3>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                            {t('attendance.export.modal_desc', 'Selecciona el formato del reporte que deseas descargar para el período seleccionado:')}
+                        </p>
+                        <div className="flex flex-col gap-2 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const lang = i18n.language === 'en' ? 'en' : 'es';
+                                    const filteredEmp = filteredPersonnel.filter(emp => {
+                                        if (activeFilter === 'active' && emp.status !== 'Active') return false;
+                                        if (activeFilter === 'inactive' && emp.status !== 'Inactive') return false;
+                                        return true;
+                                    });
+                                    exportAttendanceToCSV(
+                                        filteredEmp,
+                                        projects,
+                                        timesheets,
+                                        attendanceOverrides,
+                                        workSchedules,
+                                        startDate,
+                                        endDate,
+                                        lang,
+                                        activeSubsidiary
+                                    );
+                                    setIsExportModalOpen(false);
+                                }}
+                                className="w-full py-2.5 px-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold rounded-xl text-sm transition-all"
+                            >
+                                {t('attendance.export.basic_btn', 'Reporte Básico (Diario)')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const lang = i18n.language === 'en' ? 'en' : 'es';
+                                    const filteredEmp = filteredPersonnel.filter(emp => {
+                                        if (activeFilter === 'active' && emp.status !== 'Active') return false;
+                                        if (activeFilter === 'inactive' && emp.status !== 'Inactive') return false;
+                                        return true;
+                                    });
+                                    exportDetailedPunchesToCSV(
+                                        filteredEmp,
+                                        projects,
+                                        timesheets,
+                                        startDate,
+                                        endDate,
+                                        lang,
+                                        activeSubsidiary
+                                    );
+                                    setIsExportModalOpen(false);
+                                }}
+                                className="w-full py-2.5 px-4 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-xl text-sm transition-all"
+                            >
+                                {t('attendance.export.full_btn', 'Reporte Completo (GPS)')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsExportModalOpen(false)}
+                                className="w-full py-2.5 px-4 bg-white hover:bg-gray-50 text-gray-500 font-bold rounded-xl text-sm border transition-all mt-2"
+                            >
+                                {t('common.cancel', 'Cancelar')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
