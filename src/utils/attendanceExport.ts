@@ -1,5 +1,6 @@
 import { Personnel, Project, TimesheetEntry, AttendanceOverride, WorkSchedule } from '../store/useStore';
 import { calculateDailyAttendance } from './attendanceCalculations';
+import { getDistanceMeters, parseCoordinates } from './datetime.utils';
 
 export function exportAttendanceToCSV(
     employees: Personnel[],
@@ -137,6 +138,7 @@ export function exportDetailedPunchesToCSV(
         'Latitud Entrada',
         'Longitud Entrada',
         'Precisión Entrada (metros)',
+        'Distancia Entrada a Oficina (metros)',
         'Modo de Trabajo Entrada',
         'Origen de Hora Entrada',
         'Ajuste Manual Entrada',
@@ -145,6 +147,7 @@ export function exportDetailedPunchesToCSV(
         'Latitud Salida',
         'Longitud Salida',
         'Precisión Salida (metros)',
+        'Distancia Salida a Oficina (metros)',
         'Modo de Trabajo Salida',
         'Origen de Hora Salida',
         'Ajuste Manual Salida',
@@ -159,6 +162,7 @@ export function exportDetailedPunchesToCSV(
         'Clock In Latitude',
         'Clock In Longitude',
         'Clock In Accuracy (meters)',
+        'Clock In Distance to Office (meters)',
         'Clock In Work Mode',
         'Clock In Time Source',
         'Clock In Manual Adjustment',
@@ -167,6 +171,7 @@ export function exportDetailedPunchesToCSV(
         'Clock Out Latitude',
         'Clock Out Longitude',
         'Clock Out Accuracy (meters)',
+        'Clock Out Distance to Office (meters)',
         'Clock Out Work Mode',
         'Clock Out Time Source',
         'Clock Out Manual Adjustment',
@@ -197,12 +202,13 @@ export function exportDetailedPunchesToCSV(
 
             const project = projects.find(p => p.id === entry.projectId);
             const projectName = project ? (project.codeName || project.name) : (entry.projectId || '—');
+            const projCoords = project && project.location ? parseCoordinates(project.location) : null;
 
             // Extract clock-in and clock-out details
             let clockInPunch = entry.punches?.find(p => p.type === 'clockIn');
             let clockOutPunch = entry.punches?.find(p => p.type === 'clockOut');
 
-                        // Fallbacks for manual inputs if punches list is empty
+            // Fallbacks for manual inputs if punches list is empty
             if (!clockInPunch && entry.timeIn) {
                 clockInPunch = {
                     type: 'clockIn',
@@ -248,10 +254,21 @@ export function exportDetailedPunchesToCSV(
                 }
             };
 
+            const getDistanceStr = (punch: any) => {
+                if (!punch || punch.lat === 0 || punch.lng === 0 || !projCoords) return '—';
+                try {
+                    const dist = getDistanceMeters(punch.lat, punch.lng, projCoords.lat, projCoords.lng);
+                    return Math.round(dist).toString();
+                } catch {
+                    return '—';
+                }
+            };
+
             const clockInTime = clockInPunch ? formatPunchTime(clockInPunch) : '—';
             const clockInLat = clockInPunch && clockInPunch.lat !== 0 ? clockInPunch.lat.toString() : '—';
             const clockInLng = clockInPunch && clockInPunch.lng !== 0 ? clockInPunch.lng.toString() : '—';
             const clockInAcc = clockInPunch && clockInPunch.lat !== 0 ? Math.round(clockInPunch.accuracy).toString() : '—';
+            const clockInDist = getDistanceStr(clockInPunch);
             const clockInWorkMode = clockInPunch ? (clockInPunch.workMode || 'On Site') : '—';
             const clockInSource = clockInPunch ? (clockInPunch.timeSource || 'device') : '—';
             const clockInManual = clockInPunch ? (clockInPunch.manualAdjustment ? (lang === 'es' ? 'SÍ' : 'YES') : (lang === 'es' ? 'NO' : 'NO')) : '—';
@@ -261,6 +278,7 @@ export function exportDetailedPunchesToCSV(
             const clockOutLat = clockOutPunch && clockOutPunch.lat !== 0 ? clockOutPunch.lat.toString() : '—';
             const clockOutLng = clockOutPunch && clockOutPunch.lng !== 0 ? clockOutPunch.lng.toString() : '—';
             const clockOutAcc = clockOutPunch && clockOutPunch.lat !== 0 ? Math.round(clockOutPunch.accuracy).toString() : '—';
+            const clockOutDist = getDistanceStr(clockOutPunch);
             const clockOutWorkMode = clockOutPunch ? (clockOutPunch.workMode || 'On Site') : '—';
             const clockOutSource = clockOutPunch ? (clockOutPunch.timeSource || 'device') : '—';
             const clockOutManual = clockOutPunch ? (clockOutPunch.manualAdjustment ? (lang === 'es' ? 'SÍ' : 'YES') : (lang === 'es' ? 'NO' : 'NO')) : '—';
@@ -277,6 +295,7 @@ export function exportDetailedPunchesToCSV(
                 clockInLat,
                 clockInLng,
                 clockInAcc,
+                clockInDist,
                 clockInWorkMode,
                 clockInSource,
                 clockInManual,
@@ -285,6 +304,7 @@ export function exportDetailedPunchesToCSV(
                 clockOutLat,
                 clockOutLng,
                 clockOutAcc,
+                clockOutDist,
                 clockOutWorkMode,
                 clockOutSource,
                 clockOutManual,
