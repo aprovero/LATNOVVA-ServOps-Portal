@@ -15,7 +15,7 @@ interface AttendanceGridProps {
     endDate: string;
     filters: {
         search: string;
-        project: string;
+        projects: string[];
         statusFilter: string | null;
         activeFilter: 'all' | 'active' | 'inactive';
         missingPunchesOnly: boolean;
@@ -69,9 +69,9 @@ export default function AttendanceGrid({
         // Assigned project OR project clocked in during selected range
         const empProject = projects.find(p => p.assignedPersonnel?.includes(emp.id));
         const hasClockedInProject = timesheets.some(
-            t => t.personnelId === emp.id && dates.includes(t.date) && t.projectId === filters.project
+            t => t.personnelId === emp.id && dates.includes(t.date) && !!t.projectId && filters.projects.includes(t.projectId)
         );
-        if (filters.project && empProject?.id !== filters.project && !hasClockedInProject) return false;
+        if (filters.projects && filters.projects.length > 0 && (!empProject || !filters.projects.includes(empProject.id)) && !hasClockedInProject) return false;
 
         // Filter by who clocked in today
         if (filters.clockedInTodayOnly) {

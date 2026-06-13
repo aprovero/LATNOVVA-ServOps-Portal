@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabase';
-import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import AttendanceDashboard from '../components/attendance/AttendanceDashboard';
 import AttendanceGrid from '../components/attendance/AttendanceGrid';
 import AddOverrideModal from '../components/attendance/AddOverrideModal';
@@ -39,7 +39,8 @@ export default function Attendance() {
     
     // Filters state
     const [search, setSearch] = useState('');
-    const [selectedProject, setSelectedProject] = useState('');
+    const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+    const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active'); // default show active
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [missingPunchesOnly, setMissingPunchesOnly] = useState(false);
@@ -336,21 +337,86 @@ export default function Attendance() {
                         />
                     </div>
 
-                    {/* Project */}
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
+                    {/* Project Multi-Select Dropdown with Checkboxes */}
+                    <div className="space-y-1.5 flex-1 min-w-[200px] relative">
                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                             {t('timesheets.filters.project', 'Proyecto')}
                         </label>
-                        <select
-                            value={selectedProject}
-                            onChange={e => setSelectedProject(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-teal outline-none h-11 cursor-pointer"
-                        >
-                            <option value="">{t('timesheets.filters.all_projects', 'Todos los Proyectos')}</option>
-                            {filteredProjects.filter(p => p.status === 'Active' || p.status === 'In Progress').map(p => (
-                                <option key={p.id} value={p.id}>{p.codeName || p.name}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-teal outline-none h-11 cursor-pointer flex items-center justify-between font-medium text-gray-700"
+                            >
+                                <span className="truncate">
+                                    {selectedProjects.length === 0
+                                        ? t('timesheets.filters.all_projects', 'Todos los Proyectos')
+                                        : selectedProjects.length === 1
+                                        ? (() => {
+                                              const proj = filteredProjects.find(p => p.id === selectedProjects[0]);
+                                              return proj ? (proj.codeName || proj.name) : selectedProjects[0];
+                                          })()
+                                        : `${selectedProjects.length} ${t('timesheets.filters.projects', 'Proyectos')}`}
+                                </span>
+                                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isProjectDropdownOpen && (
+                                <>
+                                    {/* Backdrop overlay to close when clicking outside */}
+                                    <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={() => setIsProjectDropdownOpen(false)}
+                                    />
+                                    <div className="absolute left-0 w-full bg-white border border-gray-200 rounded-xl mt-1.5 shadow-xl p-3 z-50 space-y-2 max-h-[300px] flex flex-col">
+                                        {/* Select All checkbox */}
+                                        <label className="flex items-center gap-2 px-1 py-1 hover:bg-gray-50 rounded-lg cursor-pointer text-xs font-bold text-gray-700 select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedProjects.length === filteredProjects.filter(p => p.status === 'Active' || p.status === 'In Progress').length}
+                                                onChange={(e) => {
+                                                    const activeProjs = filteredProjects.filter(p => p.status === 'Active' || p.status === 'In Progress');
+                                                    if (e.target.checked) {
+                                                        setSelectedProjects(activeProjs.map(p => p.id));
+                                                    } else {
+                                                        setSelectedProjects([]);
+                                                    }
+                                                }}
+                                                className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal w-4 h-4"
+                                            />
+                                            <span>{t('attendance.filters.select_all', 'Seleccionar Todos')}</span>
+                                        </label>
+                                        <hr className="border-gray-100" />
+                                        
+                                        {/* List of projects */}
+                                        <div className="overflow-y-auto space-y-1 pr-1 flex-1">
+                                            {filteredProjects
+                                                .filter(p => p.status === 'Active' || p.status === 'In Progress')
+                                                .map(p => {
+                                                    const isChecked = selectedProjects.includes(p.id);
+                                                    return (
+                                                        <label key={p.id} className="flex items-center gap-2 px-1 py-1 hover:bg-gray-50 rounded-lg cursor-pointer text-xs text-gray-700 select-none">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={() => {
+                                                                    if (isChecked) {
+                                                                        setSelectedProjects(selectedProjects.filter(id => id !== p.id));
+                                                                    } else {
+                                                                        setSelectedProjects([...selectedProjects, p.id]);
+                                                                    }
+                                                                }}
+                                                                className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal w-4 h-4"
+                                                            />
+                                                            <span className="truncate">{p.codeName || p.name}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* Active/Inactive */}
@@ -479,7 +545,7 @@ export default function Attendance() {
                 endDate={endDate}
                 filters={{
                     search,
-                    project: selectedProject,
+                    projects: selectedProjects,
                     activeFilter,
                     statusFilter,
                     missingPunchesOnly,
