@@ -25,6 +25,7 @@ interface AttendanceGridProps {
         presentAhoraOnly: boolean;
         zombieShiftsOnly?: boolean;
     };
+    showHours?: boolean;
 }
 
 export default function AttendanceGrid({
@@ -35,7 +36,8 @@ export default function AttendanceGrid({
     schedules,
     startDate,
     endDate,
-    filters
+    filters,
+    showHours = false
 }: AttendanceGridProps) {
     const { t, i18n } = useTranslation();
     const lang = i18n.language === 'en' ? 'en' : 'es';
@@ -259,17 +261,32 @@ export default function AttendanceGrid({
                                                         <div className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 ${cellBg} ${style.text} ${cellBorder}`}>
                                                             {dayView.displayStatus === 'Present' ? (
                                                                 <div className="flex flex-col items-center justify-center">
-                                                                    <span className="text-xs font-mono font-bold leading-none tracking-tight block">
-                                                                        {dayView.clockIn || '—'}
-                                                                    </span>
-                                                                    <span className="text-xs font-mono leading-none tracking-tight block text-gray-400/80 mt-0.5">
-                                                                        {dayView.clockOut || '—'}
-                                                                    </span>
-                                                                    {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
-                                                                        <span className="absolute top-1 right-1 bg-brand-teal text-white font-extrabold text-[8px] px-1 rounded-full flex items-center justify-center border border-white" title={`Extra: +${dayView.overtimeHours}h`}>
-                                                                            +{Math.round(dayView.overtimeHours)}h
-                                                                        </span>
-                                                                    ) : null}
+                                                                    {showHours ? (
+                                                                        <>
+                                                                            <span className="text-xs font-mono font-bold leading-none tracking-tight block text-brand-teal">
+                                                                                {dayView.regularHours ? `${dayView.regularHours.toFixed(1)}h` : '—'}
+                                                                            </span>
+                                                                            {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
+                                                                                <span className="text-[10px] font-mono leading-none tracking-tight block text-amber-500 mt-0.5">
+                                                                                    +{dayView.overtimeHours.toFixed(1)}h
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <span className="text-xs font-mono font-bold leading-none tracking-tight block">
+                                                                                {dayView.clockIn || '—'}
+                                                                            </span>
+                                                                            <span className="text-xs font-mono leading-none tracking-tight block text-gray-400/80 mt-0.5">
+                                                                                {dayView.clockOut || '—'}
+                                                                            </span>
+                                                                            {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
+                                                                                <span className="absolute top-1 right-1 bg-brand-teal text-white font-extrabold text-[8px] px-1 rounded-full flex items-center justify-center border border-white" title={`Extra: +${dayView.overtimeHours}h`}>
+                                                                                    +{Math.round(dayView.overtimeHours)}h
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             ) : (
                                                                 <span className="text-[10px] font-extrabold uppercase leading-none tracking-tight block truncate text-center">
@@ -302,73 +319,131 @@ export default function AttendanceGrid({
                 </div>
             </div>
 
-            {/* Mobile Cards View (Employee-by-Employee summaries) */}
-            <div className="block md:hidden space-y-4">
-                {filteredEmployees.length === 0 ? (
-                    <div className="bg-white p-8 border rounded-2xl text-center text-gray-500 font-medium">
-                        🔍 {t('attendance.filters.no_results')}
-                    </div>
-                ) : (
-                    filteredEmployees.map(emp => {
-                        const rangeTimesheets = timesheets.filter(t => t.personnelId === emp.id && dates.includes(t.date));
-                        const latestWithProject = [...rangeTimesheets]
-                            .sort((a, b) => b.date.localeCompare(a.date))
-                            .find(t => t.projectId);
+            {/* Mobile Table View (Name and Current/Latest Day) */}
+            <div className="block md:hidden bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+                <table className="w-full text-left border-collapse table-fixed">
+                    <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-bold">
+                            <th className="p-3 w-[60%] border-r border-gray-100">{t('personnel.table.name', 'Nombre')}</th>
+                            {(() => {
+                                const mobileDate = dates.includes(new Date().toLocaleDateString('en-CA')) 
+                                    ? new Date().toLocaleDateString('en-CA') 
+                                    : dates[dates.length - 1];
+                                const { dayName, dayNum } = formatDateHeader(mobileDate);
+                                return (
+                                    <th className="p-2 text-center w-[40%]">
+                                        <span className="block text-[9px] font-bold text-gray-400">{dayName}</span>
+                                        <span className="block text-sm font-extrabold text-accent-greyDark">{dayNum}</span>
+                                    </th>
+                                );
+                            })()}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {filteredEmployees.length === 0 ? (
+                            <tr>
+                                <td colSpan={2} className="p-8 text-center text-gray-500 font-medium bg-white">
+                                    🔍 {t('attendance.filters.no_results', 'No se encontraron colaboradores.')}
+                                </td>
+                            </tr>
+                        ) : (
+                            filteredEmployees.map(emp => {
+                                const mobileDate = dates.includes(new Date().toLocaleDateString('en-CA')) 
+                                    ? new Date().toLocaleDateString('en-CA') 
+                                    : dates[dates.length - 1];
 
-                        let project = null;
-                        if (latestWithProject && latestWithProject.projectId) {
-                            project = projects.find(p => p.id === latestWithProject.projectId);
-                        }
-                        if (!project) {
-                            project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
-                        }
-                        const projectName = project ? (project.codeName || project.name) : '—';
-                        
-                        // Compute summaries for this range
-                        let conflictsCount = 0;
-                        let missingPunchesCount = 0;
-                        let otHours = 0;
-                        let regHours = 0;
-                        
-                        dates.forEach(date => {
-                            const dv = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
-                            if (dv.conflict) conflictsCount++;
-                            if (dv.missingPunch) missingPunchesCount++;
-                            otHours += dv.overtimeHours || 0;
-                            regHours += dv.regularHours || 0;
-                        });
+                                const dayView = calculateDailyAttendance(emp, mobileDate, timesheets, overrides, schedules, lang);
+                                
+                                // Accent border and styles
+                                const style = statusStyles[dayView.displayStatus] || statusStyles['Blank'];
+                                const cellBg = dayView.displayStatus === 'Blank' ? 'bg-white' : style.bg;
+                                const cellBorder = style.border;
 
-                        return (
-                            <div key={emp.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-soft space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-teal-50 text-teal-700 rounded-xl flex items-center justify-center text-sm font-bold">
-                                        {emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <h4 className="font-bold text-sm text-accent-greyDark truncate">{emp.name}</h4>
-                                        <p className="text-[11px] text-gray-400">{projectName} · Joined: {emp.onboardingDate || '—'}</p>
-                                    </div>
-                                </div>
+                                const rangeTimesheets = timesheets.filter(t => t.personnelId === emp.id && dates.includes(t.date));
+                                const latestWithProject = [...rangeTimesheets]
+                                    .sort((a, b) => b.date.localeCompare(a.date))
+                                    .find(t => t.projectId);
 
-                                <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50 p-3 rounded-xl border border-gray-100/50">
-                                    <div className="flex justify-between"><span className="text-gray-400">Regular:</span><span className="font-bold text-accent-greyDark">{regHours.toFixed(1)} hrs</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Extra (OT):</span><span className="font-bold text-brand-teal">{otHours.toFixed(1)} hrs</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Conflictos:</span><span className={`font-bold ${conflictsCount > 0 ? 'text-orange-600': 'text-gray-400'}`}>{conflictsCount}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-400">Faltantes:</span><span className={`font-bold ${missingPunchesCount > 0 ? 'text-amber-600': 'text-gray-400'}`}>{missingPunchesCount}</span></div>
-                                </div>
+                                let project = null;
+                                if (latestWithProject && latestWithProject.projectId) {
+                                    project = projects.find(p => p.id === latestWithProject.projectId);
+                                }
+                                if (!project) {
+                                    project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
+                                }
 
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => setSelectedCell({ employee: emp, date: dates[dates.length - 1], project })}
-                                        className="w-full text-center py-2.5 bg-brand-teal/10 hover:bg-brand-teal/20 transition-colors text-brand-teal rounded-xl text-xs font-bold"
-                                    >
-                                        ⚙️ Ver Detalle Día a Día
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })
-                )}
+                                const dayTimesheet = timesheets.find(t => t.personnelId === emp.id && t.date === mobileDate);
+                                const isGpsVerified = dayTimesheet?.gpsVerified;
+                                const hasPunches = dayTimesheet?.punches && dayTimesheet.punches.length > 0;
+                                const dynamicGpsVerified = hasPunches ? isGpsVerified : true;
+
+                                return (
+                                    <tr key={emp.id} className="hover:bg-gray-50/30 transition-colors">
+                                        <td className="p-3 border-r border-gray-100 w-[60%] align-middle">
+                                            <div className="font-bold text-xs text-accent-greyDark truncate uppercase">
+                                                {emp.name}
+                                            </div>
+                                        </td>
+                                        <td className="p-1 text-center w-[40%] relative align-middle">
+                                            <div 
+                                                onClick={() => setSelectedCell({ employee: emp, date: mobileDate, project })}
+                                                className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 cursor-pointer ${cellBg} ${style.text} ${cellBorder}`}
+                                            >
+                                                {dayView.displayStatus === 'Present' ? (
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        {showHours ? (
+                                                            <>
+                                                                <span className="text-xs font-mono font-bold leading-none tracking-tight block text-brand-teal">
+                                                                    {dayView.regularHours ? `${dayView.regularHours.toFixed(1)}h` : '—'}
+                                                                </span>
+                                                                {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
+                                                                    <span className="text-[10px] font-mono leading-none tracking-tight block text-amber-500 mt-0.5">
+                                                                        +{dayView.overtimeHours.toFixed(1)}h
+                                                                    </span>
+                                                                ) : null}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span className="text-xs font-mono font-bold leading-none tracking-tight block">
+                                                                    {dayView.clockIn || '—'}
+                                                                </span>
+                                                                <span className="text-xs font-mono leading-none tracking-tight block text-gray-400/80 mt-0.5">
+                                                                    {dayView.clockOut || '—'}
+                                                                </span>
+                                                                {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
+                                                                    <span className="absolute top-1 right-1 bg-brand-teal text-white font-extrabold text-[8px] px-1 rounded-full flex items-center justify-center border border-white" title={`Extra: +${dayView.overtimeHours}h`}>
+                                                                        +{Math.round(dayView.overtimeHours)}h
+                                                                    </span>
+                                                                ) : null}
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[10px] font-extrabold uppercase leading-none tracking-tight block truncate text-center">
+                                                        {dayView.displayStatus === 'Rest Day' && mobileDate >= new Date().toLocaleDateString('en-CA') 
+                                                            ? '' 
+                                                            : (lang === 'es' ? style.es : style.label)}
+                                                    </span>
+                                                )}
+                                                
+                                                {/* Mini warning badge inside cells */}
+                                                {dayView.conflict && (
+                                                    <span className="absolute bottom-1 right-1 bg-orange-600 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Conflict">!</span>
+                                                )}
+                                                {dayView.missingPunch && !dayView.conflict && (
+                                                    <span className="absolute bottom-1 right-1 bg-amber-600 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Missing Punch">?</span>
+                                                )}
+                                                {dayView.displayStatus === 'Present' && dayTimesheet && !dynamicGpsVerified && !dayView.conflict && !dayView.missingPunch && (
+                                                    <span className="absolute bottom-1 right-1 bg-amber-500 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Alerta GPS">⚠</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
             </div>
 
             {/* Render details slide-out drawer on selection */}
