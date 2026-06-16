@@ -298,15 +298,22 @@ export function calculateDailyAttendance(
         }
     }
 
-    const shifts = sortedTimesheets.map(t => ({
-        timeIn: t.timeIn,
-        lunchStart: t.lunchStart,
-        lunchEnd: t.lunchEnd,
-        timeOut: t.timeOut,
-        hours: t.hours || 0,
-        projectId: t.projectId,
-        notes: t.notes
-    }));
+    const uniqueShifts = new Map<string, any>();
+    for (const t of sortedTimesheets) {
+        const key = `${t.timeIn}-${t.timeOut}-${t.projectId}`;
+        if (!uniqueShifts.has(key)) {
+            uniqueShifts.set(key, {
+                timeIn: t.timeIn,
+                lunchStart: t.lunchStart,
+                lunchEnd: t.lunchEnd,
+                timeOut: t.timeOut,
+                hours: t.hours || 0,
+                projectId: t.projectId,
+                notes: t.notes
+            });
+        }
+    }
+    const shifts = Array.from(uniqueShifts.values());
 
     return {
         employeeId: employee.id,

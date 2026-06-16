@@ -148,6 +148,8 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
     const primaryAction = entries[0]?.action ?? 'clockIn';
     const actionMeta = actionLabel[primaryAction];
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[92vh]">
@@ -202,10 +204,15 @@ function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
                 </div>
 
                 <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">{t('common.cancel')}</button>
+                    <button onClick={onCancel} disabled={isSubmitting} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40">{t('common.cancel')}</button>
                     <button
-                        onClick={() => sigBlob && onConfirm(sigBlob)}
-                        disabled={!sigBlob || !gpsReady}
+                        onClick={() => {
+                            if (sigBlob && !isSubmitting) {
+                                setIsSubmitting(true);
+                                onConfirm(sigBlob);
+                            }
+                        }}
+                        disabled={!sigBlob || !gpsReady || isSubmitting}
                         className={`flex-1 py-3 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                             primaryAction === 'clockOut' ? 'bg-red-500' :
                             primaryAction === 'clockIn' ? 'bg-teal-500' : 'bg-amber-500'
@@ -667,30 +674,58 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const activeProjects = projects.filter((p: any) => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX');
     const gpsReady = workMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
     const gpsDenied = gps.status === 'denied';
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const executePunch = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
-        const best = getBestTimestampISO(gps);
-        let timestamp = best.iso;
-        if (overrideTime) {
-            const [h, m] = overrideTime.split(':');
-            const d = getBestDate(gps);
-            d.setHours(parseInt(h), parseInt(m), 0, 0);
-            timestamp = d.toISOString();
-        }
-        const punch: ClockPunch = {
-            timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
-            accuracy: gps.accuracy ?? 9999, type,
-            timeSource: overrideTime ? 'device' : best.source,
-            ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
-            workMode,
-        };
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         
-        const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
-        const finalProjectId = workMode === 'Home Office'
-            ? (assignedProj?.id || selectedProject || undefined)
-            : (selectedProject || undefined);
+        try {
+            if (type === 'clockOut') {
+                const activeEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+                if (activeEntry && activeEntry.timeIn) {
+                    const now = new Date();
+                    const [inH, inM] = activeEntry.timeIn.split(':').map(Number);
+                    const inTime = new Date();
+                    inTime.setHours(inH, inM, 0, 0);
+                    const diffMins = (now.getTime() - inTime.getTime()) / 60000;
+                    
+                    if (diffMins < 3 && diffMins >= 0) {
+                        if (window.confirm(t('attendance.alerts.short_shift_dismiss', 'Este turno dura menos de 3 minutos. ¿Fue un error al registrar la entrada? Haz clic en Aceptar para descartarlo o en Cancelar para registrar la salida normalmente.'))) {
+                            useStore.getState().deleteTimesheet(activeEntry.id);
+                            setIsSubmitting(false);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            const best = getBestTimestampISO(gps);
+            let timestamp = best.iso;
+            if (overrideTime) {
+                const [h, m] = overrideTime.split(':');
+                const d = getBestDate(gps);
+                d.setHours(parseInt(h), parseInt(m), 0, 0);
+                timestamp = d.toISOString();
+            }
+            const punch: ClockPunch = {
+                timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
+                accuracy: gps.accuracy ?? 9999, type,
+                timeSource: overrideTime ? 'device' : best.source,
+                ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
+                workMode,
+            };
             
-        doPunch(personnelId, punch, finalProjectId);
+            const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
+            const finalProjectId = workMode === 'Home Office'
+                ? (assignedProj?.id || selectedProject || undefined)
+                : (selectedProject || undefined);
+                
+            doPunch(personnelId, punch, finalProjectId);
+        } finally {
+            // Slight delay before re-enabling to ensure store updates
+            setTimeout(() => setIsSubmitting(false), 2000);
+        }
     };
 
     return (

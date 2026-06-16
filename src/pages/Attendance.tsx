@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabase';
-import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight, ChevronDown, Clock } from 'lucide-react';
 import AttendanceDashboard from '../components/attendance/AttendanceDashboard';
 import AttendanceGrid from '../components/attendance/AttendanceGrid';
 import AddOverrideModal from '../components/attendance/AddOverrideModal';
@@ -49,6 +49,7 @@ export default function Attendance() {
     const [clockedInTodayOnly, setClockedInTodayOnly] = useState(false); // Default false to show active colaboradores
     const [presentAhoraOnly, setPresentAhoraOnly] = useState(false);
     const [zombieShiftsOnly, setZombieShiftsOnly] = useState(false);
+    const [showHours, setShowHours] = useState(false);
 
     // Modal state
     const [isAddOverrideOpen, setIsAddOverrideOpen] = useState(false);
@@ -436,6 +437,19 @@ export default function Attendance() {
                     <div className="flex flex-wrap gap-3">
                         <button
                             type="button"
+                            onClick={() => setShowHours(!showHours)}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all flex items-center gap-1.5 ${
+                                showHours 
+                                    ? 'bg-gray-800 text-white border-gray-800 shadow-sm' 
+                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                            }`}
+                            title="Alternar entre horario de entrada/salida y horas registradas"
+                        >
+                            <Clock size={12} className={showHours ? 'text-white' : 'text-gray-400'} />
+                            {showHours ? 'Horas' : 'Entradas'}
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => {
                                 setPresentAhoraOnly(!presentAhoraOnly);
                                 if (!presentAhoraOnly) {
@@ -522,6 +536,7 @@ export default function Attendance() {
                     presentAhoraOnly,
                     zombieShiftsOnly
                 }}
+                showHours={showHours}
             />
 
             {/* Add Absence Modal */}
