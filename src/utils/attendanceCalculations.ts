@@ -253,6 +253,10 @@ export function calculateDailyAttendance(
                 // Fetch timesheets for this employee on dateStr
                 const dayTS = timesheets.filter(t => t.personnelId === employee.id && t.date === dateStr);
                 for (const ts of dayTS) {
+                    const isZombie = !!(ts.notes && ts.notes.includes('Auto closed'));
+                    if (isZombie) {
+                        continue;
+                    }
                     if (ts.timeIn && ts.timeOut) {
                         const calc = calculateWorkedHours(
                             ts.timeIn ?? undefined,
