@@ -214,6 +214,10 @@ export function calculateDailyAttendance(
     // 6. Calculate hours across all shifts on this day
     let totalWorkedMinutes = 0;
     for (const ts of sortedTimesheets) {
+        const isZombie = !!(ts.notes && ts.notes.includes('Auto closed'));
+        if (isZombie) {
+            continue;
+        }
         if (ts.timeIn && ts.timeOut) {
             const calc = calculateWorkedHours(
                 ts.timeIn ?? undefined,
