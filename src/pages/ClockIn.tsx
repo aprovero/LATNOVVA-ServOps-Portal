@@ -7,7 +7,7 @@ import { useStore, ClockPunch, Personnel } from '../store/useStore';
 import { formatTime } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { useAttendance } from '../hooks/useAttendance';
-import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates } from '../utils/datetime.utils';
+import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 import QuickAddWorker from '../components/shared/QuickAddWorker';
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
 
@@ -660,13 +660,16 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const currentProjId = step === 'clocked-in' ? (activeEntry?.projectId ?? '') : selectedProject;
     const targetProject = currentProjId ? projects.find((p: any) => p.id === currentProjId) : null;
     const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
+    const geofenceRadius = platformSettings?.geofenceRadius ?? 250;
+    const isBypass = isWarehouseBypass(personnelId, gps.lat, gps.lng, geofenceRadius);
     const isOutsideGeofence = !!(
         workMode === 'On Site' &&
         targetProject?.locationValidated &&
         projCoords &&
         gps.lat !== null &&
         gps.lng !== null &&
-        getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng) > platformSettings.geofenceRadius
+        getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng) > geofenceRadius &&
+        !isBypass
     );
     const geofenceDistance = projCoords && gps.lat !== null && gps.lng !== null
         ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
@@ -972,7 +975,7 @@ export default function ClockIn() {
         return () => clearInterval(id);
     }, [gps]);
 
-    const isSupervisor = userRole === 'Supervisor' || userRole === 'Manager';
+    const isSupervisor = userRole === 'Supervisor' || userRole === 'Manager' || userRole === 'HR';
     const [viewMode, setViewMode] = useState<ViewMode>('individual');
 
     const { t, i18n } = useTranslation();

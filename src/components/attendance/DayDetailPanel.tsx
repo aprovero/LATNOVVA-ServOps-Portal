@@ -4,7 +4,7 @@ import { useStore, Personnel, Project } from '../../store/useStore';
 import { calculateDailyAttendance, getStatusLabel, formatDisplayDate } from '../../utils/attendanceCalculations';
 import { X, AlertTriangle, AlertOctagon, Edit3 } from 'lucide-react';
 import ManualCorrectionPanel from './ManualCorrectionPanel';
-import { getDistanceMeters, parseCoordinates } from '../../utils/datetime.utils';
+import { getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../../utils/datetime.utils';
 import { useAuthStore } from '../../lib/authStore';
 
 interface DayDetailPanelProps {
@@ -108,6 +108,7 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                             const computedGpsVerified = !timesheetEntry.punches || timesheetEntry.punches.every((p: any) => {
                                 if (p.accuracy > gpsThreshold) return false;
                                 if (geofenceRequired && projCoords && p.workMode !== 'Home Office') {
+                                    if (isWarehouseBypass(employee.id, p.lat, p.lng, radius)) return true;
                                     const dist = projCoords && p.lat !== 0 ? getDistanceMeters(p.lat, p.lng, projCoords.lat, projCoords.lng) : 0;
                                     if (dist > radius) return false;
                                 }
@@ -242,7 +243,8 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                                     const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
                                     const radius = platformSettings.geofenceRadius ?? 250;
                                     const dist = projCoords && punch.lat !== 0 ? getDistanceMeters(punch.lat, punch.lng, projCoords.lat, projCoords.lng) : 0;
-                                    const isOutside = geofenceRequired && projCoords && punch.workMode !== 'Home Office' && dist > radius;
+                                    const isBypass = isWarehouseBypass(employee.id, punch.lat, punch.lng, radius);
+                                    const isOutside = geofenceRequired && projCoords && punch.workMode !== 'Home Office' && dist > radius && !isBypass;
 
                                     const formattedDist = dist >= 1000 ? `${(dist / 1000).toFixed(1)}km` : `${Math.round(dist)}m`;
                                     const formattedRadius = radius >= 1000 ? `${(radius / 1000).toFixed(1)}km` : `${radius}m`;

@@ -88,3 +88,17 @@ export const isCertExpired = (expirationDate?: string): boolean => {
     now.setHours(0, 0, 0, 0);
     return exp < now;
 };
+
+/**
+ * Helper to bypass geofence check for user Cesar Flores Peregrino
+ * when checking in/out at the warehouse coordinates: 20.93019, -89.67442
+ */
+export const isWarehouseBypass = (personnelId?: string | null, lat?: number | null, lng?: number | null, radius: number = 250): boolean => {
+    const CAESAR_ID = 'dd408924-77f9-4059-af8d-ed50773ac592';
+    if (!personnelId || personnelId !== CAESAR_ID) return false;
+    if (lat === null || lat === undefined || lng === null || lng === undefined || lat === 0 || lng === 0) return false;
+    
+    const warehouseLat = 20.93019;
+    const warehouseLng = -89.67442;
+    return getDistanceMeters(lat, lng, warehouseLat, warehouseLng) <= radius;
+};

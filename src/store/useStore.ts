@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabaseUntyped as supabase } from '../lib/supabase';
 import { createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from '../lib/idbStorage';
-import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates } from '../utils/datetime.utils';
+import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 
 export interface PendingSyncItem {
     table: string;
@@ -287,6 +287,7 @@ export interface ClockPunch {
     isOutsourced?: boolean; // true for non-registered / contract personnel
     outsourcedName?: string; // display name when isOutsourced is true
     workMode?: 'On Site' | 'Home Office';
+    isZombieClose?: boolean;
 }
 
 export interface TimesheetEntry {
@@ -906,15 +907,13 @@ export const useStore = create<AppState>()(
                 const { timesheets, platformSettings, clockPunch } = get();
                 if (!platformSettings.enableAutoClockOut) return;
 
-                const thresholdHours = platformSettings.autoClockOutThreshold;
                 const now = new Date();
                 
-                // Find open sessions that started more than X hours ago
+                // Find open sessions where the current time is past 11:59 PM (23:59) on the shift's date
                 const zombies = timesheets.filter(t => {
                     if (!t.timeIn || t.timeOut) return false;
-                    const startTime = new Date(`${t.date}T${t.timeIn}`);
-                    const diffMs = now.getTime() - startTime.getTime();
-                    return diffMs > thresholdHours * 60 * 60 * 1000;
+                    const shiftDate = new Date(`${t.date}T23:59:00`);
+                    return now.getTime() > shiftDate.getTime();
                 });
 
                 if (zombies.length === 0) return;
@@ -922,8 +921,7 @@ export const useStore = create<AppState>()(
                 console.log(`[Zombie] Cleaning up ${zombies.length} stale sessions...`);
                 
                 for (const z of zombies) {
-                    const startTime = new Date(`${z.date}T${z.timeIn}`);
-                    const autoOutTime = new Date(startTime.getTime() + thresholdHours * 60 * 60 * 1000);
+                    const autoOutTime = new Date(`${z.date}T23:59:00`);
                     
                     try {
                         await clockPunch(z.personnelId, {
@@ -932,7 +930,8 @@ export const useStore = create<AppState>()(
                             type: 'clockOut',
                             timeSource: 'device',
                             manualAdjustment: true,
-                            adjustmentNote: `System: Auto closed after ${thresholdHours}h limit.`
+                            isZombieClose: true,
+                            adjustmentNote: `System: Auto closed. Clock-out missing by 11:59 PM.`
                         });
                     } catch (e) {
                         console.error(`[Zombie] Failed to close session for ${z.personnelId}:`, e);
@@ -2082,6 +2081,9 @@ export const useStore = create<AppState>()(
                     const allAccurate = updatedPunches.every(p => {
                         if (p.accuracy > threshold) return false;
                         if (geofenceRequired && projCoords && p.workMode !== 'Home Office') {
+                            if (isWarehouseBypass(personnelId, p.lat, p.lng, radius)) {
+                                return true;
+                            }
                             const dist = getDistanceMeters(p.lat, p.lng, projCoords.lat, projCoords.lng);
                             if (dist > radius) return false;
                         }
@@ -2093,8 +2095,13 @@ export const useStore = create<AppState>()(
 
                     let computedHours = 0;
                     if (clockIn && clockOut) {
-                        const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
-                        computedHours = Math.round((totalMs / 3600000) * 100) / 100;
+                        const isZombie = punch.isZombieClose || (punch.adjustmentNote && punch.adjustmentNote.includes('System: Auto closed'));
+                        if (isZombie) {
+                            computedHours = 0;
+                        } else {
+                            const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
+                            computedHours = Math.round((totalMs / 3600000) * 100) / 100;
+                        }
                     }
 
                     const existingNotes = sessionToUpdate?.notes || '';
@@ -2108,7 +2115,7 @@ export const useStore = create<AppState>()(
                         source: 'gps',
                         ...(clockIn ? { timeIn: toHHMM(clockIn.timestamp) } : {}),
                         ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
-                        ...(computedHours > 0 ? { hours: computedHours } : {}),
+                        hours: computedHours,
                         ...(projectId ? { projectId } : {}),
                         ...(punch.workMode ? { type: punch.workMode } : {}),
                         notes: newNotes || null,

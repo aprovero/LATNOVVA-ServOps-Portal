@@ -370,8 +370,8 @@ export default function Layout() {
                         <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-[26px] object-contain" />
                     </div>
                     <nav className="space-y-6">
-                        {/* Clock In — pinned above nav groups, visible to Tech + Supervisor + Office */}
-                        {['Tech', 'Supervisor', 'Office'].includes(userRole) && (() => {
+                        {/* Clock In — pinned above nav groups, visible to Tech + Supervisor + Office + HR */}
+                        {['Tech', 'Supervisor', 'Office', 'HR'].includes(userRole) && (() => {
                             const isClockActive = location.pathname.startsWith('/clock-in');
                             return (
                                 <Link
@@ -806,8 +806,8 @@ export default function Layout() {
 
             {/* Bottom Nav Mobile */}
             <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-gray-100 flex overflow-x-auto no-scrollbar items-center p-3 z-30 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] gap-1">
-                {/* Clock In pinned first for Tech/Supervisor/Office */}
-                {['Tech', 'Supervisor', 'Office'].includes(userRole) && (
+                {/* Clock In pinned first for Tech/Supervisor/Office/HR */}
+                {['Tech', 'Supervisor', 'Office', 'HR'].includes(userRole) && (
                     <Link
                         to="/clock-in"
                         className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors shrink-0 min-w-[72px] ${location.pathname.startsWith('/clock-in') ? 'text-emerald-600' : 'text-emerald-500'}`}

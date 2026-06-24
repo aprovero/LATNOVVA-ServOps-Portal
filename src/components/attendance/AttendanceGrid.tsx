@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Personnel, Project, TimesheetEntry, AttendanceOverride, WorkSchedule, useStore } from '../../store/useStore';
 import { calculateDailyAttendance } from '../../utils/attendanceCalculations';
-import { parseCoordinates, getDistanceMeters } from '../../utils/datetime.utils';
+import { parseCoordinates, getDistanceMeters, isWarehouseBypass } from '../../utils/datetime.utils';
 import DayDetailPanel from './DayDetailPanel';
 
 interface AttendanceGridProps {
@@ -233,6 +233,7 @@ export default function AttendanceGrid({
                                                             
                                                             if (p.accuracy > gpsThreshold) return false;
                                                             if (geofenceRequired && projCoords && p.workMode !== 'Home Office') {
+                                                                if (isWarehouseBypass(emp.id, p.lat, p.lng, radius)) return true;
                                                                 const dist = projCoords && p.lat !== 0 ? getDistanceMeters(p.lat, p.lng, projCoords.lat, projCoords.lng) : 0;
                                                                 if (dist > radius) return false;
                                                             }
