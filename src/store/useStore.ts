@@ -414,6 +414,7 @@ export interface AttendanceDayView {
     overtimeHours?: number;
     missingPunch: boolean;
     conflict: boolean;
+    zombie?: boolean;
     source?: 'clockin' | 'manual' | 'import' | 'gps' | 'schedule';
     notes?: string | null;
     shifts?: Array<{

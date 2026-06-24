@@ -318,6 +318,7 @@ export function calculateDailyAttendance(
         }
     }
     const shifts = Array.from(uniqueShifts.values());
+    const hasZombie = sortedTimesheets.some(t => t.notes && t.notes.includes('Auto closed'));
 
     return {
         employeeId: employee.id,
@@ -331,6 +332,7 @@ export function calculateDailyAttendance(
         overtimeHours: Number(overtimeHours.toFixed(2)),
         missingPunch,
         conflict,
+        zombie: hasZombie,
         source,
         notes,
         shifts
