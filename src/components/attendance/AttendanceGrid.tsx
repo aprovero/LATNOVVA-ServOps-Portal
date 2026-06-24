@@ -308,7 +308,7 @@ export default function AttendanceGrid({
                                                                 <span className="absolute bottom-1 right-1 bg-amber-500 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Alerta GPS">⚠</span>
                                                             )}
                                                             {dayView.zombie && (
-                                                                <span className="absolute bottom-1 right-1 bg-purple-600 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold border border-white" title="Turno Zombie">🧟</span>
+                                                                <span className="absolute bottom-1 right-1 bg-amber-600 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold border border-white" title="Turno Sin Cierre">⏰</span>
                                                             )}
                                                         </div>
                                                     </td>
@@ -441,7 +441,7 @@ export default function AttendanceGrid({
                                                     <span className="absolute bottom-1 right-1 bg-amber-500 text-white w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold border border-white" title="Alerta GPS">⚠</span>
                                                 )}
                                                 {dayView.zombie && (
-                                                    <span className="absolute bottom-1 right-1 bg-purple-600 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold border border-white" title="Turno Zombie">🧟</span>
+                                                    <span className="absolute bottom-1 right-1 bg-amber-600 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold border border-white" title="Turno Sin Cierre">⏰</span>
                                                 )}
                                             </div>
                                         </td>

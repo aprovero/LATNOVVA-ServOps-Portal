@@ -480,7 +480,7 @@ export default function Attendance() {
                                     : 'bg-white text-red-500 border-red-200 hover:bg-red-50'
                             }`}
                         >
-                            🧟 {t('attendance.filters.zombie_shifts', 'Turnos Zombie')}
+                            ⏰ {t('attendance.filters.zombie_shifts', 'Turnos Sin Cierre')}
                         </button>
                     </div>
 
