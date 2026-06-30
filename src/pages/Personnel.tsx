@@ -347,7 +347,7 @@ export default function Personnel() {
                                         </div>
                                     </div>
 
-                                    {userRole === 'HR' && (
+                                    {(userRole === 'HR' || userRole === 'Manager') && (
                                         activeSubsidiary === 'US' ? (
                                             <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
                                                 <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">
@@ -801,7 +801,7 @@ export default function Personnel() {
                                         </div>
                                     </div>
 
-                                    {userRole === 'HR' && (
+                                    {(userRole === 'HR' || userRole === 'Manager') && (
                                         activeSubsidiary === 'US' ? (
                                             <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
                                                 <h3 className="text-xs font-bold text-amber-800 uppercase tracking-widest flex items-center gap-2">

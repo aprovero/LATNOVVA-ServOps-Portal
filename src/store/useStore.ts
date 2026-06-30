@@ -541,6 +541,7 @@ interface AppState {
     // Sync Queue Management
     pendingSync: PendingSyncItem[];
     isSyncing: boolean;
+    isInitializing: boolean;
     syncError: string | null;
     processSyncQueue: () => Promise<void>;
     safeSync: (table: string, id: string, action: 'insert' | 'update' | 'upsert' | 'delete', payload: any) => Promise<void>;
@@ -562,6 +563,7 @@ export const useStore = create<AppState>()(
             dismissedNotifications: [],
             pendingSync: [],
             isSyncing: false,
+            isInitializing: false,
             syncError: null,
 
             templates: [
@@ -905,7 +907,7 @@ export const useStore = create<AppState>()(
             },
 
             checkZombieSessions: async () => {
-                const { timesheets, platformSettings, clockPunch } = get();
+                const { timesheets, platformSettings, clockPunch, pendingSync } = get();
                 if (!platformSettings.enableAutoClockOut) return;
 
                 const now = new Date();
@@ -913,6 +915,11 @@ export const useStore = create<AppState>()(
                 // Find open sessions where the current time is past 11:59 PM (23:59) on the shift's date
                 const zombies = timesheets.filter(t => {
                     if (!t.timeIn || t.timeOut) return false;
+                    
+                    // Skip if it's already in the pendingSync queue to be updated/inserted
+                    const hasPendingSync = pendingSync.some(p => p.table === 'mx_timesheets' && p.id === t.id);
+                    if (hasPendingSync) return false;
+
                     const shiftDate = new Date(`${t.date}T23:59:00`);
                     return now.getTime() > shiftDate.getTime();
                 });
@@ -1013,6 +1020,11 @@ export const useStore = create<AppState>()(
             },
 
             initDb: async () => {
+                if (get().isInitializing) {
+                    console.log('[initDb] Already initializing, skipping...');
+                    return;
+                }
+                set({ isInitializing: true });
                 try {
                     // Fetch real data from supabase
                     // Fetch real data from supabase sequentially to prevent concurrent token refresh "Lock Stolen" errors
@@ -1149,8 +1161,9 @@ export const useStore = create<AppState>()(
                                 discipline: r.discipline
                             }))
                             : state.reports,
-                        timesheets: timesheetsDB?.length
-                            ? timesheetsDB.map(t => ({
+                        timesheets: (() => {
+                            if (!timesheetsDB) return state.timesheets;
+                            const dbMapped = timesheetsDB.map(t => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1173,8 +1186,18 @@ export const useStore = create<AppState>()(
                                 correctedBy: (t as any).corrected_by,
                                 correctedAt: (t as any).corrected_at,
                                 correctionReason: (t as any).correction_reason,
-                            }))
-                            : state.timesheets,
+                            }));
+
+                            const pendingIds = new Set(
+                                state.pendingSync
+                                    .filter(item => item.table === 'mx_timesheets')
+                                    .map(item => item.id)
+                            );
+
+                            const updatedDbEntries = dbMapped.filter(t => !pendingIds.has(t.id));
+                            const pendingLocalEntries = state.timesheets.filter(t => pendingIds.has(t.id));
+                            return [...updatedDbEntries, ...pendingLocalEntries];
+                        })(),
                         tools: toolsDB?.length
                             ? toolsDB.map(t => ({
                                 id: t.id,
@@ -1276,14 +1299,16 @@ export const useStore = create<AppState>()(
 
                 } catch (error) {
                     console.error('Failed to init DB from Supabase', error);
+                } finally {
+                    set({ isInitializing: false });
                 }
             },
             refreshAttendance: async () => {
                 try {
                     const { data: timesheetsDB } = await supabase.from('mx_timesheets').select('*');
                     if (timesheetsDB) {
-                        set({
-                            timesheets: timesheetsDB.map(t => ({
+                        set(state => {
+                            const dbMapped = timesheetsDB.map(t => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1306,7 +1331,20 @@ export const useStore = create<AppState>()(
                                 correctedBy: (t as any).corrected_by,
                                 correctedAt: (t as any).corrected_at,
                                 correctionReason: (t as any).correction_reason,
-                            }))
+                            }));
+
+                            const pendingIds = new Set(
+                                state.pendingSync
+                                    .filter(item => item.table === 'mx_timesheets')
+                                    .map(item => item.id)
+                            );
+
+                            const updatedDbEntries = dbMapped.filter(t => !pendingIds.has(t.id));
+                            const pendingLocalEntries = state.timesheets.filter(t => pendingIds.has(t.id));
+
+                            return {
+                                timesheets: [...updatedDbEntries, ...pendingLocalEntries]
+                            };
                         });
                     }
                 } catch (e) {

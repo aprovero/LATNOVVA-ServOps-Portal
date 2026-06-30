@@ -302,11 +302,13 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
     const sortedPersonnel = useCallback(() => {
         const eligible = personnel.filter(p =>
-            ['Tech', 'Supervisor'].includes(p.appRole ?? '') && p.status === 'Active'
+            ['Tech', 'Supervisor', 'Office', 'HR'].includes(p.appRole ?? '') && p.status === 'Active'
         );
+        console.log('[DEBUG sortedPersonnel] personnel length:', personnel.length, 'eligible length:', eligible.length, 'selectedProject:', selectedProject);
         if (!selectedProject) return [...eligible].sort((a, b) => a.name.localeCompare(b.name));
         const project = projects.find(p => p.id === selectedProject);
         const assignedIds: string[] = project?.assignedPersonnel ?? [];
+        console.log('[DEBUG sortedPersonnel] project found:', !!project, 'assignedIds count:', assignedIds.length);
         const assigned = eligible.filter(p => assignedIds.includes(p.id)).sort((a, b) => a.name.localeCompare(b.name));
         const rest = eligible.filter(p => !assignedIds.includes(p.id)).sort((a, b) => a.name.localeCompare(b.name));
         return [...assigned, ...rest];
@@ -336,7 +338,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         const validIds = personnel
             .filter((p: Personnel) =>
                 assignedIds.includes(p.id) &&
-                ['Tech', 'Supervisor'].includes(p.appRole ?? '') &&
+                ['Tech', 'Supervisor', 'Office', 'HR'].includes(p.appRole ?? '') &&
                 getPunchStep(timesheets, p.id) === targetStep
             )
             .map(p => p.id);
@@ -504,7 +506,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                     {sorted.length === 0 && outsourcedList.length === 0 && (
                         <div className="text-center py-10 text-gray-400">
                             <Users size={36} className="mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">{t('templates.scopes.empty')}</p>
+                            <p className="text-sm">{t('attendance.filters.no_results')}</p>
                         </div>
                     )}
                     {sorted.map((p: any, idx: number) => {
@@ -936,7 +938,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 // ─── Main ClockIn Page ────────────────────────────────────────────────────────
 
 export default function ClockIn() {
-    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings } = useStore();
+    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings, initDb } = useStore();
+
+    useEffect(() => {
+        if (personnel.length === 0 || projects.length === 0) {
+            console.log('[ClockIn] Personnel or projects empty, triggering initDb...');
+            initDb();
+        }
+    }, [personnel.length, projects.length, initDb]);
 
     useEffect(() => {
         refreshAttendance();
