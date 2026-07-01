@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { SyncStatus } from '../SyncStatus';
+import { NotificationStatus } from '../NotificationStatus';
 
 import CommandSearch from '../search/CommandSearch';
 import { Input } from '../ui/input';
@@ -500,6 +501,7 @@ export default function Layout() {
                             </button>
                         )}
                         
+                        <NotificationStatus />
                         <SyncStatus />
 
                         <DropdownMenu>

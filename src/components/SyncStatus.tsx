@@ -35,10 +35,13 @@ export const SyncStatus: React.FC = () => {
     const renderBadge = () => {
         if (pendingCount === 0 && !isSyncing && !syncError) {
             return (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 shadow-sm animate-in fade-in duration-500">
-                    <CheckCircle2 size={14} className="animate-bounce" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Cloud Synced</span>
-                </div>
+                <button
+                    onClick={() => setIsOpen(true)}
+                    title="Cloud Synced"
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 shadow-sm animate-in fade-in duration-500 hover:bg-emerald-100 transition-colors"
+                >
+                    <Cloud size={16} />
+                </button>
             );
         }
 
@@ -46,22 +49,23 @@ export const SyncStatus: React.FC = () => {
             return (
                 <button 
                     onClick={() => setIsOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-100 text-red-600 shadow-sm animate-pulse cursor-pointer hover:bg-red-100 transition-colors"
+                    title="Sync Error"
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-red-50 border border-red-100 text-red-600 shadow-sm animate-pulse cursor-pointer hover:bg-red-100 transition-colors"
                 >
-                    <AlertCircle size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Sync Error</span>
+                    <AlertCircle size={16} />
                 </button>
             );
         }
 
         if (isSyncing) {
             return (
-                <div 
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 shadow-sm"
+                <button
+                    onClick={() => setIsOpen(true)}
+                    title="Syncing..."
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 border border-blue-100 text-blue-600 shadow-sm"
                 >
-                    <RefreshCw size={14} className="animate-spin" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Syncing...</span>
-                </div>
+                    <RefreshCw size={16} className="animate-spin" />
+                </button>
             );
         }
 
@@ -69,15 +73,16 @@ export const SyncStatus: React.FC = () => {
             return (
                 <button 
                     onClick={() => setIsOpen(true)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-sm transition-all hover:scale-105 active:scale-95 ${
+                    title={`${pendingCount} changes pending`}
+                    className={`flex items-center justify-center w-8 h-8 rounded-full shadow-sm transition-all hover:scale-105 active:scale-95 relative ${
                         isOffline 
                             ? 'bg-amber-50 border border-amber-100 text-amber-600' 
                             : 'bg-brand-teal/10 border border-brand-teal/20 text-brand-teal'
                     }`}
                 >
-                    {isOffline ? <CloudOff size={14} /> : <Cloud size={14} />}
-                    <span className="text-[10px] font-bold uppercase tracking-wider">
-                        {pendingCount} Pending
+                    {isOffline ? <CloudOff size={16} /> : <Cloud size={16} />}
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white shadow-sm">
+                        {pendingCount}
                     </span>
                 </button>
             );
