@@ -739,6 +739,54 @@ export default function Settings() {
                                     </div>
                                 </div>
 
+                                {/* Facial ID Verification Card */}
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col gap-6 animate-in fade-in duration-200">
+                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-gray-50">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center text-brand-teal">
+                                                <Camera size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-accent-greyDark">
+                                                    {language === 'es' ? 'Validación de Identidad Facial (Biometría)' : 'Facial ID Identity Validation'}
+                                                </h3>
+                                                <p className="text-xs text-gray-400">
+                                                    {language === 'es' ? 'Validar la identidad del usuario mediante cámara al realizar marcajes.' : 'Validate user identity via camera snapshots on clock-in/out.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex bg-gray-100 p-1.5 rounded-xl self-start md:self-auto">
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableFacialId: true })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${platformSettings.enableFacialId ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                {language === 'es' ? 'Activado' : 'Enabled'}
+                                            </button>
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableFacialId: false })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!platformSettings.enableFacialId ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                {language === 'es' ? 'Desactivado' : 'Disabled'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {platformSettings.enableFacialId && (
+                                        <div className="p-4 bg-teal-50 border border-teal-100 rounded-xl text-teal-700 text-xs leading-relaxed flex items-start gap-3">
+                                            <div className="mt-0.5"><ShieldCheck size={14} /></div>
+                                            <div>
+                                                <p className="font-bold uppercase tracking-wider mb-1">
+                                                    {language === 'es' ? 'Reglas de Validación Facial:' : 'Facial ID Rules:'}
+                                                </p>
+                                                <p>
+                                                    {language === 'es' 
+                                                        ? 'Los usuarios sin biometría registrada serán guiados para registrarse la primera vez que intenten marcar asistencia. Los usuarios con biometría registrada deberán verificar su rostro al marcar.'
+                                                        : 'Users without enrolled biometrics will be guided to self-enroll on their first clock-in attempt. Enrolled users will have their face verified via camera snapshot.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Browser Notification Permission Card */}
                                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
                                     <div className="flex items-center gap-4">

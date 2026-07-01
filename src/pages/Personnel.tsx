@@ -13,10 +13,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { supabase } from '../lib/supabase';
 import { MexicoHRForm } from '../components/personnel/MexicoHRForm';
+import { validateImageQualityAndGetDescriptor } from '../utils/faceId.utils';
 
 export default function Personnel() {
     const { t } = useTranslation();
-    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects, updateProject, transferPersonnel, activeSubsidiary } = useStore();
+    const { personnel, addPersonnel, updatePersonnel, deletePersonnel, userRole, projects, updateProject, transferPersonnel, activeSubsidiary, language } = useStore();
     const location = useLocation();
 
     const [searchTerm, setSearchTerm] = useState(() => {
@@ -48,6 +49,46 @@ export default function Personnel() {
             setViewMode('org');
         }
     }, [location.search, personnel]);
+
+    const [faceValError, setFaceValError] = useState<string | null>(null);
+    const [faceValSuccess, setFaceValSuccess] = useState<boolean>(false);
+    const [isValInProgress, setIsValInProgress] = useState<boolean>(false);
+
+    const handlePhotoValidate = async (base64Image: string, isEdit: boolean) => {
+        setFaceValError(null);
+        setFaceValSuccess(false);
+        setIsValInProgress(true);
+        try {
+            const res = await validateImageQualityAndGetDescriptor(base64Image);
+            if (res.success && res.descriptor) {
+                setFaceValSuccess(true);
+                if (isEdit) {
+                    setEditDraft(d => d ? { ...d, image: base64Image, faceDescriptor: res.descriptor } : d);
+                } else {
+                    setNewPerson(p => p ? { ...p, image: base64Image, faceDescriptor: res.descriptor } : null);
+                }
+            } else {
+                let friendlyMsg = 'Face quality validation failed. Try a clearer photo.';
+                if (res.error === 'no_face_detected') {
+                    friendlyMsg = 'No face detected in photo. Please use a clear profile picture.';
+                } else if (res.error === 'multiple_faces_detected') {
+                    friendlyMsg = 'Multiple faces detected. Please upload an image with only one person.';
+                } else if (res.error === 'low_detection_confidence') {
+                    friendlyMsg = 'The face is not clear enough. Please check lighting and avoid angles.';
+                }
+                setFaceValError(friendlyMsg);
+                if (isEdit) {
+                    setEditDraft(d => d ? { ...d, image: base64Image, faceDescriptor: undefined } : d);
+                } else {
+                    setNewPerson(p => p ? { ...p, image: base64Image, faceDescriptor: undefined } : null);
+                }
+            }
+        } catch (e: any) {
+            setFaceValError('Validation error: ' + e.message);
+        } finally {
+            setIsValInProgress(false);
+        }
+    };
 
     // Add modal state
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -119,6 +160,7 @@ export default function Personnel() {
                 phoneNumber: newPerson.phoneNumber,
                 email: newPerson.email,
                 image: newPerson.image,
+                faceDescriptor: newPerson.faceDescriptor,
                 status: newPerson.status || 'Active',
                 sharedFolderLink: newPerson.sharedFolderLink,
                 certifications: newPerson.certifications || [],
@@ -407,10 +449,29 @@ export default function Personnel() {
                                     <Input type="file" accept="image/*" className="h-9 text-xs cursor-pointer flex-1"
                                         onChange={e => {
                                             const file = e.target.files?.[0];
-                                            if (file) { const r = new FileReader(); r.onloadend = () => setNewPerson({ ...newPerson, image: r.result as string }); r.readAsDataURL(file); }
+                                            if (file) { 
+                                                const r = new FileReader(); 
+                                                r.onloadend = () => handlePhotoValidate(r.result as string, false); 
+                                                r.readAsDataURL(file); 
+                                            }
                                         }}
                                     />
                                 </div>
+                                {isValInProgress && (
+                                    <p className="text-[10px] text-brand-teal animate-pulse mt-2 font-bold">
+                                        {language === 'es' ? 'Validando calidad del rostro...' : 'Validating face quality...'}
+                                    </p>
+                                )}
+                                {faceValSuccess && (
+                                    <p className="text-[10px] text-emerald-600 mt-2 font-bold">
+                                        ✓ {language === 'es' ? '¡Rostro detectado y verificado para acceso biométrico!' : 'Face detected and verified for Biometric clock-in!'}
+                                    </p>
+                                )}
+                                {faceValError && (
+                                    <p className="text-[10px] text-amber-600 mt-2 font-semibold">
+                                        ⚠ {faceValError} ({language === 'es' ? 'guardada como foto de respaldo' : 'saved as fallback photo'})
+                                    </p>
+                                )}
                             </div>
 
                             {newPerson && renderCertsEditor(newPerson, setNewPerson)}
@@ -568,7 +629,11 @@ export default function Personnel() {
                                                 <input type="file" accept="image/*" className="hidden"
                                                     onChange={e => {
                                                         const file = e.target.files?.[0];
-                                                        if (file) { const r = new FileReader(); r.onloadend = () => setEditDraft(d => d ? { ...d, image: r.result as string } : d); r.readAsDataURL(file); }
+                                                        if (file) { 
+                                                            const r = new FileReader(); 
+                                                            r.onloadend = () => handlePhotoValidate(r.result as string, true); 
+                                                            r.readAsDataURL(file); 
+                                                        }
                                                     }}
                                                 />
                                             </label>
@@ -660,6 +725,27 @@ export default function Personnel() {
                                                             </div>
                                                         ) : (
                                                             <span className="text-[10px] font-bold text-gray-400 italic px-2.5 py-1">{t('personnel.unassigned', 'Unassigned')}</span>
+                                                        )}
+                                                        {isValInProgress && (
+                                                            <div className="w-full">
+                                                                <p className="text-[10px] text-brand-teal animate-pulse mt-2 font-bold">
+                                                                    {language === 'es' ? 'Validando calidad del rostro...' : 'Validating face quality...'}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        {faceValSuccess && (
+                                                            <div className="w-full">
+                                                                <p className="text-[10px] text-emerald-600 mt-2 font-bold">
+                                                                    ✓ {language === 'es' ? '¡Rostro detectado y verificado para acceso biométrico!' : 'Face detected and verified for Biometric clock-in!'}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        {faceValError && (
+                                                            <div className="w-full">
+                                                                <p className="text-[10px] text-amber-600 mt-2 font-semibold">
+                                                                    ⚠ {faceValError} ({language === 'es' ? 'guardada como foto de respaldo' : 'saved as fallback photo'})
+                                                                </p>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>

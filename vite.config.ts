@@ -76,6 +76,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: ['/sw-push.js'],
         // Force new service worker to activate immediately — no waiting for tabs to close
         skipWaiting: true,
         clientsClaim: true,

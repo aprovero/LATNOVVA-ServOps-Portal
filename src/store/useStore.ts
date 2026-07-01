@@ -179,6 +179,7 @@ export interface Personnel {
     email?: string;
     password?: string; // transient field
     image?: string; // Profile picture URL or base64
+    faceDescriptor?: number[]; // Biometric 128-float vector
     status: 'Active' | 'Inactive';
     sharedFolderLink?: string; // Link to certifications folder
     certifications: Certification[];
@@ -533,6 +534,7 @@ interface AppState {
         autoClockOutThreshold: number;
         geofenceRadius: number;
         gpsAccuracyThreshold: number;
+        enableFacialId: boolean;
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     checkZombieSessions: () => Promise<void>;
@@ -899,6 +901,7 @@ export const useStore = create<AppState>()(
                 autoClockOutThreshold: 14,
                 geofenceRadius: 250,
                 gpsAccuracyThreshold: 100,
+                enableFacialId: false,
             },
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
@@ -1108,6 +1111,7 @@ export const useStore = create<AppState>()(
                                     managerId: p.manager_id,
                                     clientId: p.client_id,
                                     image: p.image,
+                                    faceDescriptor: p.faceDescriptor || undefined,
                                     prevailingWage: p.prevailing_wage || false,
                                     benchExempt: p.bench_exempt || false,
                                     regularRate: p.regular_rate,
@@ -1245,6 +1249,7 @@ export const useStore = create<AppState>()(
                                 autoClockOutThreshold: Number(settingsDB.autoClockOutThreshold) || state.platformSettings.autoClockOutThreshold,
                                 geofenceRadius: Number(settingsDB.geofenceRadius) || state.platformSettings.geofenceRadius,
                                 gpsAccuracyThreshold: Number(settingsDB.gpsAccuracyThreshold) || state.platformSettings.gpsAccuracyThreshold,
+                                enableFacialId: settingsDB.enableFacialId !== null ? !!settingsDB.enableFacialId : state.platformSettings.enableFacialId,
                             }
                             : state.platformSettings,
                     }));

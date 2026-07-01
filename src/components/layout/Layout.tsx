@@ -28,6 +28,7 @@ import {
     DialogFooter,
 } from '../ui/dialog';
 import { Label } from '../ui/label';
+import { subscribeUserToPush } from '../../lib/permissions';
 
 export default function Layout() {
     const { t, i18n } = useTranslation();
@@ -182,6 +183,13 @@ export default function Layout() {
                 { y: 20, opacity: 0 },
                 { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out' }
             );
+        }
+    }, []);
+
+    useEffect(() => {
+        // Auto-subscribe to push notifications if permission is already granted
+        if ('Notification' in window && Notification.permission === 'granted') {
+            subscribeUserToPush();
         }
     }, []);
 

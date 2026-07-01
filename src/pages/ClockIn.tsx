@@ -10,6 +10,7 @@ import { useAttendance } from '../hooks/useAttendance';
 import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 import QuickAddWorker from '../components/shared/QuickAddWorker';
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
+import FaceCameraModal from '../components/shared/FaceCameraModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -681,6 +682,42 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const gpsDenied = gps.status === 'denied';
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const { personnel } = useStore();
+    const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
+    const [faceModalMode, setFaceModalMode] = useState<'enroll' | 'verify'>('verify');
+    const [pendingPunchParams, setPendingPunchParams] = useState<{ type: ClockPunch['type']; overrideTime?: string; note?: string } | null>(null);
+
+    const handlePunchClick = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
+        const myProfile = personnel.find(p => p.id === personnelId);
+        
+        if (platformSettings?.enableFacialId && myProfile) {
+            setPendingPunchParams({ type, overrideTime, note });
+            if (!myProfile.faceDescriptor || myProfile.faceDescriptor.length === 0) {
+                setFaceModalMode('enroll');
+                setIsFaceModalOpen(true);
+            } else {
+                setFaceModalMode('verify');
+                setIsFaceModalOpen(true);
+            }
+        } else {
+            executePunch(type, overrideTime, note);
+        }
+    };
+
+    const handleFaceSuccess = async ({ image, descriptor }: { image: string; descriptor: number[] }) => {
+        if (faceModalMode === 'enroll') {
+            await useStore.getState().updatePersonnel(personnelId, {
+                image,
+                faceDescriptor: descriptor
+            });
+        }
+        
+        if (pendingPunchParams) {
+            executePunch(pendingPunchParams.type, pendingPunchParams.overrideTime, pendingPunchParams.note);
+            setPendingPunchParams(null);
+        }
+    };
+
     const executePunch = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
         if (isSubmitting) return;
         setIsSubmitting(true);
@@ -831,7 +868,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     ) : (
                         <button onClick={() => {
                             if (hasFinishedToday && !window.confirm(t('attendance.alerts.double_shift'))) return;
-                            executePunch('clockIn');
+                            handlePunchClick('clockIn');
                         }} disabled={!gpsReady || (workMode === 'On Site' && !selectedProject)}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.labels.action_in')}
@@ -867,7 +904,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => executePunch('clockOut')} disabled={!gpsReady}
+                        <button onClick={() => handlePunchClick('clockOut')} disabled={!gpsReady}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogOut size={26} /> {t('attendance.labels.action_out')}
                         </button>
@@ -928,8 +965,18 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
             {manualModal && (
                 <ManualAdjustModal punchType={manualModal}
-                    onConfirm={(t, n) => { executePunch(manualModal, t, n); setManualModal(null); }}
+                    onConfirm={(t, n) => { handlePunchClick(manualModal, t, n); setManualModal(null); }}
                     onCancel={() => setManualModal(null)} />
+            )}
+
+            {isFaceModalOpen && (
+                <FaceCameraModal
+                    isOpen={isFaceModalOpen}
+                    onClose={() => setIsFaceModalOpen(false)}
+                    mode={faceModalMode}
+                    referenceDescriptor={personnel.find(p => p.id === personnelId)?.faceDescriptor}
+                    onSuccess={handleFaceSuccess}
+                />
             )}
         </div>
     );
