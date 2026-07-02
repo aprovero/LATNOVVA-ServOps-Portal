@@ -14,6 +14,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../lib/authStore';
 
 export default function Settings() {
     const { t } = useTranslation();
@@ -22,6 +23,28 @@ export default function Settings() {
         sharepointConfig, setSharepointConfig, microsoftAuth, setMicrosoftAuth, language, setLanguage, platformSettings, updatePlatformSettings
     } = useStore();
     const [activeTab, setActiveTab] = useState<string | null>(null);
+    const { profile } = useAuthStore();
+    const [deviceFastLogin, setDeviceFastLogin] = useState(() => {
+        return localStorage.getItem('device_fast_login_enabled') === 'true';
+    });
+
+    const toggleDeviceFastLogin = (enabled: boolean) => {
+        localStorage.setItem('device_fast_login_enabled', enabled ? 'true' : 'false');
+        setDeviceFastLogin(enabled);
+        if (enabled && profile) {
+            localStorage.setItem('cached_user_profile', JSON.stringify({
+                name: profile.name,
+                image: profile.image,
+                email: profile.email
+            }));
+            if ((profile as any).faceDescriptor) {
+                localStorage.setItem('cached_user_descriptor', JSON.stringify((profile as any).faceDescriptor));
+            }
+        } else {
+            localStorage.removeItem('cached_user_profile');
+            localStorage.removeItem('cached_user_descriptor');
+        }
+    };
     
     // Auto-detect existing Microsoft session on mount
     useEffect(() => {
@@ -720,6 +743,54 @@ export default function Settings() {
                                     )}
                                 </div>
 
+                                {/* Face ID Fast Login (Master Toggle) */}
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col gap-6 animate-in fade-in duration-200">
+                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-gray-50">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                                <Key size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-accent-greyDark">
+                                                    {language === 'es' ? 'Acceso Rápido con Facial ID (Master)' : 'Face ID Fast Login (Master)'}
+                                                </h3>
+                                                <p className="text-xs text-gray-400">
+                                                    {language === 'es' ? 'Permitir a los usuarios bloquear/desbloquear su sesión activa con Face ID en sus dispositivos.' : 'Allow users to lock/unlock their active session using Face ID on their devices.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex bg-gray-100 p-1.5 rounded-xl self-start md:self-auto">
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableFastLogin: true })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${platformSettings.enableFastLogin ? 'bg-white text-brand-teal shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                {language === 'es' ? 'Activado' : 'Enabled'}
+                                            </button>
+                                            <button 
+                                                onClick={() => updatePlatformSettings({ enableFastLogin: false })}
+                                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!platformSettings.enableFastLogin ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400'}`}
+                                            >
+                                                {language === 'es' ? 'Desactivado' : 'Disabled'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {platformSettings.enableFastLogin && (
+                                        <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 text-xs leading-relaxed flex items-start gap-3">
+                                            <div className="mt-0.5"><ShieldCheck size={14} /></div>
+                                            <div>
+                                                <p className="font-bold uppercase tracking-wider mb-1">
+                                                    {language === 'es' ? 'Reglas de Acceso Rápido:' : 'Fast Login Rules:'}
+                                                </p>
+                                                <p>
+                                                    {language === 'es' 
+                                                        ? 'Cuando esté activado, los usuarios podrán configurar el bloqueo biométrico de pantalla en su dispositivo actual desde el menú de Ajustes.'
+                                                        : 'When enabled, users will be allowed to configure the biometric lock screen on their current device via the local Settings menu.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Browser Notification Permission Card */}
                                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
                                     <div className="flex items-center gap-4">
@@ -849,6 +920,46 @@ export default function Settings() {
                         </Button>
                     </div>
                 </div>
+
+                {/* Local Device Face ID Lock (Only visible if enabled globally) */}
+                {platformSettings.enableFastLogin && (
+                    <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex items-center justify-between gap-6 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
+                                <Key size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-accent-greyDark">
+                                    {language === 'es' ? 'Desbloqueo con Face ID' : 'Face ID Lock Screen'}
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                    {language === 'es' 
+                                        ? 'Bloquear tu sesión activa en este dispositivo con reconocimiento facial.' 
+                                        : 'Lock your active session on this device behind a face scan.'}
+                                </p>
+                                {!(profile as any)?.faceDescriptor && (
+                                    <p className="text-xs text-red-500 font-medium mt-1">
+                                        ⚠ {language === 'es' 
+                                            ? 'Registra tu rostro en Control de Asistencia para activar.' 
+                                            : 'Enroll your face in Clock-In to enable.'}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <Button
+                                disabled={!(profile as any)?.faceDescriptor}
+                                variant={deviceFastLogin ? 'default' : 'outline'}
+                                className={deviceFastLogin ? 'bg-brand-teal hover:bg-brand-teal/90' : ''}
+                                onClick={() => toggleDeviceFastLogin(!deviceFastLogin)}
+                            >
+                                {deviceFastLogin 
+                                    ? (language === 'es' ? 'Activado' : 'Enabled') 
+                                    : (language === 'es' ? 'Desactivado' : 'Disabled')}
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {configTabs.map((tab) => {

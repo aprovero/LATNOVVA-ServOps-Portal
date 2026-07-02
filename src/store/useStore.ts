@@ -535,6 +535,7 @@ interface AppState {
         geofenceRadius: number;
         gpsAccuracyThreshold: number;
         enableFacialId: boolean;
+        enableFastLogin: boolean;
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     checkZombieSessions: () => Promise<void>;
@@ -902,6 +903,7 @@ export const useStore = create<AppState>()(
                 geofenceRadius: 250,
                 gpsAccuracyThreshold: 100,
                 enableFacialId: false,
+                enableFastLogin: false,
             },
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
@@ -1250,6 +1252,7 @@ export const useStore = create<AppState>()(
                                 geofenceRadius: Number(settingsDB.geofenceRadius) || state.platformSettings.geofenceRadius,
                                 gpsAccuracyThreshold: Number(settingsDB.gpsAccuracyThreshold) || state.platformSettings.gpsAccuracyThreshold,
                                 enableFacialId: settingsDB.enableFacialId !== null ? !!settingsDB.enableFacialId : state.platformSettings.enableFacialId,
+                                enableFastLogin: settingsDB.enableFastLogin !== null ? !!settingsDB.enableFastLogin : state.platformSettings.enableFastLogin,
                             }
                             : state.platformSettings,
                     }));

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -19,6 +19,7 @@ import ClockIn from './pages/ClockIn';
 import Nomina from './pages/Nomina';
 import Attendance from './pages/Attendance';
 import SplashScreen from './components/common/SplashScreen';
+import FaceLockScreen from './components/shared/FaceLockScreen';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -51,6 +52,12 @@ const HomeRedirect = () => {
 
 function App() {
     useStore();
+    const session = useAuthStore(s => s.session);
+    const platformSettings = useStore(s => s.platformSettings);
+
+    const [isAppLocked, setIsAppLocked] = useState(() => {
+        return localStorage.getItem('device_fast_login_enabled') === 'true';
+    });
 
     useEffect(() => {
         // Initialize global templates
@@ -61,10 +68,24 @@ function App() {
         useAuthStore.getState().initializeAuth();
     }, []);
 
+    useEffect(() => {
+        if (!session) {
+            setIsAppLocked(false);
+        } else if (localStorage.getItem('device_fast_login_enabled') === 'true') {
+            setIsAppLocked(true);
+        }
+    }, [session]);
+
+    const showLockScreen = !!session && isAppLocked && platformSettings.enableFastLogin;
+
     return (
         <>
             <SplashScreen onComplete={() => {}} />
             
+            {showLockScreen && (
+                <FaceLockScreen onUnlock={() => setIsAppLocked(false)} />
+            )}
+
             <Router>
                 <Routes>
                 <Route path="/login" element={<Login />} />
