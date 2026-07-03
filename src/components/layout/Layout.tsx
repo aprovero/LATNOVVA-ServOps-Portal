@@ -9,6 +9,7 @@ import { AddScopeModal } from '../project/AddScopeModal';
 import gsap from 'gsap';
 import { SyncStatus } from '../SyncStatus';
 import { NotificationStatus } from '../NotificationStatus';
+import { LocationStatus } from '../LocationStatus';
 
 import CommandSearch from '../search/CommandSearch';
 import { Input } from '../ui/input';
@@ -501,6 +502,7 @@ export default function Layout() {
                             </button>
                         )}
                         
+                        <LocationStatus />
                         <NotificationStatus />
                         <SyncStatus />
 

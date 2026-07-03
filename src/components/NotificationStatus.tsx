@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, BellOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { requestInitialPermissions } from '../lib/permissions';
 
 export const NotificationStatus: React.FC = () => {
     const [permission, setPermission] = useState<NotificationPermission>('default');
+    const { t } = useTranslation();
 
     const updatePermissionState = () => {
         if ('Notification' in window) {
@@ -20,6 +22,10 @@ export const NotificationStatus: React.FC = () => {
     }, []);
 
     const handleClick = async () => {
+        if ('Notification' in window && Notification.permission === 'denied') {
+            alert(t('notifications.blocked_alert', 'Las notificaciones están bloqueadas en tu navegador. Por favor, haz clic en el candado de la barra de direcciones y actívalas.'));
+            return;
+        }
         await requestInitialPermissions();
         updatePermissionState();
     };
