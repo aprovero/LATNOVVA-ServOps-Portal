@@ -362,32 +362,96 @@ export default function Personnel() {
                                 </div>
                             )}
                                 <div className="space-y-4 pt-2">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_name')}</label>
-                                            <Input placeholder="e.g. Jane Doe" value={newPerson?.emergencyContactName || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContactName: e.target.value })} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_phone')}</label>
-                                            <Input placeholder="e.g. 956-280-8290" value={newPerson?.emergencyContactPhone || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContactPhone: e.target.value })} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
-                                            <Input type="date" value={newPerson?.onboardingDate || ''} onChange={e => setNewPerson({ ...newPerson, onboardingDate: e.target.value })} />
-                                        </div>
-                                        <div className="space-y-2 col-span-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
-                                            <Input type="date" value={newPerson?.dbo || ''} onChange={e => setNewPerson({ ...newPerson, dbo: e.target.value })} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">RFC</label>
-                                            <Input placeholder="RFC" value={newPerson?.rfc || ''} onChange={e => setNewPerson({ ...newPerson, rfc: e.target.value })} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">RFC Postal Code (CP)</label>
-                                            <Input placeholder="Postal Code" value={newPerson?.rfcPostalCode || ''} onChange={e => setNewPerson({ ...newPerson, rfcPostalCode: e.target.value })} />
+                                    <div className="space-y-4">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Información Básica / General Info</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Sitio Asignado / Assigned Site</label>
+                                                <Input placeholder="e.g. Oficina Mérida" value={newPerson?.subsidiaryMetadata?.siteAssigned || ''} onChange={e => setNewPerson({ ...newPerson, subsidiaryMetadata: { ...newPerson?.subsidiaryMetadata, siteAssigned: e.target.value } })} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
+                                                <Input type="date" value={newPerson?.dbo || ''} onChange={e => {
+                                                    const dob = e.target.value;
+                                                    const today = new Date();
+                                                    const birth = new Date(dob);
+                                                    let calculatedAge = '';
+                                                    if (!isNaN(birth.getTime())) {
+                                                        let age = today.getFullYear() - birth.getFullYear();
+                                                        const m = today.getMonth() - birth.getMonth();
+                                                        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+                                                            age--;
+                                                        }
+                                                        calculatedAge = String(age);
+                                                    }
+                                                    setNewPerson({ 
+                                                        ...newPerson, 
+                                                        dbo: dob,
+                                                        subsidiaryMetadata: { 
+                                                            ...newPerson?.subsidiaryMetadata, 
+                                                            birthDate: dob,
+                                                            age: calculatedAge 
+                                                        } 
+                                                    });
+                                                }} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Edad / Age</label>
+                                                <Input type="number" readOnly placeholder="Auto-calculated" value={newPerson?.subsidiaryMetadata?.age || ''} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Género / Gender</label>
+                                                <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={newPerson?.subsidiaryMetadata?.gender || ''} onChange={e => setNewPerson({ ...newPerson, subsidiaryMetadata: { ...newPerson?.subsidiaryMetadata, gender: e.target.value } })}>
+                                                    <option value="">Select...</option>
+                                                    <option value="MASCULINO">Masculino / Male</option>
+                                                    <option value="FEMENINO">Femenino / Female</option>
+                                                    <option value="OTRO">Otro / Other</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Estado Civil / Marital Status</label>
+                                                <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={newPerson?.subsidiaryMetadata?.maritalStatus || ''} onChange={e => setNewPerson({ ...newPerson, subsidiaryMetadata: { ...newPerson?.subsidiaryMetadata, maritalStatus: e.target.value } })}>
+                                                    <option value="">Select...</option>
+                                                    <option value="SOLTERO(A)">Soltero(a) / Single</option>
+                                                    <option value="CASADO(A)">Casado(a) / Married</option>
+                                                    <option value="DIVORCIADO(A)">Divorciado(a) / Divorced</option>
+                                                    <option value="VIUDO(A)">Viudo(a) / Widowed</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Dirección Completa / Full Address</label>
+                                                <Input placeholder="e.g. Calle 60 #123, Mérida" value={newPerson?.subsidiaryMetadata?.addressFull || ''} onChange={e => setNewPerson({ ...newPerson, subsidiaryMetadata: { ...newPerson?.subsidiaryMetadata, addressFull: e.target.value } })} />
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Correo Personal / Personal Email</label>
+                                                <Input type="email" placeholder="personal.email@example.com" value={newPerson?.subsidiaryMetadata?.personalEmail || ''} onChange={e => setNewPerson({ ...newPerson, subsidiaryMetadata: { ...newPerson?.subsidiaryMetadata, personalEmail: e.target.value } })} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Contacto de Emergencia / Emergency Contact</label>
+                                                <Input placeholder="e.g. Jane Doe" value={newPerson?.emergencyContactName || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContactName: e.target.value })} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Teléfono de Emergencia / Emergency Phone</label>
+                                                <Input placeholder="e.g. 999-123-4567" value={newPerson?.emergencyContactPhone || ''} onChange={e => setNewPerson({ ...newPerson, emergencyContactPhone: e.target.value })} />
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Parentesco de Emergencia / Emergency Relationship</label>
+                                                <Input placeholder="e.g. Esposa, Madre, Hermano" value={newPerson?.subsidiaryMetadata?.emergencyContactRelationship || ''} onChange={e => setNewPerson({ ...newPerson, subsidiaryMetadata: { ...newPerson?.subsidiaryMetadata, emergencyContactRelationship: e.target.value } })} />
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {activeSubsidiary === 'US' && (
+                                        <div className="space-y-4 pt-2 border-t border-gray-100">
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">US Onboarding Info</h4>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
+                                                    <Input type="date" value={newPerson?.onboardingDate || ''} onChange={e => setNewPerson({ ...newPerson, onboardingDate: e.target.value })} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {(userRole === 'HR' || userRole === 'Manager') && (
                                         activeSubsidiary === 'US' ? (
@@ -860,32 +924,96 @@ export default function Personnel() {
                                         </>
                                     )}
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_name')}</label>
-                                            <Input value={editDraft.emergencyContactName || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContactName: e.target.value } : d)} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.emergency_contact_phone')}</label>
-                                            <Input value={editDraft.emergencyContactPhone || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContactPhone: e.target.value } : d)} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
-                                            <Input type="date" value={editDraft.onboardingDate || ''} onChange={e => setEditDraft(d => d ? { ...d, onboardingDate: e.target.value } : d)} />
-                                        </div>
-                                        <div className="space-y-2 col-span-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
-                                            <Input type="date" value={editDraft.dbo || ''} onChange={e => setEditDraft(d => d ? { ...d, dbo: e.target.value } : d)} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">RFC</label>
-                                            <Input placeholder="RFC" value={editDraft.rfc || ''} onChange={e => setEditDraft(d => d ? { ...d, rfc: e.target.value } : d)} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-accent-greyDark">RFC Postal Code (CP)</label>
-                                            <Input placeholder="Postal Code" value={editDraft.rfcPostalCode || ''} onChange={e => setEditDraft(d => d ? { ...d, rfcPostalCode: e.target.value } : d)} />
+                                    <div className="space-y-4 pt-2 border-t border-gray-100 mt-2">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Información Básica / General Info</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Sitio Asignado / Assigned Site</label>
+                                                <Input placeholder="e.g. Oficina Mérida" value={editDraft.subsidiaryMetadata?.siteAssigned || ''} onChange={e => setEditDraft(d => d ? { ...d, subsidiaryMetadata: { ...d.subsidiaryMetadata, siteAssigned: e.target.value } } : d)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
+                                                <Input type="date" value={editDraft.dbo || ''} onChange={e => {
+                                                    const dob = e.target.value;
+                                                    const today = new Date();
+                                                    const birth = new Date(dob);
+                                                    let calculatedAge = '';
+                                                    if (!isNaN(birth.getTime())) {
+                                                        let age = today.getFullYear() - birth.getFullYear();
+                                                        const m = today.getMonth() - birth.getMonth();
+                                                        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+                                                            age--;
+                                                        }
+                                                        calculatedAge = String(age);
+                                                    }
+                                                    setEditDraft(d => d ? {
+                                                        ...d,
+                                                        dbo: dob,
+                                                        subsidiaryMetadata: {
+                                                            ...d.subsidiaryMetadata,
+                                                            birthDate: dob,
+                                                            age: calculatedAge
+                                                        }
+                                                    } : d);
+                                                }} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Edad / Age</label>
+                                                <Input type="number" readOnly placeholder="Auto-calculated" value={editDraft.subsidiaryMetadata?.age || ''} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Género / Gender</label>
+                                                <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.subsidiaryMetadata?.gender || ''} onChange={e => setEditDraft(d => d ? { ...d, subsidiaryMetadata: { ...d.subsidiaryMetadata, gender: e.target.value } } : d)}>
+                                                    <option value="">Select...</option>
+                                                    <option value="MASCULINO">Masculino / Male</option>
+                                                    <option value="FEMENINO">Femenino / Female</option>
+                                                    <option value="OTRO">Otro / Other</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Estado Civil / Marital Status</label>
+                                                <select className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal" value={editDraft.subsidiaryMetadata?.maritalStatus || ''} onChange={e => setEditDraft(d => d ? { ...d, subsidiaryMetadata: { ...d.subsidiaryMetadata, maritalStatus: e.target.value } } : d)}>
+                                                    <option value="">Select...</option>
+                                                    <option value="SOLTERO(A)">Soltero(a) / Single</option>
+                                                    <option value="CASADO(A)">Casado(a) / Married</option>
+                                                    <option value="DIVORCIADO(A)">Divorciado(a) / Divorced</option>
+                                                    <option value="VIUDO(A)">Viudo(a) / Widowed</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Dirección Completa / Full Address</label>
+                                                <Input placeholder="e.g. Calle 60 #123, Mérida" value={editDraft.subsidiaryMetadata?.addressFull || ''} onChange={e => setEditDraft(d => d ? { ...d, subsidiaryMetadata: { ...d.subsidiaryMetadata, addressFull: e.target.value } } : d)} />
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Correo Personal / Personal Email</label>
+                                                <Input type="email" placeholder="personal.email@example.com" value={editDraft.subsidiaryMetadata?.personalEmail || ''} onChange={e => setEditDraft(d => d ? { ...d, subsidiaryMetadata: { ...d.subsidiaryMetadata, personalEmail: e.target.value } } : d)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Contacto de Emergencia / Emergency Contact</label>
+                                                <Input value={editDraft.emergencyContactName || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContactName: e.target.value } : d)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Teléfono de Emergencia / Emergency Phone</label>
+                                                <Input value={editDraft.emergencyContactPhone || ''} onChange={e => setEditDraft(d => d ? { ...d, emergencyContactPhone: e.target.value } : d)} />
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-semibold text-accent-greyDark">Parentesco de Emergencia / Emergency Relationship</label>
+                                                <Input placeholder="e.g. Esposa, Madre, Hermano" value={editDraft.subsidiaryMetadata?.emergencyContactRelationship || ''} onChange={e => setEditDraft(d => d ? { ...d, subsidiaryMetadata: { ...d.subsidiaryMetadata, emergencyContactRelationship: e.target.value } } : d)} />
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {activeSubsidiary === 'US' && (
+                                        <div className="space-y-4 pt-2 border-t border-gray-100 mt-2">
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">US Onboarding Info</h4>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.onboarding_date')}</label>
+                                                    <Input type="date" value={editDraft.onboardingDate || ''} onChange={e => setEditDraft(d => d ? { ...d, onboardingDate: e.target.value } : d)} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {(userRole === 'HR' || userRole === 'Manager') && (
                                         activeSubsidiary === 'US' ? (

@@ -915,8 +915,7 @@ export const useStore = create<AppState>()(
                 const { timesheets, platformSettings, clockPunch, pendingSync } = get();
                 if (!platformSettings.enableAutoClockOut) return;
 
-                const now = new Date();
-                
+
                 // Find open sessions where the current time is past 11:59 PM (23:59) on the shift's date
                 const zombies = timesheets.filter(t => {
                     if (!t.timeIn || t.timeOut) return false;
@@ -925,8 +924,8 @@ export const useStore = create<AppState>()(
                     const hasPendingSync = pendingSync.some(p => p.table === 'mx_timesheets' && p.id === t.id);
                     if (hasPendingSync) return false;
 
-                    const shiftDate = new Date(`${t.date}T23:59:00`);
-                    return now.getTime() > shiftDate.getTime();
+                    const todayStr = new Date().toLocaleDateString('en-CA'); // Local YYYY-MM-DD
+                    return t.date < todayStr;
                 });
 
                 if (zombies.length === 0) return;
@@ -934,7 +933,8 @@ export const useStore = create<AppState>()(
                 console.log(`[Zombie] Cleaning up ${zombies.length} stale sessions...`);
                 
                 for (const z of zombies) {
-                    const autoOutTime = new Date(`${z.date}T23:59:00`);
+                    const [year, month, day] = z.date.split('-').map(Number);
+                    const autoOutTime = new Date(year, month - 1, day, 23, 59, 0);
                     
                     try {
                         await clockPunch(z.personnelId, {

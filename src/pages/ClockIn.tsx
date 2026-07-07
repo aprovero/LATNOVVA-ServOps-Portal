@@ -40,15 +40,23 @@ const getLocalDate = (d: Date = new Date()) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 function getBestDate(gps: GpsState): Date {
-    if (gps.gpsTimestampMs !== null && gps.gpsReceivedAt !== null)
-        return new Date(gps.gpsTimestampMs + (performance.now() - gps.gpsReceivedAt));
+    if (gps.gpsTimestampMs !== null && gps.gpsReceivedAt !== null) {
+        const ms = gps.gpsTimestampMs + (performance.now() - gps.gpsReceivedAt);
+        // If GPS time deviates from device time by more than 24 hours, assume it's bugged/rolled over
+        if (Math.abs(ms - Date.now()) < 86400000) {
+            return new Date(ms);
+        }
+    }
     return new Date();
 }
 
 function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'device' } {
     if (gps.gpsTimestampMs !== null && gps.gpsReceivedAt !== null) {
         const ms = gps.gpsTimestampMs + (performance.now() - gps.gpsReceivedAt);
-        return { iso: new Date(ms).toISOString(), source: 'gps' };
+        // If GPS time deviates from device time by more than 24 hours, assume it's bugged/rolled over
+        if (Math.abs(ms - Date.now()) < 86400000) {
+            return { iso: new Date(ms).toISOString(), source: 'gps' };
+        }
     }
     return { iso: new Date().toISOString(), source: 'device' };
 }

@@ -15,10 +15,6 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
         onChange({ subsidiaryMetadata: { ...md, [field]: value } });
     };
 
-    const updateTopLevel = (field: keyof Personnel, value: any) => {
-        onChange({ [field]: value });
-    };
-
     const nominaPpp = parseFloat(md.nominaPpp || '0');
     const nominaImss = parseFloat(md.nominaImss || '0');
     const totalMonthlyGross = nominaPpp + nominaImss;
@@ -52,61 +48,6 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
                         </label>
                         <Input value={md.rfcPostalCode || ''} onChange={e => updateMeta('rfcPostalCode', e.target.value)} placeholder={t('personnel.mexico_hr.cp_placeholder')} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
-                    {/* Row 3: DOB | AGE */}
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.dob')}</label>
-                        <Input value={md.birthDate || ''} onChange={e => updateMeta('birthDate', e.target.value)} placeholder="DD/MM/YYYY" className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.age')}</label>
-                        <Input type="number" value={md.age || ''} onChange={e => updateMeta('age', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
-                    {/* Row 4: GENDER | MARITAL STATUS */}
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.gender')}</label>
-                        <select className="w-full bg-white border border-amber-200 rounded-xl px-3 h-9 text-sm outline-none focus:ring-2 focus:ring-amber-500" value={md.gender || ''} onChange={e => updateMeta('gender', e.target.value)}>
-                            <option value="">{t('personnel.mexico_hr.select_placeholder')}</option>
-                            <option value="MASCULINO">{t('personnel.mexico_hr.gender_male')}</option>
-                            <option value="FEMENINO">{t('personnel.mexico_hr.gender_female')}</option>
-                            <option value="OTRO">{t('personnel.mexico_hr.gender_other')}</option>
-                        </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.marital_status')}</label>
-                        <select className="w-full bg-white border border-amber-200 rounded-xl px-3 h-9 text-sm outline-none focus:ring-2 focus:ring-amber-500" value={md.maritalStatus || ''} onChange={e => updateMeta('maritalStatus', e.target.value)}>
-                            <option value="">{t('personnel.mexico_hr.select_placeholder')}</option>
-                            <option value="SOLTERO(A)">{t('personnel.profile.marital_status_soltero', 'Single')}</option>
-                            <option value="CASADO(A)">{t('personnel.profile.marital_status_casado', 'Married')}</option>
-                            <option value="DIVORCIADO(A)">{t('personnel.profile.marital_status_divorciado', 'Divorced')}</option>
-                            <option value="VIUDO(A)">{t('personnel.profile.marital_status_viudo', 'Widowed')}</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div className="space-y-4 p-4 bg-white/60 rounded-2xl border border-amber-200/60">
-                <h4 className="text-xs font-bold text-amber-800/80 uppercase tracking-widest">{t('personnel.mexico_hr.address_title')}</h4>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 col-span-2">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.full_address')}</label>
-                        <Input value={md.addressFull || md.street || ''} onChange={e => updateMeta('addressFull', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
-                    <div className="space-y-1 col-span-2">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.personal_email')}</label>
-                        <Input type="email" value={data.email || ''} onChange={e => updateTopLevel('email', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
-                    <div className="space-y-1 col-span-2 border-t pt-2 mt-2">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.emergency_contact_name')}</label>
-                        <Input value={md.emergencyContactName || ''} onChange={e => updateMeta('emergencyContactName', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.emergency_contact_phone')}</label>
-                        <Input value={md.emergencyContactPhone || ''} onChange={e => updateMeta('emergencyContactPhone', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.relationship')}</label>
-                        <Input value={md.emergencyContactRelationship || ''} onChange={e => updateMeta('emergencyContactRelationship', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
-                    </div>
                 </div>
             </div>
 
@@ -120,10 +61,6 @@ export function MexicoHRForm({ data, onChange }: MexicoHRFormProps) {
                             <option value="LOCAL">{t('personnel.mexico_hr.worker_type_local')}</option>
                             <option value="FORANEO">{t('personnel.mexico_hr.worker_type_foreign')}</option>
                         </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.site_assigned')}</label>
-                        <Input value={md.siteAssigned || ''} onChange={e => updateMeta('siteAssigned', e.target.value)} className="bg-white text-sm border-amber-200 focus-visible:ring-amber-500" />
                     </div>
                     <div className="space-y-1">
                         <label className="text-[10px] font-bold text-amber-700/60 uppercase">{t('personnel.mexico_hr.studies_level')}</label>

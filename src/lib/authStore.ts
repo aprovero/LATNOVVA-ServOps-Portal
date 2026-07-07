@@ -210,7 +210,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
         signOut: async () => {
             console.log('[Auth] Initiating sign out sequence...');
             
-            // ── STEP 1: Auto Clock Out Active Sessions ─────────────────────
+            // ── STEP 1: Auto Clock Out Active Sessions (DISABLED) ─────────────────────
+            /*
             try {
                 const currentUser = get().user;
                 if (currentUser) {
@@ -233,6 +234,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
             } catch (e) {
                 console.warn('[Auth] Failed to auto clock out on sign out:', e);
             }
+            */
             
             // ── STEP 2: Clear Local Stores ──────────────────────────────────
             set({ session: null, user: null, identity: null, profile: null, loading: false });
