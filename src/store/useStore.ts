@@ -1031,36 +1031,72 @@ export const useStore = create<AppState>()(
                 }
                 set({ isInitializing: true });
                 try {
-                    // Fetch real data from supabase
-                    // Fetch real data from supabase sequentially to prevent concurrent token refresh "Lock Stolen" errors
-                    const { data: clientsDB } = await supabase.from('clients').select('*');
-                    const { data: projectsDB } = await supabase.from('projects').select('*');
-                    const { data: personnelDB } = await supabase.from('mx_personnel').select('*');
-                    const { data: reportsDB } = await supabase.from('reports').select('*');
-                    const { data: timesheetsDB } = await supabase.from('mx_timesheets').select('*');
-                    const { data: toolsDB } = await supabase.from('tools').select('*');
+                    // Ensure auth session is loaded/refreshed first to prevent concurrent lock issues
+                    await supabase.auth.getSession();
 
-                    let overridesDB = null;
-                    let schedulesDB = null;
-                    let settingsDB = null;
-                    try {
-                        const { data } = await supabase.from('mx_attendance_overrides').select('*');
-                        overridesDB = data;
-                    } catch (e) {
-                        console.warn('Supabase mx_attendance_overrides table load skipped:', e);
-                    }
-                    try {
-                        const { data } = await supabase.from('mx_work_schedules').select('*');
-                        schedulesDB = data;
-                    } catch (e) {
-                        console.warn('Supabase mx_work_schedules table load skipped:', e);
-                    }
-                    try {
-                        const { data } = await supabase.from('platform_settings').select('*').eq('id', 'global').single();
-                        settingsDB = data;
-                    } catch (e) {
-                        console.warn('Supabase platform_settings table load skipped:', e);
-                    }
+                    const [
+                        clientsDB,
+                        projectsDB,
+                        personnelDB,
+                        reportsDB,
+                        timesheetsDB,
+                        toolsDB,
+                        overridesDB,
+                        schedulesDB,
+                        settingsDB
+                    ] = await Promise.all([
+                        (async () => {
+                            const { data } = await supabase.from('clients').select('*');
+                            return data;
+                        })(),
+                        (async () => {
+                            const { data } = await supabase.from('projects').select('*');
+                            return data;
+                        })(),
+                        (async () => {
+                            const { data } = await supabase.from('mx_personnel').select('*');
+                            return data;
+                        })(),
+                        (async () => {
+                            const { data } = await supabase.from('reports').select('*');
+                            return data;
+                        })(),
+                        (async () => {
+                            const { data } = await supabase.from('mx_timesheets').select('*');
+                            return data;
+                        })(),
+                        (async () => {
+                            const { data } = await supabase.from('tools').select('*');
+                            return data;
+                        })(),
+                        (async () => {
+                            try {
+                                const { data } = await supabase.from('mx_attendance_overrides').select('*');
+                                return data;
+                            } catch (e) {
+                                console.warn('Supabase mx_attendance_overrides table load skipped:', e);
+                                return null;
+                            }
+                        })(),
+                        (async () => {
+                            try {
+                                const { data } = await supabase.from('mx_work_schedules').select('*');
+                                return data;
+                            } catch (e) {
+                                console.warn('Supabase mx_work_schedules table load skipped:', e);
+                                return null;
+                            }
+                        })(),
+                        (async () => {
+                            try {
+                                const { data } = await supabase.from('platform_settings').select('*').eq('id', 'global').maybeSingle();
+                                return data;
+                            } catch (e) {
+                                console.warn('Supabase platform_settings table load skipped:', e);
+                                return null;
+                            }
+                        })()
+                    ]);
 
                     // Guard: only overwrite store state if Supabase returned actual rows.
                     // An empty array [] is truthy in JS, so `data || fallback` would wipe

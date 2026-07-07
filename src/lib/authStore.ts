@@ -120,7 +120,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 })();
 
                 const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error('Initialization Timeout')), 8000)
+                    setTimeout(() => reject(new Error('Initialization Timeout')), 20000)
                 );
 
                 const { profile, personnel } = await Promise.race([initPromise, timeoutPromise]);
