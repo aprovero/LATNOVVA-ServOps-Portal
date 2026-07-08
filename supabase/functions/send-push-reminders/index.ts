@@ -52,13 +52,18 @@ serve(async (req) => {
       notificationBody = "Buenos días, recuerda hacer check in en el Portal de Servicios LATNOVVA antes de empezar tus actividades.";
       redirectUrl = "/clock-in";
 
-      // 1. Find all active staff who require reminders
+      // 1. Find profiles
       const { data: staff, error: staffErr } = await supabase
         .from("profiles")
-        .select("id, name")
-        .in("role", ["Tech", "Supervisor", "Office", "HR"]);
+        .select("id, name, email, role");
 
       if (staffErr) throw staffErr;
+
+      // Filter staff who require reminders (non-managers + aprovero@latnovva.com)
+      const allowedStaff = (staff || []).filter(s => 
+        ["Tech", "Supervisor", "Office", "HR"].includes(s.role || '') || 
+        s.email?.toLowerCase() === 'aprovero@latnovva.com'
+      );
 
       // 2. Query timesheets for today to see who has NOT clocked in
       const { data: activeShifts, error: shiftErr } = await supabase
@@ -82,7 +87,7 @@ serve(async (req) => {
       ]);
 
       // Filter staff who are NOT clocked in
-      usersToNotify = staff.filter(s => !clockedInIds.has(s.id));
+      usersToNotify = allowedStaff.filter(s => !clockedInIds.has(s.id));
 
     } else if (type === "clock-out") {
       notificationTitle = "Portal LATNOVVA";
