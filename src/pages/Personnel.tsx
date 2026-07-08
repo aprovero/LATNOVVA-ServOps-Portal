@@ -178,11 +178,16 @@ export default function Personnel() {
                 leadPay: newPerson.leadPay,
                 totalPerdiem: newPerson.totalPerdiem,
                 subsidiary: activeSubsidiary,
-                subsidiaryMetadata: {}
+                subsidiaryMetadata: newPerson.subsidiaryMetadata || {}
             };
             
             // Sync locally & backend via zustand trigger updates
             addPersonnel(created);
+            
+            if (newPerson.tempProjectId) {
+                await transferPersonnel(created.id, newPerson.tempProjectId);
+            }
+            
             setIsAddModalOpen(false);
             setNewPerson(null);
             
@@ -367,7 +372,30 @@ export default function Personnel() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2 col-span-2">
                                                 <label className="text-sm font-semibold text-accent-greyDark">Sitio Asignado / Assigned Site</label>
-                                                <Input placeholder="e.g. Oficina Mérida" value={newPerson?.subsidiaryMetadata?.siteAssigned || ''} onChange={e => setNewPerson({ ...newPerson, subsidiaryMetadata: { ...newPerson?.subsidiaryMetadata, siteAssigned: e.target.value } })} />
+                                                <select 
+                                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                                    value={newPerson?.tempProjectId || ''}
+                                                    onChange={e => {
+                                                        const pId = e.target.value;
+                                                        const pName = projects.find(p => p.id === pId)?.name || '';
+                                                        setNewPerson({ 
+                                                            ...newPerson, 
+                                                            tempProjectId: pId,
+                                                            subsidiaryMetadata: { 
+                                                                ...newPerson?.subsidiaryMetadata, 
+                                                                siteAssigned: pName 
+                                                            } 
+                                                        });
+                                                    }}
+                                                >
+                                                    <option value="">{t('personnel.unassigned', 'Unassigned / Ninguno')}</option>
+                                                    {projects
+                                                        .filter(p => p.status === 'Active')
+                                                        .map(p => (
+                                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                                        ))
+                                                    }
+                                                </select>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
@@ -930,7 +958,35 @@ export default function Personnel() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2 col-span-2">
                                                 <label className="text-sm font-semibold text-accent-greyDark">Sitio Asignado / Assigned Site</label>
-                                                <Input placeholder="e.g. Oficina Mérida" value={editDraft.subsidiaryMetadata?.siteAssigned || ''} onChange={e => setEditDraft(d => d ? { ...d, subsidiaryMetadata: { ...d.subsidiaryMetadata, siteAssigned: e.target.value } } : d)} />
+                                                <select 
+                                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-teal"
+                                                    value={assignedProjects[0]?.id || ''}
+                                                    onChange={async (e) => {
+                                                        if (!selectedPerson) return;
+                                                        const pId = e.target.value;
+                                                        const pName = projects.find(p => p.id === pId)?.name || '';
+                                                        
+                                                        // Update project assignment in state/database
+                                                        await transferPersonnel(selectedPerson.id, pId || null);
+                                                        
+                                                        // Sync the metadata siteAssigned value
+                                                        setEditDraft(d => d ? {
+                                                            ...d,
+                                                            subsidiaryMetadata: {
+                                                                ...d.subsidiaryMetadata,
+                                                                siteAssigned: pName
+                                                            }
+                                                        } : d);
+                                                    }}
+                                                >
+                                                    <option value="">{t('personnel.unassigned', 'Unassigned / Ninguno')}</option>
+                                                    {projects
+                                                        .filter(p => p.status === 'Active')
+                                                        .map(p => (
+                                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                                        ))
+                                                    }
+                                                </select>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-semibold text-accent-greyDark">{t('personnel.profile.dbo', 'Date of Birth')}</label>
