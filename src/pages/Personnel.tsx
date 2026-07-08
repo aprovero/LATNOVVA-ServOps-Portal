@@ -453,6 +453,11 @@ export default function Personnel() {
                                         </div>
                                     )}
 
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
+                                        <Input placeholder={t('personnel.certs_folder_placeholder')} value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
+                                    </div>
+
                                     {newPerson && renderCertsEditor(newPerson, setNewPerson)}
 
                                     {(userRole === 'HR' || userRole === 'Manager') && (
@@ -1010,6 +1015,11 @@ export default function Personnel() {
                                             </div>
                                         </div>
                                     )}
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
+                                        <Input placeholder="e.g. OneDrive or Google Drive URL" value={editDraft.sharedFolderLink || ''} onChange={e => setEditDraft(d => d ? { ...d, sharedFolderLink: e.target.value } : d)} />
+                                    </div>
 
                                     {renderCertsEditor(editDraft, (d) => setEditDraft(d))}
 
