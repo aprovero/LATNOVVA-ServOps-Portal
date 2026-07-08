@@ -118,15 +118,32 @@ serve(async (req) => {
       ]);
 
       // Query profiles for these IDs
+      let staff: any[] = [];
       if (openShiftUserIds.size > 0) {
-        const { data: staff, error: staffErr } = await supabase
+        const { data, error: staffErr } = await supabase
           .from("profiles")
-          .select("id, name")
+          .select("id, name, email, role")
           .in("id", Array.from(openShiftUserIds));
 
         if (staffErr) throw staffErr;
-        usersToNotify = staff || [];
+        staff = data || [];
       }
+
+      // Explicitly fetch and append the test manager profile (aprovero@latnovva.com) to allow testing clock-out triggers
+      const { data: testManager } = await supabase
+        .from("profiles")
+        .select("id, name, email, role")
+        .eq("email", "aprovero@latnovva.com")
+        .maybeSingle();
+
+      if (testManager && !staff.some(s => s.id === testManager.id)) {
+        staff.push(testManager);
+      }
+
+      usersToNotify = staff.filter(s =>
+        ["Tech", "Supervisor", "Office", "HR"].includes(s.role || '') ||
+        s.email?.toLowerCase() === 'aprovero@latnovva.com'
+      );
     } else {
       return new Response(JSON.stringify({ error: "Invalid trigger type" }), {
         status: 400,
