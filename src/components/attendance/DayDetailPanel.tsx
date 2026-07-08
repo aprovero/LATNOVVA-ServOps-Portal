@@ -69,7 +69,7 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
                 <div>
                     <h3 className="text-lg font-bold text-accent-greyDark">{t('attendance.detail.title', 'Detalle de Jornada')}</h3>
-                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mt-0.5">{formatDisplayDate(date, lang)}</p>
+                    <p className="text-sm font-bold text-brand-teal mt-0.5">{formatDisplayDate(date, lang)}</p>
                 </div>
                 <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
                     <X size={20} />
