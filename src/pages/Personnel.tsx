@@ -453,6 +453,13 @@ export default function Personnel() {
                                         </div>
                                     )}
 
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
+                                        <Input placeholder={t('personnel.certs_folder_placeholder')} value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
+                                    </div>
+
+                                    {newPerson && renderCertsEditor(newPerson, setNewPerson)}
+
                                     {(userRole === 'HR' || userRole === 'Manager') && (
                                         activeSubsidiary === 'US' ? (
                                             <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
@@ -498,11 +505,6 @@ export default function Personnel() {
                                             <MexicoHRForm data={newPerson || {}} onChange={(updates) => setNewPerson(p => p ? { ...p, ...updates } : p)} />
                                         )
                                     )}
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
-                                        <Input placeholder={t('personnel.certs_folder_placeholder')} value={newPerson?.sharedFolderLink || ''} onChange={e => setNewPerson({ ...newPerson, sharedFolderLink: e.target.value })} />
-                                    </div>
                                 </div>
                             <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">{t('personnel.profile_photo')}</label>
@@ -538,7 +540,6 @@ export default function Personnel() {
                                 )}
                             </div>
 
-                            {newPerson && renderCertsEditor(newPerson, setNewPerson)}
                             <Button className="w-full mt-2 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-11 font-bold" onClick={handleAdd}>
                                 {t('personnel.create_user')}
                             </Button>
@@ -1015,6 +1016,13 @@ export default function Personnel() {
                                         </div>
                                     )}
 
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
+                                        <Input placeholder="e.g. OneDrive or Google Drive URL" value={editDraft.sharedFolderLink || ''} onChange={e => setEditDraft(d => d ? { ...d, sharedFolderLink: e.target.value } : d)} />
+                                    </div>
+
+                                    {renderCertsEditor(editDraft, (d) => setEditDraft(d))}
+
                                     {(userRole === 'HR' || userRole === 'Manager') && (
                                         activeSubsidiary === 'US' ? (
                                             <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
@@ -1060,13 +1068,6 @@ export default function Personnel() {
                                             <MexicoHRForm data={editDraft} onChange={(updates) => setEditDraft(d => d ? { ...d, ...updates } : d)} />
                                         )
                                     )}
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-accent-greyDark flex items-center gap-2"><ExternalLink size={14} className="text-brand-teal" /> {t('personnel.certs_folder')}</label>
-                                        <Input placeholder="e.g. OneDrive or Google Drive URL" value={editDraft.sharedFolderLink || ''} onChange={e => setEditDraft(d => d ? { ...d, sharedFolderLink: e.target.value } : d)} />
-                                    </div>
-
-                                    {renderCertsEditor(editDraft, (d) => setEditDraft(d))}
 
 
                                 </div>
