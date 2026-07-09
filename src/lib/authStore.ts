@@ -106,8 +106,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 // IDEMPOTENCY CHECK: Only update store if the session is truly different.
                 // This prevents the #310 re-render loop if Supabase fires redundant events.
                 const currentSession = get().session;
-                if (currentSession?.access_token === newSession.access_token && currentSession?.user?.id === newSession.user.id) {
-                    set({ loading: false });
+                if (currentSession?.user?.id === newSession.user.id) {
+                    set({ session: newSession, loading: false });
+                    
+                    // Auto-refresh push subscription in background if permission is granted
+                    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                        import('./permissions').then(({ subscribeUserToPush }) => {
+                            subscribeUserToPush();
+                        }).catch(e => console.warn('[Auth] Failed to auto-subscribe push:', e));
+                    }
                     return;
                 }
 
@@ -132,6 +139,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
                     profile: personnel, 
                     loading: false 
                 });
+
+                // Auto-refresh push subscription in background if permission is granted
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                    import('./permissions').then(({ subscribeUserToPush }) => {
+                        subscribeUserToPush();
+                    }).catch(e => console.warn('[Auth] Failed to auto-subscribe push:', e));
+                }
             } catch (err: any) {
                 console.error('[Auth Error] Catastrophic failure in auth listener:', err);
                 // Hardened fallback: if this is an AuthApiError, token invalidation, or timeout, clear localStorage and redirect to login
