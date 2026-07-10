@@ -106,7 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 // IDEMPOTENCY CHECK: Only update store if the session is truly different.
                 // This prevents the #310 re-render loop if Supabase fires redundant events.
                 const currentSession = get().session;
-                if (currentSession?.user?.id === newSession.user.id) {
+                if (newSession && currentSession?.user?.id === newSession.user.id) {
                     set({ session: newSession, loading: false });
                     
                     // Auto-refresh push subscription in background if permission is granted
@@ -180,14 +180,19 @@ export const useAuthStore = create<AuthState>((set, get) => {
         initializeAuth: async () => {
             console.log('[Auth] initializeAuth called (handled by onAuthStateChange listener)');
             
-            // Safety timeout: If the app remains in the loading state for more than 6 seconds
+            // Safety timeout: If the app remains in the loading state for more than 8 seconds
             // without a session, force loading to false to unblock the router and let the user log in.
-            setTimeout(() => {
+            setTimeout(async () => {
                 if (get().loading) {
-                    console.warn('[Auth] Initialization safety timeout reached. Forcing loading to false.');
-                    set({ loading: false });
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                        console.warn('[Auth] Initialization safety timeout reached and no session found. Forcing loading to false.');
+                        set({ loading: false });
+                    } else {
+                        console.log('[Auth] Safety timeout reached, but session exists. Waiting for database initialization to complete.');
+                    }
                 }
-            }, 6000);
+            }, 8000);
         },
 
         signInWithEmail: async (email, password) => {
