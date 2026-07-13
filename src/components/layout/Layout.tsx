@@ -219,7 +219,7 @@ export default function Layout() {
                 { name: t('nav.timesheets'), path: '/timesheets', icon: Clock, roles: ['Tech', 'Supervisor', 'Office'] },
                 { name: t('nav.attendance', 'Asistencias'), path: '/attendance', icon: Calendar, roles: ['Manager', 'HR'] },
                 { name: 'Nómina', path: '/nomina', icon: FileSpreadsheet, roles: ['Manager', 'HR'] },
-                { name: t('nav.survey_results', 'Resultados Encuesta'), path: '/survey-results', icon: MessageSquare, roles: ['Manager', 'Supervisor', 'HR'] },
+                { name: t('nav.survey_results', 'Resultados Encuesta'), path: '/survey-results', icon: MessageSquare, roles: ['Manager', 'HR'] },
             ]
         }
     ];

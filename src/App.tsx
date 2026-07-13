@@ -40,13 +40,6 @@ const ManagerHRRoute = ({ children }: { children: React.ReactNode }) => {
     return <>{children}</>;
 };
 
-// Guard: only Managers, Supervisors and HR can access Survey Results.
-const ManagerSupervisorHRRoute = ({ children }: { children: React.ReactNode }) => {
-    const userRole = useStore(s => s.userRole);
-    if (!['Manager', 'Supervisor', 'HR'].includes(userRole)) return <Navigate to="/projects" replace />;
-    return <>{children}</>;
-};
-
 // Redirect / to /clock-in for Techs, /attendance for HR, /projects for others
 const HomeRedirect = () => {
     const userRole = useStore(s => s.userRole);
@@ -110,7 +103,7 @@ function App() {
                     <Route path="personnel" element={<Personnel />} />
                     <Route path="timesheets" element={<Timesheets />} />
                     <Route path="attendance" element={<ManagerHRRoute><Attendance /></ManagerHRRoute>} />
-                    <Route path="survey-results" element={<ManagerSupervisorHRRoute><SurveyResults /></ManagerSupervisorHRRoute>} />
+                    <Route path="survey-results" element={<ManagerHRRoute><SurveyResults /></ManagerHRRoute>} />
                     <Route path="nomina" element={<Nomina />} />
                     <Route path="clock-in" element={<ClockIn />} />
                 </Route>
