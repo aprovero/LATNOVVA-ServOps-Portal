@@ -18,8 +18,10 @@ import ProjectDetail from './pages/ProjectDetail';
 import ClockIn from './pages/ClockIn';
 import Nomina from './pages/Nomina';
 import Attendance from './pages/Attendance';
+import SurveyResults from './pages/SurveyResults';
 import SplashScreen from './components/common/SplashScreen';
 import FaceLockScreen from './components/shared/FaceLockScreen';
+import GuestPortal from './pages/GuestPortal';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -89,6 +91,7 @@ function App() {
             <Router>
                 <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/guest-portal" element={<GuestPortal />} />
                 
                 <Route element={<AuthRoute />}>
                     <Route path="/" element={<Layout />}>
@@ -100,6 +103,7 @@ function App() {
                     <Route path="personnel" element={<Personnel />} />
                     <Route path="timesheets" element={<Timesheets />} />
                     <Route path="attendance" element={<ManagerHRRoute><Attendance /></ManagerHRRoute>} />
+                    <Route path="survey-results" element={<ManagerHRRoute><SurveyResults /></ManagerHRRoute>} />
                     <Route path="nomina" element={<Nomina />} />
                     <Route path="clock-in" element={<ClockIn />} />
                 </Route>

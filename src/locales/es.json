@@ -63,7 +63,8 @@
     "notifications": "Alertas y Notificaciones",
     "preview_branding": "Vista previa de marca",
     "my_profile": "Mi Perfil",
-    "attendance": "Asistencias"
+    "attendance": "Asistencias",
+    "survey_results": "Resultados Encuesta"
   },
   "auth": {
     "logout": "Cerrar sesión",
@@ -1197,6 +1198,20 @@
       "btn_submit": "Enviar",
       "success_title": "¡Comentarios recibidos!",
       "success_desc": "Gracias por ayudarnos a mejorar. Tus comentarios han sido enviados directamente al equipo de desarrollo para optimizar tu jornada laboral.",
-      "error_ratings": "Por favor califica la experiencia general y la facilidad de uso."
+      "error_ratings": "Por favor califica la experiencia general y la facilidad de uso.",
+      "dashboard_title": "Resultados de la Encuesta de Usuario",
+      "total_responses": "Respuestas Totales",
+      "avg_overall": "Promedio Experiencia",
+      "avg_ease": "Promedio Facilidad de Uso",
+      "gps_issues_rate": "Reportaron Problemas GPS",
+      "notif_success_rate": "Notificaciones Recibidas",
+      "filter_all_roles": "Todos los Roles",
+      "filter_text_only": "Solo con comentarios de texto",
+      "submitted_by": "Enviado por",
+      "no_comments": "Sin comentarios de texto",
+      "reported_issues": "Problemas Reportados",
+      "gps_issue_label": "Problema GPS",
+      "notif_issue_label": "Problema Notificaciones",
+      "role": "Rol"
     }
 }

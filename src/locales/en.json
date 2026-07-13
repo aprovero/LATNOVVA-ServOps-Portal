@@ -62,7 +62,8 @@
     "notifications": "Alerts & Notifications",
     "preview_branding": "Preview Branding",
     "my_profile": "My Profile",
-    "attendance": "Attendance"
+    "attendance": "Attendance",
+    "survey_results": "Survey Results"
   },
   "auth": {
     "logout": "Log out",
@@ -1197,6 +1198,20 @@
       "btn_submit": "Send",
       "success_title": "Feedback Received!",
       "success_desc": "Thank you for helping us improve. Your feedback has been sent directly to the development team to make your workday run smoother.",
-      "error_ratings": "Please provide ratings for overall experience and ease of use."
+      "error_ratings": "Please provide ratings for overall experience and ease of use.",
+      "dashboard_title": "User Survey Results Dashboard",
+      "total_responses": "Total Responses",
+      "avg_overall": "Avg Overall Experience",
+      "avg_ease": "Avg Ease of Use",
+      "gps_issues_rate": "Reported GPS Issues",
+      "notif_success_rate": "Received Shift Notifs",
+      "filter_all_roles": "All Roles",
+      "filter_text_only": "Only with text comments",
+      "submitted_by": "Submitted by",
+      "no_comments": "No text comments submitted",
+      "reported_issues": "Reported Issues",
+      "gps_issue_label": "GPS Problem",
+      "notif_issue_label": "Notification Problem",
+      "role": "Role"
     }
 }
