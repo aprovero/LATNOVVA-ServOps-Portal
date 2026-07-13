@@ -110,7 +110,7 @@ export default function Attendance() {
     // Compute stats for today & selected date range (for overtime)
     const computeStats = () => {
         const activeCount = filteredPersonnel.filter(p => p.status === 'Active').length;
-        const todayStr = getFormattedDate(new Date());
+        const todayStr = new Date().toLocaleDateString('en-CA');
         
         let presentToday = 0;
         let onVacation = 0;
