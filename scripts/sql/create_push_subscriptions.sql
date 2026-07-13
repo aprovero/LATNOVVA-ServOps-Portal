@@ -6,12 +6,10 @@ CREATE TABLE IF NOT EXISTS public.push_subscriptions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
     subscription jsonb NOT NULL,
+    endpoint text NOT NULL UNIQUE,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
-
--- Create a unique index on the subscription endpoint to prevent duplicates
-CREATE UNIQUE INDEX IF NOT EXISTS push_subscriptions_endpoint_idx ON public.push_subscriptions ((subscription->>'endpoint'));
 
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;

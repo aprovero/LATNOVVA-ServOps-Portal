@@ -101,16 +101,17 @@ export const subscribeUserToPush = async (): Promise<void> => {
             return;
         }
 
-        // Upsert subscription to database using raw endpoint as conflict target or using the unique index
+        // Upsert subscription to database using raw endpoint as conflict target
         const subscriptionJson = subscription.toJSON();
         const { error } = await (supabase as any)
             .from('push_subscriptions')
             .upsert({
                 user_id: user.id,
                 subscription: subscriptionJson,
+                endpoint: subscription.endpoint,
                 updated_at: new Date().toISOString()
             }, {
-                onConflict: 'subscription' // Handled by unique constraint index
+                onConflict: 'endpoint'
             });
 
         if (error) {
