@@ -4,6 +4,8 @@
     "cancel": "Cancelar",
     "edit": "Editar",
     "delete": "Eliminar",
+    "next": "Siguiente",
+    "back": "Atrás",
     "actions": "Acciones",
     "status": "Estado",
     "date": "Fecha",
@@ -1168,5 +1170,33 @@
         "total_deduccion": "Total Deducciones",
         "neto_a_pagar": "Neto a Pagar"
       }
+    },
+    "survey": {
+      "title": "Ayúdanos a Mejorar",
+      "subtitle": "LATNOVVA ServiceTool — Evaluación de 1 Mes",
+      "thank_you": "¡Gracias!",
+      "prompt_title": "¿Tienes 2 minutos para completar la encuesta?",
+      "prompt_desc": "Tus comentarios son de gran valor para mejorar la aplicación y optimizar tu jornada diaria. Puedes responder ahora o posponerla.",
+      "btn_start": "Sí, responder",
+      "btn_later": "Más tarde",
+      "btn_never": "No recordar",
+      "sec_ratings": "Parte 1: Calificaciones Rápidas (Donde 5 es excelente)",
+      "sec_permissions": "Parte 2: GPS y Notificaciones",
+      "sec_feedback": "Parte 3: Retroalimentación y Sugerencias",
+      "q_overall": "1. Experiencia General: ¿Cómo calificarías tu experiencia general con la aplicación?",
+      "q_ease": "2. Facilidad de Uso: ¿Qué tan intuitivo te resulta el diseño del menú y la navegación?",
+      "q_gps": "3. Ubicación / Mapa GPS: ¿Has tenido algún problema con la función de GPS?",
+      "gps_comments_placeholder": "Describe aquí cualquier problema con el GPS...",
+      "q_notifications": "4. Notificaciones: ¿Has recibido correctamente las notificaciones de inicio y fin de turno?",
+      "notif_yes": "Sí",
+      "notif_no": "No",
+      "notifications_comments_placeholder": "Describe aquí qué notificaciones te han fallado...",
+      "q_friction": "5. Puntos de fricción: ¿Qué es lo más frustrante o difícil al usar la aplicación hoy en día?",
+      "q_feature": "6. Funciones deseadas: ¿Qué función o página te gustaría que tuviera la aplicación para facilitar tu día de trabajo?",
+      "q_general": "7. Comentarios Generales: ¿Tienes alguna otra sugerencia o problema que hayas encontrado?",
+      "btn_submit": "Enviar",
+      "success_title": "¡Comentarios recibidos!",
+      "success_desc": "Gracias por ayudarnos a mejorar. Tus comentarios han sido enviados directamente al equipo de desarrollo para optimizar tu jornada laboral.",
+      "error_ratings": "Por favor califica la experiencia general y la facilidad de uso."
     }
 }

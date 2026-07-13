@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, UploadCloud, Trash2, FileSpreadsheet, Calendar } from 'lucide-react';
+import { Home, FileText, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, UploadCloud, Trash2, FileSpreadsheet, Calendar, MessageSquare } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
@@ -10,6 +10,7 @@ import gsap from 'gsap';
 import { SyncStatus } from '../SyncStatus';
 import { NotificationStatus } from '../NotificationStatus';
 import { LocationStatus } from '../LocationStatus';
+import SurveyModal from '../shared/SurveyModal';
 
 import CommandSearch from '../search/CommandSearch';
 import { Input } from '../ui/input';
@@ -74,6 +75,7 @@ export default function Layout() {
     const [newReportProject, setNewReportProject] = useState('');
     const [newReportDate, setNewReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [locationError, setLocationError] = useState('');
+    const [isSurveyForceOpen, setIsSurveyForceOpen] = useState(false);
     // Compute Notifications
     const notifications: { id: string; title: string; message: string; type: 'warning' | 'error', link?: string }[] = [];
 
@@ -581,6 +583,9 @@ export default function Layout() {
                                 <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setIsAccountModalOpen(true)}>
                                     <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
                                 </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setIsSurveyForceOpen(true)}>
+                                    <MessageSquare size={14} className="text-gray-400" /> {t('survey.title', 'Help Us Improve')}
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
 
                                 {(['Manager', 'Supervisor', 'HR'].includes(userRole)) && (
@@ -737,6 +742,9 @@ export default function Layout() {
                             <DropdownMenuContent align="end" className="w-48 rounded-xl border-gray-100 shadow-xl">
                                 <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setIsAccountModalOpen(true)}>
                                     <User size={14} className="text-gray-400" /> {t('nav.my_profile', 'My Profile')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setIsSurveyForceOpen(true)}>
+                                    <MessageSquare size={14} className="text-gray-400" /> {t('survey.title', 'Help Us Improve')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
 
@@ -1312,6 +1320,7 @@ export default function Layout() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <SurveyModal forceOpen={isSurveyForceOpen} onCloseForce={() => setIsSurveyForceOpen(false)} />
         </div>
     );
 }

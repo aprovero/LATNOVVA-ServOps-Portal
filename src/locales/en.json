@@ -4,6 +4,8 @@
     "cancel": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
+    "next": "Next",
+    "back": "Back",
     "actions": "Actions",
     "status": "Status",
     "date": "Date",
@@ -1168,5 +1170,33 @@
         "total_deduccion": "Total Deductions",
         "neto_a_pagar": "Net to Pay"
       }
+    },
+    "survey": {
+      "title": "Help Us Improve",
+      "subtitle": "LATNOVVA ServiceTool — 1-Month Check-In",
+      "thank_you": "Thank You!",
+      "prompt_title": "Do you have 2 minutes to complete the survey?",
+      "prompt_desc": "Your feedback is highly valuable to improve the application and optimize your daily workflow. You can respond now or defer it.",
+      "btn_start": "Yes, start",
+      "btn_later": "Later",
+      "btn_never": "Don't Remind",
+      "sec_ratings": "Part 1: Quick Ratings (Where 5 is best)",
+      "sec_permissions": "Part 2: GPS & Notifications",
+      "sec_feedback": "Part 3: Open Feedback (Actionable Inputs)",
+      "q_overall": "1. Overall Experience: How would you rate your overall experience?",
+      "q_ease": "2. Ease of Use: How intuitive is the navigation and menu layout?",
+      "q_gps": "3. GPS Pin/Map: Have you had any issues with the GPS function?",
+      "gps_comments_placeholder": "Describe any GPS issues...",
+      "q_notifications": "4. Notifications: Have you successfully received daily start and finish shift notifications on your device?",
+      "notif_yes": "Yes",
+      "notif_no": "No",
+      "notifications_comments_placeholder": "Describe notification issues...",
+      "q_friction": "5. Friction Points: What is the most frustrating part of using the app today?",
+      "q_feature": "6. Feature Requests: What is one feature or page you wish the app had to make your workday easier?",
+      "q_general": "7. General Comments: Any other suggestions or issues you've encountered?",
+      "btn_submit": "Send",
+      "success_title": "Feedback Received!",
+      "success_desc": "Thank you for helping us improve. Your feedback has been sent directly to the development team to make your workday run smoother.",
+      "error_ratings": "Please provide ratings for overall experience and ease of use."
     }
 }
