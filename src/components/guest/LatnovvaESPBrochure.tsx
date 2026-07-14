@@ -517,42 +517,41 @@ export default function LatnovvaESPBrochure() {
                         </h2>
                     </Reveal>
 
-                    {/* Interactive Customers Showcase with Sprite Sheet Logos */}
+                    {/* Interactive Customers Showcase with Individual PNG Logo Files */}
                     <Reveal delay={100}>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                             {[
-                                { name: 'Tesla', type: 'EV & Storage', pos: '33.3% 100%', color: 'hover:border-red-500/30' },
-                                { name: 'Sungrow', type: 'Solar & Storage', pos: '33.3% 80%', color: 'hover:border-orange-500/30' },
-                                { name: 'NextEra Energy', type: 'Utility Scale', pos: '33.3% 20%', color: 'hover:border-emerald-500/30' },
-                                { name: 'Canadian Solar', type: 'Module EPC', pos: '100% 80%', color: 'hover:border-yellow-500/30' },
-                                { name: 'Enel', type: 'Grid Operator', pos: '0% 40%', color: 'hover:border-rose-500/30' },
-                                { name: 'ENGIE', type: 'Energy Developer', pos: '0% 20%', color: 'hover:border-cyan-500/30' },
-                                { name: 'Acciona', type: 'Renewables EPC', pos: '66.6% 40%', color: 'hover:border-red-600/30' },
-                                { name: 'Eiffage Energía', type: 'Infrastructure', pos: '100% 40%', color: 'hover:border-red-500/30' },
-                                { name: 'Elecnor', type: 'Power Grid EPC', pos: '0% 0%', color: 'hover:border-blue-600/30' },
-                                { name: 'Power Electronics', type: 'Solar Inverters', pos: '66.6% 20%', color: 'hover:border-orange-600/30' },
-                                { name: 'Grupo Cobra', type: 'Industrial BOP', pos: '66.6% 60%', color: 'hover:border-green-600/30' },
-                                { name: 'TSK', type: 'BOP/BOS Leader', pos: '0% 60%', color: 'hover:border-blue-500/30' },
-                                { name: 'Ferrovial', type: 'Railway & Infra', pos: '0% 100%', color: 'hover:border-yellow-500/30' },
-                                { name: 'CEN Solutions', type: 'Auxiliary Systems', pos: '33.3% 0%', color: 'hover:border-emerald-500/30' },
-                                { name: 'Aselec', type: 'Industrial Power', pos: '66.6% 0%', color: 'hover:border-blue-600/30' },
-                                { name: 'Mortenson', type: 'Wind & Solar EPC', pos: '66.6% 100%', color: 'hover:border-indigo-600/30' },
+                                { name: 'CEEC (China Energy)', type: 'Chinese Energy Giant', file: 'ceec.png', color: 'hover:border-red-500/40' },
+                                { name: 'Sungrow', type: 'Solar & Storage', file: 'sungrow.png', color: 'hover:border-orange-500/40' },
+                                { name: 'Trina Solar', type: 'Solar PV Tech', file: 'trina_solar.png', color: 'hover:border-red-500/40' },
+                                { name: 'Canadian Solar', type: 'Module & Storage EPC', file: 'canadian_solar.png', color: 'hover:border-yellow-500/40' },
+                                { name: 'Tesla', type: 'EV & Utility Storage', file: 'tesla.png', color: 'hover:border-red-600/40' },
+                                { name: 'NextEra Energy', type: 'Utility Developer', file: 'nextera_energy.png', color: 'hover:border-emerald-500/40' },
+                                { name: 'Enel', type: 'Global Utility', file: 'enel.png', color: 'hover:border-rose-500/40' },
+                                { name: 'ENGIE', type: 'Energy Developer', file: 'engie.png', color: 'hover:border-cyan-500/40' },
+                                { name: 'Acciona', type: 'Renewables EPC', file: 'acciona.png', color: 'hover:border-red-600/40' },
+                                { name: 'Eiffage Energía', type: 'Infrastructure', file: 'eiffage_energia.png', color: 'hover:border-red-500/40' },
+                                { name: 'Elecnor', type: 'Power Grid EPC', file: 'elecnor.png', color: 'hover:border-blue-600/40' },
+                                { name: 'Power Electronics', type: 'Solar Inverters', file: 'power_electronics.png', color: 'hover:border-orange-650/40' },
+                                { name: 'Grupo Cobra', type: 'Industrial BOP', file: 'grupo_cobra.png', color: 'hover:border-green-600/40' },
+                                { name: 'TSK', type: 'BOP/BOS Leader', file: 'tsk.png', color: 'hover:border-blue-500/40' },
+                                { name: 'Ferrovial', type: 'Railway & Infra', file: 'ferrovial.png', color: 'hover:border-yellow-500/40' },
+                                { name: 'CFE', type: 'Utility Operator', file: 'cfe.png', color: 'hover:border-emerald-600/40' },
                             ].map((c) => (
                                 <div 
                                     key={c.name} 
-                                    className={`bg-white/95 border border-gray-200 rounded-2xl p-4 flex flex-col justify-between items-center text-center transition-all duration-300 shadow-md cursor-default h-[140px] ${c.color} hover:bg-white hover:shadow-2xl hover:scale-[1.02]`}
+                                    className={`bg-white border border-gray-150 rounded-2xl p-4 flex flex-col justify-between items-center text-center transition-all duration-300 shadow-sm cursor-default h-[155px] ${c.color} hover:bg-slate-50 hover:shadow-xl hover:scale-[1.03]`}
                                 >
-                                    {/* Logo sprite container */}
-                                    <div 
-                                        className="w-full h-14 bg-no-repeat"
-                                        style={{
-                                            backgroundImage: "url('/latnovva-esp/clients_logos.png')",
-                                            backgroundSize: "440% 640%",
-                                            backgroundPosition: c.pos,
-                                        }}
-                                    />
+                                    {/* Logo Image Container */}
+                                    <div className="w-full h-16 flex items-center justify-center overflow-hidden">
+                                        <img 
+                                            src={`/Company Logos/${c.file}`} 
+                                            alt={`${c.name} logo`} 
+                                            className="max-w-[85%] max-h-[85%] object-contain filter hover:brightness-105 transition-all duration-300"
+                                        />
+                                    </div>
                                     <div className="flex flex-col items-center mt-2">
-                                        <span className="font-extrabold text-sm text-gray-900 leading-tight">{c.name}</span>
+                                        <span className="font-extrabold text-xs text-gray-900 leading-tight">{c.name}</span>
                                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mt-1">{c.type}</span>
                                     </div>
                                 </div>
@@ -568,10 +567,10 @@ export default function LatnovvaESPBrochure() {
                                     'ACCIONA', 'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEEC', 'CEN Solutions', 'CFE', 
                                     'CJR Renewable', 'CUPISA', 'Canadian Solar', 'EKS', 'ENGIE', 'ENTIA', 'EOSOL', 'Eiffage Energía', 
                                     'Elecnor', 'Enel', 'Energoya', 'Entoria', 'Ferrovial', 'GE', 'GES', 'Greening Group', 'Greensol', 
-                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'Hospital Di María', 'ICA', 
-                                    'IMDUT', 'Kempinski', "L'Oréal", 'Maracof', 'Marriott', 'Mexibús', 'NIKO', 'Negratín', 'NextEra Energy', 
-                                    'OHL', 'OPDE', 'Plaza Nido', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
-                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Talleres y Cocheras', 'Tesla', 'Trina Solar', 'VEMO'
+                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'ICA', 
+                                    'IMDUT', 'Kempinski', 'Maracof', 'Marriott', 'NIKO', 'Negratín', 'NextEra Energy', 
+                                    'OHL', 'OPDE', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
+                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Tesla', 'Trina Solar'
                                 ].length} active clients)
                             </h3>
                             <div className="flex flex-wrap gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
@@ -579,10 +578,10 @@ export default function LatnovvaESPBrochure() {
                                     'ACCIONA', 'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEEC', 'CEN Solutions', 'CFE', 
                                     'CJR Renewable', 'CUPISA', 'Canadian Solar', 'EKS', 'ENGIE', 'ENTIA', 'EOSOL', 'Eiffage Energía', 
                                     'Elecnor', 'Enel', 'Energoya', 'Entoria', 'Ferrovial', 'GE', 'GES', 'Greening Group', 'Greensol', 
-                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'Hospital Di María', 'ICA', 
-                                    'IMDUT', 'Kempinski', "L'Oréal", 'Maracof', 'Marriott', 'Mexibús', 'NIKO', 'Negratín', 'NextEra Energy', 
-                                    'OHL', 'OPDE', 'Plaza Nido', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
-                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Talleres y Cocheras', 'Tesla', 'Trina Solar', 'VEMO'
+                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'ICA', 
+                                    'IMDUT', 'Kempinski', 'Maracof', 'Marriott', 'NIKO', 'Negratín', 'NextEra Energy', 
+                                    'OHL', 'OPDE', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
+                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Tesla', 'Trina Solar'
                                 ].map((clientName) => (
                                     <span 
                                         key={clientName} 
