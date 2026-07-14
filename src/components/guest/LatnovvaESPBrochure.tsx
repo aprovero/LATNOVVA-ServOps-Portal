@@ -110,6 +110,14 @@ const CountryFlag = ({ code }: { code: string }) => {
                     <rect x="14" y="9" width="2" height="2" fill="#006847" />
                 </svg>
             );
+        case 'TT':
+            return (
+                <svg className="w-5 h-3.5 rounded-sm shadow-sm inline-block shrink-0" viewBox="0 0 5 3" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="5" height="3" fill="#c1272d" />
+                    <polygon points="0,0 0.8,0 5,2.6 5,3 4.2,3 0,0.4" fill="#ffffff" />
+                    <polygon points="0,0 0.5,0 5,2.8 5,3 4.5,3 0,0.2" fill="#000000" />
+                </svg>
+            );
         default:
             return null;
     }
@@ -775,9 +783,39 @@ export default function LatnovvaESPBrochure() {
                             },
                             {
                                 codes: [{ code: 'US', color: 'bg-blue-600' }],
-                                client: 'Grupo Ortiz / Power Electronics', tagColor: 'text-indigo-600',
-                                title: '7V Solar Ranch · Blythe Solar',
-                                items: ['Operational control from commissioning to COD', 'Performance test advisory', 'Cold & Hot Commissioning of inverters and BESS', 'Troubleshooting and retrofitting'],
+                                client: 'Power Electronics', tagColor: 'text-indigo-600',
+                                title: 'Blythe Solar Power · Calipatria',
+                                items: ['Advanced professional staffing', 'Cold & Hot Commissioning of inverters, transformers, and BESS', 'Troubleshooting and retrofitting of inverters, transformers, and BESS'],
+                            },
+                            {
+                                codes: [{ code: 'MX', color: 'bg-emerald-600' }],
+                                client: 'Eurus Energy', tagColor: 'text-brand-teal',
+                                title: 'PE Coromuel',
+                                items: ['CFE & CENACE Interconnection Management', 'COD testing program & procedure design', 'Fault events resolution support during COD', 'Voltage, frequency, and power reporting'],
+                            },
+                            {
+                                codes: [{ code: 'MX', color: 'bg-emerald-600' }],
+                                client: 'BOS / 279 kWp', tagColor: 'text-amber-600',
+                                title: 'PF IP Patria — Mérida',
+                                items: ['Material supply & electrical setup', 'Electromechanical & electrical mounting', 'Commissioning & startup services', 'Interconnection management & maintenance'],
+                            },
+                            {
+                                codes: [{ code: 'MX', color: 'bg-emerald-600' }],
+                                client: 'Substation Maintenance', tagColor: 'text-red-500',
+                                title: 'Pachamama Substation — Puebla',
+                                items: ['Step-up substation maintenance', 'Switching substation preventive maintenance', 'Evacuation line inspection & maintenance', 'Junction and terminal maintenance'],
+                            },
+                            {
+                                codes: [{ code: 'TT', color: 'bg-red-600' }],
+                                client: '122 MWp', tagColor: 'text-brand-teal',
+                                title: 'PV Brechin Castle',
+                                items: ['Mechanical mounting of 84 MWp solar field', 'Electrical mounting of 40 MWp solar field', 'Solar park and 122 MWp substation startup', 'Performance Ratio (PR) testing'],
+                            },
+                            {
+                                codes: [{ code: 'DO', color: 'bg-blue-500' }],
+                                client: 'Commercial & Industrial', tagColor: 'text-amber-600',
+                                title: 'Hotel Barceló · Hotel Hyatt',
+                                items: ['Hotel Barceló full electrical installations', 'Hotel Hyatt full electrical installations', 'Operation & Maintenance of 8 - 10 MW cogeneration systems'],
                             },
                         ].map((p, i) => (
                             <Reveal key={p.title} delay={i * 80} className="h-full">
@@ -797,9 +835,9 @@ export default function LatnovvaESPBrochure() {
                                         ))}
                                     </ul>
                                 </div>
-                            </Reveal>
-                        ))}
-                    </div>
+                             </Reveal>
+                         ))}
+                     </div>
 
                     {/* E-Mobility case */}
                     <Reveal>
