@@ -404,10 +404,10 @@ export default function LatnovvaESPBrochure() {
                             <Label>E-Mobility</Label>
                             <h2 className="text-4xl font-black text-gray-900 mb-6 mt-2 leading-tight">
                                 The largest EV charging<br />hub in Latin America —<br />
-                                <span className="text-brand-teal">built by us.</span>
+                                <span className="text-brand-teal">with our participation.</span>
                             </h2>
                             <p className="text-gray-500 text-base leading-relaxed mb-8">
-                                We delivered the highest-capacity EV charging hub (4 MW) in Latin America, in Mérida, Yucatán. We offer end-to-end charging infrastructure solutions from feasibility to ongoing operations.
+                                We participated in the delivery of the highest-capacity EV charging hub (4 MW) in Latin America, in Mérida, Yucatán. We offer charging infrastructure support and solutions from feasibility to ongoing operations.
                             </p>
                         </Reveal>
                         <div className="grid grid-cols-2 gap-3">
