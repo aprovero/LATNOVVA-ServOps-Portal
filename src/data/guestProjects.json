@@ -2781,5 +2781,49 @@
     "status": "Finalizado",
     "lat": 9.9693,
     "lng": -84.1085
+  },
+  {
+    "id": "manual-122",
+    "name": "PV Brechin Castle 122MWp",
+    "description": "Mechanical mounting 84MWp · Electrical mounting 40MWp · Commissioning of 122MWp park and substation · Performance ratio testing",
+    "client": "",
+    "locationString": "Trinidad and Tobago",
+    "year": 2024,
+    "status": "Finalizado",
+    "lat": 10.4222,
+    "lng": -61.4395
+  },
+  {
+    "id": "manual-123",
+    "name": "Hotel Barceló",
+    "description": "Electrical installations – Hotel Barceló",
+    "client": "Hotel Barceló",
+    "locationString": "Dominican Republic",
+    "year": 2023,
+    "status": "Finalizado",
+    "lat": 18.6819,
+    "lng": -68.4042
+  },
+  {
+    "id": "manual-124",
+    "name": "O&M Cogeneraciones 8 - 10 MW",
+    "description": "O&M Cogeneration 8 – 10 MW",
+    "client": "Cogeneración",
+    "locationString": "Dominican Republic",
+    "year": 2024,
+    "status": "Finalizado",
+    "lat": 18.4500,
+    "lng": -69.3000
+  },
+  {
+    "id": "manual-125",
+    "name": "Hotel Hyatt",
+    "description": "Electrical installations – Hotel Hyatt",
+    "client": "Hotel Hyatt",
+    "locationString": "Dominican Republic",
+    "year": 2023,
+    "status": "Finalizado",
+    "lat": 18.4947,
+    "lng": -68.3976
   }
 ]
