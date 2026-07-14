@@ -605,7 +605,7 @@ export default function LatnovvaESPBrochure() {
                                 { name: 'EKS', type: 'Power Conversion', file: 'eks.png', color: 'hover:border-indigo-500/40', imgClass: 'max-w-[95%] max-h-[90%] scale-[1.08]' },
                                 { name: 'EOSOL', type: 'Engineering Consultant', file: 'eosol.png', color: 'hover:border-blue-600/40' },
                                 { name: 'Greening Group', type: 'Global Developer', file: 'greening_group.png', color: 'hover:border-green-500/40' },
-                                { name: 'Greensol', type: 'Solar Operations', file: 'greensol.png', color: 'hover:border-orange-500/40' },
+                                { name: 'Greensol', type: 'Solar Operations', file: 'greensol.png', color: 'hover:border-orange-500/40', imgClass: 'max-w-[95%] max-h-[95%] scale-[1.25]' },
                                 { name: 'Grupo Ortiz', type: 'Infrastructure EPC', file: 'grupo_ortiz.png', color: 'hover:border-amber-600/40' },
                             ].map((c) => (
                                 <div 
