@@ -587,17 +587,17 @@ export default function LatnovvaESPBrochure() {
                                 { name: 'Trina Solar', type: 'Solar PV Tech', file: 'trina_solar.png', color: 'hover:border-red-500/40' },
                                 { name: 'Canadian Solar', type: 'Module & Storage EPC', file: 'canadian_solar.png', color: 'hover:border-yellow-500/40' },
                                 { name: 'Tesla', type: 'EV & Utility Storage', file: 'tesla.png', color: 'hover:border-red-600/40' },
-                                { name: 'NextEra Energy', type: 'Utility Developer', file: 'nextera_energy.png', color: 'hover:border-emerald-500/40' },
+                                { name: 'NextEra Energy', type: 'Utility Developer', file: 'nextera_energy.png', color: 'hover:border-emerald-500/40', imgClass: 'max-w-[92%] max-h-[90%] scale-105' },
                                 { name: 'Enel', type: 'Global Utility', file: 'enel.png', color: 'hover:border-rose-500/40' },
                                 { name: 'ENGIE', type: 'Energy Developer', file: 'engie.png', color: 'hover:border-cyan-500/40' },
                                 { name: 'Acciona', type: 'Renewables EPC', file: 'acciona.png', color: 'hover:border-red-600/40' },
-                                { name: 'Eiffage Energía', type: 'Infrastructure', file: 'eiffage_energia.png', color: 'hover:border-red-500/40' },
+                                { name: 'Eiffage Energía', type: 'Infrastructure', file: 'eiffage_energia.png', color: 'hover:border-red-500/40', imgClass: 'max-w-[98%] max-h-[95%] scale-[1.12]' },
                                 { name: 'Elecnor', type: 'Power Grid EPC', file: 'elecnor.png', color: 'hover:border-blue-600/40' },
                                 { name: 'Power Electronics', type: 'Solar Inverters', file: 'power_electronics.png', color: 'hover:border-orange-650/40' },
                                 { name: 'Grupo Cobra', type: 'Industrial BOP', file: 'grupo_cobra.png', color: 'hover:border-green-600/40' },
                                 { name: 'TSK', type: 'BOP/BOS Leader', file: 'tsk.png', color: 'hover:border-blue-500/40' },
                                 { name: 'Ferrovial', type: 'Railway & Infra', file: 'ferrovial.png', color: 'hover:border-yellow-500/40' },
-                                { name: 'CFE', type: 'Utility Operator', file: 'cfe.png', color: 'hover:border-emerald-600/40' },
+                                { name: 'CFE', type: 'Utility Operator', file: 'cfe.png', color: 'hover:border-emerald-600/40', imgClass: 'max-w-[92%] max-h-[90%] scale-105' },
                             ].map((c) => (
                                 <div 
                                     key={c.name} 
@@ -608,7 +608,7 @@ export default function LatnovvaESPBrochure() {
                                         <img 
                                             src={`/Company Logos/${c.file}`} 
                                             alt={`${c.name} logo`} 
-                                            className="max-w-[85%] max-h-[85%] object-contain object-center mx-auto filter hover:brightness-105 transition-all duration-300"
+                                            className={`${c.imgClass || 'max-w-[85%] max-h-[85%]'} object-contain object-center mx-auto filter hover:brightness-105 transition-all duration-300`}
                                         />
                                     </div>
                                     <div className="flex flex-col items-center mt-auto justify-end">
