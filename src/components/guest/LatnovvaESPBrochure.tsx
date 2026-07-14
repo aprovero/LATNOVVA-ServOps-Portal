@@ -517,33 +517,44 @@ export default function LatnovvaESPBrochure() {
                         </h2>
                     </Reveal>
 
-                    {/* Interactive Customers Showcase */}
+                    {/* Interactive Customers Showcase with Sprite Sheet Logos */}
                     <Reveal delay={100}>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                             {[
-                                { name: 'Tesla', type: 'EV & Storage', color: 'hover:text-red-500 hover:border-red-500/30' },
-                                { name: 'Sungrow', type: 'Solar & Storage', color: 'hover:text-orange-500 hover:border-orange-500/30' },
-                                { name: 'NextEra Energy', type: 'Utility Scale', color: 'hover:text-emerald-500 hover:border-emerald-500/30' },
-                                { name: 'Canadian Solar', type: 'Module EPC', color: 'hover:text-yellow-600 hover:border-yellow-500/30' },
-                                { name: 'Enel', type: 'Grid Operator', color: 'hover:text-rose-500 hover:border-rose-500/30' },
-                                { name: 'ENGIE', type: 'Energy Developer', color: 'hover:text-cyan-500 hover:border-cyan-500/30' },
-                                { name: 'Acciona', type: 'Renewables EPC', color: 'hover:text-red-600 hover:border-red-600/30' },
-                                { name: 'Eiffage Energía', type: 'Infrastructure', color: 'hover:text-red-500 hover:border-red-500/30' },
-                                { name: 'Elecnor', type: 'Power Grid EPC', color: 'hover:text-blue-600 hover:border-blue-600/30' },
-                                { name: 'Power Electronics', type: 'Solar Inverters', color: 'hover:text-orange-600 hover:border-orange-600/30' },
-                                { name: 'Grupo Cobra', type: 'Industrial BOP', color: 'hover:text-green-600 hover:border-green-600/30' },
-                                { name: 'TSK', type: 'BOP/BOS Leader', color: 'hover:text-blue-500 hover:border-blue-500/30' },
-                                { name: 'Ferrovial', type: 'Railway & Infra', color: 'hover:text-yellow-500 hover:border-yellow-500/30' },
-                                { name: 'CFE', type: 'Utility Operator', color: 'hover:text-emerald-600 hover:border-emerald-600/30' },
-                                { name: 'GE', type: 'Power Systems', color: 'hover:text-blue-600 hover:border-blue-600/30' },
-                                { name: 'OHL', type: 'Civil & Rail EPC', color: 'hover:text-indigo-600 hover:border-indigo-600/30' },
+                                { name: 'Tesla', type: 'EV & Storage', pos: '33.3% 100%', color: 'hover:border-red-500/30' },
+                                { name: 'Sungrow', type: 'Solar & Storage', pos: '33.3% 80%', color: 'hover:border-orange-500/30' },
+                                { name: 'NextEra Energy', type: 'Utility Scale', pos: '33.3% 20%', color: 'hover:border-emerald-500/30' },
+                                { name: 'Canadian Solar', type: 'Module EPC', pos: '100% 80%', color: 'hover:border-yellow-500/30' },
+                                { name: 'Enel', type: 'Grid Operator', pos: '0% 40%', color: 'hover:border-rose-500/30' },
+                                { name: 'ENGIE', type: 'Energy Developer', pos: '0% 20%', color: 'hover:border-cyan-500/30' },
+                                { name: 'Acciona', type: 'Renewables EPC', pos: '66.6% 40%', color: 'hover:border-red-600/30' },
+                                { name: 'Eiffage Energía', type: 'Infrastructure', pos: '100% 40%', color: 'hover:border-red-500/30' },
+                                { name: 'Elecnor', type: 'Power Grid EPC', pos: '0% 0%', color: 'hover:border-blue-600/30' },
+                                { name: 'Power Electronics', type: 'Solar Inverters', pos: '66.6% 20%', color: 'hover:border-orange-600/30' },
+                                { name: 'Grupo Cobra', type: 'Industrial BOP', pos: '66.6% 60%', color: 'hover:border-green-600/30' },
+                                { name: 'TSK', type: 'BOP/BOS Leader', pos: '0% 60%', color: 'hover:border-blue-500/30' },
+                                { name: 'Ferrovial', type: 'Railway & Infra', pos: '0% 100%', color: 'hover:border-yellow-500/30' },
+                                { name: 'CEN Solutions', type: 'Auxiliary Systems', pos: '33.3% 0%', color: 'hover:border-emerald-500/30' },
+                                { name: 'Aselec', type: 'Industrial Power', pos: '66.6% 0%', color: 'hover:border-blue-600/30' },
+                                { name: 'Mortenson', type: 'Wind & Solar EPC', pos: '66.6% 100%', color: 'hover:border-indigo-600/30' },
                             ].map((c) => (
                                 <div 
                                     key={c.name} 
-                                    className={`bg-white/9 backdrop-blur-md border border-white/10 rounded-2xl p-5 flex flex-col justify-between items-center text-center transition-all duration-300 text-white/70 shadow-lg cursor-default h-[115px] ${c.color} hover:bg-white/15 hover:shadow-2xl`}
+                                    className={`bg-white/95 border border-gray-200 rounded-2xl p-4 flex flex-col justify-between items-center text-center transition-all duration-300 shadow-md cursor-default h-[140px] ${c.color} hover:bg-white hover:shadow-2xl hover:scale-[1.02]`}
                                 >
-                                    <span className="font-black text-lg tracking-tight text-white transition-colors">{c.name}</span>
-                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mt-2">{c.type}</span>
+                                    {/* Logo sprite container */}
+                                    <div 
+                                        className="w-full h-14 bg-no-repeat"
+                                        style={{
+                                            backgroundImage: "url('/latnovva-esp/clients_logos.png')",
+                                            backgroundSize: "440% 640%",
+                                            backgroundPosition: c.pos,
+                                        }}
+                                    />
+                                    <div className="flex flex-col items-center mt-2">
+                                        <span className="font-extrabold text-sm text-gray-900 leading-tight">{c.name}</span>
+                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mt-1">{c.type}</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
