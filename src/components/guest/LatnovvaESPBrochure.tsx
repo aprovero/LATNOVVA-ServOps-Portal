@@ -503,11 +503,11 @@ export default function LatnovvaESPBrochure() {
             <section className="relative py-28 px-8 overflow-hidden">
                 <div className="absolute inset-0">
                     <img 
-                        src="/latnovva-esp/slide_20.png" 
+                        src="/latnovva-esp/clients_clean.jpg" 
                         alt="" 
-                        className="w-full h-full object-contain p-4 scale-[1.3] translate-x-[12%] origin-right" 
+                        className="w-full h-full object-cover" 
                     />
-                    <div className="absolute inset-0 bg-gray-950/92" />
+                    <div className="absolute inset-0 bg-gray-950/85" />
                 </div>
                 <div className="relative z-10 max-w-6xl mx-auto">
                     <Reveal className="text-center mb-14">
@@ -517,13 +517,13 @@ export default function LatnovvaESPBrochure() {
                         </h2>
                     </Reveal>
 
-                    {/* Cropped client logos image wrapper */}
+                    {/* Clean client logos image wrapper */}
                     <Reveal delay={100}>
-                        <div className="bg-white rounded-3xl overflow-hidden p-0 shadow-2xl aspect-[16/9] md:aspect-[3/1] relative border border-gray-100 flex items-center justify-center">
+                        <div className="bg-white rounded-3xl overflow-hidden shadow-2xl p-8 relative border border-gray-100 flex items-center justify-center">
                             <img 
-                                src="/latnovva-esp/slide_21.png" 
+                                src="/latnovva-esp/clients_logos.png" 
                                 alt="Our Clients Logos" 
-                                className="w-full h-full object-contain p-4 scale-[1.35] origin-right" 
+                                className="w-full max-h-[360px] object-contain" 
                             />
                         </div>
                     </Reveal>
