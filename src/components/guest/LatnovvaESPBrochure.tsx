@@ -115,6 +115,44 @@ const CountryFlag = ({ code }: { code: string }) => {
     }
 };
 
+const CountUp = ({ to, duration = 1500 }: { to: number; duration?: number }) => {
+    const [count, setCount] = useState(0);
+    const elementRef = useRef<HTMLDivElement>(null);
+    const hasAnimated = useRef(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && !hasAnimated.current) {
+                    hasAnimated.current = true;
+                    let startTime: number | null = null;
+                    const animate = (timestamp: number) => {
+                        if (!startTime) startTime = timestamp;
+                        const progress = Math.min((timestamp - startTime) / duration, 1);
+                        const easeProgress = progress * (2 - progress); // Ease out quad
+                        setCount(Math.floor(easeProgress * to));
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            setCount(to);
+                        }
+                    };
+                    requestAnimationFrame(animate);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (elementRef.current) {
+            observer.observe(elementRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [to, duration]);
+
+    return <span ref={elementRef}>{count}</span>;
+};
+
 /* ═══════════════════════════════════════════════════════════════════════ */
 export default function LatnovvaESPBrochure() {
     return (
@@ -170,7 +208,7 @@ export default function LatnovvaESPBrochure() {
                     ].map((s, i) => (
                         <Reveal key={s.label} delay={i * 80} className="flex flex-col items-center">
                             <div className="text-4xl font-black text-white mb-0.5 tabular-nums">
-                                {s.value}{s.suffix}
+                                <CountUp to={s.value} />{s.suffix}
                             </div>
                             <div className="text-[10px] font-black text-emerald-200 uppercase tracking-wider leading-tight">
                                 {s.label}
