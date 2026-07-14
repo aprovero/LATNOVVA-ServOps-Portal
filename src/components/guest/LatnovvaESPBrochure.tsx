@@ -166,98 +166,22 @@ export default function LatnovvaESPBrochure() {
                             ))}
                         </div>
                     </div>
-                    {/* World presence visual — High fidelity custom vector SVG map */}
+                    {/* World presence visual — Cropped slide map image */}
                     <Reveal delay={150} className="relative">
-                        <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-slate-900 border border-slate-800 p-6 flex flex-col justify-between">
-                            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#14b8a6_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                            
-                            {/* Title inside the card */}
-                            <div className="relative z-10 flex items-center justify-between">
-                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
-                                    Global Network
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-400">10 Countries Operations</span>
-                            </div>
-
-                            {/* Stylized SVG Map */}
-                            <div className="relative w-full flex-1 min-h-[200px] flex items-center justify-center my-2">
-                                <svg viewBox="0 0 800 450" className="w-full h-full text-slate-700 fill-current opacity-70">
-                                    {/* North America */}
-                                    <path d="M80,60 L240,65 L280,110 L285,150 L200,195 L145,210 L120,180 L70,120 Z" className="fill-slate-800" />
-                                    {/* Central America */}
-                                    <path d="M190,195 L225,230 L250,250 L235,260 L210,240 L180,210 Z" className="fill-slate-800" />
-                                    {/* South America */}
-                                    <path d="M225,250 L280,280 L310,310 L290,380 L250,420 L230,350 L220,300 Z" className="fill-slate-800" />
-                                    {/* Greenland */}
-                                    <path d="M280,30 L350,25 L340,60 L290,65 Z" className="fill-slate-800" />
-                                    {/* Europe & Africa outline */}
-                                    <path d="M420,70 L520,75 L560,110 L500,185 L445,190 L425,130 Z" className="fill-slate-800" />
-                                    <path d="M430,200 L490,210 L530,250 L500,320 L440,300 L420,240 Z" className="fill-slate-800/40" />
-
-                                    {/* Highlighted Country Polygons (Teal) */}
-                                    {/* US */}
-                                    <path d="M130,110 L260,115 L265,150 L195,185 Z" className="fill-emerald-500/25 stroke-emerald-500/30 stroke-1" />
-                                    {/* Mexico */}
-                                    <path d="M145,185 L195,185 L200,212 L165,215 Z" className="fill-emerald-500/35 stroke-emerald-500/40 stroke-1" />
-                                    {/* Colombia */}
-                                    <path d="M225,250 L255,260 L250,285 L230,280 Z" className="fill-emerald-500/35 stroke-emerald-500/40 stroke-1" />
-                                    {/* Peru */}
-                                    <path d="M230,280 L258,290 L248,328 L228,318 Z" className="fill-emerald-500/35 stroke-emerald-500/40 stroke-1" />
-                                    {/* Chile */}
-                                    <path d="M245,340 L257,342 L248,410 L238,408 Z" className="fill-emerald-500/35 stroke-emerald-500/40 stroke-1" />
-                                    {/* Spain & Portugal */}
-                                    <path d="M428,135 L455,135 L452,158 L426,155 Z" className="fill-emerald-500/35 stroke-emerald-500/40 stroke-1" />
-
-                                    {/* Glowing Radar Beacons */}
-                                    {/* US (Miami / East Coast) */}
-                                    <g transform="translate(230, 145)">
-                                        <circle r="9" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="4" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                    {/* Mexico (Mérida / CDMX) */}
-                                    <g transform="translate(175, 202)">
-                                        <circle r="9" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="4" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                    {/* Costa Rica / Panama */}
-                                    <g transform="translate(218, 238)">
-                                        <circle r="7" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="3.5" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                    {/* Dominican Republic */}
-                                    <g transform="translate(262, 210)">
-                                        <circle r="7" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="3.5" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                    {/* Colombia */}
-                                    <g transform="translate(242, 268)">
-                                        <circle r="8" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="4" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                    {/* Peru */}
-                                    <g transform="translate(238, 305)">
-                                        <circle r="7" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="3.5" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                    {/* Chile */}
-                                    <g transform="translate(248, 375)">
-                                        <circle r="8" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="4" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                    {/* Spain & Portugal */}
-                                    <g transform="translate(440, 146)">
-                                        <circle r="8" className="fill-emerald-400/20 animate-ping" />
-                                        <circle r="4" className="fill-emerald-400 stroke-slate-900 stroke-2" />
-                                    </g>
-                                </svg>
-                            </div>
-
-                            {/* Footer inside the card */}
-                            <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-2xl px-4 py-3 backdrop-blur-sm">
-                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-1">Active Offices & Hubs</p>
-                                <p className="text-[11px] font-bold text-white tracking-wide">
-                                    MX · US · CO · CL · DO · CR · PA · PE · PT · ES
-                                </p>
+                        <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-slate-50 border border-gray-100">
+                            <img 
+                                src="/latnovva-esp/slide_03.png" 
+                                alt="International Presence Map" 
+                                className="w-full h-full object-cover scale-[1.38] translate-y-[12%]" 
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent pointer-events-none" />
+                            <div className="absolute bottom-6 left-6 right-6">
+                                <div className="bg-slate-900/95 backdrop-blur rounded-2xl px-5 py-4 shadow-lg border border-slate-850">
+                                    <p className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-1.5">International Operations</p>
+                                    <p className="text-xs font-bold text-white tracking-wide">
+                                        MX · US · CO · CL · DO · CR · PA · PE · PT · ES
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </Reveal>
