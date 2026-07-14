@@ -581,7 +581,42 @@ export default function LatnovvaESPBrochure() {
                                     items: ['Zone descriptions and code definitions', 'Task-specific methodology', 'Technical work instructions', 'Daily and periodic task plans'],
                                 },
                                 {
-                                 {/* ══════════════════════════════════════════════════════════
+                                    step: '03',
+                                    title: 'Execution',
+                                    color: 'bg-indigo-600',
+                                    items: ['Increased productivity', 'Optimal time control', 'Faster and more effective decision-making', 'More time for high-value client activities'],
+                                },
+                                {
+                                    step: '04',
+                                    title: 'Evaluation',
+                                    color: 'bg-emerald-500',
+                                    items: ['Visual and timeline-based review', 'Compliance with scheduled milestones', 'Internal audit', 'Joint client/LATNOVVA assessment'],
+                                },
+                            ].map((phase, i) => (
+                                <Reveal key={phase.step} delay={i * 80}>
+                                    <div className="flex gap-8 items-start">
+                                        <div className={`${phase.color} w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-lg relative z-10`}>
+                                            {phase.step}
+                                        </div>
+                                        <div className="flex-1 bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                                            <h3 className="font-black text-gray-900 text-lg mb-4">{phase.title}</h3>
+                                            <ul className="grid sm:grid-cols-2 gap-2">
+                                                {phase.items.map(item => (
+                                                    <li key={item} className="flex items-start gap-2 text-sm text-gray-500 font-medium">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0 mt-1.5" />{item}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </Reveal>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════
                 CLIENTS
             ══════════════════════════════════════════════════════════ */}
             <section className="relative py-28 px-8 overflow-hidden">
