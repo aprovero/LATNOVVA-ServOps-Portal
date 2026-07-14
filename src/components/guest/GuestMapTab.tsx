@@ -18,7 +18,7 @@ const KNOWN_LOGOS = [
     "greening_group", "greensol", "grupo_cobra", "grupo_enhol", "grupo_ortiz", "grupotec",
     "hospital_di_maria", "ica", "imdut", "kempinski", "l_oreal", "maracof", "marriott",
     "mexibus", "negratin", "nextera_energy", "niko", "ohl", "opde", "plaza_nido",
-    "power_electronics", "prodiel", "rtp", "solventia", "sterling_and_wilson", "sungrow",
+    "power_electronics", "prodiel", "rtp", "saft", "solventia", "sterling_and_wilson", "sungrow",
     "tozzi", "trina_solar", "tsk", "vemo"
 ];
 
