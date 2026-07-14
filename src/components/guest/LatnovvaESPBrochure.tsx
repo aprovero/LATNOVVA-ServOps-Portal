@@ -169,7 +169,8 @@ export default function LatnovvaESPBrochure() {
                                 desc: 'Solar, BESS, wind. EPC/BOS/BOP construction, commissioning, COD & O&M.',
                                 border: 'border-teal-500/30',
                                 iconColor: 'text-teal-300',
-                                img: '/latnovva-esp/slide_09.png',
+                                img: '/latnovva-esp/green_energies_bg.png',
+                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
                             },
                             {
                                 icon: Factory,
@@ -177,7 +178,8 @@ export default function LatnovvaESPBrochure() {
                                 desc: 'MPE installations, maintenance in hospitals, hotels and industrial warehouses.',
                                 border: 'border-amber-500/30',
                                 iconColor: 'text-amber-300',
-                                img: '/latnovva-esp/slide_07.png',
+                                img: '/latnovva-esp/industrial_bg.png',
+                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
                             },
                             {
                                 icon: Train,
@@ -185,7 +187,8 @@ export default function LatnovvaESPBrochure() {
                                 desc: 'HV/MV/LV induced works, full railway systems and catenary from design to maintenance.',
                                 border: 'border-indigo-500/30',
                                 iconColor: 'text-indigo-300',
-                                img: '/latnovva-esp/slide_14.png',
+                                img: '/latnovva-esp/railway_bg.png',
+                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
                             },
                             {
                                 icon: Rss,
@@ -193,7 +196,8 @@ export default function LatnovvaESPBrochure() {
                                 desc: 'Design, construction and commissioning of fiber optic networks and telemetry backbones.',
                                 border: 'border-rose-500/30',
                                 iconColor: 'text-rose-300',
-                                img: '/latnovva-esp/slide_16.png',
+                                img: '/latnovva-esp/communications_bg.png',
+                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
                             },
                             {
                                 icon: Globe,
@@ -201,14 +205,15 @@ export default function LatnovvaESPBrochure() {
                                 desc: 'EV charging infrastructure, fleet management, storage optimization and software integration.',
                                 border: 'border-emerald-500/30',
                                 iconColor: 'text-emerald-300',
-                                img: '/latnovva-esp/charger_custom.png',
+                                img: '/latnovva-esp/emobility_bg.png',
+                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
                             },
                         ].map((sector, i) => (
                             <Reveal key={sector.title} delay={i * 80}>
                                 <div className={`relative group rounded-3xl overflow-hidden border ${sector.border} bg-slate-900 p-6 flex flex-col gap-4 h-full min-h-[340px] cursor-default`}>
                                     {/* Photo background */}
-                                    <div className="absolute inset-0 opacity-40 group-hover:opacity-75 transition-opacity duration-500">
-                                        <img src={sector.img} alt="" className="w-full h-full object-contain p-4" />
+                                    <div className="absolute inset-0 opacity-45 group-hover:opacity-75 transition-opacity duration-500">
+                                        <img src={sector.img} alt="" className={`w-full h-full ${sector.imgStyle}`} />
                                     </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-slate-950/20" />
                                     <div className="relative z-10 flex flex-col justify-between h-full">
