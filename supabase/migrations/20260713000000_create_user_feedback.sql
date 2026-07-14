@@ -1,6 +1,6 @@
 CREATE TABLE public.user_feedback (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    personnel_id TEXT REFERENCES public.personnel(id) ON DELETE SET NULL,
+    personnel_id UUID REFERENCES public.personnel(id) ON DELETE SET NULL,
     user_email TEXT,
     user_role TEXT NOT NULL,
     
