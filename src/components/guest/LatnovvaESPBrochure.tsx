@@ -141,9 +141,9 @@ export default function LatnovvaESPBrochure() {
                     <Reveal delay={150} className="relative">
                         <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-slate-50 border border-gray-100">
                             <img 
-                                src="/latnovva-esp/slide_04.png" 
+                                src="/latnovva-esp/map_custom.png" 
                                 alt="International Presence Map" 
-                                className="w-full h-full object-cover scale-[1.38] translate-y-[12%]" 
+                                className="w-full h-full object-cover " 
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent pointer-events-none" />
                             <div className="absolute bottom-6 left-6 right-6">
@@ -724,3 +724,4 @@ export default function LatnovvaESPBrochure() {
         </div>
     );
 }
+
