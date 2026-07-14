@@ -563,25 +563,15 @@ export default function LatnovvaESPBrochure() {
                     <Reveal delay={250}>
                         <div className="bg-slate-900/80 border border-white/10 rounded-3xl p-6 backdrop-blur">
                             <h3 className="text-white font-black text-sm tracking-wide mb-4 uppercase text-emerald-400">
-                                Complete Customer Portfolio ({[
-                                    'ACCIONA', 'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEEC', 'CEN Solutions', 'CFE', 
-                                    'CJR Renewable', 'CUPISA', 'Canadian Solar', 'EKS', 'ENGIE', 'ENTIA', 'EOSOL', 'Eiffage Energía', 
-                                    'Elecnor', 'Enel', 'Energoya', 'Entoria', 'Ferrovial', 'GE', 'GES', 'Greening Group', 'Greensol', 
-                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'ICA', 
-                                    'IMDUT', 'Kempinski', 'Maracof', 'Marriott', 'NIKO', 'Negratín', 'NextEra Energy', 
-                                    'OHL', 'OPDE', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
-                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Tesla', 'Trina Solar'
-                                ].length} active clients)
+                                ...and more
                             </h3>
                             <div className="flex flex-wrap gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
                                 {[
-                                    'ACCIONA', 'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEEC', 'CEN Solutions', 'CFE', 
-                                    'CJR Renewable', 'CUPISA', 'Canadian Solar', 'EKS', 'ENGIE', 'ENTIA', 'EOSOL', 'Eiffage Energía', 
-                                    'Elecnor', 'Enel', 'Energoya', 'Entoria', 'Ferrovial', 'GE', 'GES', 'Greening Group', 'Greensol', 
-                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'ICA', 
-                                    'IMDUT', 'Kempinski', 'Maracof', 'Marriott', 'NIKO', 'Negratín', 'NextEra Energy', 
-                                    'OHL', 'OPDE', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
-                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Tesla', 'Trina Solar'
+                                    'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEN Solutions', 'CJR Renewable', 'CUPISA', 
+                                    'EKS', 'ENTIA', 'EOSOL', 'Energoya', 'Entoria', 'GE', 'GES', 'Greening Group', 'Greensol', 
+                                    'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'ICA', 'IMDUT', 'Kempinski', 'Maracof', 
+                                    'Marriott', 'NIKO', 'Negratín', 'OHL', 'OPDE', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
+                                    'Sterling and Wilson', 'TOZZI'
                                 ].map((clientName) => (
                                     <span 
                                         key={clientName} 
