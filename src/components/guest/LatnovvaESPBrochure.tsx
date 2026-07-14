@@ -465,13 +465,13 @@ export default function LatnovvaESPBrochure() {
                                     step: '03',
                                     title: 'Execution',
                                     color: 'bg-indigo-600',
-                                    items: ['Increased productivity', 'Optimal time control', 'Faster and more effective decision-making', 'More time for high-value client activities'],
+                                    items: ['Increased productivity', 'Optimal time control', 'Faster and more effective decision-making', 'More time for high-value customer activities'],
                                 },
                                 {
                                     step: '04',
                                     title: 'Evaluation',
                                     color: 'bg-emerald-500',
-                                    items: ['Visual and timeline-based review', 'Compliance with scheduled milestones', 'Internal audit', 'Joint client/LATNOVVA assessment'],
+                                    items: ['Visual and timeline-based review', 'Compliance with scheduled milestones', 'Internal audit', 'Joint customer/LATNOVVA assessment'],
                                 },
                             ].map((phase, i) => (
                                 <Reveal key={phase.step} delay={i * 80}>
@@ -511,7 +511,7 @@ export default function LatnovvaESPBrochure() {
                 </div>
                 <div className="relative z-10 max-w-6xl mx-auto">
                     <Reveal className="text-center mb-14">
-                        <Label>Our Clients</Label>
+                        <Label>Our Customers</Label>
                         <h2 className="text-4xl font-black text-white mt-2">
                             Trusted by the leaders<br />of the energy sector.
                         </h2>
@@ -522,7 +522,7 @@ export default function LatnovvaESPBrochure() {
                         <div className="bg-white rounded-3xl overflow-hidden shadow-2xl p-8 relative border border-gray-100 flex items-center justify-center">
                             <img 
                                 src="/latnovva-esp/clients_logos.png" 
-                                alt="Our Clients Logos" 
+                                alt="Our Customers Logos" 
                                 className="w-full max-h-[360px] object-contain" 
                             />
                         </div>
@@ -710,6 +710,7 @@ export default function LatnovvaESPBrochure() {
         </div>
     );
 }
+
 
 
 
