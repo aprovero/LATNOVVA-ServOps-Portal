@@ -580,14 +580,14 @@ export default function LatnovvaESPBrochure() {
 
                     {/* Interactive Customers Showcase with Individual PNG Logo Files */}
                     <Reveal delay={100}>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-10">
                             {[
                                 { name: 'CEEC (China Energy)', type: 'Energy Giant', file: 'ceec.png', color: 'hover:border-red-500/40' },
                                 { name: 'Sungrow', type: 'Solar & Storage', file: 'sungrow.png', color: 'hover:border-orange-500/40' },
                                 { name: 'Trina Solar', type: 'Solar PV Tech', file: 'trina_solar.png', color: 'hover:border-red-500/40' },
                                 { name: 'Canadian Solar', type: 'Module & Storage EPC', file: 'canadian_solar.png', color: 'hover:border-yellow-500/40' },
-                                { name: 'Tesla', type: 'EV & Utility Storage', file: 'tesla.png', color: 'hover:border-red-600/40' },
-                                { name: 'NextEra Energy', type: 'Utility Developer', file: 'nextera_energy.png', color: 'hover:border-emerald-500/40', imgClass: 'max-w-[92%] max-h-[90%] scale-105' },
+                                { name: 'GE Vernova', type: 'Power Systems', file: 'ge.png', color: 'hover:border-blue-600/40', imgClass: 'max-w-[95%] max-h-[90%] scale-[1.08]' },
+                                { name: 'NextEra Energy', type: 'Utility Developer', file: 'nextera_energy.png', color: 'hover:border-emerald-500/40', imgClass: 'max-w-[92%] max-h-[90%] scale-105 translate-y-1.5' },
                                 { name: 'Enel', type: 'Global Utility', file: 'enel.png', color: 'hover:border-rose-500/40' },
                                 { name: 'ENGIE', type: 'Energy Developer', file: 'engie.png', color: 'hover:border-cyan-500/40' },
                                 { name: 'Acciona', type: 'Renewables EPC', file: 'acciona.png', color: 'hover:border-red-600/40' },
@@ -598,6 +598,15 @@ export default function LatnovvaESPBrochure() {
                                 { name: 'TSK', type: 'BOP/BOS Leader', file: 'tsk.png', color: 'hover:border-blue-500/40' },
                                 { name: 'Ferrovial', type: 'Railway & Infra', file: 'ferrovial.png', color: 'hover:border-yellow-500/40' },
                                 { name: 'CFE', type: 'Utility Operator', file: 'cfe.png', color: 'hover:border-emerald-600/40', imgClass: 'max-w-[92%] max-h-[90%] scale-105' },
+                                { name: 'CEN Solutions', type: 'Auxiliary Systems', file: 'cen_solutions.png', color: 'hover:border-emerald-500/40', imgClass: 'max-w-[95%] max-h-[90%] scale-[1.05]' },
+                                { name: 'CJR Renewable', type: 'Wind & Solar EPC', file: 'cjr_renewable.png', color: 'hover:border-green-500/40', imgClass: 'max-w-[72%] max-h-[70%]' },
+                                { name: 'SAFT', type: 'Industrial Batteries', file: 'saft.png', color: 'hover:border-blue-500/40', imgClass: 'max-w-[70%] max-h-[65%]' },
+                                { name: 'AXIAL', type: 'Solar Trackers', file: 'axial.png', color: 'hover:border-yellow-500/40' },
+                                { name: 'EKS', type: 'Power Conversion', file: 'eks.png', color: 'hover:border-indigo-500/40', imgClass: 'max-w-[95%] max-h-[90%] scale-[1.08]' },
+                                { name: 'EOSOL', type: 'Engineering Consultant', file: 'eosol.png', color: 'hover:border-blue-600/40' },
+                                { name: 'Greening Group', type: 'Global Developer', file: 'greening_group.png', color: 'hover:border-green-500/40' },
+                                { name: 'Greensol', type: 'Solar Operations', file: 'greensol.png', color: 'hover:border-orange-500/40' },
+                                { name: 'Grupo Ortiz', type: 'Infrastructure EPC', file: 'grupo_ortiz.png', color: 'hover:border-amber-600/40' },
                             ].map((c) => (
                                 <div 
                                     key={c.name} 
@@ -628,10 +637,10 @@ export default function LatnovvaESPBrochure() {
                             </h3>
                             <div className="flex flex-wrap gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
                                 {[
-                                    'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEN Solutions', 'CJR Renewable', 'CUPISA', 
-                                    'EKS', 'ENTIA', 'EOSOL', 'Energoya', 'Entoria', 'GE', 'GES', 'Greening Group', 'Greensol', 
-                                    'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'ICA', 'IMDUT', 'Kempinski', 'Maracof', 
-                                    'Marriott', 'NIKO', 'Negratín', 'OHL', 'OPDE', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
+                                    'AZVINDI', 'Agencia de Transporte de Yucatán', 'CUPISA', 
+                                    'ENTIA', 'Energoya', 'Entoria', 'GES', 
+                                    'Grupo Enhol', 'Grupo Tradeco', 'Grupotec', 'ICA', 'IMDUT', 'Kempinski', 'Maracof', 
+                                    'Marriott', 'NIKO', 'Negratín', 'OHL', 'OPDE', 'Prodiel', 'RTP', 'Riverstone', 'Solventia', 
                                     'Sterling and Wilson', 'TOZZI'
                                 ].map((clientName) => (
                                     <span 
