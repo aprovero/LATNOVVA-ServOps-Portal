@@ -1,4 +1,4 @@
-import { CheckCircle2, Zap, Shield, Globe, Train, Rss, Mail, Phone, Cpu, FileText } from 'lucide-react';
+import { CheckCircle2, Zap, Shield, Train, Rss, Mail, Phone, Cpu, FileText } from 'lucide-react';
 
 export default function GuestPresentationTab() {
     return (

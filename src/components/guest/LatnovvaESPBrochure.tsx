@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mail, MapPin, ArrowRight, Zap, Train, Rss, Globe, Factory, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Mail, MapPin, Zap, Train, Rss, Globe, Factory, CheckCircle2, ChevronDown } from 'lucide-react';
 
 /* ─── Scroll reveal hook ─────────────────────────────────────────────── */
 function useReveal(threshold = 0.15) {
@@ -26,7 +26,7 @@ function Reveal({ children, className = '', delay = 0, y = 28 }: {
             style={{
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'none' : `translateY(${y}px)`,
-                transition: `opacity 0.75s cubic-bezier(.4,0,.2,1) ${delay}ms, transform 0.75s cubic-bezier(.4,0,.2,1) ${delay}ms`,
+                transition: `all 0.9s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
             }}
         >
             {children}
@@ -34,54 +34,29 @@ function Reveal({ children, className = '', delay = 0, y = 28 }: {
     );
 }
 
-/* ─── Animated counter ───────────────────────────────────────────────── */
-function Counter({ value, suffix = '', duration = 1800 }: { value: number; suffix?: string; duration?: number }) {
-    const [count, setCount] = useState(0);
-    const { ref, visible } = useReveal(0.3);
-    useEffect(() => {
-        if (!visible) return;
-        let start = 0;
-        const step = value / (duration / 16);
-        const timer = setInterval(() => {
-            start += step;
-            if (start >= value) { setCount(value); clearInterval(timer); }
-            else setCount(Math.floor(start));
-        }, 16);
-        return () => clearInterval(timer);
-    }, [visible, value, duration]);
-    return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
-}
-
-/* ─── Section label ───────────────────────────────────────────────────── */
-function Label({ children }: { children: React.ReactNode }) {
-    return (
-        <span className="inline-flex items-center gap-2 text-[11px] font-black text-brand-teal uppercase tracking-[0.25em] mb-4">
-            <span className="w-6 h-px bg-brand-teal" />
-            {children}
-            <span className="w-6 h-px bg-brand-teal" />
-        </span>
-    );
-}
+const Label = ({ children }: { children: React.ReactNode }) => (
+    <div className="inline-flex items-center gap-2">
+        <div className="w-1.5 h-1.5 rounded-full bg-brand-teal" />
+        <span className="text-[10px] font-black text-brand-teal uppercase tracking-[0.25em]">{children}</span>
+    </div>
+);
 
 /* ═══════════════════════════════════════════════════════════════════════ */
 export default function LatnovvaESPBrochure() {
     return (
-        <div className="w-full bg-white overflow-y-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="flex flex-col w-full bg-white font-sans text-gray-800 antialiased selection:bg-brand-teal selection:text-white">
 
             {/* ══════════════════════════════════════════════════════════
-                HERO
+                HERO SECTION
             ══════════════════════════════════════════════════════════ */}
-            <section className="relative min-h-[92vh] flex flex-col justify-end overflow-hidden">
-                {/* Background photo */}
+            <section className="relative h-[92vh] flex items-center px-8 overflow-hidden bg-slate-950">
+                {/* Background image & gradient overlay */}
                 <div className="absolute inset-0">
-                    <img src="/latnovva-esp/slide_01.png" alt="" className="w-full h-full object-cover object-right" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0d3d38]/95 via-[#0d3d38]/75 to-[#0d3d38]/20" />
+                    <img src="/latnovva-esp/slide_01.png" alt="" className="w-full h-full object-cover object-center opacity-45" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/70 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-950/95 via-gray-950/40 to-transparent" />
                 </div>
-
-                <div className="relative z-10 px-10 md:px-20 pb-20 max-w-3xl">
-                    <Reveal delay={100}>
-                        <img src="/latnovva-logo.png" alt="LATNOVVA" className="h-10 mb-10 brightness-0 invert" />
-                    </Reveal>
+                <div className="relative z-10 max-w-5xl mx-auto w-full">
                     <Reveal delay={200}>
                         <div className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-5">
                             International Engineering Company
@@ -93,26 +68,23 @@ export default function LatnovvaESPBrochure() {
                         </h1>
                     </Reveal>
                     <Reveal delay={350}>
-                        <p className="text-white/70 text-lg leading-relaxed mb-10 max-w-xl">
+                        <p className="text-white/70 text-base md:text-lg max-w-xl mb-10 leading-relaxed font-medium">
                             Since 2018, we deploy specialized crews for construction, commissioning, and O&amp;M
                             on renewable energy, industrial, and railway projects across 10+ countries.
                         </p>
                         <div className="flex items-center gap-2 text-emerald-300 font-bold text-sm">
                             <Globe size={16} />
-                            <span>latnovva.com</span>
+                            <span>Mexico · USA · Colombia · Chile · Peru · Spain · Portugal &amp; LATAM</span>
                         </div>
                     </Reveal>
-                </div>
-
-                {/* Scroll cue */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/50 animate-bounce">
-                    <ChevronDown size={22} />
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-40 animate-bounce">
+                        <span className="text-[9px] font-black tracking-widest uppercase text-white">Scroll</span>
+                        <ChevronDown size={14} className="text-white" />
+                    </div>
                 </div>
             </section>
 
-            {/* ══════════════════════════════════════════════════════════
-                KEY NUMBERS
-            ══════════════════════════════════════════════════════════ */}
+            {/* Stats section */}
             <section className="bg-brand-teal py-16 px-8">
                 <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
                     {[
@@ -124,10 +96,9 @@ export default function LatnovvaESPBrochure() {
                     ].map((s, i) => (
                         <Reveal key={s.label} delay={i * 80} className="flex flex-col items-center">
                             <div className="text-4xl font-black text-white mb-0.5 tabular-nums">
-                                <Counter value={s.value} suffix={s.suffix} />
-                                {s.unit && <span className="text-2xl ml-1 text-emerald-300">{s.unit}</span>}
+                                {s.value}{s.suffix}
                             </div>
-                            <div className="text-[11px] font-semibold text-white/65 uppercase tracking-wider leading-tight max-w-[120px]">
+                            <div className="text-[10px] font-black text-emerald-200 uppercase tracking-wider leading-tight">
                                 {s.label}
                             </div>
                         </Reveal>
@@ -170,7 +141,7 @@ export default function LatnovvaESPBrochure() {
                     <Reveal delay={150} className="relative">
                         <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-slate-50 border border-gray-100">
                             <img 
-                                src="/latnovva-esp/slide_03.png" 
+                                src="/latnovva-esp/slide_04.png" 
                                 alt="International Presence Map" 
                                 className="w-full h-full object-cover scale-[1.38] translate-y-[12%]" 
                             />
