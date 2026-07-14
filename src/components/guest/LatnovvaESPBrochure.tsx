@@ -41,6 +41,69 @@ const Label = ({ children }: { children: React.ReactNode }) => (
     </div>
 );
 
+const CountryFlag = ({ code }: { code: string }) => {
+    switch (code) {
+        case 'MX':
+            return (
+                <svg className="w-5 h-3.5 rounded-sm shadow-sm inline-block shrink-0" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="10" height="20" fill="#006847" />
+                    <rect x="10" width="10" height="20" fill="#FFFFFF" />
+                    <rect x="20" width="10" height="20" fill="#C8102E" />
+                    <circle cx="15" cy="10" r="1.5" fill="#8B5A2B" />
+                </svg>
+            );
+        case 'CO':
+            return (
+                <svg className="w-5 h-3.5 rounded-sm shadow-sm inline-block shrink-0" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="3" height="1" fill="#FCD116" />
+                    <rect y="1" width="3" height="0.5" fill="#003893" />
+                    <rect y="1.5" width="3" height="0.5" fill="#CE1126" />
+                </svg>
+            );
+        case 'CL':
+            return (
+                <svg className="w-5 h-3.5 rounded-sm shadow-sm inline-block shrink-0" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="3" height="1" fill="#FFFFFF" />
+                    <rect y="1" width="3" height="1" fill="#D52B1E" />
+                    <rect width="1" height="1" fill="#0039A6" />
+                    <polygon points="0.5,0.25 0.58,0.48 0.83,0.48 0.63,0.63 0.7,0.86 0.5,0.72 0.3,0.86 0.37,0.63 0.17,0.48 0.42,0.48" fill="#FFFFFF" />
+                </svg>
+            );
+        case 'US':
+            return (
+                <svg className="w-5 h-3.5 rounded-sm shadow-sm inline-block shrink-0" viewBox="0 0 190 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="190" height="100" fill="#B22234" />
+                    <path d="M0,0 H190 M0,15.4 H190 M0,30.8 H190 M0,46.2 H190 M0,61.5 H190 M0,76.9 H190 M0,92.3 H190" stroke="#FFFFFF" strokeWidth="7.7" />
+                    <rect width="76" height="53.85" fill="#3C3B6E" />
+                    <circle cx="10" cy="7" r="1.5" fill="#FFFFFF" />
+                    <circle cx="22" cy="7" r="1.5" fill="#FFFFFF" />
+                    <circle cx="34" cy="7" r="1.5" fill="#FFFFFF" />
+                    <circle cx="46" cy="7" r="1.5" fill="#FFFFFF" />
+                    <circle cx="58" cy="7" r="1.5" fill="#FFFFFF" />
+                    <circle cx="70" cy="7" r="1.5" fill="#FFFFFF" />
+                    <circle cx="16" cy="14" r="1.5" fill="#FFFFFF" />
+                    <circle cx="28" cy="14" r="1.5" fill="#FFFFFF" />
+                    <circle cx="40" cy="14" r="1.5" fill="#FFFFFF" />
+                    <circle cx="52" cy="14" r="1.5" fill="#FFFFFF" />
+                    <circle cx="64" cy="14" r="1.5" fill="#FFFFFF" />
+                    <circle cx="10" cy="21" r="1.5" fill="#FFFFFF" />
+                    <circle cx="22" cy="21" r="1.5" fill="#FFFFFF" />
+                    <circle cx="34" cy="21" r="1.5" fill="#FFFFFF" />
+                    <circle cx="46" cy="21" r="1.5" fill="#FFFFFF" />
+                    <circle cx="58" cy="21" r="1.5" fill="#FFFFFF" />
+                    <circle cx="70" cy="21" r="1.5" fill="#FFFFFF" />
+                    <circle cx="16" cy="28" r="1.5" fill="#FFFFFF" />
+                    <circle cx="28" cy="28" r="1.5" fill="#FFFFFF" />
+                    <circle cx="40" cy="28" r="1.5" fill="#FFFFFF" />
+                    <circle cx="52" cy="28" r="1.5" fill="#FFFFFF" />
+                    <circle cx="64" cy="28" r="1.5" fill="#FFFFFF" />
+                </svg>
+            );
+        default:
+            return null;
+    }
+};
+
 /* ═══════════════════════════════════════════════════════════════════════ */
 export default function LatnovvaESPBrochure() {
     return (
@@ -412,14 +475,12 @@ export default function LatnovvaESPBrochure() {
                         </Reveal>
                         <div className="grid grid-cols-2 gap-3">
                             {[
-                                { title: 'Feasibility Study', icon: '📋' },
-                                { title: 'Electrical Infrastructure', icon: '⚡' },
-                                { title: 'Vehicle Selection', icon: '🚌' },
-                                { title: 'Fleet Monitoring', icon: '📡' },
-                                { title: 'Capex / Opex Strategy', icon: '💼' },
-                                { title: 'PPA / EPC / BoS Modalities', icon: '📝' },
-                                { title: 'Software Integration', icon: '🖥️' },
-                                { title: 'Ongoing O&M', icon: '🔧' },
+                                { title: 'Operation & Maintenance Services', icon: '🔧' },
+                                { title: 'Property Engineering', icon: '🏢' },
+                                { title: 'Basic and/or Detail Engineering', icon: '📐' },
+                                { title: 'EPC and/or BoS Delivery Models', icon: '🏗️' },
+                                { title: 'Capex and Opex Modality', icon: '💼' },
+                                { title: 'PPA Modality', icon: '🔌' },
                             ].map((item, i) => (
                                 <Reveal key={item.title} delay={120 + i * 40}>
                                     <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
@@ -621,7 +682,7 @@ export default function LatnovvaESPBrochure() {
                                     <div className={`${p.headerBg} px-6 py-4 flex items-center justify-between`}>
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className={`${p.codeColor} text-white font-black text-[10px] tracking-widest px-2 py-0.5 rounded-md`}>{p.code}</span>
+                                                <CountryFlag code={p.code} />
                                                 <span className="text-white/70 text-[11px] font-bold uppercase tracking-widest">{p.country}</span>
                                             </div>
                                             <div className="text-white font-black text-xl">{p.title}</div>
@@ -665,7 +726,7 @@ export default function LatnovvaESPBrochure() {
                                 <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 h-full flex flex-col">
                                     <div className="flex items-center gap-2 mb-2">
                                         {p.codes.map(c => (
-                                            <span key={c.code} className={`${c.color} text-white font-black text-[10px] tracking-widest px-2 py-0.5 rounded-md`}>{c.code}</span>
+                                            <CountryFlag key={c.code} code={c.code} />
                                         ))}
                                         <span className={`text-xs font-black uppercase tracking-wider ${p.tagColor}`}>{p.client}</span>
                                     </div>
@@ -684,8 +745,8 @@ export default function LatnovvaESPBrochure() {
 
                     {/* E-Mobility case */}
                     <Reveal>
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex gap-5 items-start">
-                            <div className="bg-emerald-500 text-white font-black text-[10px] tracking-widest px-2.5 py-1 rounded-lg shrink-0 mt-0.5">MX</div>
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex gap-4 items-center">
+                            <CountryFlag code="MX" />
                             <div>
                                 <div className="text-[11px] font-black text-emerald-700 uppercase tracking-wider mb-1">Mexico City — RTP / Yutong</div>
                                 <h4 className="font-black text-gray-900 text-base mb-2">Full EPC EV Charging Hubs — 5 MW</h4>
