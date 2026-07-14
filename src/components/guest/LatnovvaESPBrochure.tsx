@@ -99,6 +99,17 @@ const CountryFlag = ({ code }: { code: string }) => {
                     <circle cx="64" cy="28" r="1.5" fill="#FFFFFF" />
                 </svg>
             );
+        case 'DO':
+            return (
+                <svg className="w-5 h-3.5 rounded-sm shadow-sm inline-block shrink-0" viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="30" height="20" fill="#FFFFFF" />
+                    <rect x="0" y="0" width="13" height="8.5" fill="#002D62" />
+                    <rect x="17" y="0" width="13" height="8.5" fill="#CE1126" />
+                    <rect x="0" y="11.5" width="13" height="8.5" fill="#CE1126" />
+                    <rect x="17" y="11.5" width="13" height="8.5" fill="#002D62" />
+                    <rect x="14" y="9" width="2" height="2" fill="#006847" />
+                </svg>
+            );
         default:
             return null;
     }
@@ -803,10 +814,8 @@ export default function LatnovvaESPBrochure() {
                             <Reveal key={office.country} delay={100 + i * 50} className="h-full">
                                 <div className="bg-white/12 backdrop-blur border border-white/20 rounded-2xl p-5 hover:bg-white/20 transition-all h-full flex flex-col justify-between">
                                     <div>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <span className="bg-white/15 text-emerald-300 font-black text-[10px] tracking-wider px-2 py-0.5 rounded-md">
-                                                {office.code}
-                                            </span>
+                                        <div className="flex items-center gap-2.5 mb-3">
+                                            <CountryFlag code={office.code} />
                                             <span className="font-black text-white text-sm">{office.country}</span>
                                         </div>
                                         <div className="flex items-start gap-2">
