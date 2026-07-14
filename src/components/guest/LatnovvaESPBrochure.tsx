@@ -517,21 +517,71 @@ export default function LatnovvaESPBrochure() {
                         </h2>
                     </Reveal>
 
-                    {/* Clean client logos image wrapper */}
+                    {/* Interactive Customers Showcase */}
                     <Reveal delay={100}>
-                        <div className="bg-white rounded-3xl overflow-hidden shadow-2xl p-8 relative border border-gray-100 flex items-center justify-center">
-                            <img 
-                                src="/latnovva-esp/clients_logos.png" 
-                                alt="Our Customers Logos" 
-                                className="w-full max-h-[360px] object-contain" 
-                            />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                            {[
+                                { name: 'Tesla', type: 'EV & Storage', color: 'hover:text-red-500 hover:border-red-500/30' },
+                                { name: 'Sungrow', type: 'Solar & Storage', color: 'hover:text-orange-500 hover:border-orange-500/30' },
+                                { name: 'NextEra Energy', type: 'Utility Scale', color: 'hover:text-emerald-500 hover:border-emerald-500/30' },
+                                { name: 'Canadian Solar', type: 'Module EPC', color: 'hover:text-yellow-600 hover:border-yellow-500/30' },
+                                { name: 'Enel', type: 'Grid Operator', color: 'hover:text-rose-500 hover:border-rose-500/30' },
+                                { name: 'ENGIE', type: 'Energy Developer', color: 'hover:text-cyan-500 hover:border-cyan-500/30' },
+                                { name: 'Acciona', type: 'Renewables EPC', color: 'hover:text-red-600 hover:border-red-600/30' },
+                                { name: 'Eiffage Energía', type: 'Infrastructure', color: 'hover:text-red-500 hover:border-red-500/30' },
+                                { name: 'Elecnor', type: 'Power Grid EPC', color: 'hover:text-blue-600 hover:border-blue-600/30' },
+                                { name: 'Power Electronics', type: 'Solar Inverters', color: 'hover:text-orange-600 hover:border-orange-600/30' },
+                                { name: 'Grupo Cobra', type: 'Industrial BOP', color: 'hover:text-green-600 hover:border-green-600/30' },
+                                { name: 'TSK', type: 'BOP/BOS Leader', color: 'hover:text-blue-500 hover:border-blue-500/30' },
+                                { name: 'Ferrovial', type: 'Railway & Infra', color: 'hover:text-yellow-500 hover:border-yellow-500/30' },
+                                { name: 'CFE', type: 'Utility Operator', color: 'hover:text-emerald-600 hover:border-emerald-600/30' },
+                                { name: 'GE', type: 'Power Systems', color: 'hover:text-blue-600 hover:border-blue-600/30' },
+                                { name: 'OHL', type: 'Civil & Rail EPC', color: 'hover:text-indigo-600 hover:border-indigo-600/30' },
+                            ].map((c) => (
+                                <div 
+                                    key={c.name} 
+                                    className={`bg-white/9 backdrop-blur-md border border-white/10 rounded-2xl p-5 flex flex-col justify-between items-center text-center transition-all duration-300 text-white/70 shadow-lg cursor-default h-[115px] ${c.color} hover:bg-white/15 hover:shadow-2xl`}
+                                >
+                                    <span className="font-black text-lg tracking-tight text-white transition-colors">{c.name}</span>
+                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mt-2">{c.type}</span>
+                                </div>
+                            ))}
                         </div>
                     </Reveal>
 
-                    <Reveal delay={400}>
-                        <p className="text-center text-white/35 text-xs font-semibold mt-10 tracking-widest uppercase">
-                            And many more across 10 countries
-                        </p>
+                    {/* Expandable Project Customers database */}
+                    <Reveal delay={250}>
+                        <div className="bg-slate-900/80 border border-white/10 rounded-3xl p-6 backdrop-blur">
+                            <h3 className="text-white font-black text-sm tracking-wide mb-4 uppercase text-emerald-400">
+                                Complete Customer Portfolio ({[
+                                    'ACCIONA', 'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEEC', 'CEN Solutions', 'CFE', 
+                                    'CJR Renewable', 'CUPISA', 'Canadian Solar', 'EKS', 'ENGIE', 'ENTIA', 'EOSOL', 'Eiffage Energía', 
+                                    'Elecnor', 'Enel', 'Energoya', 'Entoria', 'Ferrovial', 'GE', 'GES', 'Greening Group', 'Greensol', 
+                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'Hospital Di María', 'ICA', 
+                                    'IMDUT', 'Kempinski', "L'Oréal", 'Maracof', 'Marriott', 'Mexibús', 'NIKO', 'Negratín', 'NextEra Energy', 
+                                    'OHL', 'OPDE', 'Plaza Nido', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
+                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Talleres y Cocheras', 'Tesla', 'Trina Solar', 'VEMO'
+                                ].length} active clients)
+                            </h3>
+                            <div className="flex flex-wrap gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                                {[
+                                    'ACCIONA', 'AXIAL', 'AZVINDI', 'Agencia de Transporte de Yucatán', 'CEEC', 'CEN Solutions', 'CFE', 
+                                    'CJR Renewable', 'CUPISA', 'Canadian Solar', 'EKS', 'ENGIE', 'ENTIA', 'EOSOL', 'Eiffage Energía', 
+                                    'Elecnor', 'Enel', 'Energoya', 'Entoria', 'Ferrovial', 'GE', 'GES', 'Greening Group', 'Greensol', 
+                                    'Grupo Cobra', 'Grupo Enhol', 'Grupo Ortiz', 'Grupo Tradeco', 'Grupotec', 'Hospital Di María', 'ICA', 
+                                    'IMDUT', 'Kempinski', "L'Oréal", 'Maracof', 'Marriott', 'Mexibús', 'NIKO', 'Negratín', 'NextEra Energy', 
+                                    'OHL', 'OPDE', 'Plaza Nido', 'Power Electronics', 'Prodiel', 'RTP', 'Riverstone', 'SAFT', 'Solventia', 
+                                    'Sterling and Wilson', 'Sungrow', 'TOZZI', 'TSK', 'Talleres y Cocheras', 'Tesla', 'Trina Solar', 'VEMO'
+                                ].map((clientName) => (
+                                    <span 
+                                        key={clientName} 
+                                        className="bg-white/8 hover:bg-white/12 border border-white/5 rounded-full px-3.5 py-1.5 text-xs text-white/70 font-semibold tracking-wide transition-all"
+                                    >
+                                        {clientName}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
                     </Reveal>
                 </div>
             </section>
