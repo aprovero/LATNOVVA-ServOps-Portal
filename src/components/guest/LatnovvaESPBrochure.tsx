@@ -74,7 +74,7 @@ export default function LatnovvaESPBrochure() {
                         </p>
                         <div className="flex items-center gap-2 text-emerald-300 font-bold text-sm">
                             <Globe size={16} />
-                            <span>Mexico · USA · Colombia · Chile · Peru · Spain · Portugal &amp; LATAM</span>
+                            <span>Mexico · USA · Colombia · Chile</span>
                         </div>
                     </Reveal>
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-40 animate-bounce">
@@ -724,5 +724,6 @@ export default function LatnovvaESPBrochure() {
         </div>
     );
 }
+
 
 
