@@ -5,16 +5,23 @@ import { Search, Wrench } from 'lucide-react';
 export default function GuestEquipmentTab() {
     const tools = guestEquipment;
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterClassification, setFilterClassification] = useState('All');
+
+    const uniqueClassifications = useMemo(() => {
+        const classes = tools.map(t => t.classification).filter(Boolean);
+        return Array.from(new Set(classes)).sort();
+    }, [tools]);
 
     const filteredTools = useMemo(() => {
         return tools.filter(tool => {
+            if (filterClassification !== 'All' && tool.classification !== filterClassification) return false;
             if (!searchTerm) return true;
             const s = searchTerm.toLowerCase();
             return tool.description.toLowerCase().includes(s) || 
                    tool.brand.toLowerCase().includes(s) || 
                    tool.classification.toLowerCase().includes(s);
         });
-    }, [tools, searchTerm]);
+    }, [tools, searchTerm, filterClassification]);
 
     // The JSON no longer has certification expiry dates, it has quantities and types
     // So we don't need isExpired anymore.
@@ -29,15 +36,26 @@ export default function GuestEquipmentTab() {
                         <p className="text-gray-500 font-medium">State-of-the-art testing and commissioning equipment at our disposal.</p>
                     </div>
 
-                    <div className="relative w-full md:w-80 shrink-0">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Search equipment..." 
-                            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 rounded-xl text-sm font-medium transition-all shadow-sm"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0">
+                        <div className="relative w-full md:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <input 
+                                type="text" 
+                                placeholder="Search equipment..." 
+                                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20 rounded-xl text-sm font-medium transition-all shadow-sm"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <select
+                            className="bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 px-4 py-2 focus:outline-none focus:border-brand-teal cursor-pointer shadow-sm min-w-[160px]"
+                            value={filterClassification}
+                            onChange={e => setFilterClassification(e.target.value)}
+                        >
+                            <option value="All">All Classifications</option>
+                            {uniqueClassifications.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                     </div>
                 </div>
 

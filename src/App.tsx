@@ -21,7 +21,7 @@ import Attendance from './pages/Attendance';
 import SurveyResults from './pages/SurveyResults';
 import SplashScreen from './components/common/SplashScreen';
 import FaceLockScreen from './components/shared/FaceLockScreen';
-import GuestPortal from './pages/GuestPortal';
+import CommercialPortal from './pages/CommercialPortal';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -91,7 +91,7 @@ function App() {
             <Router>
                 <Routes>
                 <Route path="/login" element={<Login />} />
-                <Route path="/guest-portal" element={<GuestPortal />} />
+                <Route path="/commercial-portal" element={<CommercialPortal />} />
                 
                 <Route element={<AuthRoute />}>
                     <Route path="/" element={<Layout />}>
