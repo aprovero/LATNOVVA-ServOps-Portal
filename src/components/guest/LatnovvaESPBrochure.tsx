@@ -386,7 +386,7 @@ export default function LatnovvaESPBrochure() {
             <section className="py-28 px-8 bg-gray-50">
                 <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-20 items-center">
                     <Reveal>
-                        <div className="relative rounded-3xl overflow-hidden shadow-2xl max-w-sm mx-auto border border-gray-100 bg-transparent">
+                        <div className="relative rounded-3xl overflow-hidden shadow-2xl max-w-[310px] mx-auto border border-gray-100 bg-transparent">
                             <img 
                                 src="/latnovva-esp/charger_custom.png" 
                                 alt="E-Mobility EV Charger" 
