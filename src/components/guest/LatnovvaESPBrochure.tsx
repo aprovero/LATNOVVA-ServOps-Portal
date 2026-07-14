@@ -772,7 +772,7 @@ export default function LatnovvaESPBrochure() {
                             {
                                 codes: [{ code: 'CO', color: 'bg-yellow-500' }, { code: 'CL', color: 'bg-red-600' }],
                                 client: 'Sungrow', tagColor: 'text-brand-teal',
-                                title: 'Guayepo · La Unión · Sierra Gorda',
+                                title: 'Guayepo · La Unión · La Mata · Sierra Gorda',
                                 items: ['Cold & Hot Commissioning of Sungrow conversion centers', 'Equipment configuration and commissioning', 'Preventive and corrective maintenance', 'Mechanical assembly of trackers and solar panels'],
                             },
                             {
@@ -817,6 +817,12 @@ export default function LatnovvaESPBrochure() {
                                 title: 'Hotel Barceló · Hotel Hyatt',
                                 items: ['Hotel Barceló full electrical installations', 'Hotel Hyatt full electrical installations', 'Operation & Maintenance of 8 - 10 MW cogeneration systems'],
                             },
+                            {
+                                codes: [{ code: 'MX', color: 'bg-emerald-600' }],
+                                client: 'RTP / Yutong', tagColor: 'text-emerald-700',
+                                title: 'Full EPC EV Charging Hubs — 5 MW',
+                                items: ['Basic & detailed engineering', 'Full electrical installation', 'Commissioning & startup', 'Operations & maintenance'],
+                            },
                         ].map((p, i) => (
                             <Reveal key={p.title} delay={i * 80} className="h-full">
                                 <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 h-full flex flex-col">
@@ -838,26 +844,8 @@ export default function LatnovvaESPBrochure() {
                              </Reveal>
                          ))}
                      </div>
-
-                    {/* E-Mobility case */}
-                    <Reveal>
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex gap-4 items-center">
-                            <CountryFlag code="MX" />
-                            <div>
-                                <div className="text-[11px] font-black text-emerald-700 uppercase tracking-wider mb-1">Mexico City — RTP / Yutong</div>
-                                <h4 className="font-black text-gray-900 text-base mb-2">Full EPC EV Charging Hubs — 5 MW</h4>
-                                <div className="flex flex-wrap gap-x-6 gap-y-1">
-                                    {['Basic & detailed engineering', 'Full electrical installation', 'Commissioning & startup', 'Operations & maintenance'].map(s => (
-                                        <span key={s} className="text-xs text-gray-600 font-semibold flex items-center gap-1.5">
-                                            <CheckCircle2 size={12} className="text-emerald-500" />{s}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </Reveal>
-                </div>
-            </section>
+                 </div>
+             </section>
 
             {/* ══════════════════════════════════════════════════════════
                 CONTÁCTENOS
