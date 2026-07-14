@@ -386,11 +386,11 @@ export default function LatnovvaESPBrochure() {
             <section className="py-28 px-8 bg-gray-50">
                 <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-20 items-center">
                     <Reveal>
-                        <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-square max-w-md bg-slate-900">
+                        <div className="relative rounded-3xl overflow-hidden shadow-2xl max-w-sm mx-auto border border-gray-100 bg-transparent">
                             <img 
                                 src="/latnovva-esp/charger_custom.png" 
                                 alt="E-Mobility EV Charger" 
-                                className="w-full h-full object-contain p-4 " 
+                                className="w-full h-auto block" 
                             />
                             {/* Callout badge */}
                             <div className="absolute top-5 right-5 bg-emerald-500 text-white rounded-2xl px-4 py-3 text-center shadow-xl">
@@ -521,7 +521,7 @@ export default function LatnovvaESPBrochure() {
                     <Reveal delay={100}>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                             {[
-                                { name: 'CEEC (China Energy)', type: 'Chinese Energy Giant', file: 'ceec.png', color: 'hover:border-red-500/40' },
+                                { name: 'CEEC (China Energy)', type: 'Energy Giant', file: 'ceec.png', color: 'hover:border-red-500/40' },
                                 { name: 'Sungrow', type: 'Solar & Storage', file: 'sungrow.png', color: 'hover:border-orange-500/40' },
                                 { name: 'Trina Solar', type: 'Solar PV Tech', file: 'trina_solar.png', color: 'hover:border-red-500/40' },
                                 { name: 'Canadian Solar', type: 'Module & Storage EPC', file: 'canadian_solar.png', color: 'hover:border-yellow-500/40' },
@@ -547,10 +547,10 @@ export default function LatnovvaESPBrochure() {
                                         <img 
                                             src={`/Company Logos/${c.file}`} 
                                             alt={`${c.name} logo`} 
-                                            className="max-w-[85%] max-h-[85%] object-contain filter hover:brightness-105 transition-all duration-300"
+                                            className="max-w-[85%] max-h-[85%] object-contain object-center mx-auto filter hover:brightness-105 transition-all duration-300"
                                         />
                                     </div>
-                                    <div className="flex flex-col items-center mt-2">
+                                    <div className="flex flex-col items-center mt-auto justify-end">
                                         <span className="font-extrabold text-xs text-gray-900 leading-tight">{c.name}</span>
                                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mt-1">{c.type}</span>
                                     </div>
