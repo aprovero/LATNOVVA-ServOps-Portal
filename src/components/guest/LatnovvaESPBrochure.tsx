@@ -137,24 +137,13 @@ export default function LatnovvaESPBrochure() {
                             ))}
                         </div>
                     </div>
-                    {/* World presence visual — Cropped slide map image */}
-                    <Reveal delay={150} className="relative">
-                        <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-slate-50 border border-gray-100">
-                            <img 
-                                src="/latnovva-esp/map_custom.png" 
-                                alt="International Presence Map" 
-                                className="w-full h-full object-contain p-4 " 
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent pointer-events-none" />
-                            <div className="absolute bottom-6 left-6 right-6">
-                                <div className="bg-slate-900/95 backdrop-blur rounded-2xl px-5 py-4 shadow-lg border border-slate-850">
-                                    <p className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-1.5">International Operations</p>
-                                    <p className="text-xs font-bold text-white tracking-wide">
-                                        MX · US · CO · CL · DO · CR · PA · PE · PT · ES
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    {/* World presence visual — Custom map image directly on white page */}
+                    <Reveal delay={150} className="relative flex items-center justify-center w-full">
+                        <img 
+                            src="/latnovva-esp/map_custom.png" 
+                            alt="International Presence Map" 
+                            className="w-full max-h-[550px] md:scale-125 object-contain" 
+                        />
                     </Reveal>
                 </div>
             </section>
@@ -243,15 +232,7 @@ export default function LatnovvaESPBrochure() {
             {/* ══════════════════════════════════════════════════════════
                 ENERGÍA — Detail section
             ══════════════════════════════════════════════════════════ */}
-            <section className="relative py-32 px-8 overflow-hidden">
-                <div className="absolute inset-0">
-                    <img 
-                        src="/latnovva-esp/slide_08.png" 
-                        alt="" 
-                        className="w-full h-full object-contain p-4 scale-[1.3] translate-x-[10%] translate-y-[10%]" 
-                    />
-                    <div className="absolute inset-0 bg-brand-teal/96" />
-                </div>
+            <section className="relative py-32 px-8 overflow-hidden bg-brand-teal">
                 <div className="relative z-10 max-w-6xl mx-auto">
                     <div className="grid md:grid-cols-2 gap-20 items-center">
                         <div>
