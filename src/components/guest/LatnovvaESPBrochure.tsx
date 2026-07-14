@@ -52,7 +52,7 @@ export default function LatnovvaESPBrochure() {
             <section className="relative h-[92vh] flex items-center px-8 overflow-hidden bg-slate-950">
                 {/* Background image & gradient overlay */}
                 <div className="absolute inset-0">
-                    <img src="/latnovva-esp/slide_01.png" alt="" className="w-full h-full object-cover object-center opacity-45" />
+                    <img src="/latnovva-esp/slide_01.png" alt="" className="w-full h-full object-contain p-4 object-center opacity-45" />
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/70 to-transparent" />
                     <div className="absolute inset-0 bg-gradient-to-r from-gray-950/95 via-gray-950/40 to-transparent" />
                 </div>
@@ -143,7 +143,7 @@ export default function LatnovvaESPBrochure() {
                             <img 
                                 src="/latnovva-esp/map_custom.png" 
                                 alt="International Presence Map" 
-                                className="w-full h-full object-cover " 
+                                className="w-full h-full object-contain p-4 " 
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-gray-900/30 to-transparent pointer-events-none" />
                             <div className="absolute bottom-6 left-6 right-6">
@@ -219,7 +219,7 @@ export default function LatnovvaESPBrochure() {
                                 <div className={`relative group rounded-3xl overflow-hidden border ${sector.border} bg-slate-900 p-6 flex flex-col gap-4 h-full min-h-[340px] cursor-default`}>
                                     {/* Photo background */}
                                     <div className="absolute inset-0 opacity-40 group-hover:opacity-75 transition-opacity duration-500">
-                                        <img src={sector.img} alt="" className="w-full h-full object-cover" />
+                                        <img src={sector.img} alt="" className="w-full h-full object-contain p-4" />
                                     </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-slate-950/20" />
                                     <div className="relative z-10 flex flex-col justify-between h-full">
@@ -248,7 +248,7 @@ export default function LatnovvaESPBrochure() {
                     <img 
                         src="/latnovva-esp/slide_08.png" 
                         alt="" 
-                        className="w-full h-full object-cover scale-[1.3] translate-x-[10%] translate-y-[10%]" 
+                        className="w-full h-full object-contain p-4 scale-[1.3] translate-x-[10%] translate-y-[10%]" 
                     />
                     <div className="absolute inset-0 bg-brand-teal/96" />
                 </div>
@@ -308,7 +308,7 @@ export default function LatnovvaESPBrochure() {
                                     <img 
                                         src="/latnovva-esp/slide_07.png" 
                                         alt="Industrial" 
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
+                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -338,7 +338,7 @@ export default function LatnovvaESPBrochure() {
                                     <img 
                                         src="/latnovva-esp/slide_14.png" 
                                         alt="Ferroviario" 
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
+                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -368,7 +368,7 @@ export default function LatnovvaESPBrochure() {
                                     <img 
                                         src="/latnovva-esp/slide_16.png" 
                                         alt="Comunicaciones" 
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
+                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -404,7 +404,7 @@ export default function LatnovvaESPBrochure() {
                             <img 
                                 src="/latnovva-esp/charger_custom.png" 
                                 alt="E-Mobility EV Charger" 
-                                className="w-full h-full object-cover " 
+                                className="w-full h-full object-contain p-4 " 
                             />
                             {/* Callout badge */}
                             <div className="absolute top-5 right-5 bg-emerald-500 text-white rounded-2xl px-4 py-3 text-center shadow-xl">
@@ -519,7 +519,7 @@ export default function LatnovvaESPBrochure() {
                     <img 
                         src="/latnovva-esp/slide_20.png" 
                         alt="" 
-                        className="w-full h-full object-cover scale-[1.3] translate-x-[12%] origin-right" 
+                        className="w-full h-full object-contain p-4 scale-[1.3] translate-x-[12%] origin-right" 
                     />
                     <div className="absolute inset-0 bg-gray-950/92" />
                 </div>
@@ -537,7 +537,7 @@ export default function LatnovvaESPBrochure() {
                             <img 
                                 src="/latnovva-esp/slide_21.png" 
                                 alt="Our Clients Logos" 
-                                className="w-full h-full object-cover scale-[1.35] origin-right" 
+                                className="w-full h-full object-contain p-4 scale-[1.35] origin-right" 
                             />
                         </div>
                     </Reveal>
@@ -724,6 +724,7 @@ export default function LatnovvaESPBrochure() {
         </div>
     );
 }
+
 
 
 
