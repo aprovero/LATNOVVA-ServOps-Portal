@@ -10,7 +10,7 @@ export default function CommercialPortal() {
 
     useEffect(() => {
         const oldTitle = document.title;
-        document.title = "LATNOVVA Commercial Portal";
+        document.title = "LATNOVVA";
         return () => {
             document.title = oldTitle;
         };
@@ -26,8 +26,6 @@ export default function CommercialPortal() {
                     <img src="/S&S-logo.png" alt="SYS" className="h-[20px] md:h-[26px] object-contain" />
                     <div className="w-px h-6 bg-gray-300"></div>
                     <img src="/cor-logo.png" alt="CORS" className="h-[30px] md:h-[38px] object-contain" />
-                    <div className="w-px h-6 bg-gray-300 ml-2 hidden md:block"></div>
-                    <h1 className="text-lg font-medium text-gray-500 hidden md:block">Commercial Portal</h1>
                 </div>
             </header>
 
