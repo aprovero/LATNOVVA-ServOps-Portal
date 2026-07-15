@@ -320,7 +320,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                     <img
                                         src="/latnovva-esp/greenenergies.jpg"
                                         alt="Green Energies"
-                                        className="w-full h-full object-cover transition-transform duration-700 scale-115 group-hover:scale-100"
+                                        className="w-full h-full object-cover transition-transform duration-700 scale-[1.5] group-hover:scale-100"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -350,7 +350,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                     <img
                                         src="/latnovva-esp/industrial.jpg"
                                         alt="Industrial"
-                                        className="w-full h-full object-cover transition-transform duration-700 scale-115 group-hover:scale-100"
+                                        className="w-full h-full object-cover transition-transform duration-700 scale-[1.5] group-hover:scale-100"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -380,7 +380,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                     <img
                                         src="/latnovva-esp/railway.jpg"
                                         alt="Railway"
-                                        className="w-full h-full object-cover transition-transform duration-700 scale-115 group-hover:scale-100"
+                                        className="w-full h-full object-cover transition-transform duration-700 scale-[1.5] group-hover:scale-100"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -414,7 +414,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                     <img
                                         src="/latnovva-esp/comms.jpg"
                                         alt="Communications"
-                                        className="w-full h-full object-cover transition-transform duration-700 scale-115 group-hover:scale-100"
+                                        className="w-full h-full object-cover transition-transform duration-700 scale-[1.5] group-hover:scale-100"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -444,7 +444,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                     <img
                                         src="/latnovva-esp/emob.jpg"
                                         alt="E-Mobility"
-                                        className="w-full h-full object-cover transition-transform duration-700 scale-115 group-hover:scale-100"
+                                        className="w-full h-full object-cover transition-transform duration-700 scale-[1.5] group-hover:scale-100"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
