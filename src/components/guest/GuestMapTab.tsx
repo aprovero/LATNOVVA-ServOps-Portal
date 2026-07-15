@@ -2,7 +2,7 @@ import { useMemo, useEffect, useState, useRef } from 'react';
 import guestProjects from '../../data/guestProjects.json';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Building2, Search, MapPin, Layers } from 'lucide-react';
+import { Building2, Search, MapPin, Layers, SlidersHorizontal } from 'lucide-react';
 import L from 'leaflet';
 
 // Fix default icon assets for Vite bundling
@@ -254,6 +254,7 @@ export default function GuestMapTab() {
     
     const [map, setMap] = useState<L.Map | null>(null);
     const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+    const [showFilters, setShowFilters] = useState(false);
     const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
 
     const yearsList = useMemo(() => {
@@ -328,52 +329,77 @@ export default function GuestMapTab() {
     return (
         <div className="absolute inset-0 flex flex-col">
             {/* Filter Bar */}
-            <div className="shrink-0 bg-white border-b border-gray-200 px-4 py-2 flex flex-wrap items-center gap-2 z-[400] relative">
-                <div className="relative flex-1 min-w-[180px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
-                    <input 
-                        type="text" 
-                        placeholder="Search projects…" 
-                        className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-teal"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+            <div className="shrink-0 bg-white border-b border-gray-200 p-3 z-[400] relative">
+                <div className="flex items-center gap-2">
+                    <div className="relative flex-1 min-w-[180px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                        <input 
+                            type="text" 
+                            placeholder="Search projects…" 
+                            className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-teal"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    {/* Collapsible toggle button visible on mobile */}
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`md:hidden flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
+                            showFilters 
+                                ? 'bg-brand-teal text-white border-brand-teal' 
+                                : 'bg-gray-50 text-gray-700 border-gray-200'
+                        }`}
+                    >
+                        <SlidersHorizontal size={13} />
+                        Filters
+                    </button>
+                    <span className="hidden md:inline-block text-[10px] font-bold bg-brand-teal/10 text-brand-teal px-2.5 py-1 rounded-full uppercase shrink-0">
+                        {filteredProjects.length} Found
+                    </span>
                 </div>
-                <select 
-                    className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
-                    value={filterClient}
-                    onChange={e => setFilterClient(e.target.value)}
-                >
-                    <option value="All">All Customers</option>
-                    {clientsList.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <select 
-                    className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
-                    value={filterCountry}
-                    onChange={e => setFilterCountry(e.target.value)}
-                >
-                    <option value="All">All Countries</option>
-                    {countriesList.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <select 
-                    className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
-                    value={filterYear}
-                    onChange={e => setFilterYear(e.target.value)}
-                >
-                    <option value="All">All Years</option>
-                    {yearsList.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-                <select 
-                    className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
-                    value={filterStatus}
-                    onChange={e => setFilterStatus(e.target.value)}
-                >
-                    <option value="All">All Status</option>
-                    {statusesList.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <span className="ml-auto text-[10px] font-bold bg-brand-teal/10 text-brand-teal px-2.5 py-1 rounded-full uppercase shrink-0">
-                    {filteredProjects.length} Found
-                </span>
+
+                {/* Collapsible Filter Selectors list */}
+                <div className={`${showFilters ? 'flex' : 'hidden'} md:flex flex-col md:flex-row flex-wrap gap-2 mt-2.5 pt-2.5 border-t border-gray-100 md:border-t-0 md:mt-2 md:pt-0`}>
+                    <select 
+                        className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
+                        value={filterClient}
+                        onChange={e => setFilterClient(e.target.value)}
+                    >
+                        <option value="All">All Customers</option>
+                        {clientsList.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <select 
+                        className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
+                        value={filterCountry}
+                        onChange={e => setFilterCountry(e.target.value)}
+                    >
+                        <option value="All">All Countries</option>
+                        {countriesList.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <select 
+                        className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
+                        value={filterYear}
+                        onChange={e => setFilterYear(e.target.value)}
+                    >
+                        <option value="All">All Years</option>
+                        {yearsList.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select 
+                        className="bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 px-3 py-1.5 focus:outline-none focus:border-brand-teal cursor-pointer"
+                        value={filterStatus}
+                        onChange={e => setFilterStatus(e.target.value)}
+                    >
+                        <option value="All">All Status</option>
+                        {statusesList.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    {/* Found indicator inside filter bar on mobile */}
+                    <div className="flex md:hidden items-center justify-between mt-1">
+                        <span className="text-[10px] font-bold text-gray-400">STATUS PREVIEW</span>
+                        <span className="text-[10px] font-bold bg-brand-teal/10 text-brand-teal px-2 py-0.5 rounded-full uppercase">
+                            {filteredProjects.length} Found
+                        </span>
+                    </div>
+                </div>
             </div>
 
             {/* Main Area */}

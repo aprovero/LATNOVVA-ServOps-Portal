@@ -49,33 +49,33 @@ export default function CommercialPortal() {
                                 value="presentation" 
                                 className={
                                     activeTab === 'presentation'
-                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
-                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold"
+                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold hover:text-white"
+                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
                                 }
                             >
-                                <Building2 size={18} />
+                                <Building2 size={16} className="shrink-0" />
                                 <span>Our Services</span>
                             </TabsTrigger>
                             <TabsTrigger 
                                 value="map" 
                                 className={
                                     activeTab === 'presentation'
-                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
-                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold"
+                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold hover:text-white"
+                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
                                 }
                             >
-                                <MapIcon size={18} />
+                                <MapIcon size={16} className="shrink-0" />
                                 <span>Projects Map</span>
                             </TabsTrigger>
                             <TabsTrigger 
                                 value="equipment" 
                                 className={
                                     activeTab === 'presentation'
-                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
-                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold"
+                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold hover:text-white"
+                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
                                 }
                             >
-                                <Wrench size={18} />
+                                <Wrench size={16} className="shrink-0" />
                                 <span>Equipment</span>
                             </TabsTrigger>
                         </TabsList>
