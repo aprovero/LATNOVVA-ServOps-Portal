@@ -307,7 +307,7 @@ export default function LatnovvaESPBrochure() {
                             <div className="group">
                                 <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
                                     <img
-                                        src="/latnovva-esp/slide_08.png"
+                                        src="/latnovva-esp/greenenergies.jpg"
                                         alt="Green Energies"
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
@@ -337,9 +337,9 @@ export default function LatnovvaESPBrochure() {
                             <div className="group">
                                 <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
                                     <img
-                                        src="/latnovva-esp/slide_07.png"
+                                        src="/latnovva-esp/industrial.jpg"
                                         alt="Industrial"
-                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -367,9 +367,9 @@ export default function LatnovvaESPBrochure() {
                             <div className="group">
                                 <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
                                     <img
-                                        src="/latnovva-esp/slide_14.png"
+                                        src="/latnovva-esp/railway.jpg"
                                         alt="Railway"
-                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -401,9 +401,9 @@ export default function LatnovvaESPBrochure() {
                             <div className="group">
                                 <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
                                     <img
-                                        src="/latnovva-esp/slide_16.png"
+                                        src="/latnovva-esp/comms.jpg"
                                         alt="Communications"
-                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -431,9 +431,9 @@ export default function LatnovvaESPBrochure() {
                             <div className="group">
                                 <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
                                     <img
-                                        src="/latnovva-esp/charger_custom.png"
+                                        src="/latnovva-esp/emob.jpg"
                                         alt="E-Mobility"
-                                        className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
                                     <div className="absolute bottom-4 left-5">
@@ -571,7 +571,7 @@ export default function LatnovvaESPBrochure() {
             <section className="relative py-28 px-8 overflow-hidden">
                 <div className="absolute inset-0">
                     <img 
-                        src="/latnovva-esp/clients_clean.jpg" 
+                        src="/latnovva-esp/success.jpg" 
                         alt="" 
                         className="w-full h-full object-cover" 
                     />
@@ -612,7 +612,7 @@ export default function LatnovvaESPBrochure() {
                                 { name: 'EKS', type: 'Power Conversion', file: 'eks.png', color: 'hover:border-indigo-500/40', imgClass: 'max-w-[95%] max-h-[90%] scale-[1.08]' },
                                 { name: 'EOSOL', type: 'Engineering Consultant', file: 'eosol.png', color: 'hover:border-blue-600/40' },
                                 { name: 'Greening Group', type: 'Global Developer', file: 'greening_group.png', color: 'hover:border-green-500/40' },
-                                { name: 'Greensol', type: 'Solar Operations', file: 'greensol.png', color: 'hover:border-orange-500/40', imgClass: 'max-w-[95%] max-h-[95%] scale-[1.25]' },
+                                { name: 'Greensol', type: 'Solar Operations', file: 'green.jpg', color: 'hover:border-orange-500/40', imgClass: 'max-w-[95%] max-h-[95%] scale-[1.25]' },
                                 { name: 'Grupo Ortiz', type: 'Infrastructure EPC', file: 'grupo_ortiz.png', color: 'hover:border-amber-600/40' },
                             ].map((c) => (
                                 <div 
