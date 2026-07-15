@@ -824,30 +824,42 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
             {/* ══════════════════════════════════════════════════════════
                 CONTÁCTENOS
             ══════════════════════════════════════════════════════════ */}
-            <section className="bg-brand-teal py-28 px-8">
+            <section className="relative bg-brand-teal py-28 px-8">
+                {/* Float download brief button in the top-right corner */}
+                <div className="absolute top-6 right-8 z-10 hidden sm:block">
+                    <a
+                        href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
+                        download
+                        className="inline-flex items-center gap-2 bg-white/10 text-white border border-white/30 rounded-full px-4 py-2 text-xs font-bold hover:bg-white hover:text-brand-teal transition-all shadow-sm"
+                    >
+                        <Download size={13} />
+                        Download Capabilities Brief
+                    </a>
+                </div>
                 <div className="max-w-5xl mx-auto">
+                    {/* Mobile fallback download link (visible only on mobile where top-right is cramped) */}
+                    <div className="block sm:hidden text-center mb-6">
+                        <a
+                            href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
+                            download
+                            className="inline-flex items-center gap-2 text-white/80 border border-white/20 rounded-full px-3 py-1.5 text-xs font-bold hover:bg-white/10 transition-all"
+                        >
+                            <Download size={12} />
+                            Download Capabilities Brief
+                        </a>
+                    </div>
                     <Reveal className="text-center mb-16">
                         <h2 className="text-5xl font-black text-white mb-4">Let's talk.</h2>
                         <p className="text-white/70 text-lg max-w-md mx-auto leading-relaxed">
                             Have a project that needs expert technical support in the field? Let's connect.
                         </p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
-                            <a
-                                href="mailto:contacto@latnovva.com"
-                                className="inline-flex items-center gap-3 bg-white text-brand-teal rounded-full px-8 py-4 text-base font-black hover:bg-emerald-50 transition-all shadow-xl w-full sm:w-auto justify-center"
-                            >
-                                <Mail size={18} />
-                                contacto@latnovva.com
-                            </a>
-                            <a
-                                href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
-                                download
-                                className="inline-flex items-center gap-3 bg-transparent text-white border-2 border-white/80 rounded-full px-8 py-[14px] text-base font-black hover:bg-white/10 transition-all w-full sm:w-auto justify-center"
-                            >
-                                <Download size={18} />
-                                Download our Technical Capabilities Brief
-                            </a>
-                        </div>
+                        <a
+                            href="mailto:contacto@latnovva.com"
+                            className="inline-flex items-center gap-3 bg-white text-brand-teal rounded-full px-8 py-4 text-base font-black mt-8 hover:bg-emerald-50 transition-all shadow-xl"
+                        >
+                            <Mail size={18} />
+                            contacto@latnovva.com
+                        </a>
                     </Reveal>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
