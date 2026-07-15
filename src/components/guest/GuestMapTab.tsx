@@ -19,7 +19,7 @@ const KNOWN_LOGOS = [
     "hospital_di_maria", "ica", "imdut", "kempinski", "l_oreal", "maracof", "marriott",
     "mexibus", "negratin", "nextera_energy", "niko", "ohl", "opde", "plaza_nido",
     "power_electronics", "prodiel", "rtp", "saft", "solventia", "sterling_and_wilson", "sungrow",
-    "tozzi", "trina_solar", "tsk", "vemo"
+    "tozzi", "trina_solar", "tsk", "vemo", "barcelo", "hyatt"
 ];
 
 function getCustomerLogo(clientName: string | null | undefined): string | null {
@@ -44,6 +44,8 @@ function getCustomerLogo(clientName: string | null | undefined): string | null {
     if (name.includes("cobra")) return "/Company Logos/grupo_cobra.png";
     if (name.includes("ferrovial")) return "/Company Logos/ferrovial.png";
     if (name.includes("tozzi")) return "/Company Logos/tozzi.png";
+    if (name.includes("barcelo")) return "/Company Logos/barcelo.png";
+    if (name.includes("hyatt")) return "/Company Logos/hyatt.png";
     
     return null;
 }
