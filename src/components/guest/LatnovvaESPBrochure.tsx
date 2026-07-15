@@ -299,87 +299,173 @@ export default function LatnovvaESPBrochure() {
             </section>
 
             {/* ══════════════════════════════════════════════════════════
-                LÍNEAS DE NEGOCIO — SECTOR CARDS
+                ACTIVITY LINES — all 5 disciplines
             ══════════════════════════════════════════════════════════ */}
-            <section className="py-28 px-8 bg-gray-950 text-white overflow-hidden">
+            <section className="py-28 px-8 bg-white">
                 <div className="max-w-6xl mx-auto">
                     <Reveal className="text-center mb-16">
-                        <Label>Lines of Business</Label>
-                        <h2 className="text-4xl md:text-5xl font-black text-white mt-2">
-                            Five sectors.<br />
-                            <span className="text-emerald-300">One company.</span>
+                        <Label>Activity Lines</Label>
+                        <h2 className="text-4xl font-black text-gray-900 mt-2">
+                            Capabilities that make the difference.
                         </h2>
                     </Reveal>
 
-                    <div className="grid md:grid-cols-5 gap-4">
-                        {[
-                            {
-                                icon: Zap,
-                                title: 'Green Energies',
-                                desc: 'Solar, BESS, wind. EPC/BOS/BOP construction, commissioning, COD & O&M.',
-                                border: 'border-teal-500/30',
-                                iconColor: 'text-teal-300',
-                                img: '/latnovva-esp/green_energies_bg.png',
-                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
-                            },
-                            {
-                                icon: Factory,
-                                title: 'Industrial Facilities',
-                                desc: 'MPE installations, maintenance in hospitals, hotels and industrial warehouses.',
-                                border: 'border-amber-500/30',
-                                iconColor: 'text-amber-300',
-                                img: '/latnovva-esp/industrial_bg.png',
-                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
-                            },
-                            {
-                                icon: Train,
-                                title: 'Railway Infrastructure',
-                                desc: 'HV/MV/LV induced works, full railway systems and catenary from design to maintenance.',
-                                border: 'border-indigo-500/30',
-                                iconColor: 'text-indigo-300',
-                                img: '/latnovva-esp/railway_bg.png',
-                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
-                            },
-                            {
-                                icon: Rss,
-                                title: 'Communications',
-                                desc: 'Design, construction and commissioning of fiber optic networks and telemetry backbones.',
-                                border: 'border-rose-500/30',
-                                iconColor: 'text-rose-300',
-                                img: '/latnovva-esp/communications_bg.png',
-                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
-                            },
-                            {
-                                icon: Globe,
-                                title: 'E-Mobility',
-                                desc: 'EV charging infrastructure, fleet management, storage optimization and software integration.',
-                                border: 'border-emerald-500/30',
-                                iconColor: 'text-emerald-300',
-                                img: '/latnovva-esp/emobility_bg.png',
-                                imgStyle: 'object-contain p-2 opacity-50 group-hover:scale-105 transition-transform duration-500',
-                            },
-                        ].map((sector, i) => (
-                            <Reveal key={sector.title} delay={i * 80}>
-                                <div className={`relative group rounded-3xl overflow-hidden border ${sector.border} bg-slate-900 p-6 flex flex-col gap-4 h-full min-h-[340px] cursor-default`}>
-                                    {/* Photo background */}
-                                    <div className="absolute inset-0 opacity-45 group-hover:opacity-75 transition-opacity duration-500">
-                                        <img src={sector.img} alt="" className={`w-full h-full ${sector.imgStyle}`} />
-                                    </div>
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-slate-950/20" />
-                                    <div className="relative z-10 flex flex-col justify-between h-full">
-                                        <div className="flex flex-col gap-4">
-                                            <div className={`w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm ${sector.iconColor}`}>
-                                                <sector.icon size={22} />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-black text-white text-base mb-2 leading-tight">{sector.title}</h3>
-                                                <p className="text-white/85 text-xs leading-relaxed font-semibold">{sector.desc}</p>
-                                            </div>
+                    {/* Row 1 — 3 cards */}
+                    <div className="grid md:grid-cols-3 gap-8 mb-8">
+
+                        {/* Green Energies */}
+                        <Reveal delay={0}>
+                            <div className="group">
+                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
+                                    <img
+                                        src="/latnovva-esp/slide_08.png"
+                                        alt="Green Energies"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
+                                    <div className="absolute bottom-4 left-5">
+                                        <div className="inline-flex items-center gap-2 bg-teal-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                            <Zap size={10} /> Green Energies
                                         </div>
                                     </div>
                                 </div>
-                            </Reveal>
-                        ))}
+                                <h3 className="text-xl font-black text-gray-900 mb-3">Green Energies</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                    Solar, BESS and wind. From basic engineering through EPC/BOS/BOP construction, commissioning, COD testing and O&amp;M.
+                                </p>
+                                <ul className="space-y-2">
+                                    {['Basic & Detail Engineering', 'EPC, BOS or BOP Construction', 'COD & PR Testing', 'Operations & Maintenance'].map(s => (
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />{s}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </Reveal>
+
+                        {/* Industrial */}
+                        <Reveal delay={120}>
+                            <div className="group">
+                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
+                                    <img
+                                        src="/latnovva-esp/slide_07.png"
+                                        alt="Industrial"
+                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
+                                    <div className="absolute bottom-4 left-5">
+                                        <div className="inline-flex items-center gap-2 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                            <Factory size={10} /> Industrial
+                                        </div>
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-black text-gray-900 mb-3">Industrial Installations<br />&amp; Maintenance</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                    MV supply connections, under-slab piping, HVAC systems, earthing networks and commissioning in hospitals, hotels and industrial warehouses.
+                                </p>
+                                <ul className="space-y-2">
+                                    {['Basic & Detail Engineering (MPE)', 'Hydraulic, megger & VLF testing', 'Preventive & corrective maintenance', "Owner's Engineering"].map(s => (
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />{s}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </Reveal>
+
+                        {/* Railway */}
+                        <Reveal delay={240}>
+                            <div className="group">
+                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
+                                    <img
+                                        src="/latnovva-esp/slide_14.png"
+                                        alt="Railway"
+                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
+                                    <div className="absolute bottom-4 left-5">
+                                        <div className="inline-flex items-center gap-2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                            <Train size={10} /> Railway
+                                        </div>
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-black text-gray-900 mb-3">Railway<br />Infrastructure</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                    HV/MV/LV induced works, electrical grid rerouting, complete railway systems and catenary from engineering through maintenance.
+                                </p>
+                                <ul className="space-y-2">
+                                    {['Induced Works: Engineering & Construction', 'Complete Railway Systems', 'Catenary: Supply & Assembly', 'Commissioning & Maintenance'].map(s => (
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />{s}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </Reveal>
+                    </div>
+
+                    {/* Row 2 — 2 cards centered */}
+                    <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+
+                        {/* Communications */}
+                        <Reveal delay={360}>
+                            <div className="group">
+                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
+                                    <img
+                                        src="/latnovva-esp/slide_16.png"
+                                        alt="Communications"
+                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
+                                    <div className="absolute bottom-4 left-5">
+                                        <div className="inline-flex items-center gap-2 bg-rose-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                            <Rss size={10} /> Communications
+                                        </div>
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-black text-gray-900 mb-3">Communications</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                    Design, layout, construction and commissioning of structured communication arrays, fiber optic networks and dedicated telemetry backbones.
+                                </p>
+                                <ul className="space-y-2">
+                                    {['Network Engineering & Design', 'Infrastructure Construction', 'Commissioning', 'Preventive Maintenance'].map(s => (
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />{s}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </Reveal>
+
+                        {/* E-Mobility */}
+                        <Reveal delay={480}>
+                            <div className="group">
+                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
+                                    <img
+                                        src="/latnovva-esp/charger_custom.png"
+                                        alt="E-Mobility"
+                                        className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
+                                    <div className="absolute bottom-4 left-5">
+                                        <div className="inline-flex items-center gap-2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                            <Globe size={10} /> E-Mobility
+                                        </div>
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-black text-gray-900 mb-3">E-Mobility &amp;<br />EV Infrastructure</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                    EV charging infrastructure, fleet management, storage optimization and software integration. Builders of the largest EV hub (4 MW) in Latin America.
+                                </p>
+                                <ul className="space-y-2">
+                                    {['Basic & Detail Engineering', 'EPC and/or BoS Delivery Models', 'Operation & Maintenance Services', 'Capex, Opex & PPA Modalities'].map(s => (
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />{s}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </Reveal>
                     </div>
                 </div>
             </section>
@@ -424,162 +510,7 @@ export default function LatnovvaESPBrochure() {
                 </div>
             </section>
 
-            {/* ══════════════════════════════════════════════════════════
-                INDUSTRIAL + FERROVIARIO + COMUNICACIONES — 3 col
-            ══════════════════════════════════════════════════════════ */}
-            <section className="py-28 px-8 bg-white">
-                <div className="max-w-6xl mx-auto">
-                    <Reveal className="text-center mb-16">
-                        <Label>Activity Lines</Label>
-                        <h2 className="text-4xl font-black text-gray-900 mt-2">
-                            Capabilities that make the difference.
-                        </h2>
-                    </Reveal>
 
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {/* Industrial */}
-                        <Reveal delay={0}>
-                            <div className="group">
-                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
-                                    <img 
-                                        src="/latnovva-esp/slide_07.png" 
-                                        alt="Industrial" 
-                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
-                                    <div className="absolute bottom-4 left-5">
-                                        <div className="inline-flex items-center gap-2 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                            <Factory size={10} /> Industrial
-                                        </div>
-                                    </div>
-                                </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">Industrial Installations<br />&amp; Maintenance</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
-                                    MV supply connections, under-slab piping, HVAC systems, earthing networks and commissioning in hospitals, hotels and industrial warehouses.
-                                </p>
-                                <ul className="space-y-2">
-                                    {['Basic & Detail Engineering (MPE)', 'Hydraulic, megger & VLF testing', 'Preventive & corrective maintenance', "Owner's Engineering"].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />{s}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </Reveal>
-
-                        {/* Ferroviario */}
-                        <Reveal delay={120}>
-                            <div className="group">
-                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
-                                    <img 
-                                        src="/latnovva-esp/slide_14.png" 
-                                        alt="Ferroviario" 
-                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
-                                    <div className="absolute bottom-4 left-5">
-                                        <div className="inline-flex items-center gap-2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                            <Train size={10} /> Railway
-                                        </div>
-                                    </div>
-                                </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">Railway<br />Infrastructure</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
-                                    HV/MV/LV induced works, electrical grid rerouting, complete railway systems and catenary from engineering through maintenance.
-                                </p>
-                                <ul className="space-y-2">
-                                    {['Induced Works: Engineering & Construction', 'Complete Railway Systems', 'Catenary: Supply & Assembly', 'Commissioning & Maintenance'].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />{s}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </Reveal>
-
-                        {/* Comunicaciones */}
-                        <Reveal delay={240}>
-                            <div className="group">
-                                <div className="relative rounded-3xl overflow-hidden aspect-[4/3] mb-6 shadow-lg bg-slate-900">
-                                    <img 
-                                        src="/latnovva-esp/slide_16.png" 
-                                        alt="Comunicaciones" 
-                                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110 scale-[2.2] origin-left" 
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/10 to-transparent" />
-                                    <div className="absolute bottom-4 left-5">
-                                        <div className="inline-flex items-center gap-2 bg-rose-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                            <Rss size={10} /> Communications
-                                        </div>
-                                    </div>
-                                </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">Communications</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
-                                    Design, layout, construction and commissioning of structured communication arrays, fiber optic networks and dedicated telemetry backbones.
-                                </p>
-                                <ul className="space-y-2">
-                                    {['Network Engineering & Design', 'Infrastructure Construction', 'Commissioning', 'Preventive Maintenance'].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />{s}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </Reveal>
-                    </div>
-                </div>
-            </section>
-
-            {/* ══════════════════════════════════════════════════════════
-                E-MOBILITY — Split
-            ══════════════════════════════════════════════════════════ */}
-            <section className="py-28 px-8 bg-gray-50">
-                <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-20 items-center">
-                    <Reveal>
-                        <div className="relative rounded-3xl overflow-hidden shadow-2xl max-w-[310px] mx-auto border border-gray-100 bg-transparent">
-                            <img 
-                                src="/latnovva-esp/charger_custom.png" 
-                                alt="E-Mobility EV Charger" 
-                                className="w-full h-auto block" 
-                            />
-                            {/* Callout badge */}
-                            <div className="absolute top-5 right-5 bg-emerald-500 text-white rounded-2xl px-4 py-3 text-center shadow-xl">
-                                <div className="text-2xl font-black">4 MW</div>
-                                <div className="text-[10px] font-bold uppercase tracking-wider leading-tight">Largest EV hub<br />in Latin America</div>
-                            </div>
-                        </div>
-                    </Reveal>
-                    <div>
-                        <Reveal delay={100}>
-                            <Label>E-Mobility</Label>
-                            <h2 className="text-4xl font-black text-gray-900 mb-6 mt-2 leading-tight">
-                                The largest EV charging<br />hub in Latin America —<br />
-                                <span className="text-brand-teal">with our participation.</span>
-                            </h2>
-                            <p className="text-gray-500 text-base leading-relaxed mb-8">
-                                We participated in the delivery of the highest-capacity EV charging hub (4 MW) in Latin America, in Mérida, Yucatán. We offer charging infrastructure support and solutions from feasibility to ongoing operations.
-                            </p>
-                        </Reveal>
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                { title: 'Operation & Maintenance Services', icon: '🔧' },
-                                { title: 'Property Engineering', icon: '🏢' },
-                                { title: 'Basic and/or Detail Engineering', icon: '📐' },
-                                { title: 'EPC and/or BoS Delivery Models', icon: '🏗️' },
-                                { title: 'Capex and Opex Modality', icon: '💼' },
-                                { title: 'PPA Modality', icon: '🔌' },
-                            ].map((item, i) => (
-                                <Reveal key={item.title} delay={120 + i * 40}>
-                                    <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
-                                        <span className="text-xl">{item.icon}</span>
-                                        <span className="text-xs font-bold text-gray-700">{item.title}</span>
-                                    </div>
-                                </Reveal>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* ══════════════════════════════════════════════════════════
                 METODOLOGÍA
