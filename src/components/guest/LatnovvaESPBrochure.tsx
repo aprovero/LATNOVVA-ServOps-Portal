@@ -169,12 +169,12 @@ export default function LatnovvaESPBrochure() {
             {/* ══════════════════════════════════════════════════════════
                 HERO SECTION
             ══════════════════════════════════════════════════════════ */}
-            <section className="relative h-[92vh] flex items-center px-8 overflow-hidden bg-slate-950">
+            <section className="relative h-[100vh] flex items-center px-8 overflow-hidden bg-slate-950">
                 {/* Background image & gradient overlay */}
                 <div className="absolute inset-0">
-                    <img src="/latnovva-esp/slide_01.png" alt="" className="w-full h-full object-contain p-4 object-center opacity-45" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/70 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-gray-950/95 via-gray-950/40 to-transparent" />
+                    <img src="/latnovva-esp/slide_08.png" alt="" className="w-full h-full object-cover object-center opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/50 to-gray-950/20" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-950/90 via-gray-950/40 to-transparent" />
                 </div>
                 <div className="relative z-10 max-w-5xl mx-auto w-full">
                     <Reveal delay={200}>
@@ -197,10 +197,11 @@ export default function LatnovvaESPBrochure() {
                             <span>Mexico · USA · Colombia · Chile</span>
                         </div>
                     </Reveal>
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-40 animate-bounce">
-                        <span className="text-[9px] font-black tracking-widest uppercase text-white">Scroll</span>
-                        <ChevronDown size={14} className="text-white" />
-                    </div>
+                </div>
+                {/* Scroll indicator — pinned to bottom-center of section, never overlapping text */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 opacity-40 animate-bounce">
+                    <span className="text-[9px] font-black tracking-widest uppercase text-white">Scroll</span>
+                    <ChevronDown size={14} className="text-white" />
                 </div>
             </section>
 
