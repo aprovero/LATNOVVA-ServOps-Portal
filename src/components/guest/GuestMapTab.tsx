@@ -593,7 +593,6 @@ export default function GuestMapTab() {
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Legend</span>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#14b8a6]" /><span className="text-xs font-bold text-gray-700">In Progress</span></div>
-                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500" /><span className="text-xs font-bold text-gray-700">On Hold</span></div>
                             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400" /><span className="text-xs font-bold text-gray-700">Completed</span></div>
                             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border-2 border-gray-300" /><span className="text-xs font-bold text-gray-700">LATNOVVA Office</span></div>
                         </div>
