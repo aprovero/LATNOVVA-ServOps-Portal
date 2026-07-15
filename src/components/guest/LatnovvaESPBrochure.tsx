@@ -222,7 +222,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                         { value: 285, suffix: '+', unit: '', label: 'Employees Across the Group' },
                         { value: 320, suffix: '+', unit: '', label: 'People in Structure' },
                         { value: 40, suffix: 'M', unit: 'USD', label: 'Revenue 2024' },
-                        { value: 18, suffix: '+', unit: 'MWh', label: 'in E-Mobility' },
+                        { value: 18, suffix: '+', unit: 'MW', label: 'in E-Mobility' },
                         { value: 100, suffix: '+', unit: '', label: 'Industrial Installation Projects' },
                     ].map((s, i) => (
                         <Reveal key={s.label} delay={i * 80} className="flex flex-col items-center">
@@ -796,6 +796,12 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                 client: 'RTP / Yutong', tagColor: 'text-emerald-700',
                                 title: 'Full EPC EV Charging Hubs — 5 MW',
                                 items: ['Basic & detailed engineering', 'Full electrical installation', 'Commissioning & startup', 'Operations & maintenance'],
+                            },
+                            {
+                                codes: [{ code: 'MX', color: 'bg-emerald-600' }],
+                                client: 'TSK', tagColor: 'text-amber-500',
+                                title: 'Combined Cycle Facilities SLP',
+                                items: ['Lighting and power outlet system installation', 'Signaling beacons installation', 'Lightning arresters system installation', 'Grounding network electrical assembly'],
                             },
                         ].map((p, i) => (
                             <Reveal key={p.title} delay={i * 80} className="h-full">

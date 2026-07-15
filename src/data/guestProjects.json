@@ -2729,8 +2729,8 @@
   },
   {
     "id": "manual-117",
-    "name": "Quartux Moon Palace",
-    "description": "Commissioning",
+    "name": "Quartux Moon Palace 12.5MW/24MWh",
+    "description": "Cold and Hot commissioning of BESS units",
     "client": "Sungrow",
     "locationString": "Mexico",
     "year": 2023,
@@ -2740,7 +2740,7 @@
   },
   {
     "id": "manual-118",
-    "name": "Quartux Moon Palace",
+    "name": "Quartux Moon Palace 12.5MW/24MWh",
     "description": "Troubleshooting",
     "client": "Sungrow",
     "locationString": "Mexico",
@@ -2751,7 +2751,7 @@
   },
   {
     "id": "manual-119",
-    "name": "Quartux Moon Palace",
+    "name": "Quartux Moon Palace 12.5MW/24MWh",
     "description": "Troubleshooting",
     "client": "Sungrow",
     "locationString": "Mexico",
@@ -2762,8 +2762,8 @@
   },
   {
     "id": "manual-120",
-    "name": "Barcel Mérida",
-    "description": "Commissioning",
+    "name": "Barcel Mérida 1.2MW/5MWh",
+    "description": "Cold and Hot commissioning of BESS units",
     "client": "Sungrow",
     "locationString": "Mexico",
     "year": 2023,
@@ -2773,8 +2773,8 @@
   },
   {
     "id": "manual-121",
-    "name": "Bimbo Costa Rica",
-    "description": "Commissioning",
+    "name": "Bimbo Costa Rica 1.2MW/5MWh",
+    "description": "Cold and Hot commissioning of BESS units",
     "client": "Sungrow",
     "locationString": "Costa Rica",
     "year": 2023,
