@@ -262,8 +262,6 @@ export default function LatnovvaESPBrochure() {
                     <Reveal delay={150} className="relative flex flex-col items-center justify-center w-full gap-3">
                         <a
                             href="/live-map"
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="relative group w-full"
                             title="View our interactive project map"
                         >
@@ -272,19 +270,10 @@ export default function LatnovvaESPBrochure() {
                                 alt="International Presence Map" 
                                 className="w-full max-h-[550px] md:scale-125 object-contain transition-opacity duration-300 group-hover:opacity-80" 
                             />
-                            {/* Hover overlay cue */}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 md:scale-[0.8]">
-                                <span className="bg-brand-teal/90 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 pointer-events-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                                    Open interactive map
-                                </span>
-                            </div>
                         </a>
-                        {/* Legend */}
+                        {/* Legend — sits directly below the map */}
                         <a
                             href="/live-map"
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="flex items-center gap-2 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-xs font-semibold tracking-wide md:scale-[0.8]"
                         >
                             <span className="relative flex h-2 w-2">
