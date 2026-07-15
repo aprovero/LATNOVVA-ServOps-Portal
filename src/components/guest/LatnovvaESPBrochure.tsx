@@ -161,8 +161,18 @@ const CountUp = ({ to, duration = 1500 }: { to: number; duration?: number }) => 
     return <span ref={elementRef}>{count}</span>;
 };
 
-/* ═══════════════════════════════════════════════════════════════════════ */
-export default function LatnovvaESPBrochure() {
+interface LatnovvaESPBrochureProps {
+    onViewMap?: () => void;
+}
+
+export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochureProps) {
+    const handleMapClick = (e: React.MouseEvent) => {
+        if (onViewMap) {
+            e.preventDefault();
+            onViewMap();
+        }
+    };
+
     return (
         <div className="flex flex-col w-full bg-white font-sans text-gray-800 antialiased selection:bg-brand-teal selection:text-white">
 
@@ -258,10 +268,10 @@ export default function LatnovvaESPBrochure() {
                             ))}
                         </div>
                     </div>
-                    {/* World presence visual — Custom map image directly on white page */}
                     <Reveal delay={150} className="relative w-full flex flex-col items-center">
                         <a
                             href="/live-map"
+                            onClick={handleMapClick}
                             className="relative group w-full"
                             title="View our interactive project map"
                         >
@@ -274,6 +284,7 @@ export default function LatnovvaESPBrochure() {
                         {/* Legend — sits absolutely at the bottom-left of the map area, below Tierra del Fuego */}
                         <a
                             href="/live-map"
+                            onClick={handleMapClick}
                             className="absolute bottom-[-55px] md:bottom-[-50px] left-[22%] sm:left-[25%] md:left-[32%] flex items-center gap-2.5 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-sm font-bold tracking-wide"
                         >
                             <span className="relative flex h-2.5 w-2.5">

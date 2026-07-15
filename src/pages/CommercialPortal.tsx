@@ -63,7 +63,7 @@ export default function CommercialPortal() {
 
                     <div className="flex-1 relative overflow-hidden h-full">
                         <TabsContent value="presentation" className="h-full m-0 p-0 data-[state=inactive]:hidden overflow-y-auto">
-                            <LatnovvaESPBrochure />
+                            <LatnovvaESPBrochure onViewMap={() => setActiveTab('map')} />
                         </TabsContent>
                         <TabsContent value="map" className="h-full m-0 data-[state=inactive]:hidden">
                             <GuestMapTab />
