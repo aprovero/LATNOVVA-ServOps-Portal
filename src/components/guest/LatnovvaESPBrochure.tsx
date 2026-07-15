@@ -215,11 +215,11 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                 </div>
             </section>
 
-            {/* Stats section */}
             <section className="bg-brand-teal py-16 px-8">
-                <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+                <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-6 gap-6 text-center">
                     {[
                         { value: 2500, suffix: '+', unit: 'MW', label: 'Executed in Renewable Energy' },
+                        { value: 285, suffix: '+', unit: '', label: 'Employees Across the Group' },
                         { value: 320, suffix: '+', unit: '', label: 'People in Structure' },
                         { value: 40, suffix: 'M', unit: 'USD', label: 'Revenue 2024' },
                         { value: 18, suffix: '+', unit: 'MWh', label: 'in E-Mobility' },
