@@ -255,6 +255,18 @@ export const useAuthStore = create<AuthState>((set, get) => {
             }
             */
             
+            // ── STEP 1.5: Process Sync Queue ──────────────────────────────
+            try {
+                const store = useStore.getState();
+                if (store.pendingSync && store.pendingSync.length > 0) {
+                    console.log('[Auth] Pending sync queue detected. Processing before logout...');
+                    await store.processSyncQueue();
+                    await new Promise(resolve => setTimeout(resolve, 800)); // allow db operations to settle
+                }
+            } catch (e) {
+                console.warn('[Auth] Failed to process sync queue before sign out:', e);
+            }
+
             // ── STEP 2: Clear Local Stores ──────────────────────────────────
             set({ session: null, user: null, identity: null, profile: null, loading: false });
             useStore.getState().resetDb();
