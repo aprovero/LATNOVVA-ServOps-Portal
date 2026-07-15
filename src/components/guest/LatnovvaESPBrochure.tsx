@@ -826,13 +826,13 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
             ══════════════════════════════════════════════════════════ */}
             <section className="relative bg-brand-teal py-28 px-8">
                 {/* Float download brief button in the top-right corner */}
-                <div className="absolute top-6 right-8 z-10 hidden sm:block">
+                <div className="absolute top-8 right-8 z-10 hidden sm:block">
                     <a
                         href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
                         download
-                        className="inline-flex items-center gap-2 bg-white/10 text-white border border-white/30 rounded-full px-4 py-2 text-xs font-bold hover:bg-white hover:text-brand-teal transition-all shadow-sm"
+                        className="inline-flex items-center gap-2.5 bg-white/10 text-white border-2 border-white/60 rounded-full px-6 py-3 text-sm font-extrabold hover:bg-white hover:text-brand-teal transition-all shadow-md"
                     >
-                        <Download size={13} />
+                        <Download size={16} />
                         Download Capabilities Brief
                     </a>
                 </div>
