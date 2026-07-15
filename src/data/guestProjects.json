@@ -467,7 +467,7 @@
     "description": "Maintenance Service.",
     "client": "Sungrow",
     "locationString": "Mexico",
-    "year": "2024/2025",
+    "year": 2025,
     "status": "Finalizado",
     "lat": 31.3183,
     "lng": -113.281
@@ -654,7 +654,7 @@
     "description": "EPC Expansion of PF AGS SUR, 3.3 MWp.",
     "client": "OPDE",
     "locationString": "Mexico",
-    "year": "2024/2025",
+    "year": 2025,
     "status": "Finalizado",
     "lat": 21.9167,
     "lng": -101.9667
@@ -665,7 +665,7 @@
     "description": "38 MWp Distributed Generation",
     "client": "Riverstone",
     "locationString": "Mexico",
-    "year": "2025/2026",
+    "year": 2026,
     "status": "Finalizado",
     "lat": 21.1417,
     "lng": -89.0633
@@ -687,7 +687,7 @@
     "description": "Assembly and Commissioning of MV skids.",
     "client": "Sungrow",
     "locationString": "Chile",
-    "year": "2023/2024",
+    "year": 2024,
     "status": "Finalizado",
     "lat": -22.342,
     "lng": -69.522
@@ -731,7 +731,7 @@
     "description": "Installation, Interconnection and Commissioning of MV skids.",
     "client": "Enel",
     "locationString": "Colombia",
-    "year": "2023/2024",
+    "year": 2024,
     "status": "Finalizado",
     "lat": 10.6151,
     "lng": -74.8249
@@ -742,7 +742,7 @@
     "description": "Complete Electrical Installation and Commissioning of the solar park.",
     "client": "Eiffage Energía",
     "locationString": "Colombia",
-    "year": "2022/2023",
+    "year": 2023,
     "status": "Finalizado",
     "lat": 11.5444,
     "lng": -72.9072
