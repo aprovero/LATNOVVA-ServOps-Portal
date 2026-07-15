@@ -274,7 +274,7 @@ export default function LatnovvaESPBrochure() {
                         {/* Legend — sits absolutely at the bottom-left of the map area, below Tierra del Fuego */}
                         <a
                             href="/live-map"
-                            className="absolute bottom-[-30px] md:bottom-[-25px] left-[2%] sm:left-[5%] md:left-[12%] flex items-center gap-2.5 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-sm font-bold tracking-wide"
+                            className="absolute bottom-[-45px] md:bottom-[-40px] left-[14%] sm:left-[17%] md:left-[24%] flex items-center gap-2.5 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-sm font-bold tracking-wide"
                         >
                             <span className="relative flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-teal opacity-75"></span>
