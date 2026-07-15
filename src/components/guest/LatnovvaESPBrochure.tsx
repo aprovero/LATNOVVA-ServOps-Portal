@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mail, MapPin, Zap, Train, Rss, Globe, Factory, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Mail, MapPin, Zap, Train, Rss, Globe, Factory, CheckCircle2, ChevronDown, Download } from 'lucide-react';
 
 /* ─── Scroll reveal hook ─────────────────────────────────────────────── */
 function useReveal(threshold = 0.15) {
@@ -831,13 +831,23 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                         <p className="text-white/70 text-lg max-w-md mx-auto leading-relaxed">
                             Have a project that needs expert technical support in the field? Let's connect.
                         </p>
-                        <a
-                            href="mailto:contacto@latnovva.com"
-                            className="inline-flex items-center gap-3 bg-white text-brand-teal rounded-full px-8 py-4 text-base font-black mt-8 hover:bg-emerald-50 transition-all shadow-xl"
-                        >
-                            <Mail size={18} />
-                            contacto@latnovva.com
-                        </a>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+                            <a
+                                href="mailto:contacto@latnovva.com"
+                                className="inline-flex items-center gap-3 bg-white text-brand-teal rounded-full px-8 py-4 text-base font-black hover:bg-emerald-50 transition-all shadow-xl w-full sm:w-auto justify-center"
+                            >
+                                <Mail size={18} />
+                                contacto@latnovva.com
+                            </a>
+                            <a
+                                href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
+                                download
+                                className="inline-flex items-center gap-3 bg-transparent text-white border-2 border-white/80 rounded-full px-8 py-[14px] text-base font-black hover:bg-white/10 transition-all w-full sm:w-auto justify-center"
+                            >
+                                <Download size={18} />
+                                Download our Technical Capabilities Brief
+                            </a>
+                        </div>
                     </Reveal>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
