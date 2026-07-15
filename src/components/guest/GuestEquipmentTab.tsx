@@ -27,7 +27,7 @@ export default function GuestEquipmentTab() {
     // So we don't need isExpired anymore.
 
     return (
-        <div className="flex flex-col w-full h-full bg-gray-50/50 p-6 md:p-10">
+        <div className="flex flex-col w-full h-full bg-gray-50/50 p-6 md:p-10 pt-[84px] md:pt-[92px]">
             <div className="max-w-6xl mx-auto w-full">
                 
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">

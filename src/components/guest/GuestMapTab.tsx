@@ -327,7 +327,7 @@ export default function GuestMapTab() {
     };
 
     return (
-        <div className="absolute inset-0 flex flex-col">
+        <div className="absolute inset-0 flex flex-col pt-[84px]">
             {/* Filter Bar */}
             <div className="shrink-0 bg-white border-b border-gray-200 p-3 z-[400] relative">
                 <div className="flex items-center gap-2">

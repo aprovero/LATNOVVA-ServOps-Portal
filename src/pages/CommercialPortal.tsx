@@ -32,23 +32,19 @@ export default function CommercialPortal() {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full w-full">
-                    {/* Tab Navigation - floating over content on presentation, integrated on map/equipment */}
-                    <div className={
-                        activeTab === 'presentation'
-                            ? "absolute top-6 left-0 right-0 z-20 flex justify-center pointer-events-none"
-                            : "bg-white border-b border-gray-100 p-3 shadow-sm shrink-0 flex justify-center z-10 relative"
-                    }>
+                    {/* Tab Navigation - positioned identically to prevent layout shifting */}
+                    <div className="absolute top-6 left-0 right-0 z-20 flex justify-center pointer-events-none">
                         <TabsList className={
                             activeTab === 'presentation'
-                                ? "bg-slate-900/60 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 pointer-events-auto shadow-2xl"
-                                : "bg-gray-100/50 p-1.5 rounded-2xl border border-gray-100"
+                                ? "bg-slate-900/60 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 pointer-events-auto shadow-2xl transition-all duration-300"
+                                : "bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-gray-200/60 pointer-events-auto shadow-lg transition-all duration-300"
                         }>
                             <TabsTrigger 
                                 value="presentation" 
                                 className={
                                     activeTab === 'presentation'
                                         ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold hover:text-white"
-                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
+                                        : "rounded-xl text-gray-500 hover:text-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
                                 }
                             >
                                 <img src="/latnovva-O-logo.png" alt="" className="w-4 h-4 object-contain shrink-0" />
@@ -59,7 +55,7 @@ export default function CommercialPortal() {
                                 className={
                                     activeTab === 'presentation'
                                         ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold hover:text-white"
-                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
+                                        : "rounded-xl text-gray-500 hover:text-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
                                 }
                             >
                                 <MapIcon size={16} className="shrink-0" />
@@ -70,7 +66,7 @@ export default function CommercialPortal() {
                                 className={
                                     activeTab === 'presentation'
                                         ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold hover:text-white"
-                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
+                                        : "rounded-xl text-gray-500 hover:text-brand-teal data-[state=active]:bg-brand-teal data-[state=active]:text-white data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
                                 }
                             >
                                 <Wrench size={16} className="shrink-0" />
