@@ -68,7 +68,7 @@ serve(async (req) => {
       // 2. Query timesheets for today to see who has NOT clocked in
       const { data: activeShifts, error: shiftErr } = await supabase
         .from("timesheets")
-        .select("personnelId")
+        .select("personnel_id")
         .eq("date", todayStr);
 
       if (shiftErr) throw shiftErr;
@@ -76,14 +76,14 @@ serve(async (req) => {
       // Also check Mexico timesheets
       const { data: activeMxShifts, error: mxShiftErr } = await supabase
         .from("mx_timesheets")
-        .select("employee_id")
+        .select("personnel_id")
         .eq("date", todayStr);
 
       if (mxShiftErr) throw mxShiftErr;
 
       const clockedInIds = new Set([
-        ...activeShifts.map(s => s.personnelId),
-        ...activeMxShifts.map(s => s.employee_id)
+        ...activeShifts.map(s => s.personnel_id),
+        ...activeMxShifts.map(s => s.personnel_id)
       ]);
 
       // Filter staff who are NOT clocked in
@@ -98,23 +98,23 @@ serve(async (req) => {
       // We check both global and Mexico timesheet tables
       const { data: openShifts, error: shiftErr } = await supabase
         .from("timesheets")
-        .select("personnelId")
+        .select("personnel_id")
         .eq("date", todayStr)
-        .is("timeOut", null);
+        .is("time_out", null);
 
       if (shiftErr) throw shiftErr;
 
       const { data: openMxShifts, error: mxShiftErr } = await supabase
         .from("mx_timesheets")
-        .select("employee_id")
+        .select("personnel_id")
         .eq("date", todayStr)
         .is("time_out", null);
 
       if (mxShiftErr) throw mxShiftErr;
 
       const openShiftUserIds = new Set([
-        ...openShifts.map(s => s.personnelId),
-        ...openMxShifts.map(s => s.employee_id)
+        ...openShifts.map(s => s.personnel_id),
+        ...openMxShifts.map(s => s.personnel_id)
       ]);
 
       // Query profiles for these IDs

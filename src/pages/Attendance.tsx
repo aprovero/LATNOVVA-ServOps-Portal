@@ -96,6 +96,11 @@ export default function Attendance() {
         };
     }, [refreshAttendance, activeSubsidiary]);
 
+    // Refresh attendance data on page mount to ensure latest state is loaded
+    useEffect(() => {
+        refreshAttendance();
+    }, [refreshAttendance]);
+
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {

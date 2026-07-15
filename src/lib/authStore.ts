@@ -99,7 +99,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 }
 
                 if (!newSession?.user) {
-                    set({ loading: false });
+                    // Verify if there is really no session cached before setting loading: false
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                        set({ loading: false });
+                    }
                     return;
                 }
 

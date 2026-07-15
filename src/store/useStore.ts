@@ -1348,11 +1348,21 @@ export const useStore = create<AppState>()(
                     set({ isInitializing: false });
                 }
             },
+
             refreshAttendance: async () => {
                 try {
-                    const { data: timesheetsDB } = await supabase.from('mx_timesheets').select('*');
-                    if (timesheetsDB) {
-                        set(state => {
+                    const [timesheetsRes, overridesRes] = await Promise.all([
+                        supabase.from('mx_timesheets').select('*'),
+                        supabase.from('mx_attendance_overrides').select('*')
+                    ]);
+
+                    const { data: timesheetsDB } = timesheetsRes;
+                    const { data: overridesDB } = overridesRes;
+
+                    set(state => {
+                        const newState: Partial<AppState> = {};
+
+                        if (timesheetsDB) {
                             const dbMapped = timesheetsDB.map(t => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
@@ -1386,12 +1396,28 @@ export const useStore = create<AppState>()(
 
                             const updatedDbEntries = dbMapped.filter(t => !pendingIds.has(t.id));
                             const pendingLocalEntries = state.timesheets.filter(t => pendingIds.has(t.id));
+                            newState.timesheets = [...updatedDbEntries, ...pendingLocalEntries];
+                        }
 
-                            return {
-                                timesheets: [...updatedDbEntries, ...pendingLocalEntries]
-                            };
-                        });
-                    }
+                        if (overridesDB) {
+                            newState.attendanceOverrides = overridesDB.map(o => ({
+                                id: o.id,
+                                employeeId: o.employee_id,
+                                startDate: o.start_date,
+                                endDate: o.end_date,
+                                type: o.type,
+                                duration: o.duration,
+                                customHours: o.custom_hours,
+                                notes: o.notes,
+                                approvedBy: o.approved_by,
+                                createdBy: o.created_by,
+                                createdAt: o.created_at,
+                                updatedAt: o.updated_at
+                            }));
+                        }
+
+                        return newState;
+                    });
                 } catch (e) {
                     console.error('[Sync] Failed to refresh attendance:', e);
                 }
