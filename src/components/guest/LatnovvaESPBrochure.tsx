@@ -222,12 +222,12 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                         { value: 2500, suffix: '+', unit: 'MW', label: 'Executed in Renewable Energy' },
                         { value: 285, suffix: '+', unit: '', label: 'Employees Across the Group' },
                         { value: 40, suffix: 'M', unit: 'USD', label: 'Revenue 2024' },
-                        { value: 18, suffix: '+', unit: 'MW', label: 'in E-Mobility' },
+                        { value: 18, suffix: '+', unit: 'MWh', label: 'in E-Mobility' },
                         { value: 100, suffix: '+', unit: '', label: 'Tertiary Installation Projects' },
                     ].map((s, i) => (
                         <Reveal key={s.label} delay={i * 80} className="flex flex-col items-center">
                             <div className="text-4xl font-black text-white mb-0.5 tabular-nums">
-                                <CountUp to={s.value} />{s.suffix}
+                                <CountUp to={s.value} />{s.suffix}{s.unit && <span className="text-2xl font-black ml-1 text-emerald-250">{s.unit}</span>}
                             </div>
                             <div className="text-[10px] font-black text-emerald-200 uppercase tracking-wider leading-tight">
                                 {s.label}
