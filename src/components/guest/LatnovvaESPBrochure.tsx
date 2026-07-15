@@ -301,11 +301,11 @@ export default function LatnovvaESPBrochure() {
             {/* ══════════════════════════════════════════════════════════
                 ACTIVITY LINES — all 5 disciplines
             ══════════════════════════════════════════════════════════ */}
-            <section className="py-28 px-8 bg-white">
+            <section className="py-28 px-8 bg-gray-950">
                 <div className="max-w-6xl mx-auto">
                     <Reveal className="text-center mb-16">
                         <Label>Activity Lines</Label>
-                        <h2 className="text-4xl font-black text-gray-900 mt-2">
+                        <h2 className="text-4xl font-black text-white mt-2">
                             Capabilities that make the difference.
                         </h2>
                     </Reveal>
@@ -329,14 +329,14 @@ export default function LatnovvaESPBrochure() {
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">Green Energies</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                <h3 className="text-xl font-black text-white mb-3">Green Energies</h3>
+                                <p className="text-white/60 text-sm leading-relaxed mb-4">
                                     Solar, BESS and wind. From basic engineering through EPC/BOS/BOP construction, commissioning, COD testing and O&amp;M.
                                 </p>
                                 <ul className="space-y-2">
                                     {['Basic & Detail Engineering', 'EPC, BOS or BOP Construction', 'COD & PR Testing', 'Operations & Maintenance'].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />{s}
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-white/70">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" />{s}
                                         </li>
                                     ))}
                                 </ul>
@@ -359,13 +359,13 @@ export default function LatnovvaESPBrochure() {
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">Industrial Installations<br />&amp; Maintenance</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                <h3 className="text-xl font-black text-white mb-3">Industrial Installations<br />&amp; Maintenance</h3>
+                                <p className="text-white/60 text-sm leading-relaxed mb-4">
                                     MV supply connections, under-slab piping, HVAC systems, earthing networks and commissioning in hospitals, hotels and industrial warehouses.
                                 </p>
                                 <ul className="space-y-2">
                                     {['Basic & Detail Engineering (MPE)', 'Hydraulic, megger & VLF testing', 'Preventive & corrective maintenance', "Owner's Engineering"].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-white/70">
                                             <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />{s}
                                         </li>
                                     ))}
@@ -389,14 +389,14 @@ export default function LatnovvaESPBrochure() {
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">Railway<br />Infrastructure</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                <h3 className="text-xl font-black text-white mb-3">Railway<br />Infrastructure</h3>
+                                <p className="text-white/60 text-sm leading-relaxed mb-4">
                                     HV/MV/LV induced works, electrical grid rerouting, complete railway systems and catenary from engineering through maintenance.
                                 </p>
                                 <ul className="space-y-2">
                                     {['Induced Works: Engineering & Construction', 'Complete Railway Systems', 'Catenary: Supply & Assembly', 'Commissioning & Maintenance'].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />{s}
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-white/70">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />{s}
                                         </li>
                                     ))}
                                 </ul>
@@ -423,13 +423,13 @@ export default function LatnovvaESPBrochure() {
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">Communications</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                <h3 className="text-xl font-black text-white mb-3">Communications</h3>
+                                <p className="text-white/60 text-sm leading-relaxed mb-4">
                                     Design, layout, construction and commissioning of structured communication arrays, fiber optic networks and dedicated telemetry backbones.
                                 </p>
                                 <ul className="space-y-2">
                                     {['Network Engineering & Design', 'Infrastructure Construction', 'Commissioning', 'Preventive Maintenance'].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-white/70">
                                             <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />{s}
                                         </li>
                                     ))}
@@ -453,14 +453,14 @@ export default function LatnovvaESPBrochure() {
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-gray-900 mb-3">E-Mobility &amp;<br />EV Infrastructure</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                                <h3 className="text-xl font-black text-white mb-3">E-Mobility &amp;<br />EV Infrastructure</h3>
+                                <p className="text-white/60 text-sm leading-relaxed mb-4">
                                     EV charging infrastructure, fleet management, storage optimization and software integration. Builders of the largest EV hub (4 MW) in Latin America.
                                 </p>
                                 <ul className="space-y-2">
                                     {['Basic & Detail Engineering', 'EPC and/or BoS Delivery Models', 'Operation & Maintenance Services', 'Capex, Opex & PPA Modalities'].map(s => (
-                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />{s}
+                                        <li key={s} className="flex items-center gap-2 text-xs font-semibold text-white/70">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />{s}
                                         </li>
                                     ))}
                                 </ul>
