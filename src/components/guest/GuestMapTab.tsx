@@ -614,16 +614,17 @@ export default function GuestMapTab() {
                                 {proj.client && (
                                     <div className="flex items-center justify-between gap-1.5 mb-1.5 text-xs text-gray-500 w-full">
                                         <div className="flex items-center gap-1.5 min-w-0">
-                                            <Building2 size={11} className="shrink-0" />
+                                            {getCustomerLogo(proj.client) ? (
+                                                <img
+                                                    src={getCustomerLogo(proj.client)!}
+                                                    alt={proj.client}
+                                                    className="w-4 h-4 rounded object-contain bg-gray-50 border border-gray-100 p-0.5 shrink-0"
+                                                />
+                                            ) : (
+                                                <Building2 size={11} className="shrink-0" />
+                                            )}
                                             <span className="truncate">{proj.client}</span>
                                         </div>
-                                        {getCustomerLogo(proj.client) && (
-                                            <img
-                                                src={getCustomerLogo(proj.client)!}
-                                                alt={proj.client}
-                                                className="w-4 h-4 rounded object-contain bg-gray-50 border border-gray-100 p-0.5 shrink-0"
-                                            />
-                                        )}
                                     </div>
                                 )}
                                 <div className="flex items-center gap-1.5 text-xs text-gray-400">
