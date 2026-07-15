@@ -259,7 +259,7 @@ export default function LatnovvaESPBrochure() {
                         </div>
                     </div>
                     {/* World presence visual — Custom map image directly on white page */}
-                    <Reveal delay={150} className="relative flex flex-col items-center justify-center w-full gap-3">
+                    <Reveal delay={150} className="relative w-full flex flex-col items-center">
                         <a
                             href="/live-map"
                             className="relative group w-full"
@@ -271,14 +271,14 @@ export default function LatnovvaESPBrochure() {
                                 className="w-full max-h-[550px] md:scale-125 object-contain transition-opacity duration-300 group-hover:opacity-80" 
                             />
                         </a>
-                        {/* Legend — sits directly below the map */}
+                        {/* Legend — sits absolutely at the bottom-left of the map area */}
                         <a
                             href="/live-map"
-                            className="flex items-center gap-2 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-xs font-semibold tracking-wide md:scale-[0.8]"
+                            className="absolute bottom-2 left-[5%] sm:left-[15%] md:left-[28%] flex items-center gap-2.5 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-sm font-bold tracking-wide"
                         >
-                            <span className="relative flex h-2 w-2">
+                            <span className="relative flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-teal opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-teal"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-teal"></span>
                             </span>
                             Click to explore our live project map →
                         </a>
