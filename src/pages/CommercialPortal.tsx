@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Building2, Map as MapIcon, Wrench } from 'lucide-react';
+import { Map as MapIcon, Wrench } from 'lucide-react';
 import LatnovvaESPBrochure from '../components/guest/LatnovvaESPBrochure';
 import GuestMapTab from '../components/guest/GuestMapTab';
 import GuestEquipmentTab from '../components/guest/GuestEquipmentTab';
@@ -51,7 +51,7 @@ export default function CommercialPortal() {
                                         : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-3 sm:px-6 py-2 sm:py-2.5 transition-all flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold"
                                 }
                             >
-                                <Building2 size={16} className="shrink-0" />
+                                <img src="/latnovva-O-logo.png" alt="" className="w-4 h-4 object-contain shrink-0" />
                                 <span>Our Services</span>
                             </TabsTrigger>
                             <TabsTrigger 
