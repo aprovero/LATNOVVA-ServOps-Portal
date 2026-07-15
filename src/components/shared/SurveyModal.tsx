@@ -41,34 +41,76 @@ export default function SurveyModal({ forceOpen = false, onCloseForce }: SurveyM
 
     // Determine if modal should open automatically
     useEffect(() => {
+        let active = true;
+        let timerId: any = null;
+
         if (forceOpen) {
             setIsOpen(true);
             setStep('step1'); // Go straight to step1 if manually forced
             return;
         }
 
-        const surveyStatus = localStorage.getItem('survey_status');
-        const sessionDismissed = sessionStorage.getItem('survey_dismissed_session') === 'true';
+        const checkCompleted = async () => {
+            const surveyStatus = localStorage.getItem('survey_status');
+            const sessionDismissed = sessionStorage.getItem('survey_dismissed_session') === 'true';
 
-        // Do not show if already completed or user asked never to be prompted again
-        if (surveyStatus === 'completed' || surveyStatus === 'dont_ask') {
-            return;
-        }
+            // If locally marked as completed/dont_ask, skip database check
+            if (surveyStatus === 'completed' || surveyStatus === 'dont_ask') {
+                return;
+            }
 
-        // Show on sign-in (if not dismissed in current session) or force-show when entering clock-in
-        const isClockInPage = location.pathname === '/clock-in';
-        
-        if (isClockInPage && !surveyStatus) {
-            setIsOpen(true);
-            setStep('prompt');
-        } else if (!sessionDismissed && !surveyStatus) {
-            const timer = setTimeout(() => {
+            if (sessionDismissed) {
+                return;
+            }
+
+            // Check database to see if they've already submitted a response
+            try {
+                const myPersonId = useStore.getState().resolvePersonnelId();
+                const personRecord = personnel.find(p => p.id === myPersonId);
+                const userEmail = personRecord?.email || '';
+
+                if (myPersonId || userEmail) {
+                    let query = supabaseUntyped.from('user_feedback').select('id');
+                    
+                    if (myPersonId) {
+                        query = query.eq('personnel_id', myPersonId);
+                    } else {
+                        query = query.eq('user_email', userEmail);
+                    }
+
+                    const { data, error } = await query.limit(1);
+                    if (active && !error && data && data.length > 0) {
+                        localStorage.setItem('survey_status', 'completed');
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Error checking feedback status from DB:', e);
+            }
+
+            if (!active) return;
+
+            // Show on sign-in (if not dismissed in current session) or force-show when entering clock-in
+            const isClockInPage = location.pathname === '/clock-in';
+            
+            if (isClockInPage) {
                 setIsOpen(true);
                 setStep('prompt');
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [location.pathname, forceOpen]);
+            } else {
+                timerId = setTimeout(() => {
+                    setIsOpen(true);
+                    setStep('prompt');
+                }, 3000);
+            }
+        };
+
+        checkCompleted();
+
+        return () => {
+            active = false;
+            if (timerId) clearTimeout(timerId);
+        };
+    }, [location.pathname, forceOpen, personnel]);
 
     const handleDismissSession = () => {
         sessionStorage.setItem('survey_dismissed_session', 'true');
