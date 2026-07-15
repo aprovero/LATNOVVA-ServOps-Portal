@@ -189,11 +189,11 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                 <div className="relative z-10 max-w-5xl mx-auto w-full">
                     <Reveal delay={200}>
                         <div className="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-5">
-                            International Engineering Company
+                            Engineering, Construction &amp; O&amp;M Services
                         </div>
                         <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.02] tracking-tight mb-8">
-                            Engineering that<br />
-                            <span className="text-emerald-300">transforms</span><br />
+                            Solutions that<br />
+                            <span className="text-emerald-300">transform</span><br />
                             the world.
                         </h1>
                     </Reveal>
