@@ -329,7 +329,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-white mb-3">Green Energies</h3>
+                                <h3 className="text-xl font-black text-white mb-3">Green<br />Energies</h3>
                                 <p className="text-white/60 text-sm leading-relaxed mb-4">
                                     Solar, BESS and wind. From basic engineering through EPC/BOS/BOP construction, commissioning, COD testing and O&amp;M.
                                 </p>
@@ -423,7 +423,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-black text-white mb-3">Communications</h3>
+                                <h3 className="text-xl font-black text-white mb-3">Communications<br />&amp; Telemetry</h3>
                                 <p className="text-white/60 text-sm leading-relaxed mb-4">
                                     Design, layout, construction and commissioning of structured communication arrays, fiber optic networks and dedicated telemetry backbones.
                                 </p>
