@@ -473,7 +473,16 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
             {/* ══════════════════════════════════════════════════════════
                 ENERGÍA — Detail section
             ══════════════════════════════════════════════════════════ */}
-            <section className="relative py-32 px-8 overflow-hidden bg-brand-teal">
+            <section className="relative py-32 px-8 overflow-hidden">
+                {/* Background solar grid photo with dark teal overlay */}
+                <div className="absolute inset-0">
+                    <img 
+                        src="/latnovva-esp/greenenergies.jpg" 
+                        alt="" 
+                        className="w-full h-full object-cover" 
+                    />
+                    <div className="absolute inset-0 bg-brand-teal/90 backdrop-blur-[2px]" />
+                </div>
                 <div className="relative z-10 max-w-6xl mx-auto">
                     <div className="grid md:grid-cols-2 gap-20 items-center">
                         <div>
@@ -499,9 +508,9 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                 { n: '08', label: 'Operations & Maintenance' },
                             ].map((item, i) => (
                                 <Reveal key={item.n} delay={100 + i * 50} className="h-full">
-                                    <div className="bg-white/12 backdrop-blur border border-white/20 rounded-2xl p-4 hover:bg-white/20 transition-all h-full flex flex-col justify-center">
-                                        <div className="text-emerald-300 font-black text-xs mb-1">{item.n}</div>
-                                        <div className="text-white font-semibold text-sm leading-snug">{item.label}</div>
+                                    <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 hover:bg-white hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col justify-center cursor-default">
+                                        <div className="text-emerald-300 group-hover:text-brand-teal font-black text-xs mb-1 transition-colors duration-300">{item.n}</div>
+                                        <div className="text-white group-hover:text-gray-900 font-bold text-sm leading-snug transition-colors duration-300">{item.label}</div>
                                     </div>
                                 </Reveal>
                             ))}
@@ -524,46 +533,50 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                         </h2>
                     </Reveal>
                     <div className="relative">
-                        {/* Vertical line */}
-                        <div className="absolute left-8 top-0 bottom-0 w-px bg-gray-100 hidden md:block" />
+                        {/* Gradient vertical methodology line */}
+                        <div className="absolute left-8 top-0 bottom-0 w-[2px] bg-gradient-to-b from-brand-teal via-amber-400 via-indigo-500 to-emerald-500 hidden md:block" />
                         <div className="space-y-10">
                             {[
                                 {
                                     step: '01',
                                     title: 'Coordination',
                                     color: 'bg-brand-teal',
+                                    textColor: 'text-brand-teal',
                                     items: ['Identify all project activities', 'Arrange tasks chronologically', 'Identify prerequisites and required resources', 'Define responsibilities and deadlines'],
                                 },
                                 {
                                     step: '02',
                                     title: 'Operational Dynamics',
                                     color: 'bg-amber-500',
+                                    textColor: 'text-amber-500',
                                     items: ['Zone descriptions and code definitions', 'Task-specific methodology', 'Technical work instructions', 'Daily and periodic task plans'],
                                 },
                                 {
                                     step: '03',
                                     title: 'Execution',
                                     color: 'bg-indigo-600',
+                                    textColor: 'text-indigo-600',
                                     items: ['Increased productivity', 'Optimal time control', 'Faster and more effective decision-making', 'More time for high-value customer activities'],
                                 },
                                 {
                                     step: '04',
                                     title: 'Evaluation',
                                     color: 'bg-emerald-500',
+                                    textColor: 'text-emerald-500',
                                     items: ['Visual and timeline-based review', 'Compliance with scheduled milestones', 'Internal audit', 'Joint customer/LATNOVVA assessment'],
                                 },
                             ].map((phase, i) => (
                                 <Reveal key={phase.step} delay={i * 80}>
-                                    <div className="flex gap-8 items-start">
-                                        <div className={`${phase.color} w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-lg relative z-10`}>
+                                    <div className="flex gap-8 items-start group">
+                                        <div className={`${phase.color} w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-300`}>
                                             {phase.step}
                                         </div>
-                                        <div className="flex-1 bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                                        <div className="flex-1 bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                                             <h3 className="font-black text-gray-900 text-lg mb-4">{phase.title}</h3>
                                             <ul className="grid sm:grid-cols-2 gap-2">
                                                 {phase.items.map(item => (
-                                                    <li key={item} className="flex items-start gap-2 text-sm text-gray-500 font-medium">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0 mt-1.5" />{item}
+                                                    <li key={item} className="flex items-start gap-2 text-sm text-gray-600 font-semibold">
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${phase.color} shrink-0 mt-1.5`} />{item}
                                                     </li>
                                                 ))}
                                             </ul>
