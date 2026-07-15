@@ -34,26 +34,46 @@ export default function CommercialPortal() {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full w-full">
-                    {/* Tab Navigation - floating over content or integrated */}
-                    <div className="absolute top-6 left-0 right-0 z-20 flex justify-center pointer-events-none">
-                        <TabsList className="bg-slate-900/60 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 pointer-events-auto shadow-2xl">
+                    {/* Tab Navigation - floating over content on presentation, integrated on map/equipment */}
+                    <div className={
+                        activeTab === 'presentation'
+                            ? "absolute top-6 left-0 right-0 z-20 flex justify-center pointer-events-none"
+                            : "bg-white border-b border-gray-100 p-3 shadow-sm shrink-0 flex justify-center z-10 relative"
+                    }>
+                        <TabsList className={
+                            activeTab === 'presentation'
+                                ? "bg-slate-900/60 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 pointer-events-auto shadow-2xl"
+                                : "bg-gray-100/50 p-1.5 rounded-2xl border border-gray-100"
+                        }>
                             <TabsTrigger 
                                 value="presentation" 
-                                className="rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
+                                className={
+                                    activeTab === 'presentation'
+                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
+                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold"
+                                }
                             >
                                 <Building2 size={18} />
                                 <span>Our Services</span>
                             </TabsTrigger>
                             <TabsTrigger 
                                 value="map" 
-                                className="rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
+                                className={
+                                    activeTab === 'presentation'
+                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
+                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold"
+                                }
                             >
                                 <MapIcon size={18} />
                                 <span>Projects Map</span>
                             </TabsTrigger>
                             <TabsTrigger 
                                 value="equipment" 
-                                className="rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
+                                className={
+                                    activeTab === 'presentation'
+                                        ? "rounded-xl text-white/70 data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold hover:text-white"
+                                        : "rounded-xl data-[state=active]:bg-white data-[state=active]:text-brand-teal data-[state=active]:shadow-sm px-6 py-2.5 transition-all flex items-center gap-2 font-bold"
+                                }
                             >
                                 <Wrench size={18} />
                                 <span>Equipment</span>
