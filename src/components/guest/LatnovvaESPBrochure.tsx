@@ -220,10 +220,10 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                 <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
                     {[
                         { value: 2500, suffix: '+', unit: 'MW', label: 'Executed in Renewable Energy' },
-                        { value: 285, suffix: '+', unit: '', label: 'Employees Across the Group' },
+                        { value: 320, suffix: '+', unit: '', label: 'People in Structure' },
                         { value: 40, suffix: 'M', unit: 'USD', label: 'Revenue 2024' },
                         { value: 18, suffix: '+', unit: 'MWh', label: 'in E-Mobility' },
-                        { value: 100, suffix: '+', unit: '', label: 'Tertiary Installation Projects' },
+                        { value: 100, suffix: '+', unit: '', label: 'Industrial Installation Projects' },
                     ].map((s, i) => (
                         <Reveal key={s.label} delay={i * 80} className="flex flex-col items-center">
                             <div className="text-4xl font-black text-white mb-0.5 tabular-nums">
