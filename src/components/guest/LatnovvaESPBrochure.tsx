@@ -797,12 +797,6 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                                 title: 'Full EPC EV Charging Hubs — 5 MW',
                                 items: ['Basic & detailed engineering', 'Full electrical installation', 'Commissioning & startup', 'Operations & maintenance'],
                             },
-                            {
-                                codes: [{ code: 'MX', color: 'bg-emerald-600' }],
-                                client: 'TSK', tagColor: 'text-amber-500',
-                                title: 'Combined Cycle Facilities SLP',
-                                items: ['Lighting and power outlet system installation', 'Signaling beacons installation', 'Lightning arresters system installation', 'Grounding network electrical assembly'],
-                            },
                         ].map((p, i) => (
                             <Reveal key={p.title} delay={i * 80} className="h-full">
                                 <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 h-full flex flex-col">
@@ -824,6 +818,33 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                              </Reveal>
                          ))}
                      </div>
+
+                     {/* Full-width wide card below the 3x3 grid */}
+                     <Reveal delay={200} className="mt-6">
+                         <div className="bg-gray-50 rounded-3xl p-6 md:p-8 border border-gray-100 flex flex-col md:flex-row gap-6 md:items-center shadow-sm hover:shadow-md transition-shadow">
+                             <div className="md:w-1/3 shrink-0">
+                                 <div className="flex items-center gap-2 mb-2">
+                                     <CountryFlag code="MX" />
+                                     <span className="text-xs font-black uppercase tracking-wider text-amber-500">TSK</span>
+                                 </div>
+                                 <h4 className="font-black text-gray-800 text-lg leading-snug">Combined Cycle Facilities SLP</h4>
+                                 <p className="text-xs text-gray-400 font-medium mt-1">San Luis Potosí, México</p>
+                             </div>
+                             <div className="flex-1 grid sm:grid-cols-2 gap-x-6 gap-y-3.5 border-t border-gray-200/60 pt-6 md:border-t-0 md:pt-0 md:border-l md:pl-8">
+                                 {[
+                                     'Lighting and power outlet system installation',
+                                     'Signaling beacons installation',
+                                     'Lightning arresters system installation',
+                                     'Grounding network electrical assembly'
+                                 ].map(item => (
+                                     <div key={item} className="flex items-start gap-3 text-xs text-gray-500 font-medium">
+                                         <div className="w-1.5 h-1.5 rounded-full bg-brand-teal shrink-0 mt-1.5" />
+                                         <span>{item}</span>
+                                     </div>
+                                 ))}
+                             </div>
+                         </div>
+                     </Reveal>
                  </div>
              </section>
 
