@@ -172,9 +172,9 @@ export default function LatnovvaESPBrochure() {
             <section className="relative h-[100vh] flex items-center px-8 overflow-hidden bg-slate-950">
                 {/* Background image & gradient overlay */}
                 <div className="absolute inset-0">
-                    <img src="/latnovva-esp/slide_08.png" alt="" className="w-full h-full object-cover object-center opacity-80" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/50 to-gray-950/20" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-gray-950/90 via-gray-950/40 to-transparent" />
+                    <img src="/latnovva-esp/hero_wind.jpg" alt="" className="w-full h-full object-cover object-center opacity-90" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-gray-950/40 to-gray-950/10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-950/95 via-gray-950/60 to-transparent" />
                 </div>
                 <div className="relative z-10 max-w-5xl mx-auto w-full">
                     <Reveal delay={200}>
