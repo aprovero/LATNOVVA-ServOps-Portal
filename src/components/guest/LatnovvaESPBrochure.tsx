@@ -603,7 +603,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                     <Reveal className="text-center mb-14">
                         <Label>Our Customers</Label>
                         <h2 className="text-4xl font-black text-white mt-2">
-                            Trusted by the leaders<br />of the energy sector.
+                            Trusted by leaders<br />of the energy sector.
                         </h2>
                     </Reveal>
 
