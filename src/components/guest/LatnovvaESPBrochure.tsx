@@ -850,29 +850,7 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                 CONTÁCTENOS
             ══════════════════════════════════════════════════════════ */}
             <section className="relative bg-brand-teal py-28 px-8">
-                {/* Float download brief button in the top-right corner */}
-                <div className="absolute top-8 right-8 z-10 hidden sm:block">
-                    <a
-                        href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
-                        download
-                        className="inline-flex items-center gap-2.5 bg-white/10 text-white border-2 border-white/60 rounded-full px-6 py-3 text-sm font-extrabold hover:bg-white hover:text-brand-teal transition-all shadow-md"
-                    >
-                        <Download size={16} />
-                        Download Capabilities Brief
-                    </a>
-                </div>
                 <div className="max-w-5xl mx-auto">
-                    {/* Mobile fallback download link (visible only on mobile where top-right is cramped) */}
-                    <div className="block sm:hidden text-center mb-6">
-                        <a
-                            href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
-                            download
-                            className="inline-flex items-center gap-2 text-white/80 border border-white/20 rounded-full px-3 py-1.5 text-xs font-bold hover:bg-white/10 transition-all"
-                        >
-                            <Download size={12} />
-                            Download Capabilities Brief
-                        </a>
-                    </div>
                     <Reveal className="text-center mb-16">
                         <h2 className="text-5xl font-black text-white mb-4">Let's talk.</h2>
                         <p className="text-white/70 text-lg max-w-md mx-auto leading-relaxed">
@@ -912,6 +890,18 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                             </Reveal>
                         ))}
                     </div>
+
+                    {/* Centered Technical Capabilities Brief CTA */}
+                    <Reveal delay={400} className="flex justify-center mt-12">
+                        <a
+                            href="/latnovva-esp/LATNOVVA_Technical_Capabilities_Brief_2026.pdf"
+                            download
+                            className="inline-flex items-center gap-3 bg-white/10 text-white border-2 border-white/60 rounded-full px-8 py-4 text-base font-extrabold hover:bg-white hover:text-brand-teal transition-all shadow-xl"
+                        >
+                            <Download size={18} />
+                            Download Technical Capabilities Brief
+                        </a>
+                    </Reveal>
                 </div>
             </section>
 
