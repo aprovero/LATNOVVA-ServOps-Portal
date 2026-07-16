@@ -306,11 +306,9 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                     <Reveal className="text-center mb-16">
                         <Label>Activity Lines</Label>
                         <h2 className="text-4xl font-black text-white mt-2">
-                            Capabilities that make the difference.
+                            Execution that makes the difference.
                         </h2>
                     </Reveal>
-
-                    {/* Row 1 — 3 cards */}
                     <div className="grid md:grid-cols-3 gap-8 mb-8">
 
                         {/* Green Energies */}
