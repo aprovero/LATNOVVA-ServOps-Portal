@@ -124,6 +124,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
                     return;
                 }
 
+                // Set the session immediately so the user is authenticated in the UI
+                set({ session: newSession, user: newSession.user });
+
                 // ── STEP 1: Fetch account data and init DB under a safety timeout race ──
                 const initPromise = (async () => {
                     useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
@@ -139,8 +142,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 const { profile, personnel } = await Promise.race([initPromise, timeoutPromise]);
 
                 set({ 
-                    session: newSession, 
-                    user: newSession.user, 
                     identity: profile, 
                     profile: personnel, 
                     loading: false 
@@ -154,13 +155,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 }
             } catch (err: any) {
                 console.error('[Auth Error] Catastrophic failure in auth listener:', err);
-                // Hardened fallback: only clear session and redirect for actual invalid auth tokens, not transient network errors
+                // Hardened fallback: only clear session and redirect for actual invalid auth tokens, not transient network/timeout errors
                 const isAuthError = (err?.name === 'AuthApiError' && (
                                         err?.message?.includes('Refresh Token') || 
                                         err?.message?.includes('invalid') ||
                                         err?.message?.includes('not found')
-                                     )) || 
-                                     err?.message?.includes('Initialization Timeout');
+                                     ));
 
                 if (isAuthError) {
                     console.warn('[Auth] Clearing localStorage and forcing redirect due to auth hang/failure...');
