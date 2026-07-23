@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, Building2, ChevronDown, Filter, Search, Check, Plus, Target } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, Building2, ChevronDown, Filter, Search, Check, Plus, Target, ArrowUpDown } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -79,6 +79,8 @@ export default function Projects() {
     const [searchParams] = useSearchParams();
     const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || 'All');
     const [filterCustomer, setFilterCustomer] = useState<string>('All');
+    const [searchName, setSearchName] = useState('');
+    const [sortBy, setSortBy] = useState<'time' | 'name' | 'progress'>('time');
     
     // Edit Customer State
     const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -135,12 +137,34 @@ export default function Projects() {
             }
         }
 
-        // Sort projects: Active first, then On Hold, then Completed
-        const statusWeight: Record<string, number> = { Active: 0, 'On Hold': 1, Completed: 2 };
-        filtered.sort((a, b) => (statusWeight[a.status] ?? 3) - (statusWeight[b.status] ?? 3));
+        // Filter by name (Search)
+        if (searchName.trim()) {
+            const term = searchName.toLowerCase().trim();
+            filtered = filtered.filter(p => p.name.toLowerCase().includes(term) || p.id.toLowerCase().includes(term));
+        }
+
+        // Sort projects: name, time (default), progress
+        if (sortBy === 'name') {
+            filtered.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortBy === 'progress') {
+            const getProgress = (proj: Project) => {
+                const allActs = proj.scopes?.flatMap(s => s.activities) || [];
+                if (allActs.length === 0) return 0;
+                const totalProgress = allActs.reduce((sum, act) => sum + act.progress, 0);
+                return Math.round(totalProgress / allActs.length);
+            };
+            // Descending order for progress
+            filtered.sort((a, b) => getProgress(b) - getProgress(a));
+        } else {
+            // Default: sort by reported time (descending)
+            const getTime = (proj: Project) => {
+                return timesheets.filter(t => t.projectId === proj.id).reduce((sum, t) => sum + t.hours, 0);
+            };
+            filtered.sort((a, b) => getTime(b) - getTime(a));
+        }
 
         return filtered;
-    }, [projects, selectedClientId, filterCustomer, filterStatus, userRole, clientId]);
+    }, [projects, selectedClientId, filterCustomer, filterStatus, userRole, clientId, searchName, sortBy, timesheets]);
 
     useEffect(() => {
         if (document.querySelector('.project-card')) {
@@ -222,6 +246,38 @@ export default function Projects() {
                                     {t('projects.directory', 'Projects Directory')}
                                     <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{visibleProjects.length}</span>
                                 </h2>
+                            </div>
+
+                            {/* Search filter */}
+                            <div className="space-y-1.5 flex-[1.2] min-w-[200px]">
+                                <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Search size={12} /> {t('common.search', 'Buscar')}</label>
+                                <div className="relative">
+                                    <input 
+                                        type="text"
+                                        placeholder={t('projects.search_placeholder', 'Buscar por nombre...')}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal pl-9"
+                                        value={searchName}
+                                        onChange={(e) => setSearchName(e.target.value)}
+                                    />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                </div>
+                            </div>
+
+                            {/* Sort selector */}
+                            <div className="space-y-1.5 flex-[0.8] min-w-[150px]">
+                                <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><ArrowUpDown size={12} /> {t('common.sort_by', 'Ordenar por')}</label>
+                                <div className="relative">
+                                    <select 
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-teal appearance-none cursor-pointer"
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value as any)}
+                                    >
+                                        <option value="time">{t('projects.sort.time', 'Tiempo Reportado')}</option>
+                                        <option value="name">{t('projects.sort.name', 'Nombre')}</option>
+                                        <option value="progress">{t('projects.sort.progress', 'Progreso')}</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                                </div>
                             </div>
                             
                             {['Manager', 'Supervisor'].includes(userRole) && (
