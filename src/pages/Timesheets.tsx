@@ -33,7 +33,7 @@ const formatPunchTime = (iso: string) => formatTime(iso);
 
 export default function Timesheets() {
     const { t } = useTranslation();
-    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName, resolvePersonnelId } = useStore();
+    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName, resolvePersonnelId, fetchTimesheetsForRange } = useStore();
     const resolvedPersonnelId = resolvePersonnelId() || userId;
 
     const punchLabel: Record<string, string> = {
@@ -102,6 +102,14 @@ export default function Timesheets() {
             setNewEntry((prev: Partial<TimesheetEntry>) => ({ ...prev, hours: calculateHours(prev.timeIn!, prev.timeOut!) }));
         }
     }, [newEntry.timeIn, newEntry.timeOut]);
+
+    useEffect(() => {
+        if (filterStartDate || filterEndDate) {
+            const start = filterStartDate || '1970-01-01';
+            const end = filterEndDate || new Date().toISOString().split('T')[0];
+            fetchTimesheetsForRange(start, end).catch(e => console.error('[Timesheets] Range fetch failed:', e));
+        }
+    }, [filterStartDate, filterEndDate, fetchTimesheetsForRange]);
 
     const openAddModal = () => {
         setEditingEntryId(null);

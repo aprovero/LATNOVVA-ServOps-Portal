@@ -452,6 +452,8 @@ interface AppState {
     /** Resolves the Personnel ID for the currently logged-in user. */
     resolvePersonnelId: () => string | null;
     initDb: () => Promise<void>;
+    fetchTimesheetsForRange: (startDate: string, endDate: string) => Promise<void>;
+    fetchReportsForRange: (startDate: string, endDate: string) => Promise<void>;
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
     setUserRole: (role: 'Tech' | 'Supervisor' | 'Manager' | 'Customer' | 'HR' | 'Office') => void;
@@ -1035,6 +1037,10 @@ export const useStore = create<AppState>()(
                     // Ensure auth session is loaded/refreshed first to prevent concurrent lock issues
                     await supabase.auth.getSession();
 
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
                     const [
                         clientsDB,
                         projectsDB,
@@ -1059,11 +1065,11 @@ export const useStore = create<AppState>()(
                             return data;
                         })(),
                         (async () => {
-                            const { data } = await supabase.from('reports').select('*');
+                            const { data } = await supabase.from('reports').select('*').gte('date', thirtyDaysAgoStr);
                             return data;
                         })(),
                         (async () => {
-                            const { data } = await supabase.from('mx_timesheets').select('*');
+                            const { data } = await supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr);
                             return data;
                         })(),
                         (async () => {
@@ -1428,6 +1434,111 @@ export const useStore = create<AppState>()(
             clearNotifications: (ids) => set((state) => ({
                 dismissedNotifications: [...state.dismissedNotifications, ...ids]
             })),
+            fetchTimesheetsForRange: async (startDate: string, endDate: string) => {
+                if (!startDate || !endDate) return;
+                try {
+                    const { data } = await supabase
+                        .from('mx_timesheets')
+                        .select('*')
+                        .gte('date', startDate)
+                        .lte('date', endDate);
+                    
+                    if (data && data.length > 0) {
+                        set((state) => {
+                            const dbMapped = data.map(t => ({
+                                id: t.id,
+                                personnelId: t.personnel_id,
+                                projectId: t.project_id,
+                                date: t.date,
+                                timeIn: t.time_in,
+                                lunchStart: t.lunch_start,
+                                lunchEnd: t.lunch_end,
+                                timeOut: t.time_out,
+                                hours: t.hours,
+                                type: t.type,
+                                classification: t.classification,
+                                notes: t.notes,
+                                status: t.status,
+                                approvedBy: t.approved_by,
+                                signature: t.signature,
+                                punches: t.punches || [],
+                                gpsVerified: t.gps_verified,
+                                source: (t as any).source || 'manual',
+                                manualReason: (t as any).manual_reason,
+                                correctedBy: (t as any).corrected_by,
+                                correctedAt: (t as any).corrected_at,
+                                correctionReason: (t as any).correction_reason,
+                            }));
+
+                            const existingIds = new Set(state.timesheets.map(t => t.id));
+                            const merged = [
+                                ...state.timesheets,
+                                ...dbMapped.filter(t => !existingIds.has(t.id))
+                            ];
+                            return { timesheets: merged };
+                        });
+                    }
+                } catch (e) {
+                    console.error('[Store] Failed to fetch timesheets for range:', e);
+                }
+            },
+
+            fetchReportsForRange: async (startDate: string, endDate: string) => {
+                if (!startDate || !endDate) return;
+                try {
+                    const { data } = await supabase
+                        .from('reports')
+                        .select('*')
+                        .gte('date', startDate)
+                        .lte('date', endDate);
+                    
+                    if (data && data.length > 0) {
+                        set((state) => {
+                            const dbMapped = data.map(r => ({
+                                id: r.id,
+                                projectId: r.project_id,
+                                projectName: '',
+                                clientId: r.client_id,
+                                date: r.date,
+                                state: r.state,
+                                schedule: r.schedule,
+                                weather: r.weather,
+                                location: r.location,
+                                equipment: r.equipment || [],
+                                customSections: r.custom_sections || [],
+                                comments: r.comments || [],
+                                labor: r.labor || [],
+                                media: r.media || [],
+                                occurrences: r.occurrences || [],
+                                checklists: r.checklists || [],
+                                subReportIds: r.sub_report_ids || [],
+                                attachments: r.attachments || [],
+                                externalAttachments: r.external_attachments || [],
+                                notes: r.notes || '',
+                                signatures: r.signatures || [],
+                                usedTools: r.used_tools || [],
+                                health: r.health,
+                                activityLogs: r.activity_logs || [],
+                                createdAt: r.created_at,
+                                createdBy: r.created_by,
+                                updatedAt: r.updated_at,
+                                updatedBy: r.updated_by,
+                                discipline: r.discipline
+                            }));
+
+                            const existingIds = new Set(state.reports.map(r => r.id));
+                            const merged = [
+                                ...state.reports,
+                                ...dbMapped.filter(r => !existingIds.has(r.id))
+                            ];
+                            return { reports: merged };
+                        });
+                    }
+                } catch (e) {
+                    console.error('[Store] Failed to fetch reports for range:', e);
+                }
+            },
+
             resetDb: () => {
                 set(() => ({
                     userRole: 'Tech',

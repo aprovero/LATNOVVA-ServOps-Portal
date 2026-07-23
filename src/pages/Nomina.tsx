@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Input } from '../components/ui/input';
 import { calculateDailyAttendance } from '../utils/attendanceCalculations';
@@ -48,7 +48,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function Nomina() {
     const { t } = useTranslation();
-    const { personnel, timesheets, projects, attendanceOverrides, workSchedules } = useStore();
+    const { personnel, timesheets, projects, attendanceOverrides, workSchedules, fetchTimesheetsForRange } = useStore();
     
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -62,6 +62,12 @@ export default function Nomina() {
     });
     const [selectedProject, setSelectedProject] = useState<string>('all');
     const [editableRows, setEditableRows] = useState<EditableNominaRow[]>([]);
+
+    useEffect(() => {
+        if (startDate || endDate) {
+            fetchTimesheetsForRange(startDate, endDate).catch(e => console.error('[Nomina] Range fetch failed:', e));
+        }
+    }, [startDate, endDate, fetchTimesheetsForRange]);
 
     const mxPersonnel = useMemo(() => {
         return personnel.filter(p => p.subsidiary === 'MX' || (p.subsidiaryMetadata && (p.subsidiaryMetadata.curp || p.subsidiaryMetadata.rfc)));

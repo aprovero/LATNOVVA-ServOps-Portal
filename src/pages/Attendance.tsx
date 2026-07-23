@@ -11,7 +11,7 @@ import { calculateDailyAttendance, formatDisplayDate } from '../utils/attendance
 
 export default function Attendance() {
     const { t, i18n } = useTranslation();
-    const { personnel, projects, timesheets, attendanceOverrides, workSchedules, refreshAttendance, activeSubsidiary } = useStore();
+    const { personnel, projects, timesheets, attendanceOverrides, workSchedules, refreshAttendance, activeSubsidiary, fetchTimesheetsForRange } = useStore();
 
     const filteredPersonnel = useMemo(() => {
         return personnel.filter(p => (p.subsidiary || 'US') === activeSubsidiary);
@@ -100,6 +100,12 @@ export default function Attendance() {
     useEffect(() => {
         refreshAttendance();
     }, [refreshAttendance]);
+
+    useEffect(() => {
+        if (startDate || endDate) {
+            fetchTimesheetsForRange(startDate, endDate).catch(e => console.error('[Attendance] Range fetch failed:', e));
+        }
+    }, [startDate, endDate, fetchTimesheetsForRange]);
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
