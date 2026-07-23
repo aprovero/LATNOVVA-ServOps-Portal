@@ -12,6 +12,14 @@ export const Login: React.FC = () => {
     const [localError, setLocalError] = useState<string | null>(null);
     const [localSuccess, setLocalSuccess] = useState<string | null>(null);
 
+    const session = useAuthStore(s => s.session);
+
+    React.useEffect(() => {
+        if (session && !loading) {
+            navigate('/', { replace: true });
+        }
+    }, [session, loading, navigate]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLocalError(null);
@@ -24,9 +32,6 @@ export const Login: React.FC = () => {
             await signInWithEmail(email, password);
             // Trigger permissions request on successful login
             requestInitialPermissions();
-            // Imperative navigation — fires exactly once after explicit user action.
-            // Cannot loop because it's not a reactive useEffect.
-            navigate('/', { replace: true });
         } catch (err: any) {
             setLocalError(err.message || 'Failed to authenticate');
         }

@@ -37,7 +37,7 @@ export default function Layout() {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings, activeSubsidiary } = useStore();
+    const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings, activeSubsidiary, initDb } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
     const { signOut } = useAuthStore();
 
@@ -196,6 +196,15 @@ export default function Layout() {
             subscribeUserToPush();
         }
     }, []);
+
+    useEffect(() => {
+        const handleFocus = () => {
+            console.log('[Layout] Tab focused, triggering background database refresh...');
+            initDb().catch(e => console.error('[Layout] Failed to refresh DB on focus:', e));
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [initDb]);
 
     const navGroups = [
         {

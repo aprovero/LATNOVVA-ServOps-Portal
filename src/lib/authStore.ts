@@ -94,7 +94,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !newSession)) {
                     useStore.getState().resetDb();
                     set({ session: null, user: null, profile: null, loading: false });
-                    window.location.href = '/login';
+                    if (window.location.pathname !== '/login') {
+                        window.location.href = '/login';
+                    }
                     return;
                 }
 
@@ -152,12 +154,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 }
             } catch (err: any) {
                 console.error('[Auth Error] Catastrophic failure in auth listener:', err);
-                // Hardened fallback: if this is an AuthApiError, token invalidation, or timeout, clear localStorage and redirect to login
-                const isAuthError = err?.name === 'AuthApiError' || 
-                                    err?.message?.includes('Refresh Token') || 
-                                    err?.message?.includes('token') ||
-                                    err?.message?.includes('Timeout') ||
-                                    err?.message?.includes('timeout');
+                // Hardened fallback: only clear session and redirect for actual invalid auth tokens, not transient network errors
+                const isAuthError = (err?.name === 'AuthApiError' && (
+                                        err?.message?.includes('Refresh Token') || 
+                                        err?.message?.includes('invalid') ||
+                                        err?.message?.includes('not found')
+                                     )) || 
+                                     err?.message?.includes('Initialization Timeout');
 
                 if (isAuthError) {
                     console.warn('[Auth] Clearing localStorage and forcing redirect due to auth hang/failure...');
@@ -165,9 +168,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
                         localStorage.clear();
                     } catch (e) {}
                     set({ session: null, user: null, profile: null, loading: false });
-                    window.location.href = '/login';
+                    if (window.location.pathname !== '/login') {
+                        window.location.href = '/login';
+                    }
                 } else {
-                    set({ loading: false, error: 'Authentication failed' });
+                    set({ loading: false, error: err?.message || 'Authentication failed' });
                 }
             }
         });
