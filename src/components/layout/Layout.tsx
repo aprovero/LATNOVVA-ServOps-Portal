@@ -203,6 +203,10 @@ export default function Layout() {
             initDb().catch(e => console.error('[Layout] Failed to refresh DB on focus:', e));
         };
         window.addEventListener('focus', handleFocus);
+        
+        // Initial mount database load/refresh
+        initDb().catch(e => console.error('[Layout] Failed to run initial DB init:', e));
+
         return () => window.removeEventListener('focus', handleFocus);
     }, [initDb]);
 
