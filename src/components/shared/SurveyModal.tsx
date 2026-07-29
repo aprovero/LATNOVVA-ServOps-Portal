@@ -16,6 +16,7 @@ interface SurveyModalProps {
 type StepType = 'prompt' | 'step1' | 'step2' | 'step3' | 'success';
 
 export default function SurveyModal({ forceOpen = false, onCloseForce }: SurveyModalProps) {
+    return null; // Survey is disabled
     const { t } = useTranslation();
     const location = useLocation();
     const { userRole, personnel } = useStore();

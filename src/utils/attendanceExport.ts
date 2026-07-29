@@ -325,3 +325,72 @@ export function exportDetailedPunchesToCSV(
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
+
+export function exportBinaryAttendanceToCSV(
+    employees: Personnel[],
+    timesheets: TimesheetEntry[],
+    overrides: AttendanceOverride[],
+    schedules: WorkSchedule[],
+    startDate: string,
+    endDate: string,
+    lang: 'en' | 'es' = 'es',
+    subsidiary: string = 'US'
+) {
+    const getDatesArray = (start: string, end: string): string[] => {
+        const arr = [];
+        const dt = new Date(start + 'T00:00:00');
+        const endDt = new Date(end + 'T00:00:00');
+        while (dt <= endDt) {
+            arr.push(new Date(dt).toISOString().split('T')[0]);
+            dt.setDate(dt.getDate() + 1);
+        }
+        return arr;
+    };
+
+    const dates = getDatesArray(startDate, endDate);
+    
+    const headers = [
+        lang === 'es' ? 'Nombre Completo' : 'Full Name',
+        lang === 'es' ? 'Número de Empleado' : 'Employee Number',
+        lang === 'es' ? 'Puesto' : 'Position',
+        ...dates
+    ];
+
+    const rows: string[][] = [];
+
+    employees.forEach(emp => {
+        const row = [
+            `"${emp.name}"`,
+            `"${emp.employeeNumber || ''}"`,
+            `"${emp.position || ''}"`
+        ];
+
+        dates.forEach(date => {
+            const dayView = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
+            let code = '0';
+            if (dayView.displayStatus === 'Present') {
+                code = '1';
+            } else if (dayView.displayStatus === 'Home Office') {
+                code = 'H';
+            } else if (dayView.displayStatus === 'Vacation') {
+                code = 'V';
+            } else if (dayView.displayStatus === 'Sick Leave') {
+                code = 'S';
+            }
+            row.push(code);
+        });
+
+        rows.push(row);
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `LATNOVVA${subsidiary}_reporte_asistencias_10HVS_${startDate}_${endDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}

@@ -5,10 +5,10 @@ import { useStore, Personnel as PersonnelType } from '../store/useStore';
 import {
     User, Plus, Trash2, Shield, Award, Search, Camera, ExternalLink,
     Activity, FolderGit2, Network, List, ChevronDown, Phone, Mail,
-    Briefcase, CheckCircle2, CircleDashed, Save, ArrowLeft, X
+    Briefcase, CheckCircle2, CircleDashed, Save, ArrowLeft, X, Upload
 } from 'lucide-react';
 import OrgChartView from '../components/personnel/OrgChartView';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { supabase } from '../lib/supabase';
@@ -29,6 +29,176 @@ export default function Personnel() {
     const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
     const [editDraft, setEditDraft] = useState<Partial<PersonnelType> | null>(null);
     const [isSaved, setIsSaved] = useState(false);
+
+    // Bulk personnel upload states for POC
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [bulkFileError, setBulkFileError] = useState<string | null>(null);
+    const [bulkFileSuccess, setBulkFileSuccess] = useState<string | null>(null);
+    const [isBulkUploading, setIsBulkUploading] = useState(false);
+
+    const handleDownloadTemplate = () => {
+        const headers = [
+            'EMPRESA', 'NOMBRE', 'PROYECTO', 'PUESTO', 'ALTA_IMSS', 'INGRESO', 'RFC', 'CURP', 'NSS', 'EDAD', 'GENERO', 'EDO_CIVIL', 'DOMICILIO', 'EMAIL', 'CORP_EMAIL', 'TEL', 'CLABE', 'BANCO', 'NOMINA_PPP', 'NOMINA_IMSS', 'TOTAL', 'CONTRATO', 'VENCE_PRUEBA', 'INE'
+        ];
+        const sampleRow = [
+            'LATNOVVA', 'JUAN PEREZ SANCHEZ', 'EST-LNV-000 CDMX', 'TECHNICIAN', '19/03/2026', '19/03/2026', 'PESJ800404BW7', 'PESJ800404HQRMRS03', '82968014975', '46', 'MASCULINO', 'SOLTERO', 'AV REFORMA 123 CDMX', 'juan.perez@gmail.com', 'jperez@latnovva.com', '5512345678', '12180015309895246', 'BBVA', '15000', '10000', '25000', '6 MESES', '18/09/2026', 'IDMEX1952181883'
+        ];
+        const csvContent = '\uFEFF' + [headers.join(','), sampleRow.join(',')].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", "plantilla_carga_masiva_personal.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setBulkFileError(null);
+        setBulkFileSuccess(null);
+        setIsBulkUploading(true);
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const text = event.target?.result as string;
+                if (!text) throw new Error("Could not read file contents");
+
+                const parseCSV = (csvText: string) => {
+                    const lines = csvText.split(/\r?\n/);
+                    const result = [];
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        const row = [];
+                        let inQuotes = false;
+                        let current = '';
+                        for (let i = 0; i < line.length; i++) {
+                            const char = line[i];
+                            if (char === '"') {
+                                inQuotes = !inQuotes;
+                            } else if (char === ',' && !inQuotes) {
+                                row.push(current.trim().replace(/^"|"$/g, ''));
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        row.push(current.trim().replace(/^"|"$/g, ''));
+                        result.push(row);
+                    }
+                    return result;
+                };
+
+                const parsedRows = parseCSV(text);
+                if (parsedRows.length <= 1) {
+                    throw new Error("No data rows found in CSV. Please check the template.");
+                }
+
+                const expectedHeaders = ['EMPRESA', 'NOMBRE'];
+                const fileHeaders = parsedRows[0].map(h => h.toUpperCase());
+                const hasRequired = expectedHeaders.every(h => fileHeaders.includes(h));
+                if (!hasRequired) {
+                    throw new Error("CSV is missing required headers: EMPRESA, NOMBRE");
+                }
+
+                const getIndex = (name: string) => fileHeaders.indexOf(name);
+                const idxEmpresa = getIndex('EMPRESA');
+                const idxNombre = getIndex('NOMBRE');
+                const idxProyecto = getIndex('PROYECTO');
+                const idxPuesto = getIndex('PUESTO');
+                const idxAltaImss = getIndex('ALTA_IMSS');
+                const idxIngreso = getIndex('INGRESO');
+                const idxRfc = getIndex('RFC');
+                const idxCurp = getIndex('CURP');
+                const idxNss = getIndex('NSS');
+                const idxEdad = getIndex('EDAD');
+                const idxGenero = getIndex('GENERO');
+                const idxEdoCivil = getIndex('EDO_CIVIL');
+                const idxDomicilio = getIndex('DOMICILIO');
+                const idxEmail = getIndex('EMAIL');
+                const idxCorpEmail = getIndex('CORP_EMAIL');
+                const idxTel = getIndex('TEL');
+                const idxClabe = getIndex('CLABE');
+                const idxBanco = getIndex('BANCO');
+                const idxNominaPpp = getIndex('NOMINA_PPP');
+                const idxNominaImss = getIndex('NOMINA_IMSS');
+                const idxTotal = getIndex('TOTAL');
+                const idxContrato = getIndex('CONTRATO');
+                const idxVencePrueba = getIndex('VENCE_PRUEBA');
+                const idxIne = getIndex('INE');
+
+                let importedCount = 0;
+                let lnvCount = personnel.filter(p => p.employeeNumber?.includes('LNV')).length;
+                let sysCount = personnel.filter(p => p.employeeNumber?.includes('SYS')).length;
+
+                for (let i = 1; i < parsedRows.length; i++) {
+                    const row = parsedRows[i];
+                    if (row.length < 2 || !row[idxNombre]) continue;
+
+                    const empresa = row[idxEmpresa] || 'LATNOVVA';
+                    const name = row[idxNombre];
+                    const position = row[idxPuesto] || 'TECHNICIAN';
+
+                    let generatedId = '';
+                    if (empresa.toUpperCase() === 'LATNOVVA') {
+                        lnvCount++;
+                        generatedId = `MX-LNV-${String(lnvCount).padStart(4, '0')}`;
+                    } else {
+                        sysCount++;
+                        generatedId = `MX-SYS-${String(sysCount).padStart(4, '0')}`;
+                    }
+
+                    const metadata = {
+                        siteAssigned: idxProyecto !== -1 ? row[idxProyecto] : '',
+                        imssDate: idxAltaImss !== -1 ? row[idxAltaImss] : '',
+                        hireDate: idxIngreso !== -1 ? row[idxIngreso] : '',
+                        curp: idxCurp !== -1 ? row[idxCurp] : '',
+                        rfc: idxRfc !== -1 ? row[idxRfc] : '',
+                        nss: idxNss !== -1 ? row[idxNss] : '',
+                        age: idxEdad !== -1 ? (parseInt(row[idxEdad]) || 0) : 0,
+                        gender: idxGenero !== -1 ? row[idxGenero] : '',
+                        maritalStatus: idxEdoCivil !== -1 ? row[idxEdoCivil] : '',
+                        street: idxDomicilio !== -1 ? row[idxDomicilio] : '',
+                        contractDuration: idxContrato !== -1 ? row[idxContrato] : '',
+                        contractExpiry: idxVencePrueba !== -1 ? row[idxVencePrueba] : '',
+                        bankName: idxBanco !== -1 ? row[idxBanco] : '',
+                        clabe: idxClabe !== -1 ? row[idxClabe] : '',
+                        nominaPpp: idxNominaPpp !== -1 ? (parseFloat(row[idxNominaPpp]) || 0) : 0,
+                        nominaImss: idxNominaImss !== -1 ? (parseFloat(row[idxNominaImss]) || 0) : 0,
+                        totalGross: idxTotal !== -1 ? (parseFloat(row[idxTotal]) || 0) : 0,
+                        ine: idxIne !== -1 ? row[idxIne] : '',
+                        company: empresa
+                    };
+
+                    await addPersonnel({
+                        id: crypto.randomUUID(),
+                        name,
+                        position,
+                        employeeNumber: generatedId,
+                        email: (idxCorpEmail !== -1 && row[idxCorpEmail]) || (idxEmail !== -1 && row[idxEmail]) || undefined,
+                        phoneNumber: idxTel !== -1 ? row[idxTel] : undefined,
+                        status: 'Active',
+                        appRole: 'Tech',
+                        subsidiary: 'MX',
+                        subsidiaryMetadata: metadata,
+                        certifications: []
+                    });
+                    importedCount++;
+                }
+
+                setBulkFileSuccess(`Successfully imported ${importedCount} active collaborators!`);
+            } catch (err: any) {
+                console.error(err);
+                setBulkFileError(err.message || "Failed to process CSV file.");
+            } finally {
+                setIsBulkUploading(false);
+            }
+        };
+        reader.readAsText(file);
+    };
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -303,15 +473,28 @@ export default function Personnel() {
                     <p className="text-gray-500 mt-1">{t('personnel.subtitle')}</p>
                 </div>
 
-                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button
-                            className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6"
-                            onClick={() => setNewPerson(null)}
-                        >
-                            <Plus size={18} /> {t('personnel.new_personnel')}
-                        </Button>
-                    </DialogTrigger>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl gap-2 font-bold shadow-sm h-11 px-6"
+                        onClick={() => {
+                            setBulkFileError(null);
+                            setBulkFileSuccess(null);
+                            setIsBulkModalOpen(true);
+                        }}
+                    >
+                        <Upload size={18} /> Carga Masiva
+                    </Button>
+
+                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button
+                                className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl gap-2 font-bold shadow-soft h-11 px-6"
+                                onClick={() => setNewPerson(null)}
+                            >
+                                <Plus size={18} /> {t('personnel.new_personnel')}
+                            </Button>
+                        </DialogTrigger>
                     <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto rounded-2xl p-6">
                         <DialogHeader>
                             <DialogTitle className="text-xl font-bold text-accent-greyDark">{t('personnel.new_personnel')}</DialogTitle>
@@ -574,6 +757,7 @@ export default function Personnel() {
                         </div>
                     </DialogContent>
                 </Dialog>
+                </div>
             </div>
 
             {/* Filter Bar */}
@@ -1140,6 +1324,64 @@ export default function Personnel() {
             ) : (
                 <OrgChartView />
             )}
+            {/* Bulk Upload Modal */}
+            <Dialog open={isBulkModalOpen} onOpenChange={setIsBulkModalOpen}>
+                <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 shadow-xl border border-gray-150">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <Upload className="text-brand-teal w-5 h-5" />
+                            Carga Masiva de Personal
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <p className="text-sm text-slate-600 leading-normal">
+                            Sube un archivo CSV utilizando la plantilla oficial de LATNOVVA para registrar múltiples colaboradores activos simultáneamente.
+                        </p>
+                        
+                        <div className="flex justify-between items-center bg-teal-50 border border-teal-100 rounded-2xl p-4">
+                            <span className="text-xs text-brand-teal font-semibold">Plantilla oficial de carga</span>
+                            <Button size="sm" variant="outline" onClick={handleDownloadTemplate} className="text-xs font-bold border-teal-200 text-brand-teal hover:bg-teal-100/50 rounded-lg">
+                                Descargar CSV
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase">Seleccionar Archivo CSV</label>
+                            <Input 
+                                type="file" 
+                                accept=".csv" 
+                                onChange={handleCSVUpload} 
+                                disabled={isBulkUploading} 
+                                className="h-10 text-xs cursor-pointer border-slate-200"
+                            />
+                        </div>
+
+                        {isBulkUploading && (
+                            <div className="text-xs text-slate-500 flex items-center gap-2">
+                                <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand-teal" />
+                                Importando colaboradores...
+                            </div>
+                        )}
+
+                        {bulkFileError && (
+                            <div className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl p-3 font-medium">
+                                Error: {bulkFileError}
+                            </div>
+                        )}
+
+                        {bulkFileSuccess && (
+                            <div className="text-xs text-teal-600 bg-teal-50 border border-teal-100 rounded-xl p-3 font-medium">
+                                {bulkFileSuccess}
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setIsBulkModalOpen(false)} className="w-full rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold text-sm">
+                            Cerrar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

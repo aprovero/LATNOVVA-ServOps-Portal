@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ArrowRight, ShieldCheck, Component } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck, Component, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 import { requestInitialPermissions } from '../lib/permissions';
+import { useStore } from '../store/useStore';
+import FaceCameraModal from '../components/shared/FaceCameraModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Button } from '../components/ui/button';
 
 export const Login: React.FC = () => {
     const navigate = useNavigate();
@@ -14,8 +18,28 @@ export const Login: React.FC = () => {
 
     const session = useAuthStore(s => s.session);
 
+    // Face ID enrollment states for POC
+    const [showFaceIdPrompt, setShowFaceIdPrompt] = useState(false);
+    const [showEnroller, setShowEnroller] = useState(false);
+    const [enrollerMode, setEnrollerMode] = useState<'enroll' | 'verify'>('enroll');
+    const [tempDescriptor, setTempDescriptor] = useState<number[] | null>(null);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [showVerifyPrompt, setShowVerifyPrompt] = useState(false);
+    const isConfirmed = React.useRef(false);
+    const { personnel } = useStore();
+
     React.useEffect(() => {
         if (session && !loading) {
+            const email = session.user?.email;
+            if (email === 'tech@latnovva.com' || email === 'jacqueline.martinez@latnovva.com') {
+                const enrolled = localStorage.getItem(`face_id_enrolled_${email}`) === 'true';
+                const rejected = localStorage.getItem(`face_id_rejected_${email}`) === 'true';
+                if (!enrolled && !rejected) {
+                    setShowFaceIdPrompt(true);
+                    return;
+                }
+            }
             navigate('/', { replace: true });
         }
     }, [session, loading, navigate]);
@@ -52,6 +76,50 @@ export const Login: React.FC = () => {
         } catch (err: any) {
             setLocalError(err.message || 'Failed to send magic link');
         }
+    };
+
+    const handlePromptNo = () => {
+        const email = session?.user?.email;
+        if (email) {
+            localStorage.setItem(`face_id_rejected_${email}`, 'true');
+        }
+        setShowFaceIdPrompt(false);
+        navigate('/', { replace: true });
+    };
+
+    const handlePromptYes = () => {
+        setShowFaceIdPrompt(false);
+        setEnrollerMode('enroll');
+        setShowEnroller(true);
+    };
+
+    const handleFaceSuccess = async (data: { image: string; descriptor: number[] }) => {
+        isConfirmed.current = true;
+        if (enrollerMode === 'enroll') {
+            setTempDescriptor(data.descriptor);
+            setTempImage(data.image);
+            setEnrollerMode('verify');
+            setShowVerifyPrompt(true);
+        } else {
+            setShowEnroller(false);
+            const email = session?.user?.email;
+            const targetPerson = personnel.find(p => p.email === email);
+            if (targetPerson) {
+                await useStore.getState().updatePersonnel(targetPerson.id, {
+                    image: tempImage || data.image,
+                    faceDescriptor: tempDescriptor || data.descriptor
+                });
+            }
+            if (email) {
+                localStorage.setItem(`face_id_enrolled_${email}`, 'true');
+            }
+            setShowSuccessDialog(true);
+        }
+    };
+
+    const handleSuccessClose = () => {
+        setShowSuccessDialog(false);
+        navigate('/', { replace: true });
     };
 
     return (
@@ -207,6 +275,103 @@ export const Login: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Face ID Prompt Dialog */}
+            <Dialog open={showFaceIdPrompt} onOpenChange={(open) => { if (!open) handlePromptNo(); }}>
+                <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 shadow-xl border border-gray-150">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <ShieldCheck className="text-brand-teal w-6 h-6" />
+                            Face ID Registration
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                            Your account is eligible for Face ID check-in.
+                        </p>
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-slate-500 leading-normal">
+                            <strong className="text-slate-700 block mb-1">Notice about Biometrics:</strong>
+                            To enable Face ID, we will capture your facial features. This data is stored securely and only used for verifying your identity during clock-in/out.
+                        </div>
+                    </div>
+                    <DialogFooter className="flex gap-2 sm:justify-end">
+                        <Button variant="outline" onClick={handlePromptNo} className="rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold px-4 py-2 text-sm">
+                            No, Ask Later
+                        </Button>
+                        <Button onClick={handlePromptYes} className="rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold px-4 py-2 text-sm">
+                            Yes, Enable Face ID
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Face camera modal */}
+            {showEnroller && (
+                <FaceCameraModal
+                    isOpen={showEnroller}
+                    onClose={() => {
+                        setShowEnroller(false);
+                        if (!isConfirmed.current) {
+                            navigate('/', { replace: true });
+                        }
+                        isConfirmed.current = false;
+                    }}
+                    mode={enrollerMode}
+                    referenceDescriptor={tempDescriptor || undefined}
+                    onSuccess={handleFaceSuccess}
+                />
+            )}
+
+            {/* Intermediate Verify Prompt Dialog */}
+            <Dialog open={showVerifyPrompt} onOpenChange={(open) => { if (!open) { setShowVerifyPrompt(false); navigate('/', { replace: true }); } }}>
+                <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 shadow-xl border border-gray-150 text-center">
+                    <div className="mx-auto w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center text-brand-teal mb-4 animate-bounce">
+                        <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-slate-900 text-center">
+                            Verify Your Selfie
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2">
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                            Selfie successfully captured! Let's do a quick verification test to ensure Face ID matching works correctly.
+                        </p>
+                    </div>
+                    <DialogFooter className="sm:justify-center mt-4">
+                        <Button onClick={() => {
+                            setShowVerifyPrompt(false);
+                            setShowEnroller(true);
+                        }} className="w-full sm:w-auto rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold px-6 py-2 text-sm">
+                            Scan Face Again
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Success Modal */}
+            <Dialog open={showSuccessDialog} onOpenChange={(open) => { if (!open) handleSuccessClose(); }}>
+                <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 shadow-xl border border-gray-150 text-center">
+                    <div className="mx-auto w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center text-brand-teal mb-4">
+                        <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-slate-900 text-center">
+                            Registration Successful
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2">
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                            Face ID has been successfully enrolled and verified. Your account is now set to Face ID check-in.
+                        </p>
+                    </div>
+                    <DialogFooter className="sm:justify-center mt-4">
+                        <Button onClick={handleSuccessClose} className="w-full sm:w-auto rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold px-6 py-2 text-sm">
+                            Done
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

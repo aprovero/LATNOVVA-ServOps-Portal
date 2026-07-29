@@ -6,7 +6,7 @@ import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLe
 import AttendanceDashboard from '../components/attendance/AttendanceDashboard';
 import AttendanceGrid from '../components/attendance/AttendanceGrid';
 import AddOverrideModal from '../components/attendance/AddOverrideModal';
-import { exportAttendanceToCSV, exportDetailedPunchesToCSV } from '../utils/attendanceExport';
+import { exportAttendanceToCSV, exportDetailedPunchesToCSV, exportBinaryAttendanceToCSV } from '../utils/attendanceExport';
 import { calculateDailyAttendance, formatDisplayDate } from '../utils/attendanceCalculations';
 
 export default function Attendance() {
@@ -619,6 +619,31 @@ export default function Attendance() {
                                 className="w-full py-2.5 px-4 bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-xl text-sm transition-all"
                             >
                                 {t('attendance.export.full_btn', 'Reporte Completo (GPS)')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const lang = i18n.language === 'en' ? 'en' : 'es';
+                                    const filteredEmp = filteredPersonnel.filter(emp => {
+                                        if (activeFilter === 'active' && emp.status !== 'Active') return false;
+                                        if (activeFilter === 'inactive' && emp.status !== 'Inactive') return false;
+                                        return true;
+                                    });
+                                    exportBinaryAttendanceToCSV(
+                                        filteredEmp,
+                                        timesheets,
+                                        attendanceOverrides,
+                                        workSchedules,
+                                        startDate,
+                                        endDate,
+                                        lang,
+                                        activeSubsidiary
+                                    );
+                                    setIsExportModalOpen(false);
+                                }}
+                                className="w-full py-2.5 px-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold rounded-xl text-sm transition-all"
+                            >
+                                Reporte Binario (1/0/H/V/S)
                             </button>
                             <button
                                 type="button"
