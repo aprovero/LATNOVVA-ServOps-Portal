@@ -282,24 +282,24 @@ export const Login: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <ShieldCheck className="text-brand-teal w-6 h-6" />
-                            Face ID Registration
+                            Registro de Face ID
                         </DialogTitle>
                     </DialogHeader>
                     <div className="py-4">
                         <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                            Your account is eligible for Face ID check-in.
+                            Tu cuenta es elegible para el registro de asistencia mediante Face ID.
                         </p>
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-slate-500 leading-normal">
-                            <strong className="text-slate-700 block mb-1">Notice about Biometrics:</strong>
-                            To enable Face ID, we will capture your facial features. This data is stored securely and only used for verifying your identity during clock-in/out.
+                            <strong className="text-slate-700 block mb-1">Aviso sobre Datos Biométricos:</strong>
+                            Para habilitar Face ID, capturaremos tus rasgos faciales. Estos datos se almacenan de forma segura y solo se utilizan para verificar tu identidad al registrar tus entradas y salidas.
                         </div>
                     </div>
                     <DialogFooter className="flex gap-2 sm:justify-end">
                         <Button variant="outline" onClick={handlePromptNo} className="rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold px-4 py-2 text-sm">
-                            No, Ask Later
+                            No, preguntar más tarde
                         </Button>
                         <Button onClick={handlePromptYes} className="rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold px-4 py-2 text-sm">
-                            Yes, Enable Face ID
+                            Sí, habilitar Face ID
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -330,12 +330,12 @@ export const Login: React.FC = () => {
                     </div>
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-slate-900 text-center">
-                            Verify Your Selfie
+                            Verificar tu Selfie
                         </DialogTitle>
                     </DialogHeader>
                     <div className="py-2">
                         <p className="text-sm text-slate-600 leading-relaxed">
-                            Selfie successfully captured! Let's do a quick verification test to ensure Face ID matching works correctly.
+                            ¡Selfie capturada con éxito! Hagamos una prueba rápida de verificación para asegurar que la coincidencia de Face ID funcione correctamente.
                         </p>
                     </div>
                     <DialogFooter className="sm:justify-center mt-4">
@@ -343,7 +343,7 @@ export const Login: React.FC = () => {
                             setShowVerifyPrompt(false);
                             setShowEnroller(true);
                         }} className="w-full sm:w-auto rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold px-6 py-2 text-sm">
-                            Scan Face Again
+                            Escanear Rostro de Nuevo
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -357,17 +357,17 @@ export const Login: React.FC = () => {
                     </div>
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold text-slate-900 text-center">
-                            Registration Successful
+                            Registro Exitoso
                         </DialogTitle>
                     </DialogHeader>
                     <div className="py-2">
                         <p className="text-sm text-slate-600 leading-relaxed">
-                            Face ID has been successfully enrolled and verified. Your account is now set to Face ID check-in.
+                            Face ID ha sido registrado y verificado exitosamente. Tu cuenta ahora está configurada para checar asistencia con Face ID.
                         </p>
                     </div>
                     <DialogFooter className="sm:justify-center mt-4">
                         <Button onClick={handleSuccessClose} className="w-full sm:w-auto rounded-xl bg-brand-teal hover:bg-brand-teal/90 text-white font-bold px-6 py-2 text-sm">
-                            Done
+                            Listo
                         </Button>
                     </DialogFooter>
                 </DialogContent>

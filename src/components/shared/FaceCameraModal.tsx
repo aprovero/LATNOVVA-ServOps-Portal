@@ -57,7 +57,7 @@ export default function FaceCameraModal({
       }
     } catch (err: any) {
       console.error('Error accessing camera:', err);
-      setErrorMsg(t('attendance.face_camera.access_denied', 'Camera access denied. Please grant camera permissions to complete Facial ID verification.'));
+      setErrorMsg(t('attendance.face_camera.access_denied', 'Acceso a la cámara denegado. Por favor otorga permisos de cámara para continuar con la verificación biométrica.'));
     }
   }
 
@@ -94,15 +94,15 @@ export default function FaceCameraModal({
     try {
       const res = await validateImageQualityAndGetDescriptor(base64Image);
       if (!res.success || !res.descriptor) {
-        let msg = t('attendance.face_camera.quality_failed', 'Face detection failed. Ensure good lighting.');
+        let msg = t('attendance.face_camera.quality_failed', 'No se pudo detectar el rostro. Asegúrate de tener buena iluminación.');
         if (res.error === 'no_face_detected') {
-          msg = t('attendance.face_camera.no_face', 'No face detected. Please position your face clearly in the frame.');
+          msg = t('attendance.face_camera.no_face', 'No se detectó ningún rostro. Por favor, posiciona tu rostro claramente en el círculo.');
         } else if (res.error === 'multiple_faces_detected') {
-          msg = t('attendance.face_camera.multiple_faces', 'Multiple faces detected. Only one face should be visible.');
+          msg = t('attendance.face_camera.multiple_faces', 'Se detectaron múltiples rostros. Solo una persona debe estar visible.');
         } else if (res.error === 'low_detection_confidence') {
-          msg = t('attendance.face_camera.blurry_face', 'Face detection confidence was low. Please stay still and avoid dark environments.');
+          msg = t('attendance.face_camera.blurry_face', 'La claridad facial fue baja. Por favor mantente quieto y evita sombras o contraluces.');
         } else if (res.error) {
-          msg = `Face detection failed: ${res.error}`;
+          msg = `Error de detección: ${res.error}`;
         }
         throw new Error(msg);
       }
@@ -110,14 +110,14 @@ export default function FaceCameraModal({
       if (mode === 'verify' && referenceDescriptor) {
         const matchResult = matchDescriptors(res.descriptor, referenceDescriptor);
         if (!matchResult.isMatch) {
-          throw new Error(t('attendance.face_camera.match_failed', 'Face ID Verification mismatch. Please try again.'));
+          throw new Error(t('attendance.face_camera.match_failed', 'Los rasgos faciales no coinciden con la selfie registrada. Por favor intenta de nuevo.'));
         }
       }
 
       // Success! Store descriptor for approval step
       setTempDescriptor(res.descriptor);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Verification error occurred.');
+      setErrorMsg(err.message || 'Ocurrió un error en la verificación.');
     } finally {
       setIsProcessing(false);
     }
@@ -141,23 +141,39 @@ export default function FaceCameraModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md w-[95%] p-6 rounded-3xl gap-4 border border-gray-100 shadow-xl overflow-hidden bg-white">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
+          <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Camera className="text-brand-teal" size={20} />
             {mode === 'enroll' 
-              ? t('attendance.face_camera.title_enroll', 'Enroll Face ID') 
-              : t('attendance.face_camera.title_verify', 'Verify Face ID')
+              ? t('attendance.face_camera.title_enroll', 'Registrar Face ID') 
+              : t('attendance.face_camera.title_verify', 'Verificar Face ID')
             }
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col items-center justify-center gap-4 py-2">
-          {/* Main camera viewport box */}
+          {/* Main camera viewport box with triple-locked circle clipping */}
           <div 
-            className="relative w-72 h-72 rounded-full overflow-hidden border-4 border-brand-teal/20 shadow-inner bg-black flex items-center justify-center isolate"
-            style={{ clipPath: 'circle(50% at 50% 50%)', WebkitClipPath: 'circle(50% at 50% 50%)' }}
+            className="relative w-72 h-72 rounded-full overflow-hidden border-4 border-brand-teal/30 shadow-inner bg-black flex items-center justify-center isolate"
+            style={{ 
+              borderRadius: '50%',
+              clipPath: 'circle(50% at 50% 50%)', 
+              WebkitClipPath: 'circle(50% at 50% 50%)' 
+            }}
           >
             {capturedPhoto ? (
-              <img src={capturedPhoto} alt="Captured" className="w-full h-full object-cover transform scale-x-[-1] rounded-full" />
+              <img 
+                src={capturedPhoto} 
+                alt="Captured" 
+                className="w-full h-full object-cover transform scale-x-[-1]" 
+                style={{ 
+                  borderRadius: '50%', 
+                  clipPath: 'circle(50% at 50% 50%)', 
+                  WebkitClipPath: 'circle(50% at 50% 50%)',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }} 
+              />
             ) : (
               <video
                 ref={videoRef}
@@ -165,6 +181,14 @@ export default function FaceCameraModal({
                 playsInline
                 muted
                 className="w-full h-full object-cover transform scale-x-[-1]"
+                style={{ 
+                  borderRadius: '50%', 
+                  clipPath: 'circle(50% at 50% 50%)', 
+                  WebkitClipPath: 'circle(50% at 50% 50%)',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
               />
             )}
 
@@ -198,7 +222,7 @@ export default function FaceCameraModal({
             {isProcessing && (
               <p className="text-xs text-brand-teal font-semibold flex items-center justify-center gap-1.5 animate-pulse">
                 <Loader2 size={14} className="animate-spin" />
-                {t('attendance.face_camera.processing', 'Analyzing facial structures...')}
+                {t('attendance.face_camera.processing', 'Analizando estructura facial...')}
               </p>
             )}
 
@@ -213,8 +237,8 @@ export default function FaceCameraModal({
               <p className="text-xs text-emerald-600 font-bold flex items-center justify-center gap-1 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
                 <CheckCircle2 size={14} />
                 {mode === 'enroll'
-                  ? t('attendance.face_camera.enroll_ready', 'Reference captured! Click continue to register.')
-                  : t('attendance.face_camera.verify_ready', 'Identity verified!')
+                  ? t('attendance.face_camera.enroll_ready', '¡Rostro capturado! Haz clic en continuar para registrar.')
+                  : t('attendance.face_camera.verify_ready', '¡Identidad verificada exitosamente!')
                 }
               </p>
             )}
@@ -226,14 +250,14 @@ export default function FaceCameraModal({
           {!capturedPhoto ? (
             <>
               <Button variant="outline" className="flex-1 h-11 rounded-xl text-xs font-bold text-gray-500" onClick={onClose}>
-                {t('common.cancel', 'Cancel')}
+                {t('common.cancel', 'Cancelar')}
               </Button>
               <Button 
                 disabled={!stream} 
                 className="flex-1 h-11 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl text-xs font-bold" 
                 onClick={handleCapture}
               >
-                {t('attendance.face_camera.capture', 'Snap Photo')}
+                {t('attendance.face_camera.capture', 'Tomar Foto')}
               </Button>
             </>
           ) : (
@@ -244,14 +268,14 @@ export default function FaceCameraModal({
                 className="flex-1 h-11 rounded-xl text-xs font-bold text-gray-500 gap-1.5" 
                 onClick={handleRetake}
               >
-                <RefreshCw size={12} /> {t('attendance.face_camera.retake', 'Retake')}
+                <RefreshCw size={12} /> {t('attendance.face_camera.retake', 'Repetir')}
               </Button>
               <Button 
                 disabled={isProcessing || !tempDescriptor}
                 className="flex-1 h-11 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl text-xs font-bold" 
                 onClick={handleConfirm}
               >
-                {t('common.continue', 'Continue')}
+                {t('common.continue', 'Continuar')}
               </Button>
             </>
           )}
