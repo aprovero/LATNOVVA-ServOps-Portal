@@ -46,6 +46,50 @@ The portal is divided into several specialized modules tailored to operational n
 
 ---
 
+## 👥 Personnel Management & Onboarding
+
+### Required Fields for Creating Employees
+
+#### 1. Manual Creation (`+ Nuevo Colaborador` Modal)
+To register an individual employee in the portal:
+* **Required Fields (Strict):**
+  * `Nombre` (Full Name)
+  * `Puesto` (Position / Job Title)
+  * `Email` (Email Address — creates the Supabase Auth user identity)
+* **Automatic Defaults:**
+  * `Rol de Acceso`: Defaults to `Tech`.
+  * `Estatus`: Defaults to `Active`.
+  * `Sitio Asignado / Proyecto`: If left unassigned, automatically defaults to the **Mexico City Central Office** (`EST-LNV-000 CDMX`).
+  * `Número de Empleado`: If left blank, an internal ID is automatically assigned (`MX-LNV-XXXX` or `MX-SYS-XXXX`).
+
+#### 2. Bulk CSV Import (`Carga Masiva de Personal`)
+To upload collaborators simultaneously via the 55-column template:
+* **Required Column (Strict):**
+  * `NOMBRE`: Every non-empty row must include the collaborator's full name.
+* **Recommended Identity & Employment Columns:**
+  * `EMPRESA` (defaults to `LATNOVVA` if blank)
+  * `PUESTO` (defaults to `TECHNICIAN` if blank)
+  * `EMAIL` / `CORP_EMAIL`
+  * `TEL`
+  * `CURP`, `RFC`, `NSS` (for Mexico subsidiary compliance)
+* **Intelligent Fallbacks & Automatic Calculations:**
+  * `PROYECTO`: If omitted or not matching an active site, automatically assigns the employee to the **Mexico City Central Office** (`EST-LNV-000 CDMX`).
+  * `NUMERO_EMPLEADO`: If omitted, automatically generates sequential IDs (`MX-LNV-XXXX` or `MX-SYS-XXXX`).
+  * `EDAD`: Automatically calculated from `FECHA_NACIMIENTO` if left blank.
+  * `TOTAL`: Automatically calculated as `NOMINA_PPP + NOMINA_IMSS` if left blank.
+  * `CLABE`: Automatically repairs scientific notation formatted by Excel (e.g., `1.218E+16`).
+
+---
+
+## 📸 Biometric Face ID Testing & Clock-In
+
+* **Automated Login Prompt Interception:** The interactive biometric Face ID consent, selfie capture, and live verification flow is currently enabled for:
+  1. `tech@latnovva.com`
+  2. `jacqueline.martinez@latnovva.com`
+* **Face ID Clock-In:** Any collaborator with an enrolled biometric vector (`faceDescriptor`) can use Face ID for shifts and clock-ins across the portal. Biometric descriptors can also be captured by uploading and verifying a profile photo in the Personnel form.
+
+---
+
 ## 🛠️ Technology Stack
 
 <details>
