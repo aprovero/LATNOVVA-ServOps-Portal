@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Camera, RefreshCw, ShieldAlert, CheckCircle2, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { validateImageQualityAndGetDescriptor, matchDescriptors } from '../../utils/faceId.utils';
+import { validateImageQualityAndGetDescriptor, matchDescriptors, loadFaceModels } from '../../utils/faceId.utils';
 
 interface FaceCameraModalProps {
   isOpen: boolean;
@@ -31,10 +31,11 @@ export default function FaceCameraModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [tempDescriptor, setTempDescriptor] = useState<number[] | null>(null);
 
-  // Initialize and stop camera stream based on open state
+  // Initialize camera and preload models when modal opens
   useEffect(() => {
     if (isOpen) {
       startCamera();
+      loadFaceModels().catch((err) => console.warn('[FaceCameraModal] Preload error:', err));
     } else {
       stopCamera();
     }
@@ -75,12 +76,14 @@ export default function FaceCameraModal({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw video frame to canvas
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Draw video frame to canvas at full resolution
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 480;
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(video, 0, 0, width, height);
 
-    const base64Image = canvas.toDataURL('image/jpeg', 0.85);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.92);
     setCapturedPhoto(base64Image);
     stopCamera();
 
@@ -98,6 +101,8 @@ export default function FaceCameraModal({
           msg = t('attendance.face_camera.multiple_faces', 'Multiple faces detected. Only one face should be visible.');
         } else if (res.error === 'low_detection_confidence') {
           msg = t('attendance.face_camera.blurry_face', 'Face detection confidence was low. Please stay still and avoid dark environments.');
+        } else if (res.error) {
+          msg = `Face detection failed: ${res.error}`;
         }
         throw new Error(msg);
       }

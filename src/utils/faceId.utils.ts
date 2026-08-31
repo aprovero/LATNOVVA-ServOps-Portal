@@ -1,25 +1,46 @@
 import * as faceapi from '@vladmandic/face-api';
 
 let modelsLoaded = false;
+let modelLoadingPromise: Promise<void> | null = null;
 
 /**
  * Loads the face-api models if they aren't already loaded.
  */
 export async function loadFaceModels(): Promise<void> {
   if (modelsLoaded) return;
-  try {
-    const MODEL_URL = '/models';
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-    ]);
-    modelsLoaded = true;
-    console.log('[FaceID] Models loaded successfully.');
-  } catch (error) {
-    console.error('[FaceID] Error loading models:', error);
-    throw new Error('Failed to load face recognition models.');
-  }
+  if (modelLoadingPromise) return modelLoadingPromise;
+
+  modelLoadingPromise = (async () => {
+    try {
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const MODEL_URL = `${baseUrl}/models`;
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ]);
+      modelsLoaded = true;
+      console.log('[FaceID] Models loaded successfully from', MODEL_URL);
+    } catch (error: any) {
+      console.warn('[FaceID] Failed loading from origin, trying /models relative path...', error);
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+          faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+        ]);
+        modelsLoaded = true;
+        console.log('[FaceID] Models loaded successfully from /models');
+      } catch (err2: any) {
+        console.error('[FaceID] Error loading face recognition models:', err2);
+        throw new Error('Failed to load facial recognition models.');
+      }
+    } finally {
+      modelLoadingPromise = null;
+    }
+  })();
+
+  return modelLoadingPromise;
 }
 
 /**
@@ -42,13 +63,11 @@ export interface FaceValidationResult {
   success: boolean;
   descriptor?: number[];
   error?: string;
+  confidence?: number;
 }
 
 /**
- * Analyzes a face image (base64 string) to extract the face descriptor and ensure high quality.
- * Rules:
- * 1. Must detect exactly one face.
- * 2. The detection confidence must be high (> 0.70).
+ * Analyzes a face image (base64 string) to extract the face descriptor with adaptive multi-scale detection.
  */
 export async function validateImageQualityAndGetDescriptor(
   imageSrc: string
@@ -57,33 +76,73 @@ export async function validateImageQualityAndGetDescriptor(
     await loadFaceModels();
     const img = await loadImage(imageSrc);
 
-    // Run face detection with landmarks and recognition descriptor
-    const detections = await faceapi
-      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
-      .withFaceLandmarks()
-      .withFaceDescriptors();
+    // Multi-scale adaptive detection across various input sizes
+    // TinyFaceDetector inputSize must be multiple of 32: 320, 416, 512, 224, 160
+    const candidateSizes = [320, 416, 512, 224, 160];
+    let detections: any[] = [];
+
+    for (const inputSize of candidateSizes) {
+      try {
+        const result = await faceapi
+          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.25 }))
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+
+        if (result && result.length > 0) {
+          detections = result;
+          break;
+        }
+      } catch (err) {
+        console.warn(`[FaceID] TinyFaceDetector failed at size ${inputSize}:`, err);
+      }
+    }
+
+    // Fallback pass with lower threshold if no detection on primary pass
+    if (detections.length === 0) {
+      for (const inputSize of [320, 416, 224]) {
+        try {
+          const result = await faceapi
+            .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.15 }))
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+
+          if (result && result.length > 0) {
+            detections = result;
+            break;
+          }
+        } catch {}
+      }
+    }
 
     if (detections.length === 0) {
       return { success: false, error: 'no_face_detected' };
     }
 
-    if (detections.length > 1) {
-      return { success: false, error: 'multiple_faces_detected' };
-    }
+    // Sort detections by bounding box area (largest face in foreground)
+    detections.sort((a, b) => {
+      const areaA = (a.detection?.box?.width || 0) * (a.detection?.box?.height || 0);
+      const areaB = (b.detection?.box?.width || 0) * (b.detection?.box?.height || 0);
+      return areaB - areaA;
+    });
 
-    const face = detections[0];
-    
-    // Check detection score
-    if (face.detection.score < 0.65) {
-      return { success: false, error: 'low_detection_confidence' };
+    const primaryFace = detections[0];
+
+    // Check if there is genuinely a second person in frame (>45% size of primary and high score)
+    if (detections.length > 1) {
+      const areaPrimary = primaryFace.detection.box.width * primaryFace.detection.box.height;
+      const areaSecondary = detections[1].detection.box.width * detections[1].detection.box.height;
+      if (areaSecondary > areaPrimary * 0.45 && detections[1].detection.score > 0.45) {
+        return { success: false, error: 'multiple_faces_detected' };
+      }
     }
 
     // Convert Float32Array to standard number array for database storage
-    const descriptorArray = Array.from(face.descriptor);
+    const descriptorArray = Array.from(primaryFace.descriptor);
 
     return {
       success: true,
-      descriptor: descriptorArray,
+      descriptor: descriptorArray as number[],
+      confidence: primaryFace.detection.score,
     };
   } catch (error: any) {
     console.error('[FaceID] Validation error:', error);
@@ -93,18 +152,17 @@ export async function validateImageQualityAndGetDescriptor(
 
 /**
  * Matches two face descriptors using Euclidean distance.
- * Typically, a distance less than 0.6 is considered a match.
+ * Typically, a distance less than 0.65 is considered a match.
  */
 export function matchDescriptors(
   descriptor1: number[],
   descriptor2: number[],
-  threshold = 0.6
+  threshold = 0.65
 ): { isMatch: boolean; distance: number } {
-  if (descriptor1.length !== descriptor2.length) {
+  if (!descriptor1 || !descriptor2 || descriptor1.length !== descriptor2.length || descriptor1.length === 0) {
     return { isMatch: false, distance: 1.0 };
   }
 
-  // Convert number arrays back to Float32Array for face-api utility
   const d1 = new Float32Array(descriptor1);
   const d2 = new Float32Array(descriptor2);
 
