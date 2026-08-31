@@ -481,15 +481,30 @@ export default function Personnel() {
                         totalPerdiem: idxPerDiem !== -1 ? cleanNum(row[idxPerDiem]) : undefined
                     });
 
-                    // Link to project if assigned
+                    // Link to project if assigned, or automatically assign to Mexico City Office if unassigned / not found
+                    let matchProject = null;
                     if (siteAssigned) {
-                        const matchProject = projects.find(p => 
+                        matchProject = projects.find(p => 
                             p.name.toLowerCase() === siteAssigned.toLowerCase() || 
-                            p.codeName?.toLowerCase() === siteAssigned.toLowerCase()
+                            p.codeName?.toLowerCase() === siteAssigned.toLowerCase() ||
+                            p.name.toLowerCase().includes(siteAssigned.toLowerCase())
                         );
-                        if (matchProject) {
-                            await transferPersonnel(newPersonId, matchProject.id);
-                        }
+                    }
+
+                    // Fallback to Mexico City Office if no project was specified or found
+                    if (!matchProject) {
+                        matchProject = projects.find(p => 
+                            p.name.toLowerCase().includes('cdmx') || 
+                            p.codeName?.toLowerCase().includes('cdmx') ||
+                            p.name === 'EST-LNV-000' ||
+                            p.codeName === 'EST-LNV-000' ||
+                            p.name.toLowerCase().includes('ciudad de méxico') ||
+                            p.name.toLowerCase().includes('mexico city')
+                        );
+                    }
+
+                    if (matchProject) {
+                        await transferPersonnel(newPersonId, matchProject.id);
                     }
 
                     importedCount++;
@@ -660,8 +675,23 @@ export default function Personnel() {
             // Sync locally & backend via zustand trigger updates
             addPersonnel(created);
             
-            if (newPerson.tempProjectId) {
-                await transferPersonnel(created.id, newPerson.tempProjectId);
+            let targetProjId = newPerson.tempProjectId;
+            if (!targetProjId && activeSubsidiary === 'MX') {
+                const cdmxProj = projects.find(p => 
+                    p.name.toLowerCase().includes('cdmx') || 
+                    p.codeName?.toLowerCase().includes('cdmx') ||
+                    p.name === 'EST-LNV-000' ||
+                    p.codeName === 'EST-LNV-000' ||
+                    p.name.toLowerCase().includes('ciudad de méxico') ||
+                    p.name.toLowerCase().includes('mexico city')
+                );
+                if (cdmxProj) {
+                    targetProjId = cdmxProj.id;
+                }
+            }
+
+            if (targetProjId) {
+                await transferPersonnel(created.id, targetProjId);
             }
             
             setIsAddModalOpen(false);
