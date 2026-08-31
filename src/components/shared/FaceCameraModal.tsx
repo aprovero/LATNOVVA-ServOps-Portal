@@ -152,9 +152,12 @@ export default function FaceCameraModal({
 
         <div className="flex flex-col items-center justify-center gap-4 py-2">
           {/* Main camera viewport box */}
-          <div className="relative w-72 h-72 rounded-full overflow-hidden border-4 border-brand-teal/20 shadow-inner bg-black flex items-center justify-center">
+          <div 
+            className="relative w-72 h-72 rounded-full overflow-hidden border-4 border-brand-teal/20 shadow-inner bg-black flex items-center justify-center isolate"
+            style={{ clipPath: 'circle(50% at 50% 50%)', WebkitClipPath: 'circle(50% at 50% 50%)' }}
+          >
             {capturedPhoto ? (
-              <img src={capturedPhoto} alt="Captured" className="w-full h-full object-cover transform scale-x-[-1]" />
+              <img src={capturedPhoto} alt="Captured" className="w-full h-full object-cover transform scale-x-[-1] rounded-full" />
             ) : (
               <video
                 ref={videoRef}
