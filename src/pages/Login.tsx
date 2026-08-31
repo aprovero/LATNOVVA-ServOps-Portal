@@ -4,6 +4,7 @@ import { Lock, Mail, ArrowRight, ShieldCheck, Component, CheckCircle2 } from 'lu
 import { useAuthStore } from '../lib/authStore';
 import { requestInitialPermissions } from '../lib/permissions';
 import { useStore } from '../store/useStore';
+import { supabase } from '../lib/supabase';
 import FaceCameraModal from '../components/shared/FaceCameraModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
@@ -31,14 +32,39 @@ export const Login: React.FC = () => {
 
     React.useEffect(() => {
         if (session && !loading) {
-            const email = session.user?.email;
-            if (email === 'tech@latnovva.com' || email === 'jacqueline.martinez@latnovva.com') {
-                const enrolled = localStorage.getItem(`face_id_enrolled_${email}`) === 'true';
-                const rejected = localStorage.getItem(`face_id_rejected_${email}`) === 'true';
-                if (!enrolled && !rejected) {
+            const email = (session.user?.email || '').toLowerCase();
+            const pilotEmails = ['tech@latnovva.com', 'jacqueline.martinez@latnovva.com'];
+            if (pilotEmails.includes(email)) {
+                const checkEnrollmentStatus = async () => {
+                    const localEnrolled = localStorage.getItem(`face_id_enrolled_${email}`) === 'true';
+                    const localRejected = localStorage.getItem(`face_id_rejected_${email}`) === 'true';
+                    if (localEnrolled || localRejected) {
+                        navigate('/', { replace: true });
+                        return;
+                    }
+
+                    // Check Supabase database in case local storage was cleared
+                    try {
+                        const { data } = await (supabase.from('personnel') as any)
+                            .select('id, faceDescriptor, image')
+                            .or(`id.eq.${session.user.id},email.ilike.${email}`)
+                            .limit(1);
+
+                        if (data && data.length > 0 && data[0].faceDescriptor && data[0].faceDescriptor.length > 0) {
+                            localStorage.setItem(`face_id_enrolled_${email}`, 'true');
+                            localStorage.setItem('cached_user_descriptor', JSON.stringify(data[0].faceDescriptor));
+                            navigate('/', { replace: true });
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('[Login] Error checking face enrollment in DB:', e);
+                    }
+
                     setShowFaceIdPrompt(true);
-                    return;
-                }
+                };
+
+                checkEnrollmentStatus();
+                return;
             }
             navigate('/', { replace: true });
         }
@@ -102,17 +128,48 @@ export const Login: React.FC = () => {
             setShowVerifyPrompt(true);
         } else {
             setShowEnroller(false);
-            const email = session?.user?.email;
-            const targetPerson = personnel.find(p => p.email === email);
-            if (targetPerson) {
-                await useStore.getState().updatePersonnel(targetPerson.id, {
-                    image: tempImage || data.image,
-                    faceDescriptor: tempDescriptor || data.descriptor
-                });
-            }
+            const email = (session?.user?.email || '').toLowerCase();
+            const userId = session?.user?.id;
+            const finalImage = tempImage || data.image;
+            const finalDescriptor = tempDescriptor || data.descriptor;
+
             if (email) {
                 localStorage.setItem(`face_id_enrolled_${email}`, 'true');
+                localStorage.setItem('cached_user_descriptor', JSON.stringify(finalDescriptor));
+                localStorage.setItem('cached_user_profile', JSON.stringify({
+                    name: session?.user?.user_metadata?.full_name || email.split('@')[0],
+                    email,
+                    image: finalImage
+                }));
             }
+
+            // Direct DB upsert to guarantee persistence
+            if (userId) {
+                try {
+                    await (supabase.from('personnel') as any).upsert({
+                        id: userId,
+                        email: email,
+                        name: session?.user?.user_metadata?.full_name || email.split('@')[0],
+                        image: finalImage,
+                        faceDescriptor: finalDescriptor,
+                        status: 'Active',
+                        app_role: 'Technician',
+                        subsidiary: 'MX'
+                    });
+                } catch (err) {
+                    console.warn('[Login] DB upsert face error:', err);
+                }
+            }
+
+            // Also update Zustand store
+            const targetPerson = personnel.find(p => p.email?.toLowerCase() === email || p.id === userId);
+            if (targetPerson) {
+                await useStore.getState().updatePersonnel(targetPerson.id, {
+                    image: finalImage,
+                    faceDescriptor: finalDescriptor
+                });
+            }
+
             setShowSuccessDialog(true);
         }
     };

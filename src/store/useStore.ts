@@ -1931,6 +1931,7 @@ export const useStore = create<AppState>()(
                     manager_id: person.managerId,
                     client_id: person.clientId,
                     image: person.image,
+                    faceDescriptor: person.faceDescriptor,
                     prevailing_wage: person.prevailingWage || false,
                     bench_exempt: person.benchExempt || false,
                     dbo: person.dbo,
@@ -1966,6 +1967,7 @@ export const useStore = create<AppState>()(
                 if (updates.managerId !== undefined) dbPayload.manager_id = updates.managerId;
                 if (updates.clientId !== undefined) dbPayload.client_id = updates.clientId;
                 if (updates.image !== undefined) dbPayload.image = updates.image;
+                if (updates.faceDescriptor !== undefined) dbPayload.faceDescriptor = updates.faceDescriptor;
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
                 if (updates.benchExempt !== undefined) dbPayload.bench_exempt = updates.benchExempt;
                 if (updates.dbo !== undefined) dbPayload.dbo = updates.dbo;

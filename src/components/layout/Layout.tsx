@@ -368,18 +368,20 @@ export default function Layout() {
 
     useEffect(() => {
         if (isAccountModalOpen) {
-            if (user?.user_metadata?.name) {
-                setAccountName(user.user_metadata.name);
-            }
+            const userEmail = (user?.email || '').toLowerCase();
             const resId = useStore.getState().resolvePersonnelId();
-            const person = personnel.find(p => p.id === resId);
+            const person = personnel.find(p => p.id === resId || (p.email && p.email.toLowerCase() === userEmail));
+            
             if (person) {
+                setAccountName(person.name || user?.user_metadata?.name || '');
                 setAccountDbo(person.dbo || '');
                 setAccountEmployeeNumber(person.employeeNumber || '');
                 setAccountEmergencyContactName(person.emergencyContactName || '');
                 setAccountEmergencyContactPhone(person.emergencyContactPhone || '');
                 setAccountImage(person.image || '');
                 setAccountDocuments(person.documents || []);
+            } else if (user?.user_metadata?.name) {
+                setAccountName(user.user_metadata.name);
             }
         }
     }, [isAccountModalOpen, user, personnel]);

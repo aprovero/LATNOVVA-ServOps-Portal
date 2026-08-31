@@ -279,15 +279,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
             // ── STEP 2: Clear Local Stores ──────────────────────────────────
             set({ session: null, user: null, identity: null, profile: null, loading: false });
             useStore.getState().resetDb();
-            try {
-                Object.keys(localStorage).forEach(k => {
-                    if (k.startsWith('face_id_')) {
-                        localStorage.removeItem(k);
-                    }
-                });
-            } catch (e) {
-                console.warn('[Auth] Failed to purge Face ID local storage keys:', e);
-            }
             
             // ── STEP 3: Clear Storage Hard Link ──────────────────────────────
             // This force-kills GoTrue locks and stale tokens that cause "nothing happens" loops.
