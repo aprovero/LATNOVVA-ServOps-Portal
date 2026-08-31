@@ -695,12 +695,27 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const [faceModalMode, setFaceModalMode] = useState<'enroll' | 'verify'>('verify');
     const [pendingPunchParams, setPendingPunchParams] = useState<{ type: ClockPunch['type']; overrideTime?: string; note?: string } | null>(null);
 
+    const FACE_ID_TEST_EMAILS = ['tech@latnovva.com', 'jacqueline.martinez@latnovva.com'];
+
     const handlePunchClick = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
-        const myProfile = personnel.find(p => p.id === personnelId);
+        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+        const currentUserId = (useStore.getState().userId || '');
+        const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail) || (p.id === currentUserId));
         
-        if (platformSettings?.enableFacialId && myProfile) {
+        let cachedDescriptor: number[] | null = null;
+        try {
+            const rawDesc = localStorage.getItem('cached_user_descriptor');
+            if (rawDesc) cachedDescriptor = JSON.parse(rawDesc);
+        } catch {}
+
+        const isTestPilot = FACE_ID_TEST_EMAILS.includes(currentEmail) || (myProfile?.email && FACE_ID_TEST_EMAILS.includes(myProfile.email.toLowerCase()));
+        const hasEnrolledFace = Boolean((myProfile?.faceDescriptor && myProfile.faceDescriptor.length > 0) || (cachedDescriptor && cachedDescriptor.length > 0));
+        
+        const requireFaceId = Boolean(platformSettings?.enableFacialId || isTestPilot || hasEnrolledFace);
+
+        if (requireFaceId) {
             setPendingPunchParams({ type, overrideTime, note });
-            if (!myProfile.faceDescriptor || myProfile.faceDescriptor.length === 0) {
+            if (!hasEnrolledFace) {
                 setFaceModalMode('enroll');
                 setIsFaceModalOpen(true);
             } else {
@@ -713,11 +728,19 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     };
 
     const handleFaceSuccess = async ({ image, descriptor }: { image: string; descriptor: number[] }) => {
-        if (faceModalMode === 'enroll') {
-            await useStore.getState().updatePersonnel(personnelId, {
+        setIsFaceModalOpen(false);
+        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+        const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail));
+        const targetId = myProfile?.id || personnelId;
+
+        if (faceModalMode === 'enroll' && targetId) {
+            await useStore.getState().updatePersonnel(targetId, {
                 image,
                 faceDescriptor: descriptor
             });
+            try {
+                localStorage.setItem('cached_user_descriptor', JSON.stringify(descriptor));
+            } catch {}
         }
         
         if (pendingPunchParams) {
@@ -980,9 +1003,23 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             {isFaceModalOpen && (
                 <FaceCameraModal
                     isOpen={isFaceModalOpen}
-                    onClose={() => setIsFaceModalOpen(false)}
+                    onClose={() => {
+                        setIsFaceModalOpen(false);
+                        setPendingPunchParams(null);
+                    }}
                     mode={faceModalMode}
-                    referenceDescriptor={personnel.find(p => p.id === personnelId)?.faceDescriptor}
+                    referenceDescriptor={(() => {
+                        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+                        const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail));
+                        if (myProfile?.faceDescriptor && myProfile.faceDescriptor.length > 0) {
+                            return myProfile.faceDescriptor;
+                        }
+                        try {
+                            const rawDesc = localStorage.getItem('cached_user_descriptor');
+                            if (rawDesc) return JSON.parse(rawDesc);
+                        } catch {}
+                        return undefined;
+                    })()}
                     onSuccess={handleFaceSuccess}
                 />
             )}

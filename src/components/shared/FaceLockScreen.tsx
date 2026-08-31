@@ -59,10 +59,10 @@ export default function FaceLockScreen({ onUnlock }: FaceLockScreenProps) {
         </div>
 
         <h2 className="text-xl font-bold text-white tracking-tight leading-tight">
-          {cachedUser?.name || 'Latnovva Staff'}
+          {cachedUser?.name || 'Personal Latnovva'}
         </h2>
         <p className="text-xs text-white/40 mt-1.5 font-medium tracking-wide">
-          {t('fast_login.locked_status', 'Device Session Locked')}
+          {t('fast_login.locked_status', 'Sesión del Dispositivo Bloqueada')}
         </p>
 
         {errorMsg && (
@@ -77,7 +77,7 @@ export default function FaceLockScreen({ onUnlock }: FaceLockScreenProps) {
           onClick={() => setIsCameraOpen(true)}
           className="w-full mt-8 py-3.5 bg-gradient-to-r from-brand-teal to-blue-600 hover:opacity-95 transition-all text-white font-bold text-sm rounded-2xl shadow-lg hover:shadow-brand-teal/20"
         >
-          {t('fast_login.unlock_btn', 'Unlock with Face ID')}
+          {t('fast_login.unlock_btn', 'Desbloquear con Face ID')}
         </button>
 
         {/* Secondary options */}
@@ -91,7 +91,7 @@ export default function FaceLockScreen({ onUnlock }: FaceLockScreenProps) {
           className="w-full mt-4 py-3.5 bg-white/5 hover:bg-white/10 transition-all text-white/60 hover:text-white font-bold text-xs rounded-2xl border border-white/5 flex items-center justify-center gap-2"
         >
           <LogOut size={14} />
-          {t('fast_login.sign_out', 'Sign out / Use another account')}
+          {t('fast_login.sign_out', 'Cerrar sesión / Usar otra cuenta')}
         </button>
       </div>
 
