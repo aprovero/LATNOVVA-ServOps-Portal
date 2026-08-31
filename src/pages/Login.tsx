@@ -43,16 +43,59 @@ export const Login: React.FC = () => {
                         return;
                     }
 
-                    // Check Supabase database in case local storage was cleared
+                    // Check Supabase database across mx_personnel, personnel, and profiles
                     try {
-                        const { data } = await (supabase.from('personnel') as any)
-                            .select('id, faceDescriptor, image')
-                            .or(`id.eq.${session.user.id},email.ilike.${email}`)
-                            .limit(1);
+                        let enrolledDescriptor: number[] | null = null;
 
-                        if (data && data.length > 0 && data[0].faceDescriptor && data[0].faceDescriptor.length > 0) {
+                        // 1. Check mx_personnel table
+                        try {
+                            const { data: mxData } = await (supabase.from('mx_personnel') as any)
+                                .select('id, email, faceDescriptor, image')
+                                .or(`id.eq.${session.user.id},email.ilike.${email}`)
+                                .limit(1);
+                            if (mxData && mxData.length > 0) {
+                                const d = mxData[0].faceDescriptor || (mxData[0] as any).face_descriptor;
+                                if (Array.isArray(d) && d.length > 0) enrolledDescriptor = d;
+                            }
+                        } catch (e) {
+                            console.warn('[Login] mx_personnel check:', e);
+                        }
+
+                        // 2. Fallback to personnel table
+                        if (!enrolledDescriptor) {
+                            try {
+                                const { data: pData } = await (supabase.from('personnel') as any)
+                                    .select('id, email, faceDescriptor, image')
+                                    .or(`id.eq.${session.user.id},email.ilike.${email}`)
+                                    .limit(1);
+                                if (pData && pData.length > 0) {
+                                    const d = pData[0].faceDescriptor || (pData[0] as any).face_descriptor;
+                                    if (Array.isArray(d) && d.length > 0) enrolledDescriptor = d;
+                                }
+                            } catch (e) {
+                                console.warn('[Login] personnel check:', e);
+                            }
+                        }
+
+                        // 3. Fallback to profiles table
+                        if (!enrolledDescriptor) {
+                            try {
+                                const { data: profData } = await (supabase.from('profiles') as any)
+                                    .select('id, faceDescriptor, face_descriptor')
+                                    .eq('id', session.user.id)
+                                    .limit(1);
+                                if (profData && profData.length > 0) {
+                                    const d = profData[0].faceDescriptor || (profData[0] as any).face_descriptor;
+                                    if (Array.isArray(d) && d.length > 0) enrolledDescriptor = d;
+                                }
+                            } catch (e) {
+                                // non-fatal
+                            }
+                        }
+
+                        if (enrolledDescriptor && enrolledDescriptor.length > 0) {
                             localStorage.setItem(`face_id_enrolled_${email}`, 'true');
-                            localStorage.setItem('cached_user_descriptor', JSON.stringify(data[0].faceDescriptor));
+                            localStorage.setItem('cached_user_descriptor', JSON.stringify(enrolledDescriptor));
                             navigate('/', { replace: true });
                             return;
                         }
@@ -143,21 +186,40 @@ export const Login: React.FC = () => {
                 }));
             }
 
-            // Direct DB upsert to guarantee persistence
+            // Direct DB upsert to guarantee cross-device persistence
             if (userId) {
+                const payload = {
+                    id: userId,
+                    email: email,
+                    name: session?.user?.user_metadata?.full_name || email.split('@')[0],
+                    image: finalImage,
+                    faceDescriptor: finalDescriptor,
+                    status: 'Active',
+                    app_role: 'Technician',
+                    subsidiary: 'MX'
+                };
+
+                // Upsert to mx_personnel (primary Mexico table)
                 try {
-                    await (supabase.from('personnel') as any).upsert({
-                        id: userId,
-                        email: email,
-                        name: session?.user?.user_metadata?.full_name || email.split('@')[0],
-                        image: finalImage,
-                        faceDescriptor: finalDescriptor,
-                        status: 'Active',
-                        app_role: 'Technician',
-                        subsidiary: 'MX'
-                    });
+                    await (supabase.from('mx_personnel') as any).upsert(payload);
                 } catch (err) {
-                    console.warn('[Login] DB upsert face error:', err);
+                    console.warn('[Login] mx_personnel upsert face warning:', err);
+                }
+
+                // Upsert to personnel (universal table)
+                try {
+                    await (supabase.from('personnel') as any).upsert(payload);
+                } catch (err) {
+                    console.warn('[Login] personnel upsert face warning:', err);
+                }
+
+                // Update profiles if supported
+                try {
+                    await (supabase.from('profiles') as any).update({
+                        faceDescriptor: finalDescriptor
+                    }).eq('id', userId);
+                } catch (err) {
+                    // non-fatal
                 }
             }
 

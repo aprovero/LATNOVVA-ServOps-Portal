@@ -397,12 +397,22 @@ export default function Layout() {
                 faceDescriptor: []
             });
             try {
+                await (supabase.from('mx_personnel') as any).update({
+                    faceDescriptor: null
+                }).or(`id.eq.${targetId},email.ilike.${userEmail}`);
+            } catch (e) {}
+
+            try {
                 await (supabase.from('personnel') as any).update({
                     faceDescriptor: null
                 }).or(`id.eq.${targetId},email.ilike.${userEmail}`);
-            } catch (e) {
-                console.warn('Failed to clear faceDescriptor in DB:', e);
-            }
+            } catch (e) {}
+
+            try {
+                await (supabase.from('profiles') as any).update({
+                    faceDescriptor: null
+                }).eq('id', user?.id || targetId);
+            } catch (e) {}
         }
 
         if (userEmail) {
