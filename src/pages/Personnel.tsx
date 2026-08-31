@@ -38,12 +38,138 @@ export default function Personnel() {
 
     const handleDownloadTemplate = () => {
         const headers = [
-            'EMPRESA', 'NOMBRE', 'PROYECTO', 'PUESTO', 'ALTA_IMSS', 'INGRESO', 'RFC', 'CURP', 'NSS', 'EDAD', 'GENERO', 'EDO_CIVIL', 'DOMICILIO', 'EMAIL', 'CORP_EMAIL', 'TEL', 'CLABE', 'BANCO', 'NOMINA_PPP', 'NOMINA_IMSS', 'TOTAL', 'CONTRATO', 'VENCE_PRUEBA', 'INE'
+            // 1. Información General / Core Info
+            'EMPRESA',
+            'NOMBRE',
+            'PUESTO',
+            'NUMERO_EMPLEADO',
+            'ROL_APP',
+            'ESTATUS',
+            'PROYECTO',
+            'FECHA_NACIMIENTO',
+            'EDAD',
+            'GENERO',
+            'EDO_CIVIL',
+            'DOMICILIO',
+            'CORP_EMAIL',
+            'EMAIL',
+            'TEL',
+            'CONTACTO_EMERGENCIA',
+            'TEL_EMERGENCIA',
+            'PARENTESCO_EMERGENCIA',
+            'CARPETA_CERTIFICADOS',
+
+            // 2. Identificación & Demografía (Mexico HR)
+            'CURP',
+            'INE',
+            'RFC',
+            'CP_FISCAL',
+            'NSS',
+
+            // 3. Datos Laborales & Contratación (Mexico HR)
+            'TIPO_TRABAJADOR',
+            'NIVEL_ESTUDIOS',
+            'ESPECIALIDAD',
+            'ANIOS_SERVICIO',
+            'CONTRATO',
+            'VENCE_CONTRATO',
+            'VENCE_PRUEBA',
+            'ALTA_IMSS',
+            'REGISTRO_PATRONAL',
+            'INGRESO',
+
+            // 4. Nómina, Percepciones & Banco (Mexico HR)
+            'PERIODICIDAD_PAGO',
+            'BANCO',
+            'CLABE',
+            'NOMINA_PPP',
+            'NOMINA_IMSS',
+            'SDI',
+            'TOTAL',
+            'VIATICOS_MENSUALES',
+            'BONOS',
+            'DIAS_AGUINALDO',
+            'DIAS_VACACIONES_TOTAL',
+            'DIAS_VACACIONES_RESTANTES',
+            'CREDITO_INFONAVIT',
+            'MONTO_INFONAVIT',
+            'BENEFICIARIO_PRINCIPAL',
+
+            // 5. Logística & Tallas (Mexico HR)
+            'TALLA_CHALECO',
+            'TALLA_CAMISA',
+            'TALLA_CALZADO',
+
+            // 6. Finanzas Adicionales / US Rates (Opcional)
+            'SUELDO_HORA',
+            'HORA_EXTRA',
+            'PER_DIEM'
         ];
+
         const sampleRow = [
-            'LATNOVVA', 'JUAN PEREZ SANCHEZ', 'EST-LNV-000 CDMX', 'TECHNICIAN', '19/03/2026', '19/03/2026', 'PESJ800404BW7', 'PESJ800404HQRMRS03', '82968014975', '46', 'MASCULINO', 'SOLTERO', 'AV REFORMA 123 CDMX', 'juan.perez@gmail.com', 'jperez@latnovva.com', '5512345678', '12180015309895246', 'BBVA', '15000', '10000', '25000', '6 MESES', '18/09/2026', 'IDMEX1952181883'
+            'LATNOVVA',
+            'JUAN PEREZ SANCHEZ',
+            'TECHNICIAN',
+            'MX-LNV-0001',
+            'Tech',
+            'Active',
+            'EST-LNV-000 CDMX',
+            '1980-04-04',
+            '46',
+            'MASCULINO',
+            'SOLTERO(A)',
+            'AV REFORMA 123 CDMX',
+            'jperez@latnovva.com',
+            'juan.perez@gmail.com',
+            '5512345678',
+            'MARIA SANCHEZ',
+            '5587654321',
+            'MADRE',
+            'https://drive.google.com/drive/folders/sample',
+            'PESJ800404HQRMRS03',
+            'IDMEX1952181883',
+            'PESJ800404BW7',
+            '06010',
+            '82968014975',
+            'LOCAL',
+            'LICENCIATURA',
+            'INGENIERIA ELECTRICA',
+            '2.5',
+            '6 MESES',
+            '18/09/2026',
+            '18/09/2026',
+            '19/03/2026',
+            'Y1234567890',
+            '19/03/2026',
+            'QUINCENAL',
+            'BBVA',
+            '12180015309895246',
+            '15000',
+            '10000',
+            '850.50',
+            '25000',
+            '3000',
+            '1500',
+            '15',
+            '12',
+            '10',
+            'NO',
+            '0',
+            'MARIA SANCHEZ PEREZ',
+            'L',
+            'L',
+            '28',
+            '0',
+            '0',
+            '0'
         ];
-        const csvContent = '\uFEFF' + [headers.join(','), sampleRow.join(',')].join('\n');
+
+        const escapeCSV = (val: string) => `"${(val || '').replace(/"/g, '""')}"`;
+        const csvContent = '\uFEFF' + [
+            headers.map(escapeCSV).join(','),
+            sampleRow.map(escapeCSV).join(',')
+        ].join('\n');
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.setAttribute("href", URL.createObjectURL(blob));
@@ -67,68 +193,160 @@ export default function Personnel() {
                 const text = event.target?.result as string;
                 if (!text) throw new Error("Could not read file contents");
 
+                // Parse CSV supporting quotes and multi-line values
                 const parseCSV = (csvText: string) => {
-                    const lines = csvText.split(/\r?\n/);
-                    const result = [];
-                    for (const line of lines) {
-                        if (!line.trim()) continue;
-                        const row = [];
-                        let inQuotes = false;
-                        let current = '';
-                        for (let i = 0; i < line.length; i++) {
-                            const char = line[i];
-                            if (char === '"') {
-                                inQuotes = !inQuotes;
-                            } else if (char === ',' && !inQuotes) {
-                                row.push(current.trim().replace(/^"|"$/g, ''));
-                                current = '';
+                    const rows: string[][] = [];
+                    let currentRow: string[] = [];
+                    let currentField = '';
+                    let inQuotes = false;
+
+                    for (let i = 0; i < csvText.length; i++) {
+                        const char = csvText[i];
+                        const nextChar = csvText[i + 1];
+
+                        if (char === '"') {
+                            if (inQuotes && nextChar === '"') {
+                                currentField += '"';
+                                i++; // skip escaped quote
                             } else {
-                                current += char;
+                                inQuotes = !inQuotes;
                             }
+                        } else if (char === ',' && !inQuotes) {
+                            currentRow.push(currentField.trim());
+                            currentField = '';
+                        } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                            if (char === '\r' && nextChar === '\n') {
+                                i++;
+                            }
+                            currentRow.push(currentField.trim());
+                            if (currentRow.some(c => c.length > 0)) {
+                                rows.push(currentRow);
+                            }
+                            currentRow = [];
+                            currentField = '';
+                        } else {
+                            currentField += char;
                         }
-                        row.push(current.trim().replace(/^"|"$/g, ''));
-                        result.push(row);
                     }
-                    return result;
+                    if (currentField.length > 0 || currentRow.length > 0) {
+                        currentRow.push(currentField.trim());
+                        if (currentRow.some(c => c.length > 0)) {
+                            rows.push(currentRow);
+                        }
+                    }
+                    return rows;
                 };
 
                 const parsedRows = parseCSV(text);
                 if (parsedRows.length <= 1) {
-                    throw new Error("No data rows found in CSV. Please check the template.");
+                    throw new Error("No data rows found in CSV. Please check the file.");
                 }
 
-                const expectedHeaders = ['EMPRESA', 'NOMBRE'];
-                const fileHeaders = parsedRows[0].map(h => h.toUpperCase());
-                const hasRequired = expectedHeaders.every(h => fileHeaders.includes(h));
-                if (!hasRequired) {
-                    throw new Error("CSV is missing required headers: EMPRESA, NOMBRE");
+                // Clean and normalize file headers
+                const fileHeaders = parsedRows[0].map(h => 
+                    h.toUpperCase().trim().replace(/^["']|["']$/g, '').replace(/[\s_]+/g, '_')
+                );
+
+                // Helper to match column indices flexibly by alias
+                const getCol = (aliases: string[]) => {
+                    for (const alias of aliases) {
+                        const cleanAlias = alias.toUpperCase().trim().replace(/[\s_]+/g, '_');
+                        const idx = fileHeaders.indexOf(cleanAlias);
+                        if (idx !== -1) return idx;
+                    }
+                    return -1;
+                };
+
+                // Validate required Name column
+                const idxNombre = getCol(['NOMBRE', 'NAME', 'FULL_NAME', 'NOMBRE_COMPLETO', 'COLABORADOR']);
+                if (idxNombre === -1) {
+                    throw new Error("CSV must include a 'NOMBRE' or 'NAME' column.");
                 }
 
-                const getIndex = (name: string) => fileHeaders.indexOf(name);
-                const idxEmpresa = getIndex('EMPRESA');
-                const idxNombre = getIndex('NOMBRE');
-                const idxProyecto = getIndex('PROYECTO');
-                const idxPuesto = getIndex('PUESTO');
-                const idxAltaImss = getIndex('ALTA_IMSS');
-                const idxIngreso = getIndex('INGRESO');
-                const idxRfc = getIndex('RFC');
-                const idxCurp = getIndex('CURP');
-                const idxNss = getIndex('NSS');
-                const idxEdad = getIndex('EDAD');
-                const idxGenero = getIndex('GENERO');
-                const idxEdoCivil = getIndex('EDO_CIVIL');
-                const idxDomicilio = getIndex('DOMICILIO');
-                const idxEmail = getIndex('EMAIL');
-                const idxCorpEmail = getIndex('CORP_EMAIL');
-                const idxTel = getIndex('TEL');
-                const idxClabe = getIndex('CLABE');
-                const idxBanco = getIndex('BANCO');
-                const idxNominaPpp = getIndex('NOMINA_PPP');
-                const idxNominaImss = getIndex('NOMINA_IMSS');
-                const idxTotal = getIndex('TOTAL');
-                const idxContrato = getIndex('CONTRATO');
-                const idxVencePrueba = getIndex('VENCE_PRUEBA');
-                const idxIne = getIndex('INE');
+                // Header mapping across all sections
+                const idxEmpresa = getCol(['EMPRESA', 'COMPANY', 'SUBSIDIARY_COMPANY']);
+                const idxPuesto = getCol(['PUESTO', 'POSITION', 'JOB_TITLE', 'CARGO']);
+                const idxNumEmpleado = getCol(['NUMERO_EMPLEADO', 'NUM_EMPLEADO', 'EMPLOYEE_NUMBER', 'ID_EMPLEADO', 'EMPLOYEE_ID', 'ID']);
+                const idxRolApp = getCol(['ROL_APP', 'APP_ROLE', 'ROL', 'ROLE']);
+                const idxEstatus = getCol(['ESTATUS', 'STATUS', 'ESTADO']);
+                const idxProyecto = getCol(['PROYECTO', 'PROJECT', 'SITIO_ASIGNADO', 'SITE_ASSIGNED', 'OBRA', 'SITE']);
+                const idxFechaNac = getCol(['FECHA_NACIMIENTO', 'BIRTH_DATE', 'BIRTHDATE', 'DBO', 'FECHA_DE_NACIMIENTO', 'NACIMIENTO']);
+                const idxEdad = getCol(['EDAD', 'AGE']);
+                const idxGenero = getCol(['GENERO', 'GENDER', 'SEXO']);
+                const idxEdoCivil = getCol(['EDO_CIVIL', 'ESTADO_CIVIL', 'MARITAL_STATUS', 'CIVIL_STATUS']);
+                const idxDomicilio = getCol(['DOMICILIO', 'DIRECCION', 'ADDRESS', 'FULL_ADDRESS', 'CALLE', 'STREET', 'ADDRESS_FULL']);
+                const idxCorpEmail = getCol(['CORP_EMAIL', 'CORREO_CORPORATIVO', 'CORPORATE_EMAIL', 'EMAIL_CORP']);
+                const idxEmail = getCol(['EMAIL', 'CORREO', 'CORREO_PERSONAL', 'PERSONAL_EMAIL']);
+                const idxTel = getCol(['TEL', 'TELEFONO', 'PHONE', 'PHONE_NUMBER', 'CELULAR', 'MOBILE']);
+                const idxContactoEmerg = getCol(['CONTACTO_EMERGENCIA', 'EMERGENCY_CONTACT', 'EMERGENCY_CONTACT_NAME']);
+                const idxTelEmerg = getCol(['TEL_EMERGENCIA', 'TELEFONO_EMERGENCIA', 'EMERGENCY_PHONE', 'EMERGENCY_CONTACT_PHONE']);
+                const idxParentescoEmerg = getCol(['PARENTESCO_EMERGENCIA', 'PARENTESCO', 'EMERGENCY_RELATIONSHIP', 'EMERGENCY_CONTACT_RELATIONSHIP']);
+                const idxCertsFolder = getCol(['CARPETA_CERTIFICADOS', 'CERTIFICADOS', 'CERTS_FOLDER', 'SHARED_FOLDER_LINK', 'SHARED_FOLDER']);
+
+                // Identifiers
+                const idxCurp = getCol(['CURP']);
+                const idxIne = getCol(['INE', 'ID_OFICIAL']);
+                const idxRfc = getCol(['RFC']);
+                const idxCpFiscal = getCol(['CP_FISCAL', 'RFC_POSTAL_CODE', 'CODIGO_POSTAL_FISCAL', 'CP', 'ZIP_CODE']);
+                const idxNss = getCol(['NSS', 'NUMERO_SEGURO_SOCIAL', 'SEGURO_SOCIAL']);
+
+                // Employment
+                const idxTipoTrabajador = getCol(['TIPO_TRABAJADOR', 'WORKER_TYPE', 'TIPO_EMPLEADO']);
+                const idxNivelEstudios = getCol(['NIVEL_ESTUDIOS', 'STUDIES_LEVEL', 'ESCOLARIDAD', 'ESTUDIOS']);
+                const idxEspecialidad = getCol(['ESPECIALIDAD', 'SPECIALTY', 'CARRERA', 'PROFESION']);
+                const idxAniosServicio = getCol(['ANIOS_SERVICIO', 'YEARS_OF_SERVICE', 'ANTIGUEDAD', 'TIEMPO_SERVICIO']);
+                const idxContrato = getCol(['CONTRATO', 'DURACION_CONTRATO', 'CONTRACT_DURATION', 'TIPO_CONTRATO']);
+                const idxVenceContrato = getCol(['VENCE_CONTRATO', 'CONTRACT_EXPIRY', 'FIN_CONTRATO', 'VENCIMIENTO_CONTRATO']);
+                const idxVencePrueba = getCol(['VENCE_PRUEBA', 'PROBATION_EXPIRY', 'FIN_PRUEBA', 'VENCIMIENTO_PRUEBA']);
+                const idxAltaImss = getCol(['ALTA_IMSS', 'IMSS_DATE', 'FECHA_IMSS', 'FECHA_ALTA_IMSS']);
+                const idxRegPatronal = getCol(['REGISTRO_PATRONAL', 'PATRONAL']);
+                const idxIngreso = getCol(['INGRESO', 'HIRE_DATE', 'FECHA_INGRESO', 'FECHA_DE_INGRESO', 'ONBOARDING_DATE']);
+
+                // Payroll & Banking
+                const idxPeriodoPago = getCol(['PERIODICIDAD_PAGO', 'PAYROLL_TYPE', 'TIPO_NOMINA', 'FRECUENCIA_PAGO']);
+                const idxBanco = getCol(['BANCO', 'BANK', 'BANK_NAME', 'INSTITUCION_BANCARIA']);
+                const idxClabe = getCol(['CLABE', 'CUENTA_CLABE', 'CLABE_INTERBANCARIA']);
+                const idxNominaPpp = getCol(['NOMINA_PPP', 'SUELDO_PPP', 'PPP', 'NOMINA_NETA']);
+                const idxNominaImss = getCol(['NOMINA_IMSS', 'SUELDO_IMSS', 'IMSS_SALARY', 'NOMINA_FISCAL']);
+                const idxSdi = getCol(['SDI', 'SALARIO_DIARIO_INTEGRADO']);
+                const idxTotal = getCol(['TOTAL', 'TOTAL_GROSS', 'SUELDO_TOTAL', 'SALARIO_TOTAL', 'TOTAL_MENSUAL']);
+                const idxViaticos = getCol(['VIATICOS_MENSUALES', 'VIATICOS', 'MONTHLY_VIATICOS', 'VIATICO']);
+                const idxBonos = getCol(['BONOS', 'BONUSES', 'BONO']);
+                const idxAguinaldo = getCol(['DIAS_AGUINALDO', 'AGUINALDO_DAYS', 'AGUINALDO']);
+                const idxVacacionesTotal = getCol(['DIAS_VACACIONES_TOTAL', 'VACATION_DAYS_TOTAL', 'VACACIONES_TOTAL', 'TOTAL_VACACIONES']);
+                const idxVacacionesRest = getCol(['DIAS_VACACIONES_RESTANTES', 'VACATION_DAYS_REMAINING', 'VACACIONES_RESTANTES']);
+                const idxInfonavitCredito = getCol(['CREDITO_INFONAVIT', 'INFONAVIT_CREDIT', 'INFONAVIT', 'INFONAVIT_ACTIVO']);
+                const idxInfonavitMonto = getCol(['MONTO_INFONAVIT', 'INFONAVIT_AMOUNT', 'RETENCION_INFONAVIT']);
+                const idxBeneficiario = getCol(['BENEFICIARIO_PRINCIPAL', 'PRIMARY_BENEFICIARY', 'BENEFICIARIO']);
+
+                // Uniforms & Logistics
+                const idxTallaChaleco = getCol(['TALLA_CHALECO', 'VEST_SIZE', 'CHALECO']);
+                const idxTallaCamisa = getCol(['TALLA_CAMISA', 'SHIRT_SIZE', 'CAMISA']);
+                const idxTallaCalzado = getCol(['TALLA_CALZADO', 'SHOE_SIZE', 'CALZADO', 'BOTAS']);
+
+                // Financial rates
+                const idxRegularRate = getCol(['SUELDO_HORA', 'HOURLY_RATE', 'REGULAR_RATE', 'REGULAR_HOURS']);
+                const idxOvertimeRate = getCol(['HORA_EXTRA', 'OVERTIME_RATE', 'OVER_TIME']);
+                const idxPerDiem = getCol(['PER_DIEM', 'TOTAL_PERDIEM']);
+
+                // Helper sanitizers
+                const cleanStr = (val: string | undefined): string => val ? val.trim().replace(/^["']|["']$/g, '') : '';
+                const cleanNum = (val: string | undefined): number => {
+                    if (!val) return 0;
+                    const c = val.replace(/[\$, ]/g, '').trim();
+                    const n = parseFloat(c);
+                    return isNaN(n) ? 0 : n;
+                };
+                const cleanClabe = (val: string | undefined): string => {
+                    if (!val) return '';
+                    let s = val.trim().replace(/^["']|["']$/g, '');
+                    if (/^[0-9.]+e\+[0-9]+$/i.test(s)) {
+                        try {
+                            s = BigInt(Math.round(Number(s))).toString();
+                        } catch {}
+                    }
+                    return s.replace(/[^0-9]/g, '');
+                };
 
                 let importedCount = 0;
                 let lnvCount = personnel.filter(p => p.employeeNumber?.includes('LNV')).length;
@@ -136,56 +354,144 @@ export default function Personnel() {
 
                 for (let i = 1; i < parsedRows.length; i++) {
                     const row = parsedRows[i];
-                    if (row.length < 2 || !row[idxNombre]) continue;
+                    const name = cleanStr(row[idxNombre]);
+                    if (!name) continue;
 
-                    const empresa = row[idxEmpresa] || 'LATNOVVA';
-                    const name = row[idxNombre];
-                    const position = row[idxPuesto] || 'TECHNICIAN';
-
-                    let generatedId = '';
-                    if (empresa.toUpperCase() === 'LATNOVVA') {
-                        lnvCount++;
-                        generatedId = `MX-LNV-${String(lnvCount).padStart(4, '0')}`;
-                    } else {
-                        sysCount++;
-                        generatedId = `MX-SYS-${String(sysCount).padStart(4, '0')}`;
+                    const empresa = idxEmpresa !== -1 ? (cleanStr(row[idxEmpresa]) || 'LATNOVVA') : 'LATNOVVA';
+                    const position = idxPuesto !== -1 ? (cleanStr(row[idxPuesto]) || 'TECHNICIAN') : 'TECHNICIAN';
+                    
+                    // Generate sequential ID if not provided
+                    let empNumber = idxNumEmpleado !== -1 ? cleanStr(row[idxNumEmpleado]) : '';
+                    if (!empNumber) {
+                        if (empresa.toUpperCase().includes('LATNOVVA') || empresa.toUpperCase().includes('LNV')) {
+                            lnvCount++;
+                            empNumber = `MX-LNV-${String(lnvCount).padStart(4, '0')}`;
+                        } else {
+                            sysCount++;
+                            empNumber = `MX-SYS-${String(sysCount).padStart(4, '0')}`;
+                        }
                     }
 
+                    // App Role & Status
+                    const rawRole = idxRolApp !== -1 ? cleanStr(row[idxRolApp]) : '';
+                    const validRoles = ['Tech', 'Office', 'Supervisor', 'Manager', 'HR'];
+                    const appRole = validRoles.find(r => r.toLowerCase() === rawRole.toLowerCase()) as any || 'Tech';
+                    
+                    const rawStatus = idxEstatus !== -1 ? cleanStr(row[idxEstatus]) : '';
+                    const status = rawStatus.toLowerCase().startsWith('inact') ? 'Inactive' : 'Active';
+
+                    // Project & Birth Date
+                    const siteAssigned = idxProyecto !== -1 ? cleanStr(row[idxProyecto]) : '';
+                    const birthDate = idxFechaNac !== -1 ? cleanStr(row[idxFechaNac]) : '';
+                    
+                    // Auto-calculate age if DOB is provided
+                    let age = idxEdad !== -1 ? cleanNum(row[idxEdad]) : 0;
+                    if (!age && birthDate) {
+                        const bDate = new Date(birthDate.includes('/') ? birthDate.split('/').reverse().join('-') : birthDate);
+                        if (!isNaN(bDate.getTime())) {
+                            const today = new Date();
+                            let a = today.getFullYear() - bDate.getFullYear();
+                            const m = today.getMonth() - bDate.getMonth();
+                            if (m < 0 || (m === 0 && today.getDate() < bDate.getDate())) a--;
+                            if (a > 0) age = a;
+                        }
+                    }
+
+                    // Payroll calculations
+                    const nominaPpp = idxNominaPpp !== -1 ? cleanNum(row[idxNominaPpp]) : 0;
+                    const nominaImss = idxNominaImss !== -1 ? cleanNum(row[idxNominaImss]) : 0;
+                    let totalGross = idxTotal !== -1 ? cleanNum(row[idxTotal]) : 0;
+                    if (!totalGross && (nominaPpp || nominaImss)) {
+                        totalGross = nominaPpp + nominaImss;
+                    }
+
+                    const infonavitActive = idxInfonavitCredito !== -1 ? (cleanStr(row[idxInfonavitCredito]).toUpperCase().startsWith('S') || cleanStr(row[idxInfonavitCredito]).toUpperCase() === 'YES') : false;
+
                     const metadata = {
-                        siteAssigned: idxProyecto !== -1 ? row[idxProyecto] : '',
-                        imssDate: idxAltaImss !== -1 ? row[idxAltaImss] : '',
-                        hireDate: idxIngreso !== -1 ? row[idxIngreso] : '',
-                        curp: idxCurp !== -1 ? row[idxCurp] : '',
-                        rfc: idxRfc !== -1 ? row[idxRfc] : '',
-                        nss: idxNss !== -1 ? row[idxNss] : '',
-                        age: idxEdad !== -1 ? (parseInt(row[idxEdad]) || 0) : 0,
-                        gender: idxGenero !== -1 ? row[idxGenero] : '',
-                        maritalStatus: idxEdoCivil !== -1 ? row[idxEdoCivil] : '',
-                        street: idxDomicilio !== -1 ? row[idxDomicilio] : '',
-                        contractDuration: idxContrato !== -1 ? row[idxContrato] : '',
-                        contractExpiry: idxVencePrueba !== -1 ? row[idxVencePrueba] : '',
-                        bankName: idxBanco !== -1 ? row[idxBanco] : '',
-                        clabe: idxClabe !== -1 ? row[idxClabe] : '',
-                        nominaPpp: idxNominaPpp !== -1 ? (parseFloat(row[idxNominaPpp]) || 0) : 0,
-                        nominaImss: idxNominaImss !== -1 ? (parseFloat(row[idxNominaImss]) || 0) : 0,
-                        totalGross: idxTotal !== -1 ? (parseFloat(row[idxTotal]) || 0) : 0,
-                        ine: idxIne !== -1 ? row[idxIne] : '',
-                        company: empresa
+                        company: empresa,
+                        siteAssigned,
+                        birthDate,
+                        age: age > 0 ? age : undefined,
+                        gender: idxGenero !== -1 ? cleanStr(row[idxGenero]).toUpperCase() : '',
+                        maritalStatus: idxEdoCivil !== -1 ? cleanStr(row[idxEdoCivil]).toUpperCase() : '',
+                        street: idxDomicilio !== -1 ? cleanStr(row[idxDomicilio]) : '',
+                        addressFull: idxDomicilio !== -1 ? cleanStr(row[idxDomicilio]) : '',
+                        personalEmail: idxEmail !== -1 ? cleanStr(row[idxEmail]) : '',
+                        emergencyContactRelationship: idxParentescoEmerg !== -1 ? cleanStr(row[idxParentescoEmerg]) : '',
+                        curp: idxCurp !== -1 ? cleanStr(row[idxCurp]).toUpperCase() : '',
+                        ine: idxIne !== -1 ? cleanStr(row[idxIne]) : '',
+                        rfc: idxRfc !== -1 ? cleanStr(row[idxRfc]).toUpperCase() : '',
+                        rfcPostalCode: idxCpFiscal !== -1 ? cleanStr(row[idxCpFiscal]) : '',
+                        nss: idxNss !== -1 ? cleanStr(row[idxNss]) : '',
+                        workerType: idxTipoTrabajador !== -1 ? cleanStr(row[idxTipoTrabajador]).toUpperCase() : '',
+                        studiesLevel: idxNivelEstudios !== -1 ? cleanStr(row[idxNivelEstudios]) : '',
+                        specialty: idxEspecialidad !== -1 ? cleanStr(row[idxEspecialidad]) : '',
+                        yearsOfService: idxAniosServicio !== -1 ? cleanNum(row[idxAniosServicio]) : undefined,
+                        contractDuration: idxContrato !== -1 ? cleanStr(row[idxContrato]) : '',
+                        contractExpiry: idxVenceContrato !== -1 ? cleanStr(row[idxVenceContrato]) : (idxVencePrueba !== -1 ? cleanStr(row[idxVencePrueba]) : ''),
+                        probationExpiry: idxVencePrueba !== -1 ? cleanStr(row[idxVencePrueba]) : '',
+                        imssDate: idxAltaImss !== -1 ? cleanStr(row[idxAltaImss]) : '',
+                        registroPatronal: idxRegPatronal !== -1 ? cleanStr(row[idxRegPatronal]) : '',
+                        hireDate: idxIngreso !== -1 ? cleanStr(row[idxIngreso]) : '',
+                        payrollType: idxPeriodoPago !== -1 ? cleanStr(row[idxPeriodoPago]).toUpperCase() : 'QUINCENAL',
+                        bank: idxBanco !== -1 ? cleanStr(row[idxBanco]) : '',
+                        bankName: idxBanco !== -1 ? cleanStr(row[idxBanco]) : '',
+                        clabe: idxClabe !== -1 ? cleanClabe(row[idxClabe]) : '',
+                        nominaPpp: nominaPpp > 0 ? nominaPpp : undefined,
+                        nominaImss: nominaImss > 0 ? nominaImss : undefined,
+                        sdi: idxSdi !== -1 ? cleanNum(row[idxSdi]) : undefined,
+                        totalGross: totalGross > 0 ? totalGross : undefined,
+                        viaticosMonthly: idxViaticos !== -1 ? cleanNum(row[idxViaticos]) : undefined,
+                        bonuses: idxBonos !== -1 ? cleanNum(row[idxBonos]) : undefined,
+                        aguinaldoDays: idxAguinaldo !== -1 ? cleanNum(row[idxAguinaldo]) : undefined,
+                        vacationDaysTotal: idxVacacionesTotal !== -1 ? cleanNum(row[idxVacacionesTotal]) : undefined,
+                        vacationDaysRemaining: idxVacacionesRest !== -1 ? cleanNum(row[idxVacacionesRest]) : undefined,
+                        infonavitCredit: infonavitActive ? 'SI' : 'NO',
+                        infonavitActive,
+                        infonavitAmount: idxInfonavitMonto !== -1 ? cleanNum(row[idxInfonavitMonto]) : undefined,
+                        primaryBeneficiary: idxBeneficiario !== -1 ? cleanStr(row[idxBeneficiario]) : '',
+                        vestSize: idxTallaChaleco !== -1 ? cleanStr(row[idxTallaChaleco]).toUpperCase() : '',
+                        shirtSize: idxTallaCamisa !== -1 ? cleanStr(row[idxTallaCamisa]).toUpperCase() : '',
+                        shoeSize: idxTallaCalzado !== -1 ? cleanStr(row[idxTallaCalzado]) : ''
                     };
 
+                    const newPersonId = crypto.randomUUID();
+                    const corpEmail = idxCorpEmail !== -1 ? cleanStr(row[idxCorpEmail]) : '';
+                    const persEmail = idxEmail !== -1 ? cleanStr(row[idxEmail]) : '';
+                    const primaryEmail = corpEmail || persEmail || undefined;
+
                     await addPersonnel({
-                        id: crypto.randomUUID(),
+                        id: newPersonId,
                         name,
                         position,
-                        employeeNumber: generatedId,
-                        email: (idxCorpEmail !== -1 && row[idxCorpEmail]) || (idxEmail !== -1 && row[idxEmail]) || undefined,
-                        phoneNumber: idxTel !== -1 ? row[idxTel] : undefined,
-                        status: 'Active',
-                        appRole: 'Tech',
+                        employeeNumber: empNumber,
+                        email: primaryEmail,
+                        phoneNumber: idxTel !== -1 ? cleanStr(row[idxTel]) : undefined,
+                        emergencyContactName: idxContactoEmerg !== -1 ? cleanStr(row[idxContactoEmerg]) : undefined,
+                        emergencyContactPhone: idxTelEmerg !== -1 ? cleanStr(row[idxTelEmerg]) : undefined,
+                        sharedFolderLink: idxCertsFolder !== -1 ? cleanStr(row[idxCertsFolder]) : undefined,
+                        dbo: birthDate || undefined,
+                        status,
+                        appRole,
                         subsidiary: 'MX',
                         subsidiaryMetadata: metadata,
-                        certifications: []
+                        certifications: [],
+                        regularRate: idxRegularRate !== -1 ? cleanNum(row[idxRegularRate]) : undefined,
+                        overtimeRate: idxOvertimeRate !== -1 ? cleanNum(row[idxOvertimeRate]) : undefined,
+                        totalPerdiem: idxPerDiem !== -1 ? cleanNum(row[idxPerDiem]) : undefined
                     });
+
+                    // Link to project if assigned
+                    if (siteAssigned) {
+                        const matchProject = projects.find(p => 
+                            p.name.toLowerCase() === siteAssigned.toLowerCase() || 
+                            p.codeName?.toLowerCase() === siteAssigned.toLowerCase()
+                        );
+                        if (matchProject) {
+                            await transferPersonnel(newPersonId, matchProject.id);
+                        }
+                    }
+
                     importedCount++;
                 }
 
