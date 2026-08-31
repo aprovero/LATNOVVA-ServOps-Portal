@@ -5,7 +5,8 @@ import { useStore, Personnel as PersonnelType } from '../store/useStore';
 import {
     User, Plus, Trash2, Shield, Award, Search, Camera, ExternalLink,
     Activity, FolderGit2, Network, List, ChevronDown, Phone, Mail,
-    Briefcase, CheckCircle2, CircleDashed, Save, ArrowLeft, X, Upload
+    Briefcase, CheckCircle2, CircleDashed, Save, ArrowLeft, X, Upload,
+    FileText, FileSpreadsheet
 } from 'lucide-react';
 import OrgChartView from '../components/personnel/OrgChartView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog';
@@ -174,6 +175,292 @@ export default function Personnel() {
         const link = document.createElement("a");
         link.setAttribute("href", URL.createObjectURL(blob));
         link.setAttribute("download", "plantilla_carga_masiva_personal.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleDownloadInstructions = () => {
+        const instructions = `================================================================================
+GUIA Y ESPECIFICACION DE COLUMNAS PARA CARGA MASIVA DE PERSONAL - LATNOVVA
+================================================================================
+
+Este documento contiene las especificaciones detalladas para el llenado de la 
+plantilla de carga masiva de colaboradores (archivo .csv).
+
+--------------------------------------------------------------------------------
+1. REGLAS GENERALES Y RECOMENDACIONES
+--------------------------------------------------------------------------------
+- Formato de Archivo: CSV delimitado por comas (,) codificado en UTF-8.
+- Columnas Obligatorias: Unicamente la columna 'NOMBRE' es estrictamente requerida. 
+  Todas las demas columnas son opcionales pero recomendadas para tener el expediente completo.
+- Textos con Comas: Si un campo contiene comas (por ejemplo, direcciones como 
+  "Av. Reforma 123, Col. Juarez"), debe encerrarse entre comillas dobles.
+- Cuentas CLABE y Numeros Largos: En Excel, configure la columna CLABE como 'Texto' 
+  para evitar que se convierta a notacion cientifica (ej. 1.218E+16). El sistema 
+  detecta y sanitiza automaticamente numeros en notacion cientifica.
+- Asignacion Automatica a Oficina CDMX: Si el campo 'PROYECTO' se deja vacio o el 
+  proyecto no se encuentra activo, el colaborador se asignara automaticamente a la 
+  Oficina Central de Ciudad de Mexico (EST-LNV-000 CDMX).
+- Autocalculo de Edad: Si 'EDAD' se deja en blanco pero se proporciona 'FECHA_NACIMIENTO', 
+  el sistema calculara la edad automaticamente.
+- Autocalculo de Total: Si 'TOTAL' se deja en 0 o vacio y se capturan 'NOMINA_PPP' y 
+  'NOMINA_IMSS', el sistema calculara la suma automaticamente.
+- Autogeneracion de ID: Si 'NUMERO_EMPLEADO' se deja en blanco, el sistema generara un 
+  codigo consecutivo unico (ej. MX-LNV-0001 o MX-SYS-0001).
+
+--------------------------------------------------------------------------------
+2. DICCIONARIO DE COLUMNAS (EN ORDEN DE APARICION)
+--------------------------------------------------------------------------------
+
+[ SECCION 1: INFORMACION GENERAL / PERFIL ]
+1. EMPRESA
+   - Descripcion: Empresa a la que pertenece el colaborador.
+   - Valores recomendados: 'LATNOVVA' o 'SYS'.
+   - Valor por defecto: 'LATNOVVA'.
+
+2. NOMBRE
+   - Descripcion: Nombre completo del colaborador (Apellidos y Nombres).
+   - Requerido: SI.
+   - Ejemplo: 'JUAN PEREZ SANCHEZ'.
+
+3. PUESTO
+   - Descripcion: Cargo o puesto desempenado en la empresa.
+   - Ejemplo: 'TECHNICIAN', 'GERENTE DE IT', 'COORDINADOR DE CONSTRUCCION'.
+
+4. NUMERO_EMPLEADO
+   - Descripcion: Identificador de empleado asignado internamente.
+   - Ejemplo: 'MX-LNV-0001'. Si se deja vacio, el sistema lo genera automaticamente.
+
+5. ROL_APP
+   - Descripcion: Nivel de acceso y permisos dentro de la plataforma.
+   - Valores permitidos: 'Tech', 'Office', 'Supervisor', 'Manager', 'HR'.
+   - Valor por defecto: 'Tech'.
+
+6. ESTATUS
+   - Descripcion: Estado laboral del colaborador.
+   - Valores permitidos: 'Active' o 'Inactive'.
+   - Valor por defecto: 'Active'.
+
+7. PROYECTO
+   - Descripcion: Proyecto, obra o sitio asignado.
+   - Ejemplo: 'EST-LNV-000 CDMX', 'EST-LNV-000 MID', 'PROYECTO SOLAR NORTE'.
+   - Nota: Si no coincide con un proyecto registrado o esta vacio, se asigna a CDMX.
+
+8. FECHA_NACIMIENTO
+   - Descripcion: Fecha de nacimiento del colaborador.
+   - Formatos aceptados: 'YYYY-MM-DD' (ej. 1980-04-04) o 'DD/MM/YYYY' (ej. 04/04/1980).
+
+9. EDAD
+   - Descripcion: Edad en anos cumplidos.
+   - Ejemplo: 46. (Se autocalcula si se proporciona FECHA_NACIMIENTO).
+
+10. GENERO
+    - Descripcion: Genero del colaborador.
+    - Valores sugeridos: 'MASCULINO', 'FEMENINO', 'OTRO'.
+
+11. EDO_CIVIL
+    - Descripcion: Estado civil.
+    - Valores sugeridos: 'SOLTERO(A)', 'CASADO(A)', 'DIVORCIADO(A)', 'VIUDO(A)', 'UNION LIBRE'.
+
+12. DOMICILIO
+    - Descripcion: Direccion completa de residencia (Calle, No., Colonia, Municipio/Alcaldia, C.P., Estado).
+    - Ejemplo: 'AV REFORMA 123 COL. JUAREZ CUAUHTEMOC CDMX C.P. 06600'.
+
+13. CORP_EMAIL
+    - Descripcion: Correo electronico corporativo oficial.
+    - Ejemplo: 'jperez@latnovva.com'.
+
+14. EMAIL
+    - Descripcion: Correo electronico personal.
+    - Ejemplo: 'juan.perez@gmail.com'.
+
+15. TEL
+    - Descripcion: Numero telefonico de contacto principal (10 digitos).
+    - Ejemplo: '5512345678'.
+
+16. CONTACTO_EMERGENCIA
+    - Descripcion: Nombre completo de la persona a contactar en caso de emergencia.
+    - Ejemplo: 'MARIA SANCHEZ PEREZ'.
+
+17. TEL_EMERGENCIA
+    - Descripcion: Telefono del contacto de emergencia.
+    - Ejemplo: '5587654321'.
+
+18. PARENTESCO_EMERGENCIA
+    - Descripcion: Relacion o parentesco con el contacto de emergencia.
+    - Ejemplo: 'MADRE', 'ESPOSA', 'HERMANO', 'HIJO'.
+
+19. CARPETA_CERTIFICADOS
+    - Descripcion: Enlace (URL) a la carpeta compartida en Google Drive / OneDrive con DC3 o certificados.
+    - Ejemplo: 'https://drive.google.com/drive/folders/...'.
+
+
+[ SECCION 2: IDENTIFICACION & DEMOGRAFIA (RH MEXICO) ]
+20. CURP
+    - Descripcion: Clave Unica de Registro de Poblacion (18 caracteres).
+    - Ejemplo: 'PESJ800404HQRMRS03'.
+
+21. INE
+    - Descripcion: Clave de elector o codigo identificador de la credencial para votar.
+    - Ejemplo: 'IDMEX1952181883'.
+
+22. RFC
+    - Descripcion: Registro Federal de Contribuyentes con Homoclave (13 caracteres).
+    - Ejemplo: 'PESJ800404BW7'.
+
+23. CP_FISCAL
+    - Descripcion: Codigo Postal fiscal de la Constancia de Situacion Fiscal SAT (5 digitos).
+    - Ejemplo: '06010'.
+
+24. NSS
+    - Descripcion: Numero de Seguridad Social IMSS (11 digitos).
+    - Ejemplo: '82968014975'.
+
+
+[ SECCION 3: DATOS LABORALES & CONTRATACION (RH MEXICO) ]
+25. TIPO_TRABAJADOR
+    - Descripcion: Clasificacion del colaborador por residencia/desplazamiento.
+    - Valores: 'LOCAL' o 'FORANEO'.
+
+26. NIVEL_ESTUDIOS
+    - Descripcion: Maximo grado de estudios completado.
+    - Ejemplos: 'PRIMARIA', 'SECUNDARIA', 'PREPARATORIA', 'LICENCIATURA', 'INGENIERIA', 'MAESTRIA'.
+
+27. ESPECIALIDAD
+    - Descripcion: Area de especializacion o carrera profesional.
+    - Ejemplo: 'INGENIERIA ELECTRICA', 'ADMINISTRACION', 'RECURSOS HUMANOS'.
+
+28. ANIOS_SERVICIO
+    - Descripcion: Antiguedad en la empresa en anos (numero entero o decimal).
+    - Ejemplo: 2.5.
+
+29. CONTRATO
+    - Descripcion: Modalidad o vigencia del contrato de trabajo.
+    - Ejemplos: '1 MES', '3 MESES', '6 MESES', '1 ANO', 'INDEFINIDO'.
+
+30. VENCE_CONTRATO
+    - Descripcion: Fecha de termino o renovacion del contrato.
+    - Formato: 'DD/MM/YYYY' o 'YYYY-MM-DD'.
+
+31. VENCE_PRUEBA
+    - Descripcion: Fecha de conclusion del periodo de prueba.
+    - Formato: 'DD/MM/YYYY' o 'YYYY-MM-DD'.
+
+32. ALTA_IMSS
+    - Descripcion: Fecha oficial de alta ante el Instituto Mexicano del Seguro Social.
+    - Formato: 'DD/MM/YYYY' o 'YYYY-MM-DD'.
+
+33. REGISTRO_PATRONAL
+    - Descripcion: Numero o clave de Registro Patronal de la empresa.
+    - Ejemplo: 'Y1234567890'.
+
+34. INGRESO
+    - Descripcion: Fecha formal de ingreso / contratacion a la empresa.
+    - Formato: 'DD/MM/YYYY' o 'YYYY-MM-DD'.
+
+
+[ SECCION 4: NOMINA, PERCEPCIONES & BANCO (RH MEXICO) ]
+35. PERIODICIDAD_PAGO
+    - Descripcion: Frecuencia con la que se dispersa la nomina.
+    - Valores: 'QUINCENAL', 'SEMANAL', 'MENSUAL'.
+    - Valor por defecto: 'QUINCENAL'.
+
+36. BANCO
+    - Descripcion: Nombre del banco donde el colaborador recibe sus depositos.
+    - Ejemplos: 'BBVA', 'SANTANDER', 'BANAMEX', 'BANORTE', 'BANCO AZTECA', 'NU MEXICO'.
+
+37. CLABE
+    - Descripcion: Clave Bancaria Estandarizada (18 digitos numericos).
+    - Ejemplo: '12180015309895246'.
+
+38. NOMINA_PPP
+    - Descripcion: Monto mensual dispersado por concepto de PPP / Sueldo Neto.
+    - Ejemplo: 15000.
+
+39. NOMINA_IMSS
+    - Descripcion: Monto mensual registrado formalmente ante el IMSS.
+    - Ejemplo: 10000.
+
+40. SDI
+    - Descripcion: Salario Diario Integrado (pesos mexicanos).
+    - Ejemplo: 850.50.
+
+41. TOTAL
+    - Descripcion: Sueldo bruto mensual integral (NOMINA_PPP + NOMINA_IMSS).
+    - Ejemplo: 25000.
+
+42. VIATICOS_MENSUALES
+    - Descripcion: Asignacion mensual promedio para viaticos en campo.
+    - Ejemplo: 3000.
+
+43. BONOS
+    - Descripcion: Bonos mensuales recurrentes o de productividad.
+    - Ejemplo: 1500.
+
+44. DIAS_AGUINALDO
+    - Descripcion: Dias de aguinaldo pactados anualmente.
+    - Ejemplo: 15.
+
+45. DIAS_VACACIONES_TOTAL
+    - Descripcion: Dias totales de vacaciones anuales segun antiguedad.
+    - Ejemplo: 12.
+
+46. DIAS_VACACIONES_RESTANTES
+    - Descripcion: Dias de vacaciones disponibles pendientes de disfrutar.
+    - Ejemplo: 10.
+
+47. CREDITO_INFONAVIT
+    - Descripcion: El trabajador cuenta con credito Infonavit activo?
+    - Valores: 'SI' o 'NO'.
+
+48. MONTO_INFONAVIT
+    - Descripcion: Monto mensual de descuento por retencion de credito Infonavit.
+    - Ejemplo: 2450.00.
+
+49. BENEFICIARIO_PRINCIPAL
+    - Descripcion: Nombre completo de la persona designada como beneficiaria legal.
+    - Ejemplo: 'MARIA SANCHEZ PEREZ'.
+
+
+[ SECCION 5: LOGISTICA & TALLAS (RH MEXICO) ]
+50. TALLA_CHALECO
+    - Descripcion: Talla para chaleco de seguridad y EPP.
+    - Valores: 'S', 'M', 'L', 'XL', 'XXL'.
+
+51. TALLA_CAMISA
+    - Descripcion: Talla para camisolas de trabajo y uniformes.
+    - Valores: 'S', 'M', 'L', 'XL', 'XXL'.
+
+52. TALLA_CALZADO
+    - Descripcion: Talla de calzado / botas de seguridad con casquillo.
+    - Ejemplo: '27', '27.5', '28'.
+
+
+[ SECCION 6: TARIFAS ADICIONALES / US RATES (OPCIONAL) ]
+53. SUELDO_HORA
+    - Descripcion: Tarifa por hora regular (para colaboradores en esquema horario o US).
+    - Ejemplo: 25.00.
+
+54. HORA_EXTRA
+    - Descripcion: Tarifa por hora extraordinaria.
+    - Ejemplo: 37.50.
+
+55. PER_DIEM
+    - Descripcion: Tarifa de viatico diario fijo (Per Diem).
+    - Ejemplo: 75.00.
+
+================================================================================
+SOPORTE Y ASISTENCIA TECNICA - LATNOVVA SERVOPS
+================================================================================
+Si experimenta algun error durante la carga masiva, revise que no existan comillas 
+abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
+`;
+
+        const blob = new Blob([instructions], { type: 'text/plain;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", "instrucciones_carga_masiva.txt");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1674,11 +1961,19 @@ export default function Personnel() {
                             Sube un archivo CSV utilizando la plantilla oficial de LATNOVVA para registrar múltiples colaboradores activos simultáneamente.
                         </p>
                         
-                        <div className="flex justify-between items-center bg-teal-50 border border-teal-100 rounded-2xl p-4">
-                            <span className="text-xs text-brand-teal font-semibold">Plantilla oficial de carga</span>
-                            <Button size="sm" variant="outline" onClick={handleDownloadTemplate} className="text-xs font-bold border-teal-200 text-brand-teal hover:bg-teal-100/50 rounded-lg">
-                                Descargar CSV
-                            </Button>
+                        <div className="bg-teal-50/70 border border-teal-150 rounded-2xl p-4 space-y-3">
+                            <span className="text-xs text-slate-800 font-bold block">1. Archivos de Apoyo</span>
+                            <p className="text-[11px] text-slate-600 leading-snug">
+                                Descarga la plantilla CSV para capturar los datos y el archivo de texto con el manual de especificaciones y reglas en español:
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                                <Button size="sm" variant="outline" onClick={handleDownloadTemplate} className="text-xs font-bold border-teal-200 text-brand-teal hover:bg-teal-100/60 rounded-xl flex items-center justify-center gap-1.5 h-9 bg-white shadow-xs">
+                                    <FileSpreadsheet size={14} /> Plantilla (.csv)
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={handleDownloadInstructions} className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl flex items-center justify-center gap-1.5 h-9 bg-white shadow-xs">
+                                    <FileText size={14} /> Instrucciones (.txt)
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
