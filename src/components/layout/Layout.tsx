@@ -6,6 +6,7 @@ import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
 import { useTranslation } from 'react-i18next';
 import { AddScopeModal } from '../project/AddScopeModal';
+import { supabase } from '../../lib/supabase';
 import gsap from 'gsap';
 import { SyncStatus } from '../SyncStatus';
 import { NotificationStatus } from '../NotificationStatus';
@@ -383,6 +384,35 @@ export default function Layout() {
         } finally {
             setIsUpdatingAccount(false);
         }
+    };
+
+    const handleDisableFaceId = async () => {
+        if (!confirm(t('attendance.disable_face_confirm', '¿Deseas desactivar y eliminar tu registro de Face ID? Podrás volver a configurarlo cuando desees.'))) return;
+        const userEmail = (user?.email || '').toLowerCase();
+        const resId = useStore.getState().resolvePersonnelId();
+        const targetId = resId || user?.id;
+
+        if (targetId) {
+            await updatePersonnel(targetId, {
+                faceDescriptor: []
+            });
+            try {
+                await (supabase.from('personnel') as any).update({
+                    faceDescriptor: null
+                }).or(`id.eq.${targetId},email.ilike.${userEmail}`);
+            } catch (e) {
+                console.warn('Failed to clear faceDescriptor in DB:', e);
+            }
+        }
+
+        if (userEmail) {
+            localStorage.removeItem(`face_id_enrolled_${userEmail}`);
+            localStorage.setItem(`face_id_rejected_${userEmail}`, 'true');
+        }
+        localStorage.removeItem('cached_user_descriptor');
+
+        alert(t('attendance.face_id_disabled_msg', 'Face ID ha sido desactivado para tu cuenta.'));
+        setIsAccountModalOpen(false);
     };
 
     useEffect(() => {
@@ -1302,6 +1332,32 @@ export default function Layout() {
                                 disabled 
                                 className="bg-gray-50 border-gray-100 opacity-60"
                             />
+                        </div>
+
+                        {/* Face ID Management Section */}
+                        <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isFaceIdActive ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200 text-gray-400'}`}>
+                                    <ShieldCheck size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-800">Biometría Face ID</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">
+                                        {isFaceIdActive ? 'Configurado y activo' : 'No configurado'}
+                                    </p>
+                                </div>
+                            </div>
+                            {isFaceIdActive && (
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleDisableFaceId}
+                                    className="h-8 text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 rounded-xl"
+                                >
+                                    Desactivar Face ID
+                                </Button>
+                            )}
                         </div>
 
                         <div className="space-y-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
