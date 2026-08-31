@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, UploadCloud, Trash2, FileSpreadsheet, Calendar, MessageSquare } from 'lucide-react';
+import { Home, FileText, Settings, User, Search, Bell, CheckSquare, AlertTriangle, Clock, MapPin, Map as MapIcon, Fingerprint, Download, X, UploadCloud, Trash2, FileSpreadsheet, Calendar, MessageSquare, ShieldCheck } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useStore, Project } from '../../store/useStore';
 import { useAuthStore } from '../../lib/authStore';
@@ -39,7 +39,26 @@ export default function Layout() {
     const navigate = useNavigate();
     const { userRole, setAuthData, personnel, updatePersonnel, clients, projects, addClient, addProject, reports, addReport, clientId, dismissedNotifications, dismissNotification, clearNotifications, platformSettings, activeSubsidiary, initDb } = useStore();
     const { canInstall, triggerInstall } = usePWAInstall();
-    const { signOut } = useAuthStore();
+    const { signOut, user } = useAuthStore();
+
+    // Face ID active state for logged in user
+    const isFaceIdActive = useMemo(() => {
+        const userEmail = (user?.email || '').toLowerCase();
+        const resId = useStore.getState().resolvePersonnelId();
+        const person = personnel.find(p => p.id === resId || (p.email && p.email.toLowerCase() === userEmail));
+        const localEnrolled = localStorage.getItem(`face_id_enrolled_${userEmail}`) === 'true';
+        let cachedDescriptor = false;
+        try {
+            const raw = localStorage.getItem('cached_user_descriptor');
+            if (raw && JSON.parse(raw).length > 0) cachedDescriptor = true;
+        } catch {}
+
+        return Boolean(
+            (person?.faceDescriptor && person.faceDescriptor.length > 0) ||
+            localEnrolled ||
+            cachedDescriptor
+        );
+    }, [user, personnel]);
 
     // Dialog States
     const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
@@ -334,7 +353,7 @@ export default function Layout() {
         navigate(`/reports/${reportId}`);
     };
 
-    const { updateAccount, user } = useAuthStore();
+    const { updateAccount } = useAuthStore();
 
     const handleAccountUpdate = async () => {
         if (!accountName) return;
@@ -524,6 +543,18 @@ export default function Layout() {
                         <NotificationStatus />
                         <SyncStatus />
 
+                        {/* Face ID Status Badge */}
+                        {isFaceIdActive && (
+                            <div 
+                                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full text-xs font-bold tracking-tight shadow-xs select-none"
+                                title={t('attendance.face_id_active_tooltip', 'Face ID biométrico configurado y activo')}
+                            >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <ShieldCheck size={13} className="text-emerald-600 shrink-0" />
+                                <span>Face ID Enabled</span>
+                            </div>
+                        )}
+
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button className="outline-none relative p-2 text-gray-500 hover:text-brand-teal transition-colors rounded-full hover:bg-gray-100">
@@ -675,6 +706,18 @@ export default function Layout() {
                                 <Download size={18} />
                             </button>
                         )}
+                        {/* Face ID status — mobile */}
+                        {isFaceIdActive && (
+                            <div 
+                                className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full text-[10px] font-bold select-none"
+                                title="Face ID Configured"
+                            >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <ShieldCheck size={11} className="text-emerald-600 shrink-0" />
+                                <span>Face ID</span>
+                            </div>
+                        )}
+
                         {/* Search — opens command palette */}
                         <button
                             onClick={() => setIsSearchPaletteOpen(true)}
