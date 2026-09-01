@@ -38,9 +38,12 @@ export const SyncStatus: React.FC = () => {
                 <button
                     onClick={() => setIsOpen(true)}
                     title="Cloud Synced"
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 shadow-sm animate-in fade-in duration-500 hover:bg-emerald-100 transition-colors"
+                    className="group relative flex items-center h-8 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 shadow-xs transition-all duration-300 ease-in-out px-2 hover:px-3 hover:bg-emerald-100 hover:border-emerald-200 active:scale-95 cursor-pointer select-none shrink-0"
                 >
-                    <Cloud size={16} />
+                    <Cloud size={16} className="shrink-0" />
+                    <span className="min-w-0 max-w-0 opacity-0 group-hover:max-w-[160px] group-hover:opacity-100 group-hover:ml-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap text-xs font-bold leading-none select-none">
+                        Sincronizado
+                    </span>
                 </button>
             );
         }
@@ -50,9 +53,12 @@ export const SyncStatus: React.FC = () => {
                 <button 
                     onClick={() => setIsOpen(true)}
                     title="Sync Error"
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-red-50 border border-red-100 text-red-600 shadow-sm animate-pulse cursor-pointer hover:bg-red-100 transition-colors"
+                    className="group relative flex items-center h-8 rounded-full bg-red-50 border border-red-100 text-red-600 shadow-xs animate-pulse transition-all duration-300 ease-in-out px-2 hover:px-3 hover:bg-red-100 hover:border-red-200 active:scale-95 cursor-pointer select-none shrink-0"
                 >
-                    <AlertCircle size={16} />
+                    <AlertCircle size={16} className="shrink-0" />
+                    <span className="min-w-0 max-w-0 opacity-0 group-hover:max-w-[160px] group-hover:opacity-100 group-hover:ml-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap text-xs font-bold leading-none select-none">
+                        Error Sync
+                    </span>
                 </button>
             );
         }
@@ -62,27 +68,37 @@ export const SyncStatus: React.FC = () => {
                 <button
                     onClick={() => setIsOpen(true)}
                     title="Syncing..."
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 border border-blue-100 text-blue-600 shadow-sm"
+                    className="group relative flex items-center h-8 rounded-full bg-blue-50 border border-blue-100 text-blue-600 shadow-xs transition-all duration-300 ease-in-out px-2 hover:px-3 hover:bg-blue-100 hover:border-blue-200 active:scale-95 cursor-pointer select-none shrink-0"
                 >
-                    <RefreshCw size={16} className="animate-spin" />
+                    <RefreshCw size={16} className="animate-spin shrink-0" />
+                    <span className="min-w-0 max-w-0 opacity-0 group-hover:max-w-[160px] group-hover:opacity-100 group-hover:ml-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap text-xs font-bold leading-none select-none">
+                        Sincronizando...
+                    </span>
                 </button>
             );
         }
 
         if (pendingCount > 0) {
+            const pendingLabel = isOffline 
+                ? "Sin Conexión" 
+                : `${pendingCount} ${pendingCount === 1 ? 'pendiente' : 'pendientes'}`;
+
             return (
                 <button 
                     onClick={() => setIsOpen(true)}
                     title={`${pendingCount} changes pending`}
-                    className={`flex items-center justify-center w-8 h-8 rounded-full shadow-sm transition-all hover:scale-105 active:scale-95 relative ${
+                    className={`group relative flex items-center h-8 rounded-full shadow-xs transition-all duration-300 ease-in-out px-2 hover:px-3 active:scale-95 cursor-pointer select-none shrink-0 ${
                         isOffline 
-                            ? 'bg-amber-50 border border-amber-100 text-amber-600' 
-                            : 'bg-brand-teal/10 border border-brand-teal/20 text-brand-teal'
+                            ? 'bg-amber-50 border border-amber-100 text-amber-600 hover:bg-amber-100 hover:border-amber-200' 
+                            : 'bg-brand-teal/10 border border-brand-teal/20 text-brand-teal hover:bg-brand-teal/20 hover:border-brand-teal/30'
                     }`}
                 >
-                    {isOffline ? <CloudOff size={16} /> : <Cloud size={16} />}
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white shadow-sm">
+                    {isOffline ? <CloudOff size={16} className="shrink-0" /> : <Cloud size={16} className="shrink-0" />}
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white shadow-sm pointer-events-none">
                         {pendingCount}
+                    </span>
+                    <span className="min-w-0 max-w-0 opacity-0 group-hover:max-w-[160px] group-hover:opacity-100 group-hover:ml-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap text-xs font-bold leading-none select-none">
+                        {pendingLabel}
                     </span>
                 </button>
             );

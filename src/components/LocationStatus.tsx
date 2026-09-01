@@ -64,25 +64,28 @@ export const LocationStatus: React.FC = () => {
     const isGranted = status === 'granted';
     const isDenied = status === 'denied';
 
+    const label = isGranted 
+        ? t('location.status.active', 'Ubicación Activa') 
+        : isDenied 
+            ? t('location.status.blocked', 'Ubicación Bloqueada') 
+            : t('location.status.enable', 'Activar Ubicación');
+
     return (
         <button
             onClick={handleClick}
-            title={
-                isGranted 
-                    ? t('location.status.active', 'Ubicación Activa') 
-                    : isDenied 
-                        ? t('location.status.blocked', 'Ubicación Bloqueada') 
-                        : t('location.status.enable', 'Activar Ubicación')
-            }
-            className={`flex items-center justify-center w-8 h-8 rounded-full border shadow-sm transition-all hover:scale-105 active:scale-95 ${
+            title={label}
+            className={`group relative flex items-center h-8 rounded-full border shadow-xs transition-all duration-300 ease-in-out px-2 hover:px-3 active:scale-95 cursor-pointer select-none shrink-0 ${
                 isGranted
-                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-200'
                     : isDenied
-                        ? 'bg-red-50 border-red-100 text-red-600 hover:bg-red-100 animate-pulse'
-                        : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100'
+                        ? 'bg-red-50 border-red-100 text-red-600 hover:bg-red-100 hover:border-red-200 animate-pulse'
+                        : 'bg-amber-50 border-amber-100 text-amber-500 hover:bg-amber-100 hover:border-amber-200'
             }`}
         >
-            {isDenied ? <MapPinOff size={16} /> : <MapPin size={16} />}
+            {isDenied ? <MapPinOff size={16} className="shrink-0" /> : <MapPin size={16} className="shrink-0" />}
+            <span className="min-w-0 max-w-0 opacity-0 group-hover:max-w-[160px] group-hover:opacity-100 group-hover:ml-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap text-xs font-bold leading-none select-none">
+                {label}
+            </span>
         </button>
     );
 };

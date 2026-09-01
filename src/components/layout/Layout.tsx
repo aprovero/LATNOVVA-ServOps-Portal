@@ -579,21 +579,26 @@ export default function Layout() {
                             </button>
                         )}
                         
-                        <LocationStatus />
-                        <NotificationStatus />
-                        <SyncStatus />
+                        {/* Status Gems (Location, Notifications, Cloud Sync, Face ID) */}
+                        <div className="flex items-center gap-2">
+                            <LocationStatus />
+                            <NotificationStatus />
+                            <SyncStatus />
 
-                        {/* Face ID Status Badge */}
-                        {isFaceIdActive && (
-                            <div 
-                                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full text-xs font-bold tracking-tight shadow-xs select-none"
-                                title={t('attendance.face_id_active_tooltip', 'Face ID biométrico configurado y activo')}
-                            >
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <ShieldCheck size={13} className="text-emerald-600 shrink-0" />
-                                <span>Face ID Enabled</span>
-                            </div>
-                        )}
+                            {/* Face ID Status Badge */}
+                            {isFaceIdActive && (
+                                <div 
+                                    className="group relative hidden sm:flex items-center h-8 rounded-full border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-xs transition-all duration-300 ease-in-out px-2 hover:px-3 hover:bg-emerald-100 hover:border-emerald-200 select-none cursor-default shrink-0"
+                                    title={t('attendance.face_id_active_tooltip', 'Face ID biométrico configurado y activo')}
+                                >
+                                    <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
+                                    <span className="min-w-0 max-w-0 opacity-0 group-hover:max-w-[180px] group-hover:opacity-100 group-hover:ml-1.5 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap text-xs font-bold flex items-center gap-1.5 leading-none select-none">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                        <span>Face ID Enabled</span>
+                                    </span>
+                                </div>
+                            )}
+                        </div>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
