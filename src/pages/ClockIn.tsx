@@ -307,7 +307,14 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const [lastBatch, setLastBatch] = useState<{ names: string[]; action: string; time: string } | null>(null);
     const [countdown, setCountdown] = useState(4);
 
-    const activeProjects = projects.filter((p: any) => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX');
+    const activeProjects = (() => {
+        const filtered = projects.filter((p: any) => {
+            const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
+            const isSubMatch = p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary;
+            return isStatusMatch && isSubMatch;
+        });
+        return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
+    })();
 
     const sortedPersonnel = useCallback(() => {
         const eligible = personnel.filter(p =>
@@ -685,7 +692,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const geofenceDistance = projCoords && gps.lat !== null && gps.lng !== null
         ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
         : 0;
-    const activeProjects = projects.filter((p: any) => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX');
+    const activeProjects = (() => {
+        const filtered = projects.filter((p: any) => {
+            const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
+            const isSubMatch = p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary;
+            return isStatusMatch && isSubMatch;
+        });
+        return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
+    })();
     const gpsReady = workMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
     const gpsDenied = gps.status === 'denied';
     const [isSubmitting, setIsSubmitting] = useState(false);
