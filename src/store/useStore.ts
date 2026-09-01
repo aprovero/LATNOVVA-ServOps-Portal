@@ -1156,7 +1156,7 @@ export const useStore = create<AppState>()(
                                     managerId: p.manager_id,
                                     clientId: p.client_id,
                                     image: p.image,
-                                    faceDescriptor: p.faceDescriptor || undefined,
+                                    faceDescriptor: p.faceDescriptor || (p as any).face_descriptor || undefined,
                                     prevailingWage: p.prevailing_wage || false,
                                     benchExempt: p.bench_exempt || false,
                                     regularRate: p.regular_rate,
