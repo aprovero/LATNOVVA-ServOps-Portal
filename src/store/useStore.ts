@@ -290,6 +290,8 @@ export interface ClockPunch {
     outsourcedName?: string; // display name when isOutsourced is true
     workMode?: 'On Site' | 'Home Office';
     isZombieClose?: boolean;
+    faceVerified?: boolean;
+    faceBypassReason?: string;
 }
 
 export interface TimesheetEntry {

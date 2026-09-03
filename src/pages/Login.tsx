@@ -438,6 +438,11 @@ export const Login: React.FC = () => {
                     mode={enrollerMode}
                     referenceDescriptor={tempDescriptor || undefined}
                     onSuccess={handleFaceSuccess}
+                    onBypass={() => {
+                        setShowEnroller(false);
+                        navigate('/', { replace: true });
+                    }}
+                    allowBypass={true}
                 />
             )}
 

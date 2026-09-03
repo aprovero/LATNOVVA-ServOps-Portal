@@ -758,12 +758,35 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         }
         
         if (pendingPunchParams) {
-            executePunch(pendingPunchParams.type, pendingPunchParams.overrideTime, pendingPunchParams.note);
+            executePunch(
+                pendingPunchParams.type, 
+                pendingPunchParams.overrideTime, 
+                pendingPunchParams.note,
+                { faceVerified: true, selfieBlob: image }
+            );
             setPendingPunchParams(null);
         }
     };
 
-    const executePunch = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
+    const handleFaceBypass = (reason: string = 'Cámara no disponible / Anulación de Face ID') => {
+        setIsFaceModalOpen(false);
+        if (pendingPunchParams) {
+            executePunch(
+                pendingPunchParams.type,
+                pendingPunchParams.overrideTime,
+                pendingPunchParams.note ? `${pendingPunchParams.note} [Sin Face ID: ${reason}]` : `[Sin Face ID: ${reason}]`,
+                { faceVerified: false, faceBypassReason: reason }
+            );
+            setPendingPunchParams(null);
+        }
+    };
+
+    const executePunch = (
+        type: ClockPunch['type'], 
+        overrideTime?: string, 
+        note?: string,
+        faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }
+    ) => {
         if (isSubmitting) return;
         setIsSubmitting(true);
         
@@ -801,6 +824,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 timeSource: overrideTime ? 'device' : best.source,
                 ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
                 workMode,
+                faceVerified: faceMeta?.faceVerified,
+                faceBypassReason: faceMeta?.faceBypassReason,
+                selfieBlob: faceMeta?.selfieBlob,
             };
             
             const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
@@ -996,11 +1022,23 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                             <img src={p.selfieBlob} alt="Selfie" className="w-full h-full object-cover" />
                                         </div>
                                     )}
-                                    {p.manualAdjustment && (
-                                        <span className="mt-1 inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full font-semibold">
-                                            <Edit2 size={8} /> {t('attendance.labels.manual_adj')}
-                                        </span>
-                                    )}
+                                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                        {p.faceVerified && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-semibold border border-emerald-200">
+                                                🛡️ Face ID
+                                            </span>
+                                        )}
+                                        {p.faceBypassReason && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-semibold border border-amber-200" title={p.faceBypassReason}>
+                                                ⚠️ Sin Face ID: {p.faceBypassReason}
+                                            </span>
+                                        )}
+                                        {p.manualAdjustment && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full font-semibold">
+                                                <Edit2 size={8} /> {t('attendance.labels.manual_adj')}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -1035,6 +1073,8 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         return undefined;
                     })()}
                     onSuccess={handleFaceSuccess}
+                    onBypass={handleFaceBypass}
+                    allowBypass={true}
                 />
             )}
         </div>
