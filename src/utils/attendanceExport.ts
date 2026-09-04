@@ -367,15 +367,12 @@ export function exportBinaryAttendanceToCSV(
 
         dates.forEach(date => {
             const dayView = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
-            let code = '0';
-            if (dayView.displayStatus === 'Present') {
-                code = '1';
-            } else if (dayView.displayStatus === 'Home Office') {
-                code = 'H';
-            } else if (dayView.displayStatus === 'Vacation') {
-                code = 'V';
-            } else if (dayView.displayStatus === 'Sick Leave') {
-                code = 'S';
+            // REGLA: Solo ausencias / faltas injustificadas son 0; todo lo demás (laborado, home office, descanso, vacaciones, turnos incompletos) es 1
+            let code = '1';
+            if (dayView.displayStatus === 'Absent') {
+                code = '0';
+            } else if (dayView.displayStatus === 'Blank') {
+                code = '';
             }
             row.push(code);
         });
@@ -388,7 +385,187 @@ export function exportBinaryAttendanceToCSV(
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `LATNOVVA${subsidiary}_reporte_asistencias_10HVS_${startDate}_${endDate}.csv`);
+    link.setAttribute("download", `LATNOVVA${subsidiary}_reporte_binario_asistencias_${startDate}_${endDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Reporte de Vacaciones (Activas e Históricas) con Saldo y Métricas LFT
+ */
+export function exportVacationsToCSV(
+    employees: Personnel[],
+    overrides: AttendanceOverride[],
+    projects: Project[],
+    startDate: string,
+    endDate: string,
+    lang: 'en' | 'es' = 'es',
+    subsidiary: string = 'US'
+) {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+
+    const getSeniorityYears = (onboardingDate?: string): number => {
+        if (!onboardingDate) return 0;
+        const hire = new Date(onboardingDate + 'T00:00:00');
+        if (isNaN(hire.getTime())) return 0;
+        const now = new Date();
+        let years = now.getFullYear() - hire.getFullYear();
+        const m = now.getMonth() - hire.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < hire.getDate())) {
+            years--;
+        }
+        return Math.max(0, years);
+    };
+
+    const getAnnualEntitlement = (years: number): number => {
+        if (years <= 0) return 12;
+        if (years === 1) return 12;
+        if (years === 2) return 14;
+        if (years === 3) return 16;
+        if (years === 4) return 18;
+        if (years === 5) return 20;
+        if (years <= 10) return 22;
+        if (years <= 15) return 24;
+        if (years <= 20) return 26;
+        if (years <= 25) return 28;
+        return 30;
+    };
+
+    const headers = lang === 'es' ? [
+        'Nombre Completo',
+        'Número de Empleado',
+        'Puesto',
+        'Proyecto Asignado',
+        'Tipo de Registro',
+        'Fecha Inicio',
+        'Fecha Fin',
+        'Días Solicitados',
+        'Estatus Periodo',
+        'Aprobado Por',
+        'Fecha Solicitud / Registro',
+        'Notas / Motivo',
+        'Antigüedad (Años)',
+        'Días Anuales por Ley (LFT)',
+        'Total Días Disfrutados',
+        'Saldo Restante (Días)'
+    ] : [
+        'Full Name',
+        'Employee Number',
+        'Position',
+        'Assigned Project',
+        'Record Type',
+        'Start Date',
+        'End Date',
+        'Requested Days',
+        'Period Status',
+        'Approved By',
+        'Request / Created Date',
+        'Notes / Reason',
+        'Seniority (Years)',
+        'Annual Entitlement (Days)',
+        'Total Taken (Days)',
+        'Remaining Balance (Days)'
+    ];
+
+    const rows: string[][] = [];
+
+    employees.forEach(emp => {
+        const empProject = projects.find(p => p.id === emp.projectId || p.assignedPersonnel?.includes(emp.id));
+        const seniority = getSeniorityYears(emp.onboardingDate);
+        const annualEntitlement = getAnnualEntitlement(seniority);
+
+        // Find all vacation periods for this employee
+        const empVacations = overrides
+            .filter(o => o.employeeId === emp.id && o.type === 'vacation')
+            .sort((a, b) => b.startDate.localeCompare(a.startDate));
+
+        // Calculate total taken days
+        let totalTakenDays = 0;
+        empVacations.forEach(v => {
+            if (v.duration === 'half_day') {
+                totalTakenDays += 0.5;
+            } else {
+                const s = new Date(v.startDate + 'T00:00:00').getTime();
+                const e = new Date(v.endDate + 'T00:00:00').getTime();
+                const diffDays = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                totalTakenDays += diffDays;
+            }
+        });
+
+        const remainingBalance = Math.max(0, annualEntitlement - totalTakenDays);
+
+        if (empVacations.length > 0) {
+            empVacations.forEach(vac => {
+                let periodDays = 1;
+                if (vac.duration === 'half_day') {
+                    periodDays = 0.5;
+                } else {
+                    const s = new Date(vac.startDate + 'T00:00:00').getTime();
+                    const e = new Date(vac.endDate + 'T00:00:00').getTime();
+                    periodDays = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                }
+
+                let periodStatus = 'Histórica';
+                if (todayStr >= vac.startDate && todayStr <= vac.endDate) {
+                    periodStatus = lang === 'es' ? 'Activa' : 'Active';
+                } else if (vac.startDate > todayStr) {
+                    periodStatus = lang === 'es' ? 'Programada' : 'Scheduled';
+                } else {
+                    periodStatus = lang === 'es' ? 'Histórica' : 'Historical';
+                }
+
+                const createdDateStr = vac.createdAt ? vac.createdAt.split('T')[0] : '';
+
+                rows.push([
+                    `"${emp.name.replace(/"/g, '""')}"`,
+                    `"${(emp.employeeNumber || '').replace(/"/g, '""')}"`,
+                    `"${(emp.position || '').replace(/"/g, '""')}"`,
+                    `"${(empProject?.name || 'Sin Asignar').replace(/"/g, '""')}"`,
+                    `"${lang === 'es' ? 'Vacaciones' : 'Vacation'}"`,
+                    `"${vac.startDate}"`,
+                    `"${vac.endDate}"`,
+                    `${periodDays}`,
+                    `"${periodStatus}"`,
+                    `"${(vac.approvedBy || 'RH').replace(/"/g, '""')}"`,
+                    `"${createdDateStr}"`,
+                    `"${(vac.notes || '').replace(/"/g, '""')}"`,
+                    `${seniority}`,
+                    `${annualEntitlement}`,
+                    `${totalTakenDays}`,
+                    `${remainingBalance}`
+                ]);
+            });
+        } else {
+            // Employee has no registered vacation periods yet: include summary line
+            rows.push([
+                `"${emp.name.replace(/"/g, '""')}"`,
+                `"${(emp.employeeNumber || '').replace(/"/g, '""')}"`,
+                `"${(emp.position || '').replace(/"/g, '""')}"`,
+                `"${(empProject?.name || 'Sin Asignar').replace(/"/g, '""')}"`,
+                `"${lang === 'es' ? 'Sin Registros' : 'No Records'}"`,
+                `"-"`,
+                `"-"`,
+                `0`,
+                `"${lang === 'es' ? 'Al Corriente' : 'Current'}"`,
+                `"-"`,
+                `"-"`,
+                `"Sin solicitudes registradas"`,
+                `${seniority}`,
+                `${annualEntitlement}`,
+                `0`,
+                `${annualEntitlement}`
+            ]);
+        }
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `LATNOVVA${subsidiary}_reporte_vacaciones_${startDate}_${endDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

@@ -2,11 +2,11 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabase';
-import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight, ChevronDown, Clock } from 'lucide-react';
+import { Calendar, Plus, Download, RefreshCw, FileSpreadsheet, Search, ChevronLeft, ChevronRight, ChevronDown, Clock, Palmtree } from 'lucide-react';
 import AttendanceDashboard from '../components/attendance/AttendanceDashboard';
 import AttendanceGrid from '../components/attendance/AttendanceGrid';
 import AddOverrideModal from '../components/attendance/AddOverrideModal';
-import { exportAttendanceToCSV, exportDetailedPunchesToCSV, exportBinaryAttendanceToCSV } from '../utils/attendanceExport';
+import { exportAttendanceToCSV, exportDetailedPunchesToCSV, exportBinaryAttendanceToCSV, exportVacationsToCSV } from '../utils/attendanceExport';
 import { calculateDailyAttendance, formatDisplayDate } from '../utils/attendanceCalculations';
 
 export default function Attendance() {
@@ -643,7 +643,32 @@ export default function Attendance() {
                                 }}
                                 className="w-full py-2.5 px-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold rounded-xl text-sm transition-all"
                             >
-                                Reporte Binario (1/0/H/V/S)
+                                {t('attendance.export.binary_btn', 'Matriz de Asistencia (1/0)')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const lang = i18n.language === 'en' ? 'en' : 'es';
+                                    const filteredEmp = filteredPersonnel.filter(emp => {
+                                        if (activeFilter === 'active' && emp.status !== 'Active') return false;
+                                        if (activeFilter === 'inactive' && emp.status !== 'Inactive') return false;
+                                        return true;
+                                    });
+                                    exportVacationsToCSV(
+                                        filteredEmp,
+                                        attendanceOverrides,
+                                        projects,
+                                        startDate,
+                                        endDate,
+                                        lang,
+                                        activeSubsidiary
+                                    );
+                                    setIsExportModalOpen(false);
+                                }}
+                                className="w-full py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 font-bold rounded-xl text-sm border border-amber-300 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Palmtree size={16} />
+                                {t('attendance.export.vacations_btn', 'Reporte de Vacaciones (Activas e Históricas)')}
                             </button>
                             <button
                                 type="button"

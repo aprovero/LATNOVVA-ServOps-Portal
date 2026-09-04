@@ -369,6 +369,7 @@ export interface Project {
     prevailingWage?: boolean;
     subsidiary?: 'US' | 'MX';
     subsidiaryMetadata?: any;
+    defaultScheduleId?: string;
 }
 
 // Allowed report state transitions — prevents workflow bypass (C-03)
@@ -1141,9 +1142,9 @@ export const useStore = create<AppState>()(
                                 hasNoDefinedScope: p.has_no_defined_scope || false,
                                 disciplines: p.disciplines || [],
                                 scopes: p.scopes || [],
-                                prevailingWage: p.prevailing_wage || false,
                                 subsidiary: p.subsidiary || 'US',
-                                subsidiaryMetadata: p.subsidiary_metadata || {}
+                                subsidiaryMetadata: p.subsidiary_metadata || {},
+                                defaultScheduleId: p.subsidiary_metadata?.defaultScheduleId || p.default_schedule_id || undefined
                             }))
                             : state.projects,
                         personnel: (() => {
@@ -1635,7 +1636,10 @@ export const useStore = create<AppState>()(
                     disciplines: project.disciplines || [],
                     prevailing_wage: project.prevailingWage || false,
                     subsidiary: project.subsidiary || 'US',
-                    subsidiary_metadata: project.subsidiaryMetadata || {}
+                    subsidiary_metadata: {
+                        ...(project.subsidiaryMetadata || {}),
+                        ...(project.defaultScheduleId ? { defaultScheduleId: project.defaultScheduleId } : {})
+                    }
                 };
                 await get().safeSync('projects', project.id, 'insert', dbPayload);
 
@@ -1736,7 +1740,14 @@ export const useStore = create<AppState>()(
                 if (updates.disciplines !== undefined) dbPayload.disciplines = updates.disciplines;
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
                 if (updates.subsidiary !== undefined) dbPayload.subsidiary = updates.subsidiary;
-                if (updates.subsidiaryMetadata !== undefined) dbPayload.subsidiary_metadata = updates.subsidiaryMetadata;
+                if (updates.defaultScheduleId !== undefined || updates.subsidiaryMetadata !== undefined) {
+                    const currentMeta = currentProject?.subsidiaryMetadata || {};
+                    dbPayload.subsidiary_metadata = {
+                        ...currentMeta,
+                        ...(updates.subsidiaryMetadata || {}),
+                        ...(updates.defaultScheduleId !== undefined ? { defaultScheduleId: updates.defaultScheduleId } : {})
+                    };
+                }
                 
                 if (Object.keys(dbPayload).length > 0) {
                     await get().safeSync('projects', id, 'update', dbPayload);

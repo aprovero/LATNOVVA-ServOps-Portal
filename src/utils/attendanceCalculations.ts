@@ -1,4 +1,4 @@
-import { Personnel, TimesheetEntry, AttendanceOverride, WorkSchedule, AttendanceDayView } from '../store/useStore';
+import { useStore, Personnel, Project, TimesheetEntry, AttendanceOverride, WorkSchedule, AttendanceDayView } from '../store/useStore';
 
 /** Helper to parse HH:mm into minutes since midnight */
 export function timeToMinutes(time?: string): number | null {
@@ -84,7 +84,8 @@ export function calculateDailyAttendance(
     timesheets: TimesheetEntry[],
     overrides: AttendanceOverride[],
     schedules: WorkSchedule[],
-    _lang: 'en' | 'es' = 'es'
+    _lang: 'en' | 'es' = 'es',
+    projects?: Project[]
 ): AttendanceDayView {
     // Ignore dates before Jun 5, 2026
     if (date < '2026-06-05') {
@@ -125,8 +126,16 @@ export function calculateDailyAttendance(
 
     const primaryTimesheet = sortedTimesheets[0] || null;
 
-    // 3. Find applicable schedule
-    const scheduleId = employee.defaultScheduleId || 'SCH-STD-MX';
+    // 3. Find applicable schedule:
+    // Priority 1: Project-specific schedule (from primaryTimesheet?.projectId or assigned project)
+    const projectList = projects || useStore.getState().projects || [];
+    let applicableProjectId = primaryTimesheet?.projectId;
+    if (!applicableProjectId) {
+        const assignedProj = projectList.find(p => p.assignedPersonnel?.includes(employee.id) && p.defaultScheduleId);
+        if (assignedProj) applicableProjectId = assignedProj.id;
+    }
+    const activeProject = applicableProjectId ? projectList.find(p => p.id === applicableProjectId) : null;
+    const scheduleId = activeProject?.defaultScheduleId || employee.defaultScheduleId || 'SCH-STD-MX';
     const schedule = schedules.find(s => s.id === scheduleId) || {
         id: 'SCH-STD-MX',
         name: 'Horario Estándar México',
@@ -216,6 +225,8 @@ export function calculateDailyAttendance(
     for (const ts of sortedTimesheets) {
         const isZombie = !!(ts.notes && ts.notes.includes('Auto closed'));
         if (isZombie) {
+            // REGLA: Los turnos autocerrados deben contemplar 8 horas de trabajo
+            totalWorkedMinutes += (ts.hours ? ts.hours * 60 : 8 * 60);
             continue;
         }
         if (ts.timeIn && ts.timeOut) {
@@ -230,6 +241,20 @@ export function calculateDailyAttendance(
             }
         } else if (ts.hours) {
             totalWorkedMinutes += ts.hours * 60;
+        } else if (ts.timeIn && !ts.timeOut && date < todayStr) {
+            // Cierre Automático con Cálculo Parcial: calcular horas transcurridas hasta fin de turno de referencia
+            const refEnd = schedule.endTime || '18:00';
+            const calc = calculateWorkedHours(
+                ts.timeIn,
+                ts.lunchStart ?? undefined,
+                ts.lunchEnd ?? undefined,
+                refEnd
+            );
+            if (!calc.error && calc.totalWorkedMinutes > 0) {
+                totalWorkedMinutes += calc.totalWorkedMinutes;
+            } else {
+                totalWorkedMinutes += 8 * 60;
+            }
         }
     }
 
@@ -255,6 +280,8 @@ export function calculateDailyAttendance(
                 for (const ts of dayTS) {
                     const isZombie = !!(ts.notes && ts.notes.includes('Auto closed'));
                     if (isZombie) {
+                        // REGLA: Los turnos autocerrados deben contemplar 8 horas de trabajo
+                        priorMinsOfWeek += (ts.hours ? ts.hours * 60 : 8 * 60);
                         continue;
                     }
                     if (ts.timeIn && ts.timeOut) {
@@ -269,6 +296,19 @@ export function calculateDailyAttendance(
                         }
                     } else if (ts.hours) {
                         priorMinsOfWeek += ts.hours * 60;
+                    } else if (ts.timeIn && !ts.timeOut && dateStr < todayStr) {
+                        const refEnd = schedule.endTime || '18:00';
+                        const calc = calculateWorkedHours(
+                            ts.timeIn,
+                            ts.lunchStart ?? undefined,
+                            ts.lunchEnd ?? undefined,
+                            refEnd
+                        );
+                        if (!calc.error && calc.totalWorkedMinutes > 0) {
+                            priorMinsOfWeek += calc.totalWorkedMinutes;
+                        } else {
+                            priorMinsOfWeek += 8 * 60;
+                        }
                     }
                 }
                 
@@ -306,23 +346,39 @@ export function calculateDailyAttendance(
         }
     }
 
+    const hasAutoPartialShift = date < todayStr && sortedTimesheets.some(t => t.timeIn && !t.timeOut);
+    if (hasAutoPartialShift) {
+        if (!clockOut) {
+            clockOut = schedule.endTime || '18:00';
+        }
+        if (!notes.includes('Cierre parcial')) {
+            notes = notes ? `${notes} | Cierre parcial auto (${schedule.endTime || '18:00'})` : `Cierre parcial auto (${schedule.endTime || '18:00'})`;
+        }
+    }
+
     const uniqueShifts = new Map<string, any>();
     for (const t of sortedTimesheets) {
         const key = `${t.timeIn}-${t.timeOut}-${t.projectId}`;
         if (!uniqueShifts.has(key)) {
+            const shiftTimeOut = t.timeOut || (date < todayStr && t.timeIn ? (schedule.endTime || '18:00') : undefined);
+            let shiftHours = t.hours || 0;
+            if (!shiftHours && t.timeIn && shiftTimeOut) {
+                const c = calculateWorkedHours(t.timeIn, t.lunchStart, t.lunchEnd, shiftTimeOut);
+                shiftHours = !c.error ? Number((c.totalWorkedMinutes / 60).toFixed(2)) : 8;
+            }
             uniqueShifts.set(key, {
                 timeIn: t.timeIn,
                 lunchStart: t.lunchStart,
                 lunchEnd: t.lunchEnd,
-                timeOut: t.timeOut,
-                hours: t.hours || 0,
+                timeOut: shiftTimeOut,
+                hours: shiftHours,
                 projectId: t.projectId,
                 notes: t.notes
             });
         }
     }
     const shifts = Array.from(uniqueShifts.values());
-    const hasZombie = sortedTimesheets.some(t => t.notes && t.notes.includes('Auto closed'));
+    const hasZombie = sortedTimesheets.some(t => t.notes && t.notes.includes('Auto closed')) || hasAutoPartialShift;
 
     return {
         employeeId: employee.id,

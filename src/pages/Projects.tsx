@@ -55,7 +55,7 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 
 export default function Projects() {
     const { t } = useTranslation();
-    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject, activeSubsidiary, platformSettings } = useStore();
+    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject, activeSubsidiary, platformSettings, workSchedules } = useStore();
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
@@ -71,7 +71,8 @@ export default function Projects() {
         siteLeadIds: [],
         prevailingWage: false,
         locationValidated: true,
-        subsidiary: activeSubsidiary
+        subsidiary: activeSubsidiary,
+        defaultScheduleId: ''
     });
     const [personnelSearch, setPersonnelSearch] = useState('');
     const [isVaidatingNewMap, setIsValidatingNewMap] = useState(false);
@@ -225,7 +226,7 @@ export default function Projects() {
                             </Button>
                         </Link>
                     )}
-                    {['Manager', 'Supervisor'].includes(userRole) && (
+                    {['Manager', 'Supervisor', 'HR'].includes(userRole) && (
                         <Button onClick={() => setIsAddProjectOpen(true)} className="bg-brand-teal hover:bg-brand-teal/90 text-white gap-2 font-bold shadow-soft h-11 px-6 rounded-xl">
                             <Plus size={18} /> {t('projects.new_project')}
                         </Button>
@@ -233,7 +234,7 @@ export default function Projects() {
                 </div>
             </div>
 
-            {['Manager', 'Supervisor'].includes(userRole) && <KPIRow />}
+            {['Manager', 'Supervisor', 'HR'].includes(userRole) && <KPIRow />}
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 flex-1">
                 {/* Left Column: Projects or Clients */}
@@ -280,7 +281,7 @@ export default function Projects() {
                                 </div>
                             </div>
                             
-                            {['Manager', 'Supervisor'].includes(userRole) && (
+                            {['Manager', 'Supervisor', 'HR'].includes(userRole) && (
                                 <div className="space-y-1.5 flex-[0.8] min-w-[200px]">
                                     <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Building2 size={12} /> {t('projects.filters.customer', 'Filter Customer')}</label>
                                     <div className="relative">
@@ -297,7 +298,7 @@ export default function Projects() {
                                 </div>
                             )}
 
-                            {['Manager', 'Supervisor'].includes(userRole) && (
+                            {['Manager', 'Supervisor', 'HR'].includes(userRole) && (
                                 <div className="space-y-1.5 flex-[0.8] min-w-[150px]">
                                     <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Filter size={12} /> {t('common.status')}</label>
                                     <div className="relative">
@@ -334,7 +335,7 @@ export default function Projects() {
                                         {visibleProjects.map(proj => (
                                             <tr key={proj.id} className="project-card hover:bg-gray-50/50 transition-colors group">
                                                 <td className="p-4 align-middle">
-                                                    {['Supervisor', 'Manager'].includes(userRole) || activeSubsidiary === 'MX' ? (
+                                                    {['Supervisor', 'Manager', 'HR'].includes(userRole) || activeSubsidiary === 'MX' ? (
                                                         <Link to={`/projects/${proj.id}`} className="font-bold text-accent-greyDark hover:text-brand-teal block">
                                                             {proj.name}
                                                         </Link>
@@ -357,7 +358,7 @@ export default function Projects() {
                                                     <span className="text-sm font-semibold text-accent-greyDark">{clients.find(c => c.id === proj.clientId)?.name}</span>
                                                 </td>
                                                 <td className="p-4 align-middle">
-                                                    {['Supervisor', 'Manager'].includes(userRole) ? (
+                                                    {['Supervisor', 'Manager', 'HR'].includes(userRole) ? (
                                                         <select 
                                                             className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border outline-none appearance-none cursor-pointer
                                                                 ${proj.status === 'Active' ? 'bg-status-success/10 text-status-success border-transparent' : 
@@ -432,7 +433,7 @@ export default function Projects() {
                         </div>
                 </div>
 
-                {['Supervisor', 'Manager'].includes(userRole) && (
+                {['Supervisor', 'Manager', 'HR'].includes(userRole) && (
                     <div className="flex flex-col h-full space-y-6">
                         {/* Right Column: Intelligence Layer */}
                         <h2 className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
@@ -591,9 +592,25 @@ export default function Projects() {
                                     onChange={e => setNewProject({...newProject, systemType: e.target.value})}
                                 >
                                     <option value="Solar">Solar</option>
-                                                        <option value="BESS">BESS</option>
+                                    <option value="BESS">BESS</option>
                                     <option value="Hybrid">Hybrid</option>
                                     <option value="Other">{t('common.other')}</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-2 sm:col-span-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('projects.work_schedule', 'Work Schedule / Horario de Obra')}</Label>
+                                <select 
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-3 h-11 text-sm outline-none focus:ring-2 focus:ring-brand-teal transition-all"
+                                    value={newProject.defaultScheduleId || ''}
+                                    onChange={e => setNewProject({...newProject, defaultScheduleId: e.target.value || undefined})}
+                                >
+                                    <option value="">{t('projects.standard_schedule_default', 'Horario Estándar (Por Defecto)')}</option>
+                                    {workSchedules.map(ws => (
+                                        <option key={ws.id} value={ws.id}>
+                                            {ws.name} ({ws.startTime} - {ws.endTime})
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             {activeSubsidiary !== 'MX' && (

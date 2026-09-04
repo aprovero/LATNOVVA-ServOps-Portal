@@ -21,7 +21,7 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
     const [isEditing, setIsEditing] = useState(false);
 
     // Compute details for this date
-    const dayView = calculateDailyAttendance(employee, date, timesheets, attendanceOverrides, workSchedules, lang);
+    const dayView = calculateDailyAttendance(employee, date, timesheets, attendanceOverrides, workSchedules, lang, projects);
     const timesheetEntry = timesheets.find(t => t.personnelId === employee.id && t.date === date);
     const dayOverride = attendanceOverrides.find(o => 
         o.employeeId === employee.id && 
@@ -29,8 +29,11 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
         new Date(date + 'T00:00:00') <= new Date(o.endDate + 'T00:00:00')
     );
 
-    // Fetch schedule
-    const scheduleId = employee.defaultScheduleId || 'SCH-STD-MX';
+    // Fetch schedule (priority to project-level schedule)
+    const activeProj = timesheetEntry?.projectId 
+        ? projects.find(p => p.id === timesheetEntry.projectId) 
+        : projects.find(p => p.assignedPersonnel?.includes(employee.id) && p.defaultScheduleId);
+    const scheduleId = activeProj?.defaultScheduleId || employee.defaultScheduleId || 'SCH-STD-MX';
     const schedule = workSchedules.find(s => s.id === scheduleId) || {
         name: 'Horario Estándar México',
         startTime: '08:00',

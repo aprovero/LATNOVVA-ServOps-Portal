@@ -20,7 +20,7 @@ export default function ProjectDetail() {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, activeSubsidiary, platformSettings } = useStore();
+    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, activeSubsidiary, platformSettings, workSchedules } = useStore();
 
     const project = projects.find(p => p.id === id);
     const client = clients.find(c => c.id === project?.clientId);
@@ -34,6 +34,7 @@ export default function ProjectDetail() {
     const [editLocation, setEditLocation] = useState('');
     const [editSize, setEditSize] = useState('');
     const [editSystemType, setEditSystemType] = useState('');
+    const [editDefaultScheduleId, setEditDefaultScheduleId] = useState('');
     const [editStatus, setEditStatus] = useState<'Active' | 'On Hold' | 'Completed'>('Active');
     const [editClientId, setEditClientId] = useState('');
     const [editEpc, setEditEpc] = useState('');
@@ -75,7 +76,7 @@ export default function ProjectDetail() {
     // Modals
     const [manageScopesProject, setManageScopesProject] = useState<any>(null);
 
-    const canEdit = ['Manager', 'Supervisor'].includes(userRole) || activeSubsidiary === 'MX';
+    const canEdit = ['Manager', 'Supervisor', 'HR'].includes(userRole) || activeSubsidiary === 'MX';
     const canEditPersonnel = canEdit && project?.status !== 'Completed';
 
     // People already assigned to OTHER projects (conflict check)
@@ -109,6 +110,7 @@ export default function ProjectDetail() {
         setEditLocation(project.location || '');
         setEditSize(project.projectSize || '');
         setEditSystemType(project.systemType || 'Solar');
+        setEditDefaultScheduleId(project.defaultScheduleId || '');
         setEditStatus(project.status as any);
         setEditClientId(project.clientId);
         setEditEpc(project.epc || '');
@@ -131,6 +133,7 @@ export default function ProjectDetail() {
             location: editLocation || undefined,
             projectSize: editSize || undefined,
             systemType: editSystemType || undefined,
+            defaultScheduleId: editDefaultScheduleId || undefined,
             status: editStatus,
             clientId: editClientId,
             epc: editEpc || undefined,
@@ -338,6 +341,11 @@ export default function ProjectDetail() {
                                     )}
                                     {project.projectSize && <span className="flex items-center gap-1"><Map size={14} /> {project.projectSize}</span>}
                                     {project.systemType && <span className="flex items-center gap-1"><Target size={14} /> {project.systemType}</span>}
+                                    {project.defaultScheduleId && (
+                                        <span className="flex items-center gap-1 text-brand-teal font-semibold">
+                                            <Clock size={14} /> {workSchedules.find(ws => ws.id === project.defaultScheduleId)?.name || project.defaultScheduleId}
+                                        </span>
+                                    )}
                                     <span className="font-mono text-gray-400">{project.id}</span>
                                 </div>
                                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm mt-3 pt-3 border-t border-gray-100/60">
@@ -429,6 +437,22 @@ export default function ProjectDetail() {
                                         <option value="BESS">BESS</option>
                                         <option value="Hybrid">Hybrid</option>
                                         <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="grid gap-1.5">
+                                    <Label htmlFor="dp-sched">Work Schedule / Horario</Label>
+                                    <select 
+                                        id="dp-sched" 
+                                        value={editDefaultScheduleId} 
+                                        onChange={e => setEditDefaultScheduleId(e.target.value)} 
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-teal"
+                                    >
+                                        <option value="">Standard Schedule (Default)</option>
+                                        {workSchedules.map(ws => (
+                                            <option key={ws.id} value={ws.id}>
+                                                {ws.name} ({ws.startTime} - {ws.endTime})
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="grid gap-1.5">
