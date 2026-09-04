@@ -112,9 +112,7 @@ export default function AttendanceGrid({
             if (dv.missingPunch) hasMissingPunch = true;
             if ((dv.overtimeHours || 0) > 0) hasOvertime = true;
 
-            const timesheetEntry = timesheets.find(t => t.personnelId === emp.id && t.date === date);
-            const isZombie = !!(timesheetEntry && timesheetEntry.notes && timesheetEntry.notes.includes('System: Auto closed'));
-            if (isZombie) hasZombie = true;
+            if (dv.zombie) hasZombie = true;
         }
 
         if (filters.conflictsOnly && !hasConflict) return false;
@@ -220,7 +218,9 @@ export default function AttendanceGrid({
                                             {dates.map(date => {
                                                 const dayView = calculateDailyAttendance(emp, date, timesheets, overrides, schedules, lang);
                                                 const style = statusStyles[dayView.displayStatus] || { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-l-slate-300', label: 'Off', es: 'Libre' };
-                                                const dayTimesheet = timesheets.find(t => t.personnelId === emp.id && t.date === date);
+                                                const dayTimesheets = timesheets.filter(t => t.personnelId === emp.id && t.date === date);
+                                                const dayTimesheet = dayTimesheets[0];
+                                                const shiftCount = dayTimesheets.length;
                                                 const dynamicGpsVerified = !dayTimesheet ? true : (
                                                     dayTimesheet.gpsVerified || (
                                                         !dayTimesheet.punches || dayTimesheet.punches.every((p: any) => {
@@ -260,6 +260,12 @@ export default function AttendanceGrid({
                                                         className="p-0 border-r border-b border-gray-100 text-center cursor-pointer transition-all hover:bg-brand-teal/5 relative"
                                                     >
                                                         <div className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 ${cellBg} ${style.text} ${cellBorder}`}>
+                                                            {/* Multiple shifts counter badge (2T, 3T...) in upper right */}
+                                                            {shiftCount > 1 && (
+                                                                <span className="absolute top-0.5 right-0.5 bg-teal-700 text-white font-black text-[8px] px-1 py-0.2 rounded-full flex items-center justify-center border border-white shadow-sm z-10" title={`${shiftCount} turnos registrados en esta fecha`}>
+                                                                    {shiftCount}T
+                                                                </span>
+                                                            )}
                                                             {dayView.displayStatus === 'Present' ? (
                                                                 <div className="flex flex-col items-center justify-center">
                                                                     {showHours ? (
@@ -282,7 +288,7 @@ export default function AttendanceGrid({
                                                                                 {dayView.clockOut || '—'}
                                                                             </span>
                                                                             {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
-                                                                                <span className="absolute top-1 right-1 bg-brand-teal text-white font-extrabold text-[8px] px-1 rounded-full flex items-center justify-center border border-white" title={`Extra: +${dayView.overtimeHours}h`}>
+                                                                                <span className={`absolute top-0.5 ${shiftCount > 1 ? 'right-7' : 'right-0.5'} bg-brand-teal text-white font-extrabold text-[8px] px-1 rounded-full flex items-center justify-center border border-white`} title={`Extra: +${dayView.overtimeHours}h`}>
                                                                                     +{Math.round(dayView.overtimeHours)}h
                                                                                 </span>
                                                                             ) : null}
@@ -376,7 +382,9 @@ export default function AttendanceGrid({
                                     project = projects.find(p => p.assignedPersonnel?.includes(emp.id));
                                 }
 
-                                const dayTimesheet = timesheets.find(t => t.personnelId === emp.id && t.date === mobileDate);
+                                const dayTimesheets = timesheets.filter(t => t.personnelId === emp.id && t.date === mobileDate);
+                                const dayTimesheet = dayTimesheets[0];
+                                const shiftCount = dayTimesheets.length;
                                 const isGpsVerified = dayTimesheet?.gpsVerified;
                                 const hasPunches = dayTimesheet?.punches && dayTimesheet.punches.length > 0;
                                 const dynamicGpsVerified = hasPunches ? isGpsVerified : true;
@@ -393,6 +401,12 @@ export default function AttendanceGrid({
                                                 onClick={() => setSelectedCell({ employee: emp, date: mobileDate, project })}
                                                 className={`h-12 w-full flex flex-col justify-center px-1.5 select-none border-l-[3.5px] transition-all active:scale-95 cursor-pointer ${cellBg} ${style.text} ${cellBorder}`}
                                             >
+                                                {/* Multiple shifts counter badge (2T, 3T...) in upper right */}
+                                                {shiftCount > 1 && (
+                                                    <span className="absolute top-0.5 right-0.5 bg-teal-700 text-white font-black text-[8px] px-1 py-0.2 rounded-full flex items-center justify-center border border-white shadow-sm z-10" title={`${shiftCount} turnos registrados`}>
+                                                        {shiftCount}T
+                                                    </span>
+                                                )}
                                                 {dayView.displayStatus === 'Present' ? (
                                                     <div className="flex flex-col items-center justify-center">
                                                         {showHours ? (
@@ -415,7 +429,7 @@ export default function AttendanceGrid({
                                                                     {dayView.clockOut || '—'}
                                                                 </span>
                                                                 {dayView.overtimeHours && dayView.overtimeHours > 0 ? (
-                                                                    <span className="absolute top-1 right-1 bg-brand-teal text-white font-extrabold text-[8px] px-1 rounded-full flex items-center justify-center border border-white" title={`Extra: +${dayView.overtimeHours}h`}>
+                                                                    <span className={`absolute top-0.5 ${shiftCount > 1 ? 'right-7' : 'right-0.5'} bg-brand-teal text-white font-extrabold text-[8px] px-1 rounded-full flex items-center justify-center border border-white`} title={`Extra: +${dayView.overtimeHours}h`}>
                                                                         +{Math.round(dayView.overtimeHours)}h
                                                                     </span>
                                                                 ) : null}

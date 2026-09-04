@@ -53,6 +53,33 @@ export function calculateWorkedHours(
     };
 }
 
+/** Determines if a timesheet is a zombie auto-closed shift */
+export function isZombieTimesheet(ts?: TimesheetEntry | null): boolean {
+    if (!ts) return false;
+    if (ts.notes && (
+        ts.notes.includes('Auto closed') || 
+        ts.notes.includes('autocerrado') || 
+        ts.notes.includes('8h acreditadas') ||
+        ts.notes.includes('Clock-out missing')
+    )) {
+        return true;
+    }
+    if (ts.punches && ts.punches.some(p => 
+        p.isZombieClose || 
+        (p.adjustmentNote && (
+            p.adjustmentNote.includes('Auto closed') || 
+            p.adjustmentNote.includes('autocerrado') ||
+            p.adjustmentNote.includes('Clock-out missing')
+        ))
+    )) {
+        return true;
+    }
+    if (ts.timeOut === '23:59' && (!ts.hours || ts.hours === 0 || ts.hours === 8)) {
+        return true;
+    }
+    return false;
+}
+
 /** Determines if a date string falls inside a range (inclusive) */
 export function isDateInRange(dateStr: string, startStr: string, endStr: string): boolean {
     const d = new Date(dateStr + 'T00:00:00');
@@ -223,10 +250,10 @@ export function calculateDailyAttendance(
     // 6. Calculate hours across all shifts on this day
     let totalWorkedMinutes = 0;
     for (const ts of sortedTimesheets) {
-        const isZombie = !!(ts.notes && ts.notes.includes('Auto closed'));
+        const isZombie = isZombieTimesheet(ts);
         if (isZombie) {
             // REGLA: Los turnos autocerrados deben contemplar 8 horas de trabajo
-            totalWorkedMinutes += (ts.hours ? ts.hours * 60 : 8 * 60);
+            totalWorkedMinutes += (ts.hours && ts.hours > 0 ? ts.hours * 60 : 8 * 60);
             continue;
         }
         if (ts.timeIn && ts.timeOut) {
@@ -278,10 +305,10 @@ export function calculateDailyAttendance(
                 // Fetch timesheets for this employee on dateStr
                 const dayTS = timesheets.filter(t => t.personnelId === employee.id && t.date === dateStr);
                 for (const ts of dayTS) {
-                    const isZombie = !!(ts.notes && ts.notes.includes('Auto closed'));
+                    const isZombie = isZombieTimesheet(ts);
                     if (isZombie) {
                         // REGLA: Los turnos autocerrados deben contemplar 8 horas de trabajo
-                        priorMinsOfWeek += (ts.hours ? ts.hours * 60 : 8 * 60);
+                        priorMinsOfWeek += (ts.hours && ts.hours > 0 ? ts.hours * 60 : 8 * 60);
                         continue;
                     }
                     if (ts.timeIn && ts.timeOut) {
@@ -362,7 +389,10 @@ export function calculateDailyAttendance(
         if (!uniqueShifts.has(key)) {
             const shiftTimeOut = t.timeOut || (date < todayStr && t.timeIn ? (schedule.endTime || '18:00') : undefined);
             let shiftHours = t.hours || 0;
-            if (!shiftHours && t.timeIn && shiftTimeOut) {
+            const isZombie = isZombieTimesheet(t);
+            if (isZombie) {
+                shiftHours = (t.hours && t.hours > 0 ? t.hours : 8.0);
+            } else if (!shiftHours && t.timeIn && shiftTimeOut) {
                 const c = calculateWorkedHours(t.timeIn, t.lunchStart, t.lunchEnd, shiftTimeOut);
                 shiftHours = !c.error ? Number((c.totalWorkedMinutes / 60).toFixed(2)) : 8;
             }
@@ -378,7 +408,7 @@ export function calculateDailyAttendance(
         }
     }
     const shifts = Array.from(uniqueShifts.values());
-    const hasZombie = sortedTimesheets.some(t => t.notes && t.notes.includes('Auto closed')) || hasAutoPartialShift;
+    const hasZombie = sortedTimesheets.some(t => isZombieTimesheet(t)) || hasAutoPartialShift;
 
     return {
         employeeId: employee.id,

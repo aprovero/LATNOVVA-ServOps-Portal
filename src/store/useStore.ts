@@ -2323,6 +2323,37 @@ export const useStore = create<AppState>()(
                     existing = [...get().timesheets]
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+
+                    // Salvaguarda: Si no hay turno abierto pero acaba de checar salida hace menos de 60s, ignorar duplicado
+                    const recentlyClosedToday = get().timesheets.find(t =>
+                        t.personnelId === personnelId &&
+                        t.date === today &&
+                        t.timeOut &&
+                        t.punches?.some(p => p.type === 'clockOut' && (Math.abs(new Date(punch.timestamp).getTime() - new Date(p.timestamp).getTime()) < 60000))
+                    );
+                    if (recentlyClosedToday) {
+                        console.warn(`[clockPunch] Personnel ${personnelId} already clocked out recently (${recentlyClosedToday.id}). Duplicate clockOut ignored.`);
+                        return;
+                    }
+                }
+
+                // Salvaguarda Anti-duplicados:
+                // 1. Si el usuario ya tiene una sesión abierta hoy (timeIn y sin timeOut) y llega otro clockIn,
+                // ignorar para evitar duplicar el marcaje de Entrada (evita caso de múltiples Entradas como Nancy Ramos).
+                if (punch.type === 'clockIn' && existing) {
+                    console.warn(`[clockPunch] Personnel ${personnelId} already has an active open shift (${existing.id}). Rejecting duplicate clockIn.`);
+                    return;
+                }
+
+                // 2. Cooldown anti-rebote (30 segundos) para el mismo tipo de marcaje en la sesión
+                if (existing?.punches && existing.punches.length > 0) {
+                    const lastPunch = existing.punches[existing.punches.length - 1];
+                    const lastTime = new Date(lastPunch.timestamp).getTime();
+                    const currentTime = new Date(punch.timestamp).getTime();
+                    if (lastPunch.type === punch.type && Math.abs(currentTime - lastTime) < 30000) {
+                        console.warn(`[clockPunch] Duplicate punch of type '${punch.type}' within 30s ignored for ${personnelId}.`);
+                        return;
+                    }
                 }
                 
                 const isNewEntry = !existing && punch.type === 'clockIn';

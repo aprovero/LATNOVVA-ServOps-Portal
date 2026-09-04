@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, Trash2, UserPlus, Clock, UserCheck
+    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, Trash2, UserPlus, Clock, UserCheck, RotateCcw
 } from 'lucide-react';
 import { useStore, ClockPunch, Personnel } from '../store/useStore';
 import { formatTime } from '../lib/utils';
@@ -304,6 +304,9 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const [outsourcedList, setOutsourcedList] = useState<OutsourcedEntry[]>([]);
     const [showAddOutsourced, setShowAddOutsourced] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [showSupervisorFaceModal, setShowSupervisorFaceModal] = useState(false);
+    const [supervisorFaceMode, setSupervisorFaceMode] = useState<'enroll' | 'verify'>('verify');
+    const [pendingBatchSigBlob, setPendingBatchSigBlob] = useState<string | null>(null);
     const [lastBatch, setLastBatch] = useState<{ names: string[]; action: string; time: string } | null>(null);
     const [countdown, setCountdown] = useState(4);
 
@@ -338,11 +341,6 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         const project = projects.find(p => p.id === selectedProject);
         const assignedIds: string[] = project?.assignedPersonnel ?? [];
         
-        // Smart Selection Strategy: 
-        // 1. Check current status of all assigned personnel
-        // 2. If more people are 'clocked-in' than 'idle', assume intent is 'Clock Out'
-        // 3. Otherwise, assume intent is 'Clock In'
-        // 4. This prevents mixed-action confusion while staying proactive for both start/end of shift.
         const statuses = personnel
             .filter(p => assignedIds.includes(p.id))
             .map(p => getPunchStep(timesheets, p.id));
@@ -406,7 +404,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         return result;
     };
 
-    const commitBatch = useCallback((sigBlob: string) => {
+    const commitBatch = useCallback((sigBlob: string, faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }) => {
         const entries = buildEntries();
         const action = dominantAction();
         
@@ -430,6 +428,9 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                 type: entry.action,
                 timeSource: best.source,
                 supervisorSignatureBlob: sigBlob,
+                faceVerified: faceMeta?.faceVerified,
+                faceBypassReason: faceMeta?.faceBypassReason,
+                selfieBlob: faceMeta?.selfieBlob,
                 ...(entry.isOutsourced ? { isOutsourced: true, outsourcedName: entry.name } : {}),
             };
             doPunch(entry.isOutsourced ? `OUT-${entry.id.replace('OUT-', '')}` : entry.id, punch, selectedProject || undefined);
@@ -442,6 +443,62 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         setScreen('success');
         setCountdown(4);
     }, [gps, selectedIds, timesheets, outsourcedList, selectedProject, doPunch]);
+
+    const handleBatchConfirmTrigger = (sigBlob: string) => {
+        setShowConfirm(false);
+
+        const finalAction = dominantAction();
+        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+        const currentUserId = (useStore.getState().userId || '');
+        const supervisorProfile = personnel.find(p => p.id === supervisorId || (p.email && p.email.toLowerCase() === currentEmail) || p.id === currentUserId);
+        
+        let cachedDesc: number[] | null = null;
+        try {
+            const raw = localStorage.getItem('cached_user_descriptor');
+            if (raw) cachedDesc = JSON.parse(raw);
+        } catch {}
+
+        const hasSupervisorFace = Boolean((supervisorProfile?.faceDescriptor && supervisorProfile.faceDescriptor.length > 0) || (cachedDesc && cachedDesc.length > 0));
+
+        // Hoy deben terminar su turno normal:
+        // Si es salida grupal (clockOut) y el turno actual no inició con Face ID (o el supervisor no está enrolado),
+        // procesar la salida directamente sin solicitar Face ID hoy.
+        if (finalAction === 'clockOut') {
+            const anyStartedWithFace = [...selectedIds].some(id => {
+                const openTs = timesheets.find((t: any) => t.personnelId === id && t.timeIn && !t.timeOut);
+                return openTs?.punches?.some((p: any) => p.type === 'clockIn' && (p.faceVerified || p.faceBypassReason));
+            });
+
+            if (!anyStartedWithFace || !hasSupervisorFace) {
+                commitBatch(sigBlob);
+                return;
+            }
+        }
+
+        setPendingBatchSigBlob(sigBlob);
+        setSupervisorFaceMode(hasSupervisorFace ? 'verify' : 'enroll');
+        setShowSupervisorFaceModal(true);
+    };
+
+    const handleSupervisorFaceSuccess = ({ image, descriptor }: { image: string; descriptor: number[] }) => {
+        setShowSupervisorFaceModal(false);
+        if (supervisorFaceMode === 'enroll' && supervisorId) {
+            useStore.getState().updatePersonnel(supervisorId, { faceDescriptor: descriptor });
+            localStorage.setItem('cached_user_descriptor', JSON.stringify(descriptor));
+        }
+        if (pendingBatchSigBlob) {
+            commitBatch(pendingBatchSigBlob, { faceVerified: true, selfieBlob: image });
+            setPendingBatchSigBlob(null);
+        }
+    };
+
+    const handleSupervisorFaceBypass = (reason: string = 'Supervisor omitió Face ID') => {
+        setShowSupervisorFaceModal(false);
+        if (pendingBatchSigBlob) {
+            commitBatch(pendingBatchSigBlob, { faceVerified: false, faceBypassReason: reason });
+            setPendingBatchSigBlob(null);
+        }
+    };
 
     if (screen === 'success' && lastBatch) {
         return (
@@ -640,8 +697,26 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                 <BatchConfirmModal
                     entries={buildEntries()}
                     gps={gps}
-                    onConfirm={commitBatch}
+                    onConfirm={handleBatchConfirmTrigger}
                     onCancel={() => setShowConfirm(false)}
+                />
+            )}
+            {showSupervisorFaceModal && (
+                <FaceCameraModal
+                    isOpen={showSupervisorFaceModal}
+                    onClose={() => {
+                        setShowSupervisorFaceModal(false);
+                        setPendingBatchSigBlob(null);
+                    }}
+                    mode={supervisorFaceMode}
+                    referenceDescriptor={(() => {
+                        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+                        const currentUserId = (useStore.getState().userId || '');
+                        const p = personnel.find(pr => pr.id === supervisorId || (pr.email && pr.email.toLowerCase() === currentEmail) || pr.id === currentUserId);
+                        return p?.faceDescriptor;
+                    })()}
+                    onSuccess={handleSupervisorFaceSuccess}
+                    onBypass={handleSupervisorFaceBypass}
                 />
             )}
         </div>
@@ -666,6 +741,12 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const step = getPunchStep(timesheets, personnelId);
 
     const activeEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+    const staleEntry = timesheets.find((t: any) =>
+        t.personnelId === personnelId &&
+        t.timeIn &&
+        !t.timeOut &&
+        (t.date < today || (t.date === today && (Date.now() - new Date(`${t.date}T${t.timeIn}:00`).getTime()) > 14 * 60 * 60 * 1000))
+    );
 
     const [selectedProject, setSelectedProject] = useState(() => {
         if (todayEntry?.projectId) return todayEntry.projectId;
@@ -675,10 +756,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
     const [workMode, setWorkMode] = useState<'On Site' | 'Home Office'>('On Site');
     
+    const userRole = useStore(state => state.userRole);
+    const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+    const isOfficeBlockedWeekend = userRole === 'Office' && isWeekend;
+    
     const currentProjId = step === 'clocked-in' ? (activeEntry?.projectId ?? '') : selectedProject;
     const targetProject = currentProjId ? projects.find((p: any) => p.id === currentProjId) : null;
     const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
-    const geofenceRadius = platformSettings?.geofenceRadius ?? 250;
+    const geofenceRadius = platformSettings?.geofenceRadius ?? 1000;
     const isBypass = isWarehouseBypass(personnelId, gps.lat, gps.lng, geofenceRadius);
     const isOutsideGeofence = !!(
         workMode === 'On Site' &&
@@ -689,6 +774,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng) > geofenceRadius &&
         !isBypass
     );
+    const geofenceBlocking = isOutsideGeofence && userRole !== 'Tech';
     const geofenceDistance = projCoords && gps.lat !== null && gps.lng !== null
         ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
         : 0;
@@ -709,9 +795,8 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const [faceModalMode, setFaceModalMode] = useState<'enroll' | 'verify'>('verify');
     const [pendingPunchParams, setPendingPunchParams] = useState<{ type: ClockPunch['type']; overrideTime?: string; note?: string } | null>(null);
 
-    const FACE_ID_TEST_EMAILS = ['tech@latnovva.com', 'jacqueline.martinez@latnovva.com'];
-
     const handlePunchClick = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
+        if (isSubmitting) return;
         const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
         const currentUserId = (useStore.getState().userId || '');
         const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail) || (p.id === currentUserId));
@@ -722,22 +807,28 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             if (rawDesc) cachedDescriptor = JSON.parse(rawDesc);
         } catch {}
 
-        const isTestPilot = FACE_ID_TEST_EMAILS.includes(currentEmail) || (myProfile?.email && FACE_ID_TEST_EMAILS.includes(myProfile.email.toLowerCase()));
         const hasEnrolledFace = Boolean((myProfile?.faceDescriptor && myProfile.faceDescriptor.length > 0) || (cachedDescriptor && cachedDescriptor.length > 0));
         
-        const requireFaceId = Boolean(platformSettings?.enableFacialId || isTestPilot || hasEnrolledFace);
+        // Determinar si el turno activo actual inició con Face ID
+        const activeClockInPunch = activeEntry?.punches?.find((p: any) => p.type === 'clockIn');
+        const currentShiftCheckedInWithFace = Boolean(activeClockInPunch?.faceVerified || activeClockInPunch?.faceBypassReason);
 
-        if (requireFaceId) {
-            setPendingPunchParams({ type, overrideTime, note });
-            if (!hasEnrolledFace) {
-                setFaceModalMode('enroll');
-                setIsFaceModalOpen(true);
-            } else {
-                setFaceModalMode('verify');
-                setIsFaceModalOpen(true);
-            }
-        } else {
+        // REGLA: Hoy deben terminar su turno normal.
+        // Si es salida (clockOut) y el turno actual no inició con Face ID (o el usuario aún no tiene rostro enrolado),
+        // permitir checar salida normalmente sin pedir Face ID ni enrolamiento.
+        if (type === 'clockOut' && (!currentShiftCheckedInWithFace || !hasEnrolledFace)) {
             executePunch(type, overrideTime, note);
+            return;
+        }
+
+        // El enrolamiento y la obligatoriedad de Face ID comienzan en su próximo check-in (clockIn)
+        setPendingPunchParams({ type, overrideTime, note });
+        if (!hasEnrolledFace) {
+            setFaceModalMode('enroll');
+            setIsFaceModalOpen(true);
+        } else {
+            setFaceModalMode('verify');
+            setIsFaceModalOpen(true);
         }
     };
 
@@ -907,6 +998,43 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
             {step === 'idle' && (
                 <div className="space-y-3">
+                    {/* Restricción de fin de semana para rol Office */}
+                    {isOfficeBlockedWeekend && (
+                        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-sm animate-in slide-in-from-top-1 duration-300">
+                            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+                            <div>
+                                <p className="font-bold">Acceso restringido en fin de semana</p>
+                                <p className="text-xs text-red-700 mt-1">
+                                    Personal administrativo/oficina no tiene permitido checar en fin de semana. En caso de trabajar en horario de fin de semana, solicitar a RH agregar los turnos correspondientes.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Turno previo pendiente / zombie */}
+                    {staleEntry && (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm space-y-2 animate-in slide-in-from-top-1 duration-300">
+                            <div className="flex items-center gap-2 font-bold">
+                                <AlertTriangle className="text-amber-600 shrink-0" size={18} />
+                                <span>Turno previo no cerrado ({staleEntry.date} {staleEntry.timeIn})</span>
+                            </div>
+                            <p className="text-xs text-amber-700">
+                                Tienes un turno previo sin registrar salida de una jornada anterior. Puedes descartarlo para iniciar limpio tu nuevo turno de hoy.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (window.confirm('¿Deseas descartar el turno pendiente anterior e iniciar un nuevo turno hoy?')) {
+                                        await useStore.getState().discardStaleShift(staleEntry.id);
+                                    }
+                                }}
+                                className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shadow transition-colors flex items-center justify-center gap-2"
+                            >
+                                <RotateCcw size={14} /> Descartar turno anterior e iniciar nuevo turno
+                            </button>
+                        </div>
+                    )}
+
                     {workMode === 'On Site' && !gpsReady && gps.status === 'acquiring' && (
                         <p className="text-center text-sm text-blue-500 animate-pulse">{t('attendance.gps.waiting')}</p>
                     )}
@@ -930,7 +1058,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </div>
                             <button
                                 onClick={() => setManualModal('clockIn')}
-                                disabled={!selectedProject}
+                                disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking || !selectedProject}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
                                 <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.labels.action_in')} (${t('common.other')})`}
@@ -938,9 +1066,10 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         </>
                     ) : (
                         <button onClick={() => {
+                            if (isSubmitting) return;
                             if (hasFinishedToday && !window.confirm(t('attendance.alerts.double_shift'))) return;
                             handlePunchClick('clockIn');
-                        }} disabled={!gpsReady || (workMode === 'On Site' && !selectedProject)}
+                        }} disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking || !gpsReady || (workMode === 'On Site' && !selectedProject)}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.labels.action_in')}
                         </button>
@@ -952,9 +1081,23 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         </div>
                     )}
                     {isOutsideGeofence && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-in slide-in-from-top-1 duration-300">
-                            <AlertTriangle size={16} className="shrink-0" />
-                            <span>{t('attendance.geofence_warning', { radius: platformSettings.geofenceRadius, distance: geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m` })}</span>
+                        <div className={`flex items-start gap-3 p-4 rounded-2xl text-sm animate-in slide-in-from-top-1 duration-300 ${
+                            userRole === 'Tech'
+                                ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                                : 'bg-red-50 border border-red-200 text-red-800'
+                        }`}>
+                            <AlertTriangle className={`shrink-0 mt-0.5 ${userRole === 'Tech' ? 'text-amber-500' : 'text-red-500'}`} size={18} />
+                            <div>
+                                <p className="font-bold">
+                                    {userRole === 'Tech' ? 'Fuera de geocerca (Permitido para Técnico)' : 'Fuera de geocerca (Checada bloqueada)'}
+                                </p>
+                                <p className="text-xs mt-1">
+                                    {userRole === 'Tech'
+                                        ? `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio: ${geofenceRadius}m). Como Técnico, se te permite checar; tus coordenadas GPS quedarán registradas para validación de supervisión.`
+                                        : `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio permitido: ${geofenceRadius}m). El personal que no es técnico en campo no tiene permitido checar fuera de la geocerca.`
+                                    }
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -962,6 +1105,18 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
             {step === 'clocked-in' && (
                 <div className="space-y-3">
+                    {/* Restricción de fin de semana para rol Office */}
+                    {isOfficeBlockedWeekend && (
+                        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-sm animate-in slide-in-from-top-1 duration-300">
+                            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+                            <div>
+                                <p className="font-bold">Acceso restringido en fin de semana</p>
+                                <p className="text-xs text-red-700 mt-1">
+                                    Personal administrativo/oficina no tiene permitido checar en fin de semana. En caso de trabajar en horario de fin de semana, solicitar a RH agregar los turnos correspondientes.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     {/* C-02: GPS denied fallback for Clock Out */}
                     {gpsDenied ? (
                         <>
@@ -970,20 +1125,51 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
                             </div>
                             <button onClick={() => setManualModal('clockOut')}
-                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking}
+                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
                                 <LogOut size={26} /> {t('attendance.labels.action_out')} ({t('common.other')})
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => handlePunchClick('clockOut')} disabled={!gpsReady}
+                        <button onClick={() => {
+                            if (isSubmitting) return;
+                            handlePunchClick('clockOut');
+                        }} disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking || !gpsReady}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogOut size={26} /> {t('attendance.labels.action_out')}
                         </button>
                     )}
+                    {activeEntry && (
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (window.confirm('¿Deseas descartar este turno e iniciar de nuevo?')) {
+                                    await useStore.getState().discardStaleShift(activeEntry.id);
+                                }
+                            }}
+                            className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <RotateCcw size={13} /> Descartar turno e iniciar nuevo
+                        </button>
+                    )}
                     {isOutsideGeofence && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-in slide-in-from-top-1 duration-300">
-                            <AlertTriangle size={16} className="shrink-0" />
-                            <span>{t('attendance.geofence_warning', { radius: platformSettings.geofenceRadius, distance: geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m` })}</span>
+                        <div className={`flex items-start gap-3 p-4 rounded-2xl text-sm animate-in slide-in-from-top-1 duration-300 ${
+                            userRole === 'Tech'
+                                ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                                : 'bg-red-50 border border-red-200 text-red-800'
+                        }`}>
+                            <AlertTriangle className={`shrink-0 mt-0.5 ${userRole === 'Tech' ? 'text-amber-500' : 'text-red-500'}`} size={18} />
+                            <div>
+                                <p className="font-bold">
+                                    {userRole === 'Tech' ? 'Fuera de geocerca (Permitido para Técnico)' : 'Fuera de geocerca (Checada bloqueada)'}
+                                </p>
+                                <p className="text-xs mt-1">
+                                    {userRole === 'Tech'
+                                        ? `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio: ${geofenceRadius}m). Como Técnico, se te permite checar; tus coordenadas GPS quedarán registradas para validación de supervisión.`
+                                        : `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio permitido: ${geofenceRadius}m). El personal que no es técnico en campo no tiene permitido checar fuera de la geocerca.`
+                                    }
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
