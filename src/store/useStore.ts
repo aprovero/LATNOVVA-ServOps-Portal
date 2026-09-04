@@ -497,6 +497,7 @@ interface AppState {
     approveTimesheet: (id: string, approverId: string) => void;
     rejectTimesheet: (id: string, approverId: string) => void;
     clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean) => void;
+    discardStaleShift: (timesheetId: string) => Promise<void>;
     attendanceOverrides: AttendanceOverride[];
     workSchedules: WorkSchedule[];
     addAttendanceOverride: (override: AttendanceOverride) => void;
@@ -905,9 +906,9 @@ export const useStore = create<AppState>()(
                 enableShiftNotifications: true,
                 enableAutoClockOut: true,
                 autoClockOutThreshold: 14,
-                geofenceRadius: 250,
+                geofenceRadius: 1000,
                 gpsAccuracyThreshold: 100,
-                enableFacialId: false,
+                enableFacialId: true,
                 enableFastLogin: false,
             },
             updatePlatformSettings: (settings) => {
@@ -919,7 +920,6 @@ export const useStore = create<AppState>()(
             checkZombieSessions: async () => {
                 const { timesheets, platformSettings, clockPunch, pendingSync } = get();
                 if (!platformSettings.enableAutoClockOut) return;
-
 
                 // Find open sessions where the current time is past 11:59 PM (23:59) on the shift's date
                 const zombies = timesheets.filter(t => {
@@ -935,11 +935,15 @@ export const useStore = create<AppState>()(
 
                 if (zombies.length === 0) return;
 
-                console.log(`[Zombie] Cleaning up ${zombies.length} stale sessions...`);
+                console.log(`[Zombie] Cleaning up ${zombies.length} stale sessions with 8h credited...`);
                 
                 for (const z of zombies) {
                     const [year, month, day] = z.date.split('-').map(Number);
-                    const autoOutTime = new Date(year, month - 1, day, 23, 59, 0);
+                    let autoOutTime = new Date(year, month - 1, day, 23, 59, 0);
+                    if (z.timeIn && z.timeIn.includes(':')) {
+                        const [inH, inM] = z.timeIn.split(':').map(Number);
+                        autoOutTime = new Date(year, month - 1, day, inH + 8, inM, 0);
+                    }
                     
                     try {
                         await clockPunch(z.personnelId, {
@@ -949,7 +953,7 @@ export const useStore = create<AppState>()(
                             timeSource: 'device',
                             manualAdjustment: true,
                             isZombieClose: true,
-                            adjustmentNote: `System: Auto closed. Clock-out missing by 11:59 PM.`
+                            adjustmentNote: `System: Auto closed (>14h) - 8h acreditadas`
                         });
                     } catch (e) {
                         console.error(`[Zombie] Failed to close session for ${z.personnelId}:`, e);
@@ -1922,10 +1926,10 @@ export const useStore = create<AppState>()(
                 const dbPayload = {
                     id: person.id,
                     name: person.name || 'Unnamed Personnel',
-                    position: person.position,
-                    employee_number: person.employeeNumber,
-                    app_role: person.appRole,
-                    status: person.status,
+                    position: person.position || 'Technician',
+                    employee_number: person.employeeNumber || null,
+                    app_role: person.appRole || 'Tech',
+                    status: person.status || 'Active',
                     certifications: person.certifications,
                     email: person.email,
                     phone_number: person.phoneNumber,
@@ -2262,6 +2266,32 @@ export const useStore = create<AppState>()(
                 }));
                 get().safeSync('mx_work_schedules', id, 'delete', null).catch(() => {});
             },
+            discardStaleShift: async (timesheetId: string) => {
+                const ts = get().timesheets.find(t => t.id === timesheetId);
+                if (!ts) return;
+                const _now = new Date();
+                const toHHMM = `${String(_now.getHours()).padStart(2, '0')}:${String(_now.getMinutes()).padStart(2, '0')}`;
+                const noteReason = ts.notes ? `${ts.notes} | Cancelado/Descartado por usuario` : 'Cancelado/Descartado por usuario';
+
+                set((state) => ({
+                    timesheets: state.timesheets.map(t =>
+                        t.id === timesheetId
+                            ? { ...t, timeOut: toHHMM, hours: 0, status: 'Rejected' as any, notes: noteReason }
+                            : t
+                    )
+                }));
+
+                try {
+                    await get().safeSync('mx_timesheets', timesheetId, 'update', {
+                        time_out: toHHMM,
+                        hours: 0,
+                        status: 'Rejected',
+                        notes: noteReason
+                    });
+                } catch (e) {
+                    console.error('[discardStaleShift] Sync error:', e);
+                }
+            },
             clockPunch: async (personnelId, punch, projectId) => {
                 const _d = new Date();
                 const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
@@ -2271,22 +2301,18 @@ export const useStore = create<AppState>()(
                     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
                 };
 
-                // C-01 IMPROVEMENT: Find an ACTIVE session (no timeOut)
-                let existing = get().timesheets.find(
-                    t => t.personnelId === personnelId && t.timeIn && !t.timeOut
-                );
+                // C-01: Al checar entrada, buscar ÚNICAMENTE sesión activa de HOY.
+                // Nunca asociar checada nueva a turnos huérfanos de días pasados.
+                let existing = punch.type === 'clockIn'
+                    ? get().timesheets.find(t => t.personnelId === personnelId && t.date === today && t.timeIn && !t.timeOut)
+                    : get().timesheets.find(t => t.personnelId === personnelId && t.date === today && t.timeIn && !t.timeOut);
 
-                // For clockOut, if we didn't find one by personnelId alone, we might need to be more aggressive
-                // (though usually one per person is the rule)
+                // Para salida, si no hay sesión hoy, buscar la más reciente abierta
                 if (punch.type === 'clockOut' && !existing) {
                     existing = [...get().timesheets]
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
                 }
-                
-                // If clocking IN and we already have an active session, don't create a new one — update it? 
-                // Actually, if they are already IN, the UI should prevent another IN. 
-                // But for robustness, if punch is clockIn and we have an active session, we'll just append the punch.
                 
                 const isNewEntry = !existing && punch.type === 'clockIn';
                 const targetId = existing ? existing.id : crypto.randomUUID();
@@ -2302,7 +2328,7 @@ export const useStore = create<AppState>()(
                     const threshold = getGPSAccuracyThreshold(state.platformSettings?.gpsAccuracyThreshold);
 
                     const updatedPunches = [...(sessionToUpdate?.punches ?? []), punch];
-                    const radius = state.platformSettings?.geofenceRadius ?? 250;
+                    const radius = state.platformSettings?.geofenceRadius ?? 1000;
                     const allAccurate = updatedPunches.every(p => {
                         if (p.accuracy > threshold) return false;
                         if (geofenceRequired && projCoords && p.workMode !== 'Home Office') {
@@ -2320,9 +2346,10 @@ export const useStore = create<AppState>()(
 
                     let computedHours = 0;
                     if (clockIn && clockOut) {
-                        const isZombie = punch.isZombieClose || (punch.adjustmentNote && punch.adjustmentNote.includes('System: Auto closed'));
+                        const isZombie = punch.isZombieClose || (punch.adjustmentNote && punch.adjustmentNote.includes('Auto closed'));
                         if (isZombie) {
-                            computedHours = 0;
+                            // REGLA DE NEGOCIO: Turno autocerrado acredita 8 horas de trabajo
+                            computedHours = 8.0;
                         } else {
                             const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
                             computedHours = Math.round((totalMs / 3600000) * 100) / 100;
