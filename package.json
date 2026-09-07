@@ -2,7 +2,7 @@
   "name": "latnovva-servicetool",
   "private": true,
   "license": "UNLICENSED",
-  "version": "3.0.14",
+  "version": "4.0.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -54,6 +54,7 @@
     "tailwind-merge": "^2.6.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^14.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8",
     "zustand": "^5.0.1"
   },
