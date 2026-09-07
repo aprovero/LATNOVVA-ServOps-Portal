@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Mail, MapPin, Zap, Train, Rss, Globe, Factory, CheckCircle2, ChevronDown, Download } from 'lucide-react';
+import LatnovvaWorldMap from './LatnovvaWorldMap';
 
 /* ─── Scroll reveal hook ─────────────────────────────────────────────── */
 function useReveal(threshold = 0.15) {
@@ -272,20 +273,16 @@ export default function LatnovvaESPBrochure({ onViewMap }: LatnovvaESPBrochurePr
                         <a
                             href="/live-map"
                             onClick={handleMapClick}
-                            className="relative group w-full"
+                            className="relative group w-full block md:scale-110 transition-transform duration-300 hover:scale-[1.03]"
                             title="View our interactive project map"
                         >
-                            <img 
-                                src="/latnovva-esp/map_custom.png" 
-                                alt="International Presence Map" 
-                                className="w-full max-h-[550px] md:scale-125 object-contain transition-opacity duration-300 group-hover:opacity-80" 
-                            />
+                            <LatnovvaWorldMap />
                         </a>
-                        {/* Legend — sits absolutely at the bottom-left of the map area, below Tierra del Fuego */}
+                        {/* Legend — cleanly positioned below South America */}
                         <a
                             href="/live-map"
                             onClick={handleMapClick}
-                            className="absolute bottom-[-55px] md:bottom-[-50px] left-[22%] sm:left-[25%] md:left-[32%] flex items-center gap-2.5 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-sm font-bold tracking-wide"
+                            className="mt-6 sm:mt-8 flex items-center gap-2.5 text-brand-teal hover:text-brand-teal/70 transition-colors duration-200 text-sm font-bold tracking-wide cursor-pointer"
                         >
                             <span className="relative flex h-2.5 w-2.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-teal opacity-75"></span>
