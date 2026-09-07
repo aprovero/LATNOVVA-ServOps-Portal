@@ -102,9 +102,9 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                         </span>
                         {timesheetEntry && timesheetEntry.punches && timesheetEntry.punches.length > 0 && (() => {
                             const gpsThreshold = platformSettings.gpsAccuracyThreshold ?? 100;
-                            const radius = platformSettings.geofenceRadius ?? 250;
                             const targetProjId = timesheetEntry.projectId;
                             const targetProject = targetProjId ? projects.find((p: any) => p.id === targetProjId) : null;
+                            const radius = targetProject?.geofenceRadius || platformSettings.geofenceRadius || 250;
                             const geofenceRequired = targetProject?.locationValidated ?? false;
                             const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
 
@@ -244,7 +244,7 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                                     const targetProject = targetProjId ? projects.find((p: any) => p.id === targetProjId) : null;
                                     const geofenceRequired = targetProject?.locationValidated ?? false;
                                     const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
-                                    const radius = platformSettings.geofenceRadius ?? 250;
+                                    const radius = targetProject?.geofenceRadius || platformSettings.geofenceRadius || 250;
                                     const dist = projCoords && punch.lat !== 0 ? getDistanceMeters(punch.lat, punch.lng, projCoords.lat, projCoords.lng) : 0;
                                     const isBypass = isWarehouseBypass(employee.id, punch.lat, punch.lng, radius);
                                     const isOutside = geofenceRequired && projCoords && punch.workMode !== 'Home Office' && dist > radius && !isBypass;

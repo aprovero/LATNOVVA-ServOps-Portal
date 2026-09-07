@@ -370,6 +370,7 @@ export interface Project {
     subsidiary?: 'US' | 'MX';
     subsidiaryMetadata?: any;
     defaultScheduleId?: string;
+    geofenceRadius?: number;
 }
 
 // Allowed report state transitions — prevents workflow bypass (C-03)
@@ -543,6 +544,7 @@ interface AppState {
         gpsAccuracyThreshold: number;
         enableFacialId: boolean;
         enableFastLogin: boolean;
+        customProjectTypes?: string[];
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     checkZombieSessions: () => Promise<void>;
@@ -911,6 +913,7 @@ export const useStore = create<AppState>()(
                 gpsAccuracyThreshold: 100,
                 enableFacialId: true,
                 enableFastLogin: false,
+                customProjectTypes: [],
             },
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
@@ -1144,7 +1147,8 @@ export const useStore = create<AppState>()(
                                 scopes: p.scopes || [],
                                 subsidiary: p.subsidiary || 'US',
                                 subsidiaryMetadata: p.subsidiary_metadata || {},
-                                defaultScheduleId: p.subsidiary_metadata?.defaultScheduleId || p.default_schedule_id || undefined
+                                defaultScheduleId: p.subsidiary_metadata?.defaultScheduleId || p.default_schedule_id || undefined,
+                                geofenceRadius: p.subsidiary_metadata?.geofenceRadius ? Number(p.subsidiary_metadata.geofenceRadius) : (p.geofence_radius ? Number(p.geofence_radius) : undefined)
                             }))
                             : state.projects,
                         personnel: (() => {
@@ -1303,6 +1307,7 @@ export const useStore = create<AppState>()(
                                 gpsAccuracyThreshold: Number(settingsDB.gpsAccuracyThreshold) || state.platformSettings.gpsAccuracyThreshold,
                                 enableFacialId: settingsDB.enableFacialId !== null ? !!settingsDB.enableFacialId : state.platformSettings.enableFacialId,
                                 enableFastLogin: settingsDB.enableFastLogin !== null ? !!settingsDB.enableFastLogin : state.platformSettings.enableFastLogin,
+                                customProjectTypes: Array.isArray(settingsDB.customProjectTypes) ? settingsDB.customProjectTypes : state.platformSettings.customProjectTypes || [],
                             }
                             : state.platformSettings,
                     }));
@@ -1638,7 +1643,8 @@ export const useStore = create<AppState>()(
                     subsidiary: project.subsidiary || 'US',
                     subsidiary_metadata: {
                         ...(project.subsidiaryMetadata || {}),
-                        ...(project.defaultScheduleId ? { defaultScheduleId: project.defaultScheduleId } : {})
+                        ...(project.defaultScheduleId ? { defaultScheduleId: project.defaultScheduleId } : {}),
+                        ...(project.geofenceRadius !== undefined ? { geofenceRadius: project.geofenceRadius } : {})
                     }
                 };
                 await get().safeSync('projects', project.id, 'insert', dbPayload);
@@ -1740,12 +1746,13 @@ export const useStore = create<AppState>()(
                 if (updates.disciplines !== undefined) dbPayload.disciplines = updates.disciplines;
                 if (updates.prevailingWage !== undefined) dbPayload.prevailing_wage = updates.prevailingWage;
                 if (updates.subsidiary !== undefined) dbPayload.subsidiary = updates.subsidiary;
-                if (updates.defaultScheduleId !== undefined || updates.subsidiaryMetadata !== undefined) {
+                if (updates.defaultScheduleId !== undefined || updates.geofenceRadius !== undefined || updates.subsidiaryMetadata !== undefined) {
                     const currentMeta = currentProject?.subsidiaryMetadata || {};
                     dbPayload.subsidiary_metadata = {
                         ...currentMeta,
                         ...(updates.subsidiaryMetadata || {}),
-                        ...(updates.defaultScheduleId !== undefined ? { defaultScheduleId: updates.defaultScheduleId } : {})
+                        ...(updates.defaultScheduleId !== undefined ? { defaultScheduleId: updates.defaultScheduleId } : {}),
+                        ...(updates.geofenceRadius !== undefined ? { geofenceRadius: updates.geofenceRadius } : {})
                     };
                 }
                 
@@ -2370,7 +2377,7 @@ export const useStore = create<AppState>()(
                     const threshold = getGPSAccuracyThreshold(state.platformSettings?.gpsAccuracyThreshold);
 
                     const updatedPunches = [...(sessionToUpdate?.punches ?? []), punch];
-                    const radius = state.platformSettings?.geofenceRadius ?? 1000;
+                    const radius = targetProject?.geofenceRadius || state.platformSettings?.geofenceRadius || 1000;
                     const allAccurate = updatedPunches.every(p => {
                         if (p.accuracy > threshold) return false;
                         if (geofenceRequired && projCoords && p.workMode !== 'Home Office') {

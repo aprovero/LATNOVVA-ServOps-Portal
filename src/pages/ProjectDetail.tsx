@@ -2,10 +2,10 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { parseCoordinates } from '../utils/datetime.utils';
-import { useStore } from '../store/useStore';
+import { useStore, Client } from '../store/useStore';
 import {
     MapPin, ArrowLeft, Edit2, Check, X, Users, Clock, FileText, Wrench,
-    Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2, Map, Hourglass, Target
+    Search, AlertCircle, Plus, ExternalLink, Network, CheckCircle2, Map, Hourglass, Target, AlertTriangle
 } from 'lucide-react';
 import { ManageScopesModal } from '../components/project/ManageScopesModal';
 import { Button } from '../components/ui/button';
@@ -13,6 +13,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Checkbox } from '../components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { gsap } from 'gsap';
 import { useRef } from 'react';
 
@@ -20,7 +21,7 @@ export default function ProjectDetail() {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, activeSubsidiary, platformSettings, workSchedules } = useStore();
+    const { projects, clients, personnel, reports, timesheets, updateProject, addReport, userRole, activeSubsidiary, platformSettings, workSchedules, addClient, updatePlatformSettings } = useStore();
 
     const project = projects.find(p => p.id === id);
     const client = clients.find(c => c.id === project?.clientId);
@@ -46,6 +47,22 @@ export default function ProjectDetail() {
     const [editSiteLeadIds, setEditSiteLeadIds] = useState<string[]>([]);
     const [editPrevailingWage, setEditPrevailingWage] = useState(false);
     const [editLocationValidated, setEditLocationValidated] = useState(true);
+    const [editGeofenceRadius, setEditGeofenceRadius] = useState<number>(1000);
+
+    // Quick creation dialogs
+    const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+    const [newClientName, setNewClientName] = useState('');
+    const [newClientLogo, setNewClientLogo] = useState('');
+
+    const [isCreateTypeOpen, setIsCreateTypeOpen] = useState(false);
+    const [newTypeName, setNewTypeName] = useState('');
+
+    const defaultProjectTypes = ['Solar', 'BESS', 'Hybrid', 'Eólica', 'Subestación', 'Línea de Transmisión', 'Other'];
+    const availableProjectTypes = useMemo(() => {
+        const existing = projects.map(p => p.systemType).filter(Boolean) as string[];
+        const custom = platformSettings?.customProjectTypes || [];
+        return Array.from(new Set([...defaultProjectTypes, ...existing, ...custom]));
+    }, [projects, platformSettings?.customProjectTypes]);
 
     const [locationError, setLocationError] = useState('');
 
@@ -79,16 +96,6 @@ export default function ProjectDetail() {
     const canEdit = ['Manager', 'Supervisor', 'HR'].includes(userRole) || activeSubsidiary === 'MX';
     const canEditPersonnel = canEdit && project?.status !== 'Completed';
 
-    // People already assigned to OTHER projects (conflict check)
-    const assignedElsewhere = useMemo(() => {
-        const elsewhere = new Set<string>();
-        projects.forEach(p => {
-            if (p.id === id) return;
-            (p.assignedPersonnel || []).forEach(pid => elsewhere.add(pid));
-        });
-        return elsewhere;
-    }, [projects, id]);
-
     const assignedToThis = useMemo(() => {
         const ids = project?.assignedPersonnel || [];
         return ids.filter(id => personnel.some(p => p.id === id));
@@ -98,10 +105,9 @@ export default function ProjectDetail() {
         return personnel.filter(p => {
             const matchesSearch = p.name.toLowerCase().includes(personnelSearch.toLowerCase()) ||
                 p.position.toLowerCase().includes(personnelSearch.toLowerCase());
-            const notElsewhere = !assignedElsewhere.has(p.id) || assignedToThis.includes(p.id);
-            return matchesSearch && notElsewhere;
+            return matchesSearch;
         });
-    }, [personnel, personnelSearch, assignedElsewhere, assignedToThis]);
+    }, [personnel, personnelSearch]);
 
     const openEdit = () => {
         if (!project) return;
@@ -122,6 +128,7 @@ export default function ProjectDetail() {
         setEditSiteLeadIds(project.siteLeadIds || []);
         setEditPrevailingWage(!!project.prevailingWage);
         setEditLocationValidated(project.locationValidated !== false);
+        setEditGeofenceRadius(project.geofenceRadius ?? platformSettings?.geofenceRadius ?? 1000);
         setIsEditing(true);
     };
 
@@ -145,6 +152,7 @@ export default function ProjectDetail() {
             siteLeadIds: editSiteLeadIds,
             prevailingWage: editPrevailingWage,
             locationValidated: editLocationValidated,
+            geofenceRadius: editGeofenceRadius,
         });
         setIsEditing(false);
     };
@@ -166,6 +174,17 @@ export default function ProjectDetail() {
         if (currentlyAssigned.includes(personId)) {
             updateProject(project.id, { assignedPersonnel: currentlyAssigned.filter(id => id !== personId) });
         } else {
+            const assignedOtherProjects = projects.filter(p => p.id !== project.id && p.status !== 'Completed' && p.assignedPersonnel?.includes(personId));
+            if (assignedOtherProjects.length > 0) {
+                const person = personnel.find(p => p.id === personId);
+                const projNames = assignedOtherProjects.map(p => p.codeName || p.name).join(', ');
+                const ok = window.confirm(
+                    t('projects.alerts.already_assigned_warning', 
+                      '⚠️ {{name}} ya se encuentra asignado a: {{projects}}.\n\n¿Deseas asignarlo también a este proyecto?', 
+                      { name: person?.name || 'Este colaborador', projects: projNames })
+                );
+                if (!ok) return;
+            }
             updateProject(project.id, { assignedPersonnel: [...currentlyAssigned, personId] });
         }
     };
@@ -384,8 +403,22 @@ export default function ProjectDetail() {
                                     <Input id="dp-code" value={editCodeName} onChange={e => setEditCodeName(e.target.value)} placeholder="E.g. EST-LNV-000 CDMX" />
                                 </div>
                                 <div className="grid gap-1.5">
-                                    <Label htmlFor="dp-client">Client</Label>
-                                    <select id="dp-client" value={editClientId} onChange={e => setEditClientId(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-teal">
+                                    <Label htmlFor="dp-client">{t('projects.table.customer', 'Client')}</Label>
+                                    <select 
+                                        id="dp-client" 
+                                        value={editClientId} 
+                                        onChange={e => {
+                                            if (e.target.value === '__NEW_CLIENT__') {
+                                                setIsCreateClientOpen(true);
+                                                return;
+                                            }
+                                            setEditClientId(e.target.value);
+                                        }} 
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-teal"
+                                    >
+                                        <option value="__NEW_CLIENT__" className="font-bold text-brand-teal">
+                                            ➕ {t('projects.add_new_client', '+ Agregar nuevo cliente...')}
+                                        </option>
                                         {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
@@ -431,12 +464,25 @@ export default function ProjectDetail() {
                                     <Input id="dp-size" value={editSize} onChange={e => setEditSize(e.target.value)} placeholder="E.g. 100 MW" />
                                 </div>
                                 <div className="grid gap-1.5">
-                                    <Label htmlFor="dp-sys">System Type</Label>
-                                    <select id="dp-sys" value={editSystemType} onChange={e => setEditSystemType(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-teal">
-                                        <option value="Solar">Solar</option>
-                                        <option value="BESS">BESS</option>
-                                        <option value="Hybrid">Hybrid</option>
-                                        <option value="Other">Other</option>
+                                    <Label htmlFor="dp-sys">{t('projects.system_type', 'Tipo de proyecto')}</Label>
+                                    <select 
+                                        id="dp-sys" 
+                                        value={editSystemType} 
+                                        onChange={e => {
+                                            if (e.target.value === '__NEW_TYPE__') {
+                                                setIsCreateTypeOpen(true);
+                                                return;
+                                            }
+                                            setEditSystemType(e.target.value);
+                                        }} 
+                                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-teal"
+                                    >
+                                        <option value="__NEW_TYPE__" className="font-bold text-brand-teal">
+                                            ➕ {t('projects.add_new_type', '+ Agregar nuevo tipo de proyecto...')}
+                                        </option>
+                                        {availableProjectTypes.map(ptype => (
+                                            <option key={ptype} value={ptype}>{ptype === 'Other' ? t('common.other', 'Otro') : ptype}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="grid gap-1.5">
@@ -481,7 +527,7 @@ export default function ProjectDetail() {
                                     <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
                                         <Checkbox 
                                             id="dp-prevailing-wage" 
-                                            checked={editPrevailingWage}
+                                            checked={editPrevailingWage} 
                                             onCheckedChange={(checked) => setEditPrevailingWage(!!checked)}
                                         />
                                         <div className="grid gap-1 leading-none">
@@ -494,20 +540,41 @@ export default function ProjectDetail() {
                                         </div>
                                     </div>
                                 )}
-                                <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10 animate-in fade-in duration-200">
-                                    <Checkbox 
-                                        id="dp-location-validated" 
-                                        checked={editLocationValidated}
-                                        onCheckedChange={(checked) => setEditLocationValidated(!!checked)}
-                                    />
-                                    <div className="grid gap-1 leading-none">
-                                        <Label htmlFor="dp-location-validated" className="cursor-pointer font-bold text-accent-greyDark flex items-center gap-1.5">
-                                            Require {platformSettings.geofenceRadius}m Geofence Validation
-                                        </Label>
-                                        <p className="text-xs text-gray-500">
-                                            Enforce clock in/out within {platformSettings.geofenceRadius}m of project coordinates. Requires coordinates format.
-                                        </p>
+                                <div className="sm:col-span-2 p-3.5 bg-brand-teal/5 rounded-2xl border border-brand-teal/10 space-y-2.5 animate-in fade-in duration-200">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2.5">
+                                            <Checkbox 
+                                                id="dp-location-validated" 
+                                                checked={editLocationValidated} 
+                                                onCheckedChange={(checked) => setEditLocationValidated(!!checked)}
+                                            />
+                                            <Label
+                                                htmlFor="dp-location-validated"
+                                                className="text-sm font-bold text-accent-greyDark cursor-pointer"
+                                            >
+                                                {t('projects.require_geofence', 'Require Geofence Validation')}
+                                            </Label>
+                                        </div>
+                                        {editLocationValidated && (
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <Input 
+                                                    type="number" 
+                                                    min="10" 
+                                                    max="50000"
+                                                    value={editGeofenceRadius}
+                                                    onChange={(e) => setEditGeofenceRadius(parseInt(e.target.value) || 0)}
+                                                    className="w-24 h-8 text-xs font-bold text-center bg-white border-gray-200 rounded-lg"
+                                                    placeholder="1000"
+                                                />
+                                                <span className="text-xs font-bold text-gray-500">m</span>
+                                            </div>
+                                        )}
                                     </div>
+                                    <p className="text-xs text-gray-500 pl-6">
+                                        {editLocationValidated
+                                            ? t('projects.geofence_enforced_desc', 'Enforce clock in/out within {{radius}}m of project coordinates. Requires coordinates format.', { radius: editGeofenceRadius })
+                                            : t('projects.geofence_disabled_desc', 'Allow punches from any location without geofence enforcement.')}
+                                    </p>
                                 </div>
                                 <div className="sm:col-span-2 grid gap-1.5">
                                     <Label>Active Disciplines / Streams</Label>
@@ -828,16 +895,14 @@ export default function ProjectDetail() {
                                 <div className="space-y-1.5 min-h-[100px]">
                                     {(isAddingPersonnel ? availablePersonnel : personnel.filter((p: any) => assignedToThis.includes(p.id))).map((person: any) => {
                                         const isAssigned = assignedToThis.includes(person.id);
-                                        const isConflict = assignedElsewhere.has(person.id) && !isAssigned;
+                                        const assignedOtherProjects = projects.filter(p => p.id !== project?.id && p.status !== 'Completed' && p.assignedPersonnel?.includes(person.id));
                                         return (
                                             <div
                                                 key={person.id}
-                                                onClick={() => canEditPersonnel && isAddingPersonnel && !isConflict && togglePersonnel(person.id)}
+                                                onClick={() => canEditPersonnel && isAddingPersonnel && togglePersonnel(person.id)}
                                                 className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-200 ${
                                                     isAssigned
                                                         ? 'bg-brand-teal/5 border-brand-teal/20 shadow-sm'
-                                                        : isConflict
-                                                        ? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed'
                                                         : canEditPersonnel && isAddingPersonnel ? 'bg-white border-gray-100 hover:border-brand-teal/30 hover:bg-brand-teal/5 cursor-pointer hover:shadow-md' : 'bg-gray-50 border-gray-100'
                                                 }`}
                                             >
@@ -856,13 +921,19 @@ export default function ProjectDetail() {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
                                                             <p className="text-sm font-bold text-accent-greyDark truncate leading-tight">{person.name}</p>
-                                                            {project.siteLeadIds?.includes(person.id) && (
+                                                            {project?.siteLeadIds?.includes(person.id) && (
                                                                 <span className="flex items-center gap-1 text-[8px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
                                                                     Lead
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5 mt-0.5 truncate">{person.position}</p>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5 truncate">{person.position}</p>
+                                                        {assignedOtherProjects.length > 0 && (
+                                                            <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 mt-1 max-w-fit">
+                                                                <AlertTriangle size={10} className="shrink-0 text-amber-600" />
+                                                                <span>{t('projects.assigned_to', 'Asignado en:')} {assignedOtherProjects.map(p => p.codeName || p.name).join(', ')}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -871,8 +942,6 @@ export default function ProjectDetail() {
                                                         isAddingPersonnel ? (
                                                             isAssigned
                                                                 ? <Check size={18} className="text-brand-teal animate-in zoom-in duration-200" />
-                                                                : isConflict
-                                                                ? <span className="text-[10px] text-gray-400 font-bold uppercase bg-gray-100 px-2 py-1 rounded-lg">Busy</span>
                                                                 : <Plus size={18} className="text-gray-300 group-hover:text-brand-teal" />
                                                         ) : (
                                                             <button 
@@ -1026,6 +1095,137 @@ export default function ProjectDetail() {
                     project={manageScopesProject}
                 />
             )}
+
+            {/* Create New Customer Modal */}
+            <Dialog open={isCreateClientOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setIsCreateClientOpen(false);
+                    setNewClientName('');
+                    setNewClientLogo('');
+                }
+            }}>
+                <DialogContent className="sm:max-w-[440px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Users className="text-brand-teal" size={20} />
+                            {t('projects.new_client_title', 'Crear Nuevo Cliente')}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="quickClientName">{t('projects.new_client_name', 'Nombre del Cliente')} *</Label>
+                            <Input
+                                id="quickClientName"
+                                value={newClientName}
+                                onChange={(e) => setNewClientName(e.target.value)}
+                                placeholder="ej. Iberdrola, Enel, etc."
+                                autoFocus
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="quickClientLogo">{t('projects.new_client_logo', 'URL del Logo')} (opcional)</Label>
+                            <Input
+                                id="quickClientLogo"
+                                value={newClientLogo}
+                                onChange={(e) => setNewClientLogo(e.target.value)}
+                                placeholder="https://ejemplo.com/logo.png"
+                            />
+                        </div>
+                        {newClientName && (
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                <img
+                                    src={newClientLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(newClientName)}&background=random&color=fff`}
+                                    alt="Preview"
+                                    className="w-10 h-10 rounded-lg object-contain bg-white border border-gray-200"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(newClientName)}&background=random&color=fff`;
+                                    }}
+                                />
+                                <div className="text-xs">
+                                    <p className="font-bold text-gray-700">{newClientName}</p>
+                                    <p className="text-gray-400">Vista previa del cliente</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                            setIsCreateClientOpen(false);
+                            setNewClientName('');
+                            setNewClientLogo('');
+                        }}>{t('common.cancel')}</Button>
+                        <Button
+                            disabled={!newClientName.trim()}
+                            onClick={async () => {
+                                const trimmed = newClientName.trim();
+                                if (!trimmed) return;
+                                const id = `client-${Date.now()}`;
+                                const clientObj: Client = {
+                                    id,
+                                    name: trimmed,
+                                    logo: newClientLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(trimmed)}&background=random&color=fff`
+                                };
+                                await addClient(clientObj);
+                                setEditClientId(id);
+                                setIsCreateClientOpen(false);
+                                setNewClientName('');
+                                setNewClientLogo('');
+                            }}
+                        >
+                            {t('common.save')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create New Project Type Modal */}
+            <Dialog open={isCreateTypeOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setIsCreateTypeOpen(false);
+                    setNewTypeName('');
+                }
+            }}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Target className="text-brand-teal" size={20} />
+                            {t('projects.new_type_title', 'Crear Tipo de Proyecto')}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="quickTypeName">{t('projects.new_type_name', 'Nombre del Tipo de Proyecto')}</Label>
+                            <Input
+                                id="quickTypeName"
+                                value={newTypeName}
+                                onChange={(e) => setNewTypeName(e.target.value)}
+                                placeholder={t('projects.new_type_placeholder', 'ej. Biomasa, Hidroeléctrica...')}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                            setIsCreateTypeOpen(false);
+                            setNewTypeName('');
+                        }}>{t('common.cancel')}</Button>
+                        <Button
+                            disabled={!newTypeName.trim()}
+                            onClick={() => {
+                                const trimmed = newTypeName.trim();
+                                if (!trimmed) return;
+                                const updated = Array.from(new Set([...(platformSettings?.customProjectTypes || []), trimmed]));
+                                updatePlatformSettings({ customProjectTypes: updated });
+                                setEditSystemType(trimmed);
+                                setIsCreateTypeOpen(false);
+                                setNewTypeName('');
+                            }}
+                        >
+                            {t('common.save')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

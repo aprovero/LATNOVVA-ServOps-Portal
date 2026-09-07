@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store/useStore';
 import gsap from 'gsap';
-import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, Building2, ChevronDown, Filter, Search, Check, Plus, Target, ArrowUpDown } from 'lucide-react';
+import { FolderGit2, Clock, Activity as ActivityIcon, MapPin, Map, Camera, Building2, ChevronDown, Filter, Search, Check, Plus, Target, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -55,7 +55,7 @@ const CircularProgress = ({ progress, size = 'md' }: { progress: number, size?: 
 
 export default function Projects() {
     const { t } = useTranslation();
-    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addProject, activeSubsidiary, platformSettings, workSchedules } = useStore();
+    const { projects, reports, clients, userRole, clientId, timesheets, updateClient, addClient, addProject, activeSubsidiary, platformSettings, updatePlatformSettings, workSchedules } = useStore();
     const [selectedClientId] = useState<string | null>(
         userRole === 'Customer' ? clientId : null
     );
@@ -71,11 +71,28 @@ export default function Projects() {
         siteLeadIds: [],
         prevailingWage: false,
         locationValidated: true,
+        geofenceRadius: platformSettings?.geofenceRadius || 1000,
         subsidiary: activeSubsidiary,
-        defaultScheduleId: ''
+        defaultScheduleId: '',
+        systemType: 'Solar'
     });
     const [personnelSearch, setPersonnelSearch] = useState('');
     const [isVaidatingNewMap, setIsValidatingNewMap] = useState(false);
+
+    // Quick creation dialogs
+    const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+    const [newClientName, setNewClientName] = useState('');
+    const [newClientLogo, setNewClientLogo] = useState('');
+
+    const [isCreateTypeOpen, setIsCreateTypeOpen] = useState(false);
+    const [newTypeName, setNewTypeName] = useState('');
+
+    const defaultProjectTypes = ['Solar', 'BESS', 'Hybrid', 'Eólica', 'Subestación', 'Línea de Transmisión', 'Other'];
+    const availableProjectTypes = useMemo(() => {
+        const existing = projects.map(p => p.systemType).filter(Boolean) as string[];
+        const custom = platformSettings?.customProjectTypes || [];
+        return Array.from(new Set([...defaultProjectTypes, ...existing, ...custom]));
+    }, [projects, platformSettings?.customProjectTypes]);
 
     const [searchParams] = useSearchParams();
     const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || 'All');
@@ -557,8 +574,17 @@ export default function Projects() {
                                 <select 
                                     className="w-full bg-white border border-gray-200 rounded-xl px-3 h-11 text-sm outline-none focus:ring-2 focus:ring-brand-teal transition-all"
                                     value={newProject.clientId || ''}
-                                    onChange={e => setNewProject({...newProject, clientId: e.target.value})}
+                                    onChange={e => {
+                                        if (e.target.value === '__NEW_CLIENT__') {
+                                            setIsCreateClientOpen(true);
+                                            return;
+                                        }
+                                        setNewProject({...newProject, clientId: e.target.value});
+                                    }}
                                 >
+                                    <option value="__NEW_CLIENT__" className="font-bold text-brand-teal">
+                                        ➕ {t('projects.add_new_client', '+ Agregar nuevo cliente...')}
+                                    </option>
                                     <option value="" disabled>{t('common.all_customers')}...</option>
                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
@@ -585,16 +611,24 @@ export default function Projects() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('projects.system_type')}</Label>
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('projects.system_type', 'Tipo de proyecto')}</Label>
                                 <select 
                                     className="w-full bg-white border border-gray-200 rounded-xl px-3 h-11 text-sm outline-none focus:ring-2 focus:ring-brand-teal transition-all"
                                     value={newProject.systemType || 'Solar'}
-                                    onChange={e => setNewProject({...newProject, systemType: e.target.value})}
+                                    onChange={e => {
+                                        if (e.target.value === '__NEW_TYPE__') {
+                                            setIsCreateTypeOpen(true);
+                                            return;
+                                        }
+                                        setNewProject({...newProject, systemType: e.target.value});
+                                    }}
                                 >
-                                    <option value="Solar">Solar</option>
-                                    <option value="BESS">BESS</option>
-                                    <option value="Hybrid">Hybrid</option>
-                                    <option value="Other">{t('common.other')}</option>
+                                    <option value="__NEW_TYPE__" className="font-bold text-brand-teal">
+                                        ➕ {t('projects.add_new_type', '+ Agregar nuevo tipo de proyecto...')}
+                                    </option>
+                                    {availableProjectTypes.map(ptype => (
+                                        <option key={ptype} value={ptype}>{ptype === 'Other' ? t('common.other', 'Otro') : ptype}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -633,23 +667,41 @@ export default function Projects() {
                                     </div>
                                 </div>
                             )}
-                            <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-brand-teal/5 rounded-2xl border border-brand-teal/10">
-                                <Checkbox 
-                                    id="locationValidated" 
-                                    checked={newProject.locationValidated}
-                                    onCheckedChange={(checked) => setNewProject({...newProject, locationValidated: !!checked})}
-                                />
-                                <div className="grid gap-1.5 leading-none">
-                                    <Label
-                                        htmlFor="locationValidated"
-                                        className="text-sm font-bold text-accent-greyDark leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                    >
-                                        Require {platformSettings.geofenceRadius}m Geofence Validation
-                                    </Label>
-                                    <p className="text-xs text-gray-500">
-                                        Enforce clock in/out within {platformSettings.geofenceRadius}m of project coordinates. Requires coordinates format.
-                                    </p>
+                            <div className="sm:col-span-2 p-3.5 bg-brand-teal/5 rounded-2xl border border-brand-teal/10 space-y-2.5">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <Checkbox 
+                                            id="locationValidated" 
+                                            checked={newProject.locationValidated}
+                                            onCheckedChange={(checked) => setNewProject({...newProject, locationValidated: !!checked})}
+                                        />
+                                        <Label
+                                            htmlFor="locationValidated"
+                                            className="text-sm font-bold text-accent-greyDark cursor-pointer"
+                                        >
+                                            {t('projects.require_geofence', 'Require Geofence Validation')}
+                                        </Label>
+                                    </div>
+                                    {newProject.locationValidated && (
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <Input 
+                                                type="number" 
+                                                min="10" 
+                                                max="50000"
+                                                value={newProject.geofenceRadius ?? platformSettings?.geofenceRadius ?? 1000}
+                                                onChange={(e) => setNewProject({...newProject, geofenceRadius: parseInt(e.target.value) || 0})}
+                                                className="w-24 h-8 text-xs font-bold text-center bg-white border-gray-200 rounded-lg"
+                                                placeholder="1000"
+                                            />
+                                            <span className="text-xs font-bold text-gray-500">m</span>
+                                        </div>
+                                    )}
                                 </div>
+                                <p className="text-xs text-gray-500 pl-6">
+                                    {newProject.locationValidated
+                                        ? t('projects.geofence_enforced_desc', 'Enforce clock in/out within {{radius}}m of project coordinates. Requires coordinates format.', { radius: newProject.geofenceRadius ?? platformSettings?.geofenceRadius ?? 1000 })
+                                        : t('projects.geofence_disabled_desc', 'Allow punches from any location without geofence enforcement.')}
+                                </p>
                             </div>
                        </div>
 
@@ -671,6 +723,7 @@ export default function Projects() {
                                         .map(person => {
                                             const isAssigned = newProject.assignedPersonnel?.includes(person.id);
                                             const isLead = newProject.siteLeadIds?.includes(person.id);
+                                            const assignedOtherProjects = projects.filter(p => p.status !== 'Completed' && p.assignedPersonnel?.includes(person.id));
                                             
                                             return (
                                                 <div 
@@ -686,12 +739,28 @@ export default function Projects() {
                                                         <div>
                                                             <p className="text-sm font-bold text-accent-greyDark">{person.name}</p>
                                                             <p className="text-[10px] text-gray-400 uppercase font-medium">{person.position}</p>
+                                                            {assignedOtherProjects.length > 0 && (
+                                                                <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 mt-1 max-w-fit">
+                                                                    <AlertTriangle size={10} className="shrink-0 text-amber-600" />
+                                                                    <span>{t('projects.assigned_to', 'Asignado en:')} {assignedOtherProjects.map(p => p.codeName || p.name).join(', ')}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={(e) => {
                                                                 e.preventDefault();
+                                                                if (!isAssigned && assignedOtherProjects.length > 0) {
+                                                                    const projNames = assignedOtherProjects.map(p => p.codeName || p.name).join(', ');
+                                                                    const ok = window.confirm(
+                                                                        t('projects.alerts.already_assigned_warning', 
+                                                                          '⚠️ {{name}} ya se encuentra asignado a: {{projects}}.\n\n¿Deseas asignarlo también a este proyecto?', 
+                                                                          { name: person.name, projects: projNames })
+                                                                    );
+                                                                    if (!ok) return;
+                                                                }
+
                                                                 const currentAssigned = newProject.assignedPersonnel || [];
                                                                 const nextAssigned = isAssigned 
                                                                     ? currentAssigned.filter(id => id !== person.id)
@@ -808,6 +877,139 @@ export default function Projects() {
                             </Button>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create New Customer Modal */}
+            <Dialog open={isCreateClientOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setIsCreateClientOpen(false);
+                    setNewClientName('');
+                    setNewClientLogo('');
+                }
+            }}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Building2 className="text-brand-teal" size={20} />
+                            {t('projects.new_client_title', 'Crear Nuevo Cliente')}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="quickClientName">{t('projects.new_client_name', 'Nombre de la Empresa / Cliente')}</Label>
+                            <Input
+                                id="quickClientName"
+                                value={newClientName}
+                                onChange={(e) => setNewClientName(e.target.value)}
+                                placeholder={t('projects.placeholders.customer_example', 'Ej. COR Solutions')}
+                                autoFocus
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>{t('projects.new_client_logo', 'Logotipo de la Empresa (Opcional)')}</Label>
+                            <div className="flex items-center gap-4 mt-2">
+                                <div className="w-14 h-14 rounded-full bg-brand-teal/10 flex items-center justify-center text-brand-teal overflow-hidden border border-gray-100 shrink-0">
+                                    {newClientLogo ? (
+                                        <img src={newClientLogo} alt="Preview" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Camera size={22} />
+                                    )}
+                                </div>
+                                <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setNewClientLogo(reader.result as string);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    className="cursor-pointer flex-1"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                            setIsCreateClientOpen(false);
+                            setNewClientName('');
+                            setNewClientLogo('');
+                        }}>{t('common.cancel')}</Button>
+                        <Button
+                            disabled={!newClientName.trim()}
+                            onClick={async () => {
+                                const trimmed = newClientName.trim();
+                                if (!trimmed) return;
+                                const id = `CUST_${trimmed.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_${Date.now().toString(36)}`;
+                                const clientObj: Client = {
+                                    id,
+                                    name: trimmed,
+                                    logo: newClientLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(trimmed)}&background=random&color=fff`
+                                };
+                                await addClient(clientObj);
+                                setNewProject(prev => ({ ...prev, clientId: id }));
+                                setIsCreateClientOpen(false);
+                                setNewClientName('');
+                                setNewClientLogo('');
+                            }}
+                        >
+                            {t('common.save')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create New Project Type Modal */}
+            <Dialog open={isCreateTypeOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setIsCreateTypeOpen(false);
+                    setNewTypeName('');
+                }
+            }}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Target className="text-brand-teal" size={20} />
+                            {t('projects.new_type_title', 'Crear Tipo de Proyecto')}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="quickTypeName">{t('projects.new_type_name', 'Nombre del Tipo de Proyecto')}</Label>
+                            <Input
+                                id="quickTypeName"
+                                value={newTypeName}
+                                onChange={(e) => setNewTypeName(e.target.value)}
+                                placeholder={t('projects.new_type_placeholder', 'ej. Biomasa, Hidroeléctrica...')}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                            setIsCreateTypeOpen(false);
+                            setNewTypeName('');
+                        }}>{t('common.cancel')}</Button>
+                        <Button
+                            disabled={!newTypeName.trim()}
+                            onClick={() => {
+                                const trimmed = newTypeName.trim();
+                                if (!trimmed) return;
+                                const updated = Array.from(new Set([...(platformSettings?.customProjectTypes || []), trimmed]));
+                                updatePlatformSettings({ customProjectTypes: updated });
+                                setNewProject(prev => ({ ...prev, systemType: trimmed }));
+                                setIsCreateTypeOpen(false);
+                                setNewTypeName('');
+                            }}
+                        >
+                            {t('common.save')}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

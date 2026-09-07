@@ -98,7 +98,7 @@
     },
     "details": "Project Details",
     "size": "Project Size",
-    "system_type": "System Type",
+    "system_type": "Project Type",
     "location": "Site Location",
     "code_name": "Code Name",
     "site_leads": "Site Leads",
@@ -160,6 +160,18 @@
     "adjust_location": "Adjust Location",
     "confirm_pin_placement": "Confirm Pin Placement",
     "search_projects": "Search projects...",
+    "add_new_client": "+ Add new customer...",
+    "add_new_type": "+ Add new project type...",
+    "require_geofence": "Require Geofence Validation",
+    "geofence_enforced_desc": "Enforce clock in/out within {{radius}}m of project coordinates. Requires coordinates format.",
+    "geofence_disabled_desc": "Allow punches from any location without geofence enforcement.",
+    "assigned_to": "Assigned to:",
+    "new_client_title": "Create New Customer",
+    "new_client_name": "Customer / Company Name",
+    "new_client_logo": "Logo Thumbnail (Optional)",
+    "new_type_title": "Create Project Type",
+    "new_type_name": "Project Type Name",
+    "new_type_placeholder": "e.g. Biomass, Hydroelectric, Substation...",
     "alerts": {
       "exists": "A report already exists for {{project}} on {{date}}. Open it instead?",
       "company_saved": "Company {{name}} saved successfully!",
@@ -168,7 +180,8 @@
       "location_error": "getting location",
       "unresolved_identity": "Identity Unresolved",
       "unresolved_identity_desc": "Your account email is not mapped to a personnel record. Please contact administration to link your profile.",
-      "visualizing_location": "Visualizing location based on provided address/coordinates. Confirm current pin position is correct."
+      "visualizing_location": "Visualizing location based on provided address/coordinates. Confirm current pin position is correct.",
+      "already_assigned_warning": "⚠️ {{name}} is already assigned to: {{projects}}.\n\nDo you want to assign them to this project as well?"
     }
   },
   "disciplines": {

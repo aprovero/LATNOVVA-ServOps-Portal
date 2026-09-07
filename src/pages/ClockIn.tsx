@@ -763,7 +763,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const currentProjId = step === 'clocked-in' ? (activeEntry?.projectId ?? '') : selectedProject;
     const targetProject = currentProjId ? projects.find((p: any) => p.id === currentProjId) : null;
     const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
-    const geofenceRadius = platformSettings?.geofenceRadius ?? 1000;
+    const geofenceRadius = targetProject?.geofenceRadius || platformSettings?.geofenceRadius || 1000;
     const isBypass = isWarehouseBypass(personnelId, gps.lat, gps.lng, geofenceRadius);
     const isOutsideGeofence = !!(
         workMode === 'On Site' &&

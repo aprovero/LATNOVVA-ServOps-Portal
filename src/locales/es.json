@@ -99,7 +99,7 @@
     },
     "details": "Detalles del proyecto",
     "size": "Tamaño del proyecto",
-    "system_type": "Tipo de sistema",
+    "system_type": "Tipo de proyecto",
     "location": "Ubicación del sitio",
     "code_name": "Nombre clave",
     "site_leads": "Líderes de sitio",
@@ -161,6 +161,18 @@
     "adjust_location": "Ajustar ubicación",
     "confirm_pin_placement": "Confirmar Colocación de Pin",
     "search_projects": "Buscar proyectos...",
+    "add_new_client": "+ Agregar nuevo cliente...",
+    "add_new_type": "+ Agregar nuevo tipo de proyecto...",
+    "require_geofence": "Requerir validación de geocerca",
+    "geofence_enforced_desc": "Exigir entrada/salida dentro de {{radius}}m de las coordenadas del proyecto. Requiere formato de coordenadas.",
+    "geofence_disabled_desc": "Permite registrar checadas desde cualquier ubicación sin restricción de distancia.",
+    "assigned_to": "Asignado en:",
+    "new_client_title": "Crear Nuevo Cliente",
+    "new_client_name": "Nombre de la Empresa / Cliente",
+    "new_client_logo": "Logotipo de la Empresa (Opcional)",
+    "new_type_title": "Crear Tipo de Proyecto",
+    "new_type_name": "Nombre del Tipo de Proyecto",
+    "new_type_placeholder": "ej. Biomasa, Hidroeléctrica, Subestación...",
     "alerts": {
       "exists": "Ya existe un reporte para {{project}} en {{date}}. ¿Abrir ese en su lugar?",
       "company_saved": "¡Empresa {{name}} guardada con éxito!",
@@ -169,7 +181,8 @@
       "location_error": "obteniendo ubicación",
       "unresolved_identity": "Identidad no Resuelta",
       "unresolved_identity_desc": "Su correo electrónico no está vinculado a un registro de personal. Contacte a administración.",
-      "visualizing_location": "Visualizando ubicación basada en dirección/coordenadas. Confirme que la posición es correcta."
+      "visualizing_location": "Visualizando ubicación basada en dirección/coordenadas. Confirme que la posición es correcta.",
+      "already_assigned_warning": "⚠️ {{name}} ya se encuentra asignado a: {{projects}}.\n\n¿Deseas asignarlo también a este proyecto?"
     }
   },
   "disciplines": {
