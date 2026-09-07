@@ -2812,8 +2812,8 @@
     "locationString": "Dominican Republic",
     "year": 2024,
     "status": "Finalizado",
-    "lat": 18.4500,
-    "lng": -69.3000
+    "lat": 18.45,
+    "lng": -69.3
   },
   {
     "id": "manual-125",
@@ -2825,5 +2825,137 @@
     "status": "Finalizado",
     "lat": 18.4947,
     "lng": -68.3976
+  },
+  {
+    "id": "excel-258",
+    "name": "GE-LNV-123 (PF Perote 108 MWp)",
+    "description": "Underground MV Cable Pulling with Trench Opening/Closing Civil Works & Testing",
+    "client": "Greensol",
+    "locationString": "Mexico",
+    "year": 2024,
+    "status": "Active",
+    "lat": 19.5614,
+    "lng": -97.2428
+  },
+  {
+    "id": "excel-259",
+    "name": "GR-LNV-094 (Mexicali)",
+    "description": "Installation, MV interconnection and commissioning civil & electrical works",
+    "client": "Greening Group",
+    "locationString": "Mexico",
+    "year": 2024,
+    "status": "Active",
+    "lat": 32.6245,
+    "lng": -115.4523
+  },
+  {
+    "id": "excel-260",
+    "name": "GR-LNV-095 (Playa del Carmen)",
+    "description": "Commercial & Industrial solar PV installation, electrical balance of system",
+    "client": "Greening Group",
+    "locationString": "Mexico",
+    "year": 2024,
+    "status": "Active",
+    "lat": 20.6296,
+    "lng": -87.0739
+  },
+  {
+    "id": "excel-261",
+    "name": "LNVEM-LNV-068 (Mérida E-Mobility)",
+    "description": "High-power electric bus fast-charging station infrastructure & MV connection",
+    "client": "Agencia de Transporte de Yucatan",
+    "locationString": "Mexico",
+    "year": 2024,
+    "status": "Active",
+    "lat": 20.9674,
+    "lng": -89.6236
+  },
+  {
+    "id": "excel-262",
+    "name": "OPDE-LNV-085 (Aguascalientes)",
+    "description": "EPC expansion of photovoltaic plant, MV cable termination, and electrical assembly",
+    "client": "OPDE",
+    "locationString": "Mexico",
+    "year": 2024,
+    "status": "Active",
+    "lat": 21.9167,
+    "lng": -101.9667
+  },
+  {
+    "id": "excel-263",
+    "name": "VM-LNV-098 (Monterrey)",
+    "description": "Fleet depot electrical infrastructure, fast-chargers installation, and power distribution panels",
+    "client": "VEMO",
+    "locationString": "Mexico",
+    "year": 2024,
+    "status": "Active",
+    "lat": 25.6866,
+    "lng": -100.3161
+  },
+  {
+    "id": "excel-264",
+    "name": "CH-LNVEM-090 (Ie-Tram Centro)",
+    "description": "Inverted pantograph fast-charging terminal connection & SCADA integration",
+    "client": "Agencia de Transporte de Yucatan",
+    "locationString": "Mexico",
+    "year": 2024,
+    "status": "Active",
+    "lat": 20.9889,
+    "lng": -89.6133
+  },
+  {
+    "id": "excel-265",
+    "name": "PFV Guajapo 100MW",
+    "description": "Photovoltaic farm electrical installation and commissioning services",
+    "client": "SUNGROW",
+    "locationString": "Colombia",
+    "year": 2023,
+    "status": "Finalizado",
+    "lat": 10.3948,
+    "lng": -74.9385
+  },
+  {
+    "id": "excel-266",
+    "name": "PFV La Union 100MW",
+    "description": "Photovoltaic plant electrical balance of plant and commissioning",
+    "client": "SUNGROW",
+    "locationString": "Colombia",
+    "year": 2023,
+    "status": "Finalizado",
+    "lat": 10.9,
+    "lng": -74.3
+  },
+  {
+    "id": "excel-267",
+    "name": "PFV La Mata 100MW",
+    "description": "Photovoltaic plant balance of plant electrical execution",
+    "client": "SUNGROW",
+    "locationString": "Colombia",
+    "year": 2023,
+    "status": "Finalizado",
+    "lat": 10.3072,
+    "lng": -73.6167
+  },
+  {
+    "id": "excel-268",
+    "name": "Tren Maya Acometidas Media Tensión",
+    "description": "Medium voltage grid connections, civil and electrical interconnection works",
+    "client": "CFE",
+    "locationString": "Mexico",
+    "year": 2023,
+    "status": "Finalizado",
+    "lat": 18.5,
+    "lng": -88.2
+  },
+  {
+    "id": "excel-269",
+    "name": "Sun Valley Solar 100MW",
+    "description": "Solar PV and power electronics commissioning and QA/QC electrical services",
+    "client": "Power Electronics",
+    "locationString": "United States",
+    "year": 2024,
+    "status": "Active",
+    "lat": 31.8675,
+    "lng": -97.074
   }
 ]
