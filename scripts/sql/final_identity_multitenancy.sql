@@ -83,7 +83,7 @@ BEGIN
 END;
 $$;
 
--- UPDATED: admin_update_user (Now with client_id support)
+-- UPDATED: admin_update_user (Now with client_id and subsidiary table support)
 CREATE OR REPLACE FUNCTION public.admin_update_user(
   target_user_id uuid,
   new_email text,
@@ -96,35 +96,59 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, auth, extensions
 AS $$
+DECLARE
+  mx_personnel_exists boolean;
+  personnel_exists boolean;
 BEGIN
-  -- 1. Update auth metadata
+  -- 1. Update auth.users email and role metadata
   UPDATE auth.users
   SET 
     email = new_email,
-    raw_user_meta_data = raw_user_meta_data || jsonb_build_object('role', new_role),
+    raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('role', new_role),
     updated_at = now()
   WHERE id = target_user_id;
 
-  -- 2. Update the profile
+  -- 2. Update auth.identities
+  UPDATE auth.identities
+  SET 
+    identity_data = jsonb_build_object('sub', target_user_id, 'email', new_email),
+    updated_at = now()
+  WHERE user_id = target_user_id;
+
+  -- 3. Update public.profiles
   UPDATE public.profiles
   SET 
     email = new_email,
     role = new_role,
-    client_id = new_client_id,
+    client_id = COALESCE(new_client_id, client_id),
     updated_at = now()
   WHERE id = target_user_id;
 
-  -- 3. Update personnel (if it exists)
-  UPDATE public.personnel
-  SET 
-    email = new_email,
-    app_role = new_role,
-    client_id = new_client_id,
-    updated_at = now()
-  WHERE id = target_user_id;
+  -- 4. Dynamic check and update for personnel / mx_personnel tables
+  SELECT EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'mx_personnel'
+  ) INTO mx_personnel_exists;
 
-  -- 4. Update password if provided
-  IF new_password <> '' THEN
+  SELECT EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'personnel'
+  ) INTO personnel_exists;
+
+  IF mx_personnel_exists THEN
+    EXECUTE 'UPDATE public.mx_personnel SET email = $1, app_role = $2, client_id = COALESCE($3::text, client_id), updated_at = now() WHERE id = $4::text'
+    USING new_email, new_role, new_client_id, target_user_id;
+  END IF;
+
+  IF personnel_exists THEN
+    EXECUTE 'UPDATE public.personnel SET email = $1, app_role = $2, client_id = COALESCE($3, client_id) WHERE id = $4'
+    USING new_email, new_role, new_client_id, target_user_id;
+  END IF;
+
+  -- 5. Update password if provided
+  IF new_password IS NOT NULL AND new_password <> '' THEN
     UPDATE auth.users
     SET 
       encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf'))
