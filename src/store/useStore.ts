@@ -999,7 +999,17 @@ export const useStore = create<AppState>()(
                             }
 
                             if (query) {
-                                const { error } = await query;
+                                let { error } = await query;
+                                if (error && item.table === 'platform_settings' && payload.customProjectTypes && (error.message?.includes('customProjectTypes') || (error as any).code === '42703')) {
+                                    console.warn('customProjectTypes column not found in Supabase platform_settings, retrying sync without it...');
+                                    const sanitized = { ...payload };
+                                    delete sanitized.customProjectTypes;
+                                    const retryQuery = item.action === 'upsert'
+                                        ? supabase.from(item.table).upsert(sanitized)
+                                        : supabase.from(item.table).update(sanitized).eq('id', item.id);
+                                    const retryRes = await retryQuery;
+                                    error = retryRes.error;
+                                }
                                 if (error) throw error;
                             }
 
