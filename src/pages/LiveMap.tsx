@@ -206,7 +206,6 @@ export default function LiveMap() {
 
     const [mapLayer, setMapLayer] = useState<'streets' | 'satellite'>('satellite');
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCountry, setSelectedCountry] = useState('All');
     const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Completed'>('All');
     const [showOffices, setShowOffices] = useState(true);
 
@@ -328,21 +327,11 @@ export default function LiveMap() {
         return [...commercialList, ...additionalOpList];
     }, [projects, personnel, clients]);
 
-    // Available countries for quick filtering
-    const countriesList = useMemo(() => {
-        const set = new Set<string>();
-        allUnifiedProjects.forEach(p => {
-            if (p.country && p.country !== 'Other') set.add(p.country);
-        });
-        return Array.from(set).sort();
-    }, [allUnifiedProjects]);
-
-    // Filtered project list based on search, country, and status
+    // Filtered project list based on search and status
     const visibleProjects = useMemo(() => {
         return allUnifiedProjects.filter(p => {
             if (statusFilter === 'Active' && p.status !== 'Active') return false;
             if (statusFilter === 'Completed' && p.status === 'Active') return false;
-            if (selectedCountry !== 'All' && p.country !== selectedCountry) return false;
 
             if (searchTerm.trim()) {
                 const term = searchTerm.toLowerCase();
@@ -355,7 +344,7 @@ export default function LiveMap() {
 
             return true;
         });
-    }, [allUnifiedProjects, statusFilter, selectedCountry, searchTerm]);
+    }, [allUnifiedProjects, statusFilter, searchTerm]);
 
     // Metrics for the floating HUD
     const totalProjectsCount = allUnifiedProjects.length;
@@ -367,28 +356,12 @@ export default function LiveMap() {
 
     // Center calculation
     const mapCenter: [number, number] = useMemo(() => {
-        if (selectedCountry === 'Mexico' || (selectedCountry === 'All' && activeSubsidiary === 'MX')) {
-            return [23.6345, -102.5528];
-        }
-        if (selectedCountry === 'United States') {
-            return [38.5, -97.5];
-        }
-        if (selectedCountry === 'Chile') {
-            return [-33.4, -70.6];
-        }
-        if (selectedCountry === 'Colombia') {
-            return [4.7, -74.0];
-        }
-        if (selectedCountry === 'Dominican Republic') {
-            return [18.7, -70.1];
-        }
-        return [23.5, -85.0]; // Overview of the Americas
-    }, [selectedCountry, activeSubsidiary]);
+        return activeSubsidiary === 'MX' ? [23.6345, -102.5528] : [23.5, -85.0];
+    }, [activeSubsidiary]);
 
     const mapZoom = useMemo(() => {
-        if (selectedCountry !== 'All') return 5;
         return activeSubsidiary === 'MX' ? 5 : 4;
-    }, [selectedCountry, activeSubsidiary]);
+    }, [activeSubsidiary]);
 
     useEffect(() => {
         const styles = document.createElement('style');
@@ -404,77 +377,6 @@ export default function LiveMap() {
     return (
         <div className="h-[calc(100vh-64px)] w-full relative flex flex-col bg-surface-alt z-0">
             {/* Top Toolbar: Search & Country Pills */}
-            <div className="absolute top-4 left-4 right-4 sm:left-6 sm:right-auto z-[400] flex flex-wrap items-center gap-2 max-w-4xl pointer-events-auto">
-                {/* Live Search Input */}
-                <div className="relative bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200/80 flex items-center px-3.5 py-2 w-full sm:w-72">
-                    <Search size={15} className="text-gray-400 shrink-0 mr-2" />
-                    <input
-                        type="text"
-                        placeholder="Buscar entre 200+ proyectos..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-transparent text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none"
-                    />
-                    {searchTerm && (
-                        <button
-                            onClick={() => setSearchTerm('')}
-                            className="text-gray-400 hover:text-gray-600 text-xs font-bold px-1"
-                        >
-                            ×
-                        </button>
-                    )}
-                </div>
-
-                {/* Country Filter Select on mobile / pills on desktop */}
-                <div className="hidden md:flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1 rounded-2xl shadow-lg border border-gray-200/80">
-                    <button
-                        onClick={() => setSelectedCountry('All')}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                            selectedCountry === 'All'
-                                ? 'bg-brand-teal text-white shadow-sm'
-                                : 'text-gray-600 hover:text-brand-teal hover:bg-gray-50'
-                        }`}
-                    >
-                        Todos ({allUnifiedProjects.length})
-                    </button>
-                    {countriesList.map(c => {
-                        const count = allUnifiedProjects.filter(p => p.country === c).length;
-                        return (
-                            <button
-                                key={c}
-                                onClick={() => setSelectedCountry(c)}
-                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                                    selectedCountry === c
-                                        ? 'bg-brand-teal text-white shadow-sm'
-                                        : 'text-gray-600 hover:text-brand-teal hover:bg-gray-50'
-                                }`}
-                            >
-                                {c === 'United States' ? '🇺🇸 USA' :
-                                 c === 'Mexico' ? '🇲🇽 México' :
-                                 c === 'Chile' ? '🇨🇱 Chile' :
-                                 c === 'Colombia' ? '🇨🇴 Colombia' :
-                                 c === 'Dominican Republic' ? '🇩🇴 Rep. Dom.' :
-                                 c === 'Spain' ? '🇪🇸 España' : c} ({count})
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Mobile Country Selector */}
-                <div className="md:hidden bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200/80 px-2 py-1.5">
-                    <select
-                        value={selectedCountry}
-                        onChange={e => setSelectedCountry(e.target.value)}
-                        className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none"
-                    >
-                        <option value="All">Todos los Países ({allUnifiedProjects.length})</option>
-                        {countriesList.map(c => (
-                            <option key={c} value={c}>{c}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
             {/* Top Right: Layer Switcher & Offices Toggle */}
             <div className="absolute top-4 right-4 z-[400] flex items-center gap-2 pointer-events-auto">
                 {/* Offices Toggle */}
@@ -531,6 +433,26 @@ export default function LiveMap() {
                         <h1 className="text-base font-bold text-accent-greyDark leading-tight">Live Deployment</h1>
                         <p className="text-[11px] font-medium text-gray-500">Global Operations & Track Record</p>
                     </div>
+                </div>
+
+                {/* Search inside HUD */}
+                <div className="relative bg-gray-50/80 rounded-xl border border-gray-200/80 flex items-center px-3 py-1.5 mb-3">
+                    <Search size={13} className="text-gray-400 shrink-0 mr-2" />
+                    <input
+                        type="text"
+                        placeholder="Buscar proyecto o cliente..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full bg-transparent text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none"
+                    />
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            className="text-gray-400 hover:text-gray-600 text-xs font-bold px-1"
+                        >
+                            ×
+                        </button>
+                    )}
                 </div>
 
                 {/* 4 KPIs Grid */}
