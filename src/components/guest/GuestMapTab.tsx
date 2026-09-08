@@ -1,5 +1,7 @@
 import { useMemo, useEffect, useState, useRef } from 'react';
 import guestProjects from '../../data/guestProjects.json';
+import { useStore } from '../../store/useStore';
+import { supabase } from '../../lib/supabase';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Building2, Search, MapPin, Layers, SlidersHorizontal } from 'lucide-react';
@@ -10,6 +12,53 @@ import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 const DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
+
+const CITY_COORDS: Record<string, [number, number]> = {
+    'PEROTE': [19.5614, -97.2428],
+    'MEXICALI': [32.6245, -115.4523],
+    'PLAYA DEL CARMEN': [20.6296, -87.0739],
+    'MERIDA': [20.9674, -89.6236],
+    'MÉRIDA': [20.9674, -89.6236],
+    'AGUASCALIENTES': [21.9167, -101.9667],
+    'MONTERREY': [25.6866, -100.3161],
+    'CDMX': [19.4293, -99.1724],
+    'ITZIMNÁ': [20.9889, -89.6133]
+};
+
+function parseCoords(loc: string | null | undefined): [number, number] | null {
+    if (!loc) return null;
+    const trimmed = loc.trim();
+    if (trimmed.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number' && (parsed.lat !== 0 || parsed.lng !== 0)) {
+                return [parsed.lat, parsed.lng];
+            }
+        } catch {}
+    } else {
+        const parts = trimmed.split(',');
+        if (parts.length === 2) {
+            const pLat = parseFloat(parts[0].trim());
+            const pLng = parseFloat(parts[1].trim());
+            if (!isNaN(pLat) && !isNaN(pLng)) {
+                return [pLat, pLng];
+            }
+        }
+    }
+    const locUpper = trimmed.toUpperCase();
+    for (const [city, coords] of Object.entries(CITY_COORDS)) {
+        if (locUpper.includes(city)) return coords;
+    }
+    return null;
+}
+
+function normalizeProjectName(s: string | null | undefined): string {
+    return (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+}
 
 const KNOWN_LOGOS = [
     "acciona", "agencia_de_transporte_de_yucatan", "axial", "azvindi", "canadian_solar", "ceec",
@@ -249,7 +298,72 @@ function BoundsTracker({ onBoundsChange }: { onBoundsChange: (bounds: L.LatLngBo
 }
 
 export default function GuestMapTab() {
-    const allProjects = useMemo(() => groupProjects(guestProjects), []);
+    const { projects, clients, initDb } = useStore();
+
+    useEffect(() => {
+        initDb().catch(e => console.warn('[GuestMapTab] initDb error:', e));
+
+        const channel = supabase
+            .channel('commercial-portal-projects-sync')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'projects' },
+                () => {
+                    initDb().catch(e => console.warn('[GuestMapTab] Realtime refresh error:', e));
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [initDb]);
+
+    // Unify static guestProjects with real-time operational projects from Supabase/useStore
+    const combinedProjects = useMemo(() => {
+        const list: typeof guestProjects = [...guestProjects];
+        const existingNorms = new Set(guestProjects.map(g => normalizeProjectName(g.name)));
+        const existingCodes = new Set(guestProjects.map(g => normalizeProjectName(g.id)));
+
+        for (const p of projects) {
+            const pNorm = normalizeProjectName(p.name);
+            const pCode = normalizeProjectName(p.codeName);
+
+            const alreadyExists = (pCode && existingCodes.has(pCode)) ||
+                existingNorms.has(pNorm) ||
+                guestProjects.some(g => {
+                    const gNorm = normalizeProjectName(g.name);
+                    return pNorm.length > 5 && (gNorm.includes(pNorm) || pNorm.includes(gNorm));
+                });
+
+            if (!alreadyExists) {
+                const coords = parseCoords(p.location);
+                if (!coords) continue;
+
+                const clientObj = clients.find(c => c.id === p.clientId);
+                const clientName = clientObj?.name || 'LATNOVVA';
+                const country = p.subsidiary === 'MX' ? 'Mexico' : 'United States';
+                const scopeDesc = p.scopes?.map(s => s.name).join(', ') ||
+                    (p.systemType ? `${p.systemType} - ${p.projectSize || ''}` : p.name);
+
+                list.push({
+                    id: p.id,
+                    name: p.name,
+                    description: scopeDesc,
+                    client: clientName,
+                    locationString: country,
+                    year: new Date().getFullYear(),
+                    status: p.status === 'Active' ? 'Active' : 'Finalizado',
+                    lat: coords[0],
+                    lng: coords[1]
+                });
+            }
+        }
+
+        return list;
+    }, [projects, clients]);
+
+    const allProjects = useMemo(() => groupProjects(combinedProjects), [combinedProjects]);
     
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("All");
@@ -273,9 +387,9 @@ export default function GuestMapTab() {
     }, [allProjects]);
 
     const clientsList = useMemo(() => {
-        const clients = guestProjects.map(p => p.client).filter(c => !!c);
+        const clients = combinedProjects.map(p => p.client).filter(c => !!c);
         return Array.from(new Set(clients)).sort() as string[];
-    }, []);
+    }, [combinedProjects]);
 
     const statusesList = useMemo(() => {
         const statuses = allProjects.map(p => p.status).filter(s => !!s);

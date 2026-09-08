@@ -4,9 +4,15 @@ import { Map as MapIcon, Wrench } from 'lucide-react';
 import LatnovvaESPBrochure from '../components/guest/LatnovvaESPBrochure';
 import GuestMapTab from '../components/guest/GuestMapTab';
 import GuestEquipmentTab from '../components/guest/GuestEquipmentTab';
+import { useStore } from '../store/useStore';
 
 export default function CommercialPortal() {
     const [activeTab, setActiveTab] = useState('presentation');
+    const { initDb } = useStore();
+
+    useEffect(() => {
+        initDb().catch(e => console.warn('[CommercialPortal] initDb error:', e));
+    }, [initDb]);
 
     useEffect(() => {
         const oldTitle = document.title;
