@@ -2,7 +2,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Users, ArrowRight, Radio, Map as MapIcon, Layers, Search, Building2, Globe2 } from 'lucide-react';
+import { Users, ArrowRight, Radio, Map as MapIcon, Layers, Search, Building2, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import L from 'leaflet';
@@ -48,34 +48,46 @@ function createColoredIcon(color: string, isPulse = false) {
 
 const OfficeIcon = L.divIcon({
     className: '',
-    html: `
-        <div style="
-            width: 32px; height: 32px;
-            background: #0f172a;
-            border: 2.5px solid #14b8a6;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-        ">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 21h18"/>
-                <path d="M19 21v-4"/>
-                <path d="M19 17a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v4"/>
-                <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/>
-            </svg>
-        </div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
+    html: `<div style="
+        width: 38px; height: 38px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    "><img src="/latnovva-O-logo.png" style="width: 100%; height: 100%; object-fit: contain;" /></div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+    popupAnchor: [0, -22],
 });
 
 const MARKERS = {
-    'Active': createColoredIcon('#10b981', true),
+    'Active': createColoredIcon('#14b8a6', true),
+    'In Progress': createColoredIcon('#14b8a6', true),
+    'En proceso': createColoredIcon('#14b8a6', true),
+    'En procceso': createColoredIcon('#14b8a6', true),
     'On Hold': createColoredIcon('#f59e0b', false),
-    'Completed': createColoredIcon('#3b82f6', false),
+    'Completed': createColoredIcon('#9ca3af', false),
+    'Finalizado': createColoredIcon('#9ca3af', false),
     'Office': OfficeIcon
+};
+
+const statusColor = (status: string) => {
+    switch (status) {
+        case 'Finalizado':
+        case 'Completed':
+            return 'bg-gray-100 text-gray-700 border-gray-300';
+        case 'En proceso':
+        case 'En procceso':
+        case 'In Progress':
+        case 'Active':
+            return 'bg-teal-50 text-teal-700 border-teal-200';
+        case 'On Hold':
+            return 'bg-amber-50 text-amber-700 border-amber-200';
+        default:
+            return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
 };
 
 const KNOWN_LOGOS = [
@@ -102,13 +114,20 @@ function getCustomerLogo(clientName: string | null | undefined): string | null {
     if (name.includes("nextera")) return "/Company Logos/nextera_energy.png";
     if (name.includes("trina")) return "/Company Logos/trina_solar.png";
     if (name.includes("power_electronic")) return "/Company Logos/power_electronics.png";
-    if (name.includes("sungrow")) return "/Company Logos/sungrow.png";
-    if (name.includes("cfe")) return "/Company Logos/cfe.png";
+    if (name.includes("di_maria")) return "/Company Logos/hospital_di_maria.png";
     if (name.includes("yucatan")) return "/Company Logos/agencia_de_transporte_de_yucatan.png";
     if (name.includes("tesla")) return "/Company Logos/tesla.png";
     if (name.includes("oca")) return "/Company Logos/oca.jpg";
     if (name.includes("cobra")) return "/Company Logos/grupo_cobra.png";
     if (name.includes("ferrovial")) return "/Company Logos/ferrovial.png";
+    if (name.includes("tozzi")) return "/Company Logos/tozzi.png";
+    if (name.includes("barcelo")) return "/Company Logos/barcelo.png";
+    if (name.includes("hyatt")) return "/Company Logos/hyatt.png";
+    if (name.includes("riverstone")) return "/Company Logos/riverstone.png";
+    if (name.includes("tradeco")) return "/Company Logos/tradeco.png";
+    if (name.includes("cogeneracion")) return "/Company Logos/cogeneracion.png";
+    if (name.includes("sungrow")) return "/Company Logos/sungrow.png";
+    if (name.includes("cfe")) return "/Company Logos/cfe.png";
     if (name.includes("vemo")) return "/Company Logos/vemo.png";
     if (name.includes("greensol")) return "/Company Logos/greensol.png";
     if (name.includes("opde")) return "/Company Logos/opde.png";
@@ -129,31 +148,31 @@ const CITY_COORDS: Record<string, [number, number]> = {
 
 const OFFICES = [
     {
-        id: "office-miami",
-        name: "LATNOVVA Miami (HQ)",
-        lat: 25.7617,
-        lng: -80.1918,
-        flag: "🇺🇸",
-        country: "United States",
-        address: "1801 NE 123rd Street Suite 336, Miami, Florida"
+        id: "office-merida",
+        name: "LATNOVVA Mérida Office",
+        lat: 20.9674,
+        lng: -89.5926,
+        flag: "🇲🇽",
+        country: "México",
+        address: "Calle 56 #500, Oficina 1 Edificio 6, Itzimina, Mérida, Yuc."
     },
     {
         id: "office-cdmx",
-        name: "LATNOVVA México (CDMX)",
+        name: "LATNOVVA CDMX Office",
         lat: 19.4293,
         lng: -99.1724,
         flag: "🇲🇽",
-        country: "Mexico",
-        address: "Paseo de la Reforma, Ciudad de México"
+        country: "México",
+        address: "Río Nilo 80, Oficina 301, Cuauhtémoc, Ciudad de México"
     },
     {
-        id: "office-merida",
-        name: "LATNOVVA Mérida Hub",
-        lat: 20.9674,
-        lng: -89.6236,
-        flag: "🇲🇽",
-        country: "Mexico",
-        address: "Calle 60 Norte, Mérida, Yucatán"
+        id: "office-miami",
+        name: "LATNOVVA Miami Office",
+        lat: 25.7617,
+        lng: -80.1918,
+        flag: "🇺🇸",
+        country: "Estados Unidos",
+        address: "1801 NE 123rd Street Suite 336, Miami, Florida"
     },
     {
         id: "office-bogota",
@@ -170,7 +189,7 @@ const OFFICES = [
         lat: 18.5601,
         lng: -68.3725,
         flag: "🇩🇴",
-        country: "Dominican Republic",
+        country: "República Dominicana",
         address: "C/ Ensanche 1B, Punta Cana"
     },
     {
@@ -180,9 +199,49 @@ const OFFICES = [
         lng: -70.6048,
         flag: "🇨🇱",
         country: "Chile",
-        address: "Apoquindo 5950, Las Condes, Santiago"
+        address: "Apoquindo 5950, Piso 21 Oficina 21-116, Las Condes, Santiago de Chile"
     }
 ];
+
+function getLocationCountry(locationString: string | null | undefined): string | null {
+    if (!locationString) return null;
+    const str = locationString.trim();
+    if (/^[\d\s,.-]+$/.test(str)) return null;
+    const match = str.match(/\(([^)]+)\)\s*$/);
+    return match ? match[1].trim() : str;
+}
+
+function projectGroupKey(name: string, lat: number, lng: number): string {
+    const cleanName = name.toLowerCase()
+        .replace(/^(pfv|pf|pe|p\.e\.)\s+/g, "")
+        .replace(/\b\d+(\s*mw[p]?)\b/gi, "")
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+    return `${cleanName}_${lat.toFixed(1)},${lng.toFixed(1)}`;
+}
+
+function longerString(a: string, b: string): string {
+    return (b || '').length > (a || '').length ? b : a;
+}
+
+interface MergedUnifiedProject {
+    id: string;
+    name: string;
+    client: string;
+    clients: string[];
+    status: string;
+    year: string | number | null;
+    lat: number;
+    lng: number;
+    locationString: string | null;
+    country: string | null;
+    scopes: Array<{ text: string; year: string | number | null; client: string }>;
+    isLiveOperational: boolean;
+    operationalId: string | null;
+    progress: number;
+    siteLeadIds: string[];
+    teams: any[];
+}
 
 function normalizeText(s: string | null | undefined): string {
     return (s || '')
@@ -209,7 +268,7 @@ export default function LiveMap() {
     const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Completed'>('All');
     const [showOffices, setShowOffices] = useState(true);
 
-    // Unify Commercial DB (269 projects) with Supabase Operational DB
+    // Unify Commercial DB (269 projects) with Supabase Operational DB & Group multi-scopes
     const allUnifiedProjects = useMemo(() => {
         const matchedOpIds = new Set<string>();
 
@@ -234,7 +293,7 @@ export default function LiveMap() {
             const clientName = clientObj?.name || gp.client || null;
 
             const isOperationalActive = opMatch?.status === 'Active' || gp.status === 'Active';
-            const status = isOperationalActive ? 'Active' : (opMatch?.status || 'Completed');
+            const status = isOperationalActive ? 'Active' : (opMatch?.status || gp.status || 'Completed');
 
             const assignedWorkers = (opMatch?.assignedPersonnel || [])
                 .map(id => personnel.find(p => p.id === id))
@@ -245,7 +304,8 @@ export default function LiveMap() {
                 name: opMatch?.name || gp.name,
                 codeName: opMatch?.codeName || gp.id,
                 clientName,
-                country: gp.locationString || 'Other',
+                country: getLocationCountry(gp.locationString) || gp.locationString || 'Other',
+                locationString: gp.locationString || null,
                 year: (gp as any).year || null,
                 description: gp.description || '',
                 lat: gp.lat,
@@ -310,7 +370,8 @@ export default function LiveMap() {
                 name: op.name,
                 codeName: op.codeName || op.id,
                 clientName: clientObj?.name || null,
-                country: op.subsidiary === 'MX' ? 'Mexico' : 'United States',
+                country: op.subsidiary === 'MX' ? 'México' : 'Estados Unidos',
+                locationString: op.location || null,
                 year: 2024,
                 description: op.systemType ? `${op.systemType} - ${op.projectSize || ''}` : '',
                 lat,
@@ -324,7 +385,77 @@ export default function LiveMap() {
             });
         }
 
-        return [...commercialList, ...additionalOpList];
+        const rawList = [...commercialList, ...additionalOpList];
+
+        // 3. Group multi-scope / multi-client projects sharing the same facility
+        const grouped = new Map<string, MergedUnifiedProject>();
+        for (const n of rawList) {
+            if (n.lat === null || n.lng === null || isNaN(n.lat) || isNaN(n.lng)) continue;
+            const key = projectGroupKey(n.name ?? '', n.lat, n.lng);
+            const existing = grouped.get(key);
+            const client = n.clientName ?? '';
+
+            if (existing) {
+                existing.name = longerString(existing.name, n.name);
+                if (client && !existing.clients.includes(client)) {
+                    existing.clients.push(client);
+                }
+                if (!existing.client && client) {
+                    existing.client = client;
+                }
+                if (!existing.year && n.year) {
+                    existing.year = n.year;
+                }
+                if (n.status === 'Active' || n.status === 'In Progress') {
+                    existing.status = 'Active';
+                }
+                if (n.description && !existing.scopes.some(s => s.text === n.description)) {
+                    existing.scopes.push({ text: n.description, year: n.year ?? null, client: client || 'No Client' });
+                }
+                if (n.isLiveOperational) {
+                    existing.isLiveOperational = true;
+                }
+                if (n.operationalId && !existing.operationalId) {
+                    existing.operationalId = n.operationalId;
+                }
+                if (n.progress > existing.progress) {
+                    existing.progress = n.progress;
+                }
+                if (n.siteLeadIds && n.siteLeadIds.length > 0) {
+                    existing.siteLeadIds = Array.from(new Set([...existing.siteLeadIds, ...n.siteLeadIds]));
+                }
+                if (n.teams && n.teams.length > 0) {
+                    const existingTeamIds = new Set(existing.teams.filter(Boolean).map((t: any) => t.id));
+                    for (const t of n.teams) {
+                        if (t && !existingTeamIds.has(t.id)) {
+                            existing.teams.push(t);
+                            existingTeamIds.add(t.id);
+                        }
+                    }
+                }
+            } else {
+                grouped.set(key, {
+                    id: n.id,
+                    name: n.name,
+                    client,
+                    clients: client ? [client] : [],
+                    status: n.status ?? 'Completed',
+                    year: n.year ?? null,
+                    lat: n.lat,
+                    lng: n.lng,
+                    locationString: n.locationString,
+                    country: n.country || null,
+                    scopes: n.description ? [{ text: n.description, year: n.year ?? null, client: client || 'No Client' }] : [],
+                    isLiveOperational: !!n.isLiveOperational,
+                    operationalId: n.operationalId || null,
+                    progress: n.progress || 0,
+                    siteLeadIds: n.siteLeadIds || [],
+                    teams: n.teams ? [...n.teams] : []
+                });
+            }
+        }
+
+        return Array.from(grouped.values());
     }, [projects, personnel, clients]);
 
     // Filtered project list based on search and status
@@ -336,10 +467,10 @@ export default function LiveMap() {
             if (searchTerm.trim()) {
                 const term = searchTerm.toLowerCase();
                 const matchName = p.name.toLowerCase().includes(term);
-                const matchClient = (p.clientName || '').toLowerCase().includes(term);
-                const matchDesc = p.description.toLowerCase().includes(term);
-                const matchCountry = p.country.toLowerCase().includes(term);
-                if (!matchName && !matchClient && !matchDesc && !matchCountry) return false;
+                const matchClients = p.clients.some(c => c.toLowerCase().includes(term));
+                const matchScopes = p.scopes.some(s => s.text.toLowerCase().includes(term));
+                const matchCountry = (p.country || '').toLowerCase().includes(term);
+                if (!matchName && !matchClients && !matchScopes && !matchCountry) return false;
             }
 
             return true;
@@ -350,9 +481,9 @@ export default function LiveMap() {
     const totalProjectsCount = allUnifiedProjects.length;
     const activeSitesCount = allUnifiedProjects.filter(p => p.status === 'Active').length;
     const deployedTechCount = new Set(
-        allUnifiedProjects.flatMap(p => p.teams.map((t: any) => t.id))
+        allUnifiedProjects.flatMap(p => p.teams.filter(Boolean).map((t: any) => t.id))
     ).size;
-    const uniqueCountriesCount = new Set(allUnifiedProjects.map(p => p.country)).size;
+    const uniqueCountriesCount = new Set(allUnifiedProjects.map(p => p.country).filter(Boolean)).size;
 
     // Center calculation
     const mapCenter: [number, number] = useMemo(() => {
@@ -545,27 +676,29 @@ export default function LiveMap() {
                     )}
 
                     {/* LATNOVVA Offices Markers */}
-                    {showOffices && OFFICES.map(office => (
+                    {showOffices && OFFICES.map(off => (
                         <Marker
-                            key={office.id}
-                            position={[office.lat, office.lng]}
+                            key={off.id}
+                            position={[off.lat, off.lng]}
                             icon={MARKERS.Office}
                             zIndexOffset={2000}
                         >
                             <Popup>
-                                <div className="p-1 min-w-[240px]">
-                                    <div className="flex items-center gap-2.5 mb-2 pb-2 border-b border-gray-100">
-                                        <span className="text-2xl">{office.flag}</span>
+                                <div className="p-1 min-w-[220px]">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-2xl">{off.flag}</span>
                                         <div>
-                                            <h3 className="font-black text-slate-900 text-sm leading-tight">{office.name}</h3>
-                                            <span className="text-[10px] text-teal-700 font-bold uppercase tracking-wider">LATNOVVA Corporate Hub</span>
+                                            <h3 className="font-black text-accent-greyDark text-sm leading-tight">{off.name}</h3>
+                                            <span className="text-[10px] text-gray-500">{off.country}</span>
                                         </div>
                                     </div>
-                                    <p className="text-xs text-gray-600 leading-snug mb-3">{office.address}</p>
-                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-brand-teal">
-                                        <Globe2 size={13} />
-                                        <span>{office.country}</span>
+                                    <div className="flex items-start gap-2 mb-2">
+                                        <MapPin className="text-brand-teal shrink-0 mt-0.5" size={13} />
+                                        <span className="text-xs text-gray-600 leading-snug">{off.address}</span>
                                     </div>
+                                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border uppercase tracking-wider bg-teal-50 text-teal-700 border-teal-200">
+                                        LATNOVVA Office
+                                    </span>
                                 </div>
                             </Popup>
                         </Marker>
@@ -573,12 +706,7 @@ export default function LiveMap() {
 
                     {/* Unified 200+ Projects Markers */}
                     {visibleProjects.map(proj => {
-                        const markerIcon = proj.status === 'Active'
-                            ? MARKERS.Active
-                            : proj.status === 'On Hold'
-                            ? MARKERS['On Hold']
-                            : MARKERS.Completed;
-
+                        const markerIcon = MARKERS[proj.status as keyof typeof MARKERS] || MARKERS.Completed;
                         const isLiveOp = proj.status === 'Active' || proj.isLiveOperational;
 
                         return (
@@ -589,87 +717,170 @@ export default function LiveMap() {
                                 zIndexOffset={proj.status === 'Active' ? 1000 : 100}
                             >
                                 <Popup>
-                                    <div className="p-1 min-w-[260px] max-w-[320px]">
-                                        {/* Header: Title + Client Logo / Badge */}
-                                        <div className="flex justify-between items-start mb-2.5 gap-2">
-                                            <div className="flex-1">
-                                                <h3 className="font-bold text-accent-greyDark text-sm leading-snug">{proj.name}</h3>
-                                                {proj.clientName && (
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        {getCustomerLogo(proj.clientName) ? (
-                                                            <img 
-                                                                src={getCustomerLogo(proj.clientName)!} 
-                                                                alt={proj.clientName} 
-                                                                className="h-4 max-w-[90px] object-contain"
-                                                            />
-                                                        ) : (
-                                                            <span className="text-[11px] font-semibold text-gray-500">{proj.clientName}</span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shrink-0 tracking-wide uppercase ${
-                                                proj.status === 'Active'
-                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                                            }`}>
-                                                {proj.status === 'Active' ? 'Activo' : 'Histórico'}
+                                    <div className="p-1 min-w-[270px] max-w-[340px]">
+                                        <div className="flex items-start mb-2">
+                                            <h3 className="font-black text-accent-greyDark flex-1 text-lg leading-tight">{proj.name}</h3>
+                                        </div>
+                                        <div className="mb-3">
+                                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border uppercase tracking-wider ${statusColor(proj.status)}`}>
+                                                {proj.status === 'Completed' || proj.status === 'Finalizado' ? 'FINALIZADO' : (proj.status === 'Active' || proj.status === 'In Progress' ? 'EN PROCESO' : proj.status)}
                                             </span>
                                         </div>
 
-                                        {/* Sub-header: Country & Year */}
-                                        <div className="flex items-center gap-2 text-[11px] font-medium text-gray-500 mb-2.5 pb-2 border-b border-gray-100">
-                                            <span className="font-semibold text-brand-teal">{proj.country}</span>
-                                            {proj.year && (
-                                                <>
-                                                    <span className="text-gray-300">•</span>
-                                                    <span>Año {proj.year}</span>
-                                                </>
-                                            )}
-                                        </div>
+                                        <div className="space-y-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                            {/* Grouped by Customer (sorted chronologically: oldest first) */}
+                                            {proj.clients && proj.clients.length > 0 ? (
+                                                <div className="space-y-3.5">
+                                                    {[...proj.clients]
+                                                        .sort((a, b) => {
+                                                            const scopesA = proj.scopes.filter(s => s.client === a);
+                                                            const scopesB = proj.scopes.filter(s => s.client === b);
+                                                            const getMinYear = (list: typeof proj.scopes) => {
+                                                                const years = list.map(s => {
+                                                                    if (!s.year) return Infinity;
+                                                                    const match = String(s.year).match(/^\d+/);
+                                                                    return match ? parseInt(match[0], 10) : Infinity;
+                                                                });
+                                                                return Math.min(...years);
+                                                            };
+                                                            return getMinYear(scopesA) - getMinYear(scopesB);
+                                                        })
+                                                        .map((c, idx) => {
+                                                            const clientScopes = proj.scopes
+                                                                .filter(s => s.client === c)
+                                                                .sort((a, b) => {
+                                                                    const getYearVal = (s: typeof proj.scopes[0]) => {
+                                                                        if (!s.year) return Infinity;
+                                                                        const match = String(s.year).match(/^\d+/);
+                                                                        return match ? parseInt(match[0], 10) : Infinity;
+                                                                    };
+                                                                    return getYearVal(a) - getYearVal(b);
+                                                                });
 
-                                        {/* Description / Scope */}
-                                        {proj.description && (
-                                            <p className="text-xs text-gray-600 leading-relaxed mb-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                                                {proj.description}
-                                            </p>
-                                        )}
+                                                            return (
+                                                                <div key={idx} className="space-y-2 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                                                                    <div className="flex items-center gap-2 bg-white border border-gray-200/60 rounded-xl p-2 px-3 shadow-sm">
+                                                                        {getCustomerLogo(c) ? (
+                                                                            <img
+                                                                                src={getCustomerLogo(c)!}
+                                                                                alt={c}
+                                                                                className="w-5 h-5 rounded object-contain bg-white border border-gray-100 p-0.5 shrink-0"
+                                                                            />
+                                                                        ) : (
+                                                                            <Building2 className="text-brand-teal shrink-0" size={14} />
+                                                                        )}
+                                                                        <span className="font-bold text-accent-greyDark text-xs">{c}</span>
+                                                                    </div>
 
-                                        {/* Operational Details (if active or operational project) */}
-                                        {isLiveOp && proj.teams && proj.teams.length > 0 && (
-                                            <div className="bg-emerald-50/50 rounded-xl p-2.5 border border-emerald-100 mb-3">
-                                                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 mb-2">
-                                                    <Users size={13} className="text-emerald-600" />
-                                                    Personal en Sitio ({proj.teams.length})
+                                                                    {clientScopes.length > 0 && (
+                                                                        <div className="pl-3 space-y-1.5">
+                                                                            <div className="flex items-center gap-1">
+                                                                                <Layers className="text-brand-teal/80 shrink-0" size={11} />
+                                                                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Scopes</span>
+                                                                            </div>
+                                                                            <ul className="space-y-1.5 pl-1.5">
+                                                                                {clientScopes.map((s, i) => (
+                                                                                    <li key={i} className="flex gap-2 items-start">
+                                                                                        <span className="text-brand-teal font-bold shrink-0 text-[10px] mt-0.5">·</span>
+                                                                                        <div className="flex flex-col">
+                                                                                            {s.year && (
+                                                                                                <span className="text-[9px] font-bold text-brand-teal/70 uppercase tracking-wider leading-none mb-0.5">{s.year}</span>
+                                                                                            )}
+                                                                                            <span className="text-xs text-gray-600 leading-normal">{s.text}</span>
+                                                                                        </div>
+                                                                                    </li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                 </div>
-                                                <div className="space-y-1 max-h-24 overflow-y-auto">
-                                                    {proj.teams.map((t: any) => {
-                                                        const isLead = proj.siteLeadIds?.includes(t.id);
-                                                        return (
-                                                            <div key={t.id} className="flex justify-between items-center text-xs">
-                                                                <span className={`font-semibold truncate ${isLead ? 'text-emerald-900 font-bold' : 'text-gray-700'}`}>
-                                                                    {t.name}
-                                                                </span>
-                                                                {isLead && (
-                                                                    <span className="px-1.5 py-0.2 bg-emerald-600 text-white rounded text-[9px] font-black uppercase">
-                                                                        Lead
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
+                                            ) : (
+                                                /* Scopes with no client assigned (if any) */
+                                                proj.scopes.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Layers className="text-brand-teal shrink-0" size={13} />
+                                                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Scopes</span>
+                                                        </div>
+                                                        <ul className="space-y-1.5 pl-1.5">
+                                                            {proj.scopes
+                                                                .sort((a, b) => {
+                                                                    const getYearVal = (s: typeof proj.scopes[0]) => {
+                                                                        if (!s.year) return Infinity;
+                                                                        const match = String(s.year).match(/^\d+/);
+                                                                        return match ? parseInt(match[0], 10) : Infinity;
+                                                                    };
+                                                                    return getYearVal(a) - getYearVal(b);
+                                                                })
+                                                                .map((s, i) => (
+                                                                    <li key={i} className="flex gap-2 items-start">
+                                                                        <span className="text-brand-teal font-bold shrink-0 text-[10px] mt-0.5">·</span>
+                                                                        <div className="flex flex-col">
+                                                                            {s.year && (
+                                                                                <span className="text-[9px] font-bold text-brand-teal/70 uppercase tracking-wider leading-none mb-0.5">{s.year}</span>
+                                                                            )}
+                                                                            <span className="text-xs text-gray-600 leading-normal">{s.text}</span>
+                                                                        </div>
+                                                                    </li>
+                                                                ))}
+                                                        </ul>
+                                                    </div>
+                                                )
+                                            )}
+
+                                            {/* Location Info */}
+                                            <div className="flex items-start gap-3 text-sm">
+                                                <MapPin className="text-emerald-500 shrink-0 mt-0.5" size={15} />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Location Info</span>
+                                                    <span className="font-semibold text-gray-700 font-mono text-xs">{proj.lat.toFixed(4)},  {proj.lng.toFixed(4)}</span>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        {/* Link to Operational Detail if matched */}
-                                        {proj.operationalId && (
-                                            <Link to={`/projects/${proj.operationalId}`}>
-                                                <Button className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-8 text-xs font-bold flex items-center justify-center gap-1.5">
-                                                    Ver en Operaciones <ArrowRight size={13} />
-                                                </Button>
-                                            </Link>
-                                        )}
+                                            {/* Operational Details (if active or operational project) */}
+                                            {isLiveOp && proj.teams && proj.teams.length > 0 && (
+                                                <div className="bg-emerald-50/70 rounded-xl p-2.5 border border-emerald-100">
+                                                    <div className="flex items-center justify-between text-xs font-bold text-emerald-800 mb-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Users size={13} className="text-emerald-600" />
+                                                            <span>Personal en Sitio ({proj.teams.length})</span>
+                                                        </div>
+                                                        {proj.progress > 0 && (
+                                                            <span className="text-[10px] text-emerald-700 font-black">{proj.progress}%</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-1 max-h-24 overflow-y-auto">
+                                                        {proj.teams.map((t: any) => {
+                                                            const isLead = proj.siteLeadIds?.includes(t.id);
+                                                            return (
+                                                                <div key={t.id} className="flex justify-between items-center text-xs">
+                                                                    <span className={`font-semibold truncate ${isLead ? 'text-emerald-900 font-bold' : 'text-gray-700'}`}>
+                                                                        {t.name}
+                                                                    </span>
+                                                                    {isLead && (
+                                                                        <span className="px-1.5 py-0.2 bg-emerald-600 text-white rounded text-[9px] font-black uppercase">
+                                                                            Lead
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Link to Operational Detail if matched */}
+                                            {proj.operationalId && (
+                                                <Link to={`/projects/${proj.operationalId}`}>
+                                                    <Button className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl h-8 text-xs font-bold flex items-center justify-center gap-1.5">
+                                                        Ver en Operaciones <ArrowRight size={13} />
+                                                    </Button>
+                                                </Link>
+                                            )}
+                                        </div>
                                     </div>
                                 </Popup>
                             </Marker>
