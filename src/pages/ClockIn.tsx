@@ -321,12 +321,15 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
     // Auto-select supervisor's project when projects load or change
     useEffect(() => {
-        if (!selectedProject && activeProjects.length > 0) {
-            const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(supervisorId));
-            if (assigned) {
-                setSelectedProject(assigned.id);
-            } else if (activeProjects[0]) {
-                setSelectedProject(activeProjects[0].id);
+        if (activeProjects.length > 0) {
+            const isCurrentValid = selectedProject && activeProjects.some((p: any) => p.id === selectedProject);
+            if (!isCurrentValid) {
+                const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(supervisorId));
+                if (assigned) {
+                    setSelectedProject(assigned.id);
+                } else if (activeProjects[0]) {
+                    setSelectedProject(activeProjects[0].id);
+                }
             }
         }
     }, [activeProjects, selectedProject, supervisorId]);
@@ -801,21 +804,24 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
     // Auto-select user's assigned project (or default office) when projects load or change
     useEffect(() => {
-        if (!selectedProject && activeProjects.length > 0) {
-            if (todayEntry?.projectId) {
-                setSelectedProject(todayEntry.projectId);
-                return;
-            }
-            // 1. Check if user is assigned to an active project
-            const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
-            if (assigned) {
-                setSelectedProject(assigned.id);
-                return;
-            }
-            // 2. Default to base CDMX office or first active project
-            const defaultOffice = activeProjects.find((p: any) => p.id === 'f0eead03-0e28-43fa-96c2-7480bdd579b7' || (p.name && p.name.includes('CDMX'))) || activeProjects[0];
-            if (defaultOffice) {
-                setSelectedProject(defaultOffice.id);
+        if (activeProjects.length > 0) {
+            const isCurrentValid = selectedProject && activeProjects.some((p: any) => p.id === selectedProject);
+            if (!isCurrentValid) {
+                if (todayEntry?.projectId && activeProjects.some((p: any) => p.id === todayEntry.projectId)) {
+                    setSelectedProject(todayEntry.projectId);
+                    return;
+                }
+                // 1. Check if user is assigned to an active project
+                const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
+                if (assigned) {
+                    setSelectedProject(assigned.id);
+                    return;
+                }
+                // 2. Default to base CDMX office or first active project
+                const defaultOffice = activeProjects.find((p: any) => p.id === 'f0eead03-0e28-43fa-96c2-7480bdd579b7' || (p.name && p.name.includes('CDMX'))) || activeProjects[0];
+                if (defaultOffice) {
+                    setSelectedProject(defaultOffice.id);
+                }
             }
         }
     }, [activeProjects, selectedProject, todayEntry?.projectId, personnelId]);
@@ -1309,6 +1315,40 @@ export default function ClockIn() {
         if (personnel.length === 0 || projects.length === 0) {
             console.log('[ClockIn] Personnel or projects empty, triggering initDb...');
             initDb();
+        }
+        // Direct project fetch safeguard to guarantee project dropdown populates immediately
+        if (projects.length === 0) {
+            import('../lib/supabase').then(({ supabase }) => {
+                supabase.from('projects').select('*').then(({ data }) => {
+                    if (data && data.length > 0) {
+                        console.log('[ClockIn] Direct project safeguard loaded', data.length, 'projects');
+                        useStore.setState({
+                            projects: (data as any[]).map((p: any) => ({
+                                id: p.id,
+                                clientId: p.client_id,
+                                name: p.name,
+                                type: p.type,
+                                status: p.status,
+                                progress: p.progress,
+                                location: p.location,
+                                locationValidated: p.location_validated ?? true,
+                                projectSize: p.project_size,
+                                systemType: p.system_type,
+                                codeName: p.code_name,
+                                assignedPersonnel: p.assigned_personnel || [],
+                                siteLeadIds: p.site_lead_ids || [],
+                                hasNoDefinedScope: p.has_no_defined_scope || false,
+                                disciplines: p.disciplines || [],
+                                scopes: p.scopes || [],
+                                subsidiary: p.subsidiary || 'US',
+                                subsidiaryMetadata: p.subsidiary_metadata || {},
+                                defaultScheduleId: p.subsidiary_metadata?.defaultScheduleId || p.default_schedule_id || undefined,
+                                geofenceRadius: p.subsidiary_metadata?.geofenceRadius ? Number(p.subsidiary_metadata.geofenceRadius) : (p.geofence_radius ? Number(p.geofence_radius) : undefined)
+                            }))
+                        });
+                    }
+                });
+            });
         }
     }, [personnel.length, projects.length, initDb]);
 

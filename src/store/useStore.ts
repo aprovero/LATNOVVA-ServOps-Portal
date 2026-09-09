@@ -1049,11 +1049,13 @@ export const useStore = create<AppState>()(
             },
 
             initDb: async () => {
-                if (get().isInitializing) {
-                    console.log('[initDb] Already initializing, skipping...');
+                const now = Date.now();
+                const lastInit = (get() as any)._lastInitTime || 0;
+                if (get().isInitializing && (now - lastInit < 8000)) {
+                    console.log('[initDb] Already initializing (<8s), skipping...');
                     return;
                 }
-                set({ isInitializing: true });
+                set({ isInitializing: true, _lastInitTime: now } as any);
                 try {
                     // Ensure auth session is loaded/refreshed first to prevent concurrent lock issues
                     await supabase.auth.getSession();
@@ -1063,68 +1065,36 @@ export const useStore = create<AppState>()(
                     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
                     const [
-                        clientsDB,
-                        projectsDB,
-                        personnelDB,
-                        reportsDB,
-                        timesheetsDB,
-                        toolsDB,
-                        overridesDB,
-                        schedulesDB,
-                        settingsDB
-                    ] = await Promise.all([
-                        (async () => {
-                            const { data } = await supabase.from('clients').select('*');
-                            return data;
-                        })(),
-                        (async () => {
-                            const { data } = await supabase.from('projects').select('*');
-                            return data;
-                        })(),
-                        (async () => {
-                            const { data } = await supabase.from('mx_personnel').select('*');
-                            return data;
-                        })(),
-                        (async () => {
-                            const { data } = await supabase.from('reports').select('*').gte('date', thirtyDaysAgoStr);
-                            return data;
-                        })(),
-                        (async () => {
-                            const { data } = await supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr);
-                            return data;
-                        })(),
-                        (async () => {
-                            const { data } = await supabase.from('tools').select('*');
-                            return data;
-                        })(),
-                        (async () => {
-                            try {
-                                const { data } = await supabase.from('mx_attendance_overrides').select('*');
-                                return data;
-                            } catch (e) {
-                                console.warn('Supabase mx_attendance_overrides table load skipped:', e);
-                                return null;
-                            }
-                        })(),
-                        (async () => {
-                            try {
-                                const { data } = await supabase.from('mx_work_schedules').select('*');
-                                return data;
-                            } catch (e) {
-                                console.warn('Supabase mx_work_schedules table load skipped:', e);
-                                return null;
-                            }
-                        })(),
-                        (async () => {
-                            try {
-                                const { data } = await supabase.from('platform_settings').select('*').eq('id', 'global').maybeSingle();
-                                return data;
-                            } catch (e) {
-                                console.warn('Supabase platform_settings table load skipped:', e);
-                                return null;
-                            }
-                        })()
+                        clientsRes,
+                        projectsRes,
+                        personnelRes,
+                        reportsRes,
+                        timesheetsRes,
+                        toolsRes,
+                        overridesRes,
+                        schedulesRes,
+                        settingsRes
+                    ] = await Promise.allSettled([
+                        supabase.from('clients').select('*'),
+                        supabase.from('projects').select('*'),
+                        supabase.from('mx_personnel').select('*'),
+                        supabase.from('reports').select('*').gte('date', thirtyDaysAgoStr),
+                        supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr),
+                        supabase.from('tools').select('*'),
+                        supabase.from('mx_attendance_overrides').select('*'),
+                        supabase.from('mx_work_schedules').select('*'),
+                        supabase.from('platform_settings').select('*').eq('id', 'global').maybeSingle()
                     ]);
+
+                    const clientsDB = clientsRes.status === 'fulfilled' ? clientsRes.value.data : null;
+                    const projectsDB = projectsRes.status === 'fulfilled' ? projectsRes.value.data : null;
+                    const personnelDB = personnelRes.status === 'fulfilled' ? personnelRes.value.data : null;
+                    const reportsDB = reportsRes.status === 'fulfilled' ? reportsRes.value.data : null;
+                    const timesheetsDB = timesheetsRes.status === 'fulfilled' ? timesheetsRes.value.data : null;
+                    const toolsDB = toolsRes.status === 'fulfilled' ? toolsRes.value.data : null;
+                    const overridesDB = overridesRes.status === 'fulfilled' ? overridesRes.value.data : null;
+                    const schedulesDB = schedulesRes.status === 'fulfilled' ? schedulesRes.value.data : null;
+                    const settingsDB = settingsRes.status === 'fulfilled' ? settingsRes.value.data : null;
 
                     // Guard: only overwrite store state if Supabase returned actual rows.
                     // An empty array [] is truthy in JS, so `data || fallback` would wipe
@@ -2682,6 +2652,17 @@ export const useStore = create<AppState>()(
         {
             name: 'latnovva-storage-v3',
             storage: createJSONStorage(() => idbStorage),
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    state.isInitializing = false;
+                    state.isSyncing = false;
+                    state.syncError = null;
+                }
+            },
+            partialize: (state) => {
+                const { isInitializing, isSyncing, syncError, ...rest } = state;
+                return rest;
+            }
         }
     )
 );
