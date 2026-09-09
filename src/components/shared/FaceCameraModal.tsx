@@ -40,10 +40,18 @@ export default function FaceCameraModal({
   const [bypassReason, setBypassReason] = useState('Cámara dañada o no disponible');
   const [customReason, setCustomReason] = useState('');
 
+  // Real-time centering states for hands-free auto-snap
+  const [isFaceCentered, setIsFaceCentered] = useState(false);
+  const autoSnapTriggeredRef = useRef(false);
+  const centeredCountRef = useRef(0);
+
   // Initialize camera and preload models when modal opens
   useEffect(() => {
     if (isOpen) {
       setShowBypassView(false);
+      autoSnapTriggeredRef.current = false;
+      centeredCountRef.current = 0;
+      setIsFaceCentered(false);
       startCamera();
       loadFaceModels().catch((err) => console.warn('[FaceCameraModal] Preload error:', err));
     } else {
@@ -52,10 +60,44 @@ export default function FaceCameraModal({
     return () => stopCamera();
   }, [isOpen]);
 
+  // Hands-free video stream centering detection
+  useEffect(() => {
+    if (!isOpen || !stream || capturedPhoto || isProcessing || showBypassView) {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      if (!videoRef.current || autoSnapTriggeredRef.current) return;
+      try {
+        const { detectFaceInVideo } = await import('../../utils/faceId.utils');
+        const res = await detectFaceInVideo(videoRef.current);
+        if (res.isCentered) {
+          setIsFaceCentered(true);
+          centeredCountRef.current += 1;
+          // 4 consecutive centered frames (~1.2s steady) triggers auto-snap!
+          if (centeredCountRef.current >= 4 && !autoSnapTriggeredRef.current) {
+            autoSnapTriggeredRef.current = true;
+            handleCapture();
+          }
+        } else {
+          setIsFaceCentered(false);
+          centeredCountRef.current = 0;
+        }
+      } catch {
+        // non-fatal
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [isOpen, stream, capturedPhoto, isProcessing, showBypassView]);
+
   async function startCamera() {
     setErrorMsg(null);
     setCapturedPhoto(null);
     setTempDescriptor(null);
+    autoSnapTriggeredRef.current = false;
+    centeredCountRef.current = 0;
+    setIsFaceCentered(false);
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
@@ -93,7 +135,7 @@ export default function FaceCameraModal({
     canvas.height = height;
     ctx.drawImage(video, 0, 0, width, height);
 
-    const base64Image = canvas.toDataURL('image/jpeg', 0.92);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.90);
     setCapturedPhoto(base64Image);
     stopCamera();
 
@@ -109,8 +151,8 @@ export default function FaceCameraModal({
           msg = t('attendance.face_camera.no_face', 'No se detectó ningún rostro. Por favor, posiciona tu rostro claramente en el círculo.');
         } else if (res.error === 'multiple_faces_detected') {
           msg = t('attendance.face_camera.multiple_faces', 'Se detectaron múltiples rostros. Solo una persona debe estar visible.');
-        } else if (res.error === 'low_detection_confidence') {
-          msg = t('attendance.face_camera.blurry_face', 'La claridad facial fue baja. Por favor mantente quieto y evita sombras o contraluces.');
+        } else if (res.error === 'timeout') {
+          msg = 'Tiempo de espera de detección agotado. Puedes reintentar o registrar con contingencia.';
         } else if (res.error) {
           msg = `Error de detección: ${res.error}`;
         }
@@ -124,8 +166,12 @@ export default function FaceCameraModal({
         }
       }
 
-      // Success! Store descriptor for approval step
+      // Success! Store descriptor and auto-advance immediately (hands-free!)
       setTempDescriptor(res.descriptor);
+      setTimeout(() => {
+        onSuccess({ image: base64Image, descriptor: res.descriptor! });
+        onClose();
+      }, 700);
     } catch (err: any) {
       setErrorMsg(err.message || 'Ocurrió un error en la verificación.');
     } finally {
@@ -144,22 +190,25 @@ export default function FaceCameraModal({
     setCapturedPhoto(null);
     setTempDescriptor(null);
     setErrorMsg(null);
+    autoSnapTriggeredRef.current = false;
+    centeredCountRef.current = 0;
+    setIsFaceCentered(false);
     startCamera();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md w-[95%] p-6 rounded-3xl gap-4 border border-gray-100 shadow-xl overflow-hidden bg-white">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+      <DialogContent className="max-w-md w-[95%] p-5 sm:p-6 rounded-3xl gap-3.5 border border-gray-100 shadow-2xl max-h-[90vh] overflow-y-auto bg-white">
+        <DialogHeader className="pb-1">
+          <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
             {showBypassView ? (
               <>
-                <AlertTriangle className="text-amber-500" size={20} />
+                <AlertTriangle className="text-amber-500" size={18} />
                 <span>{t('attendance.face_camera.bypass_title', 'Continuar sin Face ID')}</span>
               </>
             ) : (
               <>
-                <Camera className="text-brand-teal" size={20} />
+                <Camera className="text-brand-teal" size={18} />
                 <span>
                   {mode === 'enroll' 
                     ? t('attendance.face_camera.title_enroll', 'Registrar Face ID') 
@@ -258,10 +307,14 @@ export default function FaceCameraModal({
         ) : (
           /* ─── CAMERA VIEW ─── */
           <>
-            <div className="flex flex-col items-center justify-center gap-4 py-2">
-              {/* Main camera viewport box with triple-locked circle clipping */}
+            <div className="flex flex-col items-center justify-center gap-3 py-1">
+              {/* Main camera viewport box with responsive circle clipping */}
               <div 
-                className="relative w-72 h-72 rounded-full overflow-hidden border-4 border-brand-teal/30 shadow-inner bg-black flex items-center justify-center isolate"
+                className={`relative w-56 h-56 sm:w-64 sm:h-64 rounded-full overflow-hidden border-4 transition-all duration-300 shadow-inner bg-black flex items-center justify-center isolate ${
+                  isFaceCentered 
+                    ? 'border-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.45)]' 
+                    : 'border-brand-teal/30'
+                }`}
                 style={{ 
                   borderRadius: '50%',
                   clipPath: 'circle(50% at 50% 50%)', 
@@ -302,13 +355,17 @@ export default function FaceCameraModal({
 
                 {/* Circular face target guidelines */}
                 {!capturedPhoto && (
-                  <div className="absolute inset-4 rounded-full border-2 border-dashed border-white/50 pointer-events-none animate-pulse flex items-center justify-center">
-                    <div className="w-48 h-56 rounded-[50%/60%_60%_40%_40%] border border-white/20" />
+                  <div className={`absolute inset-4 rounded-full border-2 border-dashed pointer-events-none transition-colors duration-300 flex items-center justify-center ${
+                    isFaceCentered ? 'border-emerald-400 animate-pulse' : 'border-white/50'
+                  }`}>
+                    <div className={`w-40 h-48 sm:w-44 sm:h-52 rounded-[50%/60%_60%_40%_40%] border transition-colors ${
+                      isFaceCentered ? 'border-emerald-400 bg-emerald-500/10' : 'border-white/20'
+                    }`} />
                   </div>
                 )}
 
                 {/* Real-time scanner sweep animation */}
-                {!capturedPhoto && stream && (
+                {!capturedPhoto && stream && !isFaceCentered && (
                   <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-brand-teal to-transparent shadow-[0_0_8px_rgba(0,180,166,0.8)] animate-[scan_2s_infinite_ease-in-out] pointer-events-none" />
                 )}
 
@@ -325,8 +382,23 @@ export default function FaceCameraModal({
               {/* Canvas helper */}
               <canvas ref={canvasRef} className="hidden" />
 
-              {/* Feedback messages */}
-              <div className="w-full min-h-[40px] text-center px-4">
+              {/* Feedback messages / Auto-snap indicator */}
+              <div className="w-full min-h-[36px] text-center px-2">
+                {!capturedPhoto && !isProcessing && (
+                  <p className={`text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                    isFaceCentered ? 'text-emerald-600' : 'text-gray-500'
+                  }`}>
+                    {isFaceCentered ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <span>¡Rostro alineado! Mantente quieto...</span>
+                      </>
+                    ) : (
+                      <span>Centra tu rostro dentro del círculo</span>
+                    )}
+                  </p>
+                )}
+
                 {isProcessing && (
                   <p className="text-xs text-brand-teal font-semibold flex items-center justify-center gap-1.5 animate-pulse">
                     <Loader2 size={14} className="animate-spin" />
@@ -335,31 +407,20 @@ export default function FaceCameraModal({
                 )}
 
                 {errorMsg && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 mt-1">
                     <div className="text-xs text-red-500 font-semibold bg-red-50 p-2.5 rounded-xl border border-red-100 flex items-start gap-2 text-left">
                       <ShieldAlert size={14} className="shrink-0 mt-0.5" />
                       <span>{errorMsg}</span>
                     </div>
-                    {allowBypass && onBypass && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowBypassView(true)}
-                        className="w-full h-9 text-xs font-bold text-amber-800 border-amber-300 bg-amber-50 hover:bg-amber-100 rounded-xl"
-                      >
-                        <AlertTriangle size={13} className="mr-1.5 text-amber-600 shrink-0" />
-                        {t('attendance.face_camera.bypass_on_error', 'Omitir Face ID y registrar marcaje')}
-                      </Button>
-                    )}
                   </div>
                 )}
 
-                {tempDescriptor && !isProcessing && (
-                  <p className="text-xs text-emerald-600 font-bold flex items-center justify-center gap-1 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+                {tempDescriptor && (
+                  <p className="text-xs text-emerald-600 font-bold flex items-center justify-center gap-1 bg-emerald-50 p-2 rounded-xl border border-emerald-100 animate-in zoom-in-95">
                     <CheckCircle2 size={14} />
                     {mode === 'enroll'
-                      ? t('attendance.face_camera.enroll_ready', '¡Rostro capturado! Haz clic en continuar para registrar.')
-                      : t('attendance.face_camera.verify_ready', '¡Identidad verificada exitosamente!')
+                      ? t('attendance.face_camera.enroll_ready', '¡Rostro capturado! Registrando asistencia...')
+                      : t('attendance.face_camera.verify_ready', '¡Identidad verificada! Registrando...')
                     }
                   </p>
                 )}
@@ -367,7 +428,7 @@ export default function FaceCameraModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-3 mt-1">
               {!capturedPhoto ? (
                 <>
                   <Button variant="outline" className="flex-1 h-11 rounded-xl text-xs font-bold text-gray-500" onClick={onClose}>
@@ -375,7 +436,7 @@ export default function FaceCameraModal({
                   </Button>
                   <Button 
                     disabled={!stream} 
-                    className="flex-1 h-11 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl text-xs font-bold" 
+                    className="flex-1 h-11 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl text-xs font-bold shadow-xs" 
                     onClick={handleCapture}
                   >
                     {t('attendance.face_camera.capture', 'Tomar Foto')}
@@ -393,16 +454,16 @@ export default function FaceCameraModal({
                   </Button>
                   <Button 
                     disabled={isProcessing || !tempDescriptor}
-                    className="flex-1 h-11 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl text-xs font-bold" 
+                    className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold" 
                     onClick={handleConfirm}
                   >
-                    {t('common.continue', 'Continuar')}
+                    {tempDescriptor ? '✓ Registrando...' : t('common.continue', 'Continuar')}
                   </Button>
                 </>
               )}
             </div>
 
-            {/* Permanent Way Out Link */}
+            {/* Permanent Way Out Link (Always visible, even during streaming or errors) */}
             {allowBypass && onBypass && (
               <div className="pt-2 border-t border-gray-100 flex flex-col items-center">
                 <button

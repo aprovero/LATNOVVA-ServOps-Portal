@@ -939,14 +939,15 @@ export const useStore = create<AppState>()(
 
                 if (zombies.length === 0) return;
 
-                console.log(`[Zombie] Cleaning up ${zombies.length} stale sessions with 8h credited...`);
+                console.log(`[Zombie] Cleaning up ${zombies.length} stale sessions with standard schedule (10h) credited...`);
                 
                 for (const z of zombies) {
                     const [year, month, day] = z.date.split('-').map(Number);
-                    let autoOutTime = new Date(year, month - 1, day, 23, 59, 0);
+                    let autoOutTime = new Date(year, month - 1, day, 18, 0, 0); // Standard office close 18:00
                     if (z.timeIn && z.timeIn.includes(':')) {
                         const [inH, inM] = z.timeIn.split(':').map(Number);
-                        autoOutTime = new Date(year, month - 1, day, inH + 8, inM, 0);
+                        const outH = Math.min(23, inH + 10);
+                        autoOutTime = new Date(year, month - 1, day, outH, inM, 0);
                     }
                     
                     try {
@@ -957,7 +958,7 @@ export const useStore = create<AppState>()(
                             timeSource: 'device',
                             manualAdjustment: true,
                             isZombieClose: true,
-                            adjustmentNote: `System: Auto closed (>14h) - 8h acreditadas`
+                            adjustmentNote: `System: Auto closed (>14h) - 10h acreditadas`
                         });
                     } catch (e) {
                         console.error(`[Zombie] Failed to close session for ${z.personnelId}:`, e);
@@ -2407,8 +2408,10 @@ export const useStore = create<AppState>()(
                     if (clockIn && clockOut) {
                         const isZombie = punch.isZombieClose || (punch.adjustmentNote && punch.adjustmentNote.includes('Auto closed'));
                         if (isZombie) {
-                            // REGLA DE NEGOCIO: Turno autocerrado acredita 8 horas de trabajo
-                            computedHours = 8.0;
+                            // REGLA DE NEGOCIO: Turno autocerrado acredita horas estándar (10h para turnos de oficina MX 8 a 6)
+                            const person = state.personnel.find(p => p.id === personnelId);
+                            const sched = state.workSchedules?.find(s => s.id === person?.subsidiaryMetadata?.defaultScheduleId);
+                            computedHours = sched?.standardDailyHours || 10.0;
                         } else {
                             const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
                             computedHours = Math.round((totalMs / 3600000) * 100) / 100;

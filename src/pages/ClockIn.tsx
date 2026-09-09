@@ -319,6 +319,18 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
     })();
 
+    // Auto-select supervisor's project when projects load or change
+    useEffect(() => {
+        if (!selectedProject && activeProjects.length > 0) {
+            const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(supervisorId));
+            if (assigned) {
+                setSelectedProject(assigned.id);
+            } else if (activeProjects[0]) {
+                setSelectedProject(activeProjects[0].id);
+            }
+        }
+    }, [activeProjects, selectedProject, supervisorId]);
+
     const sortedPersonnel = useCallback(() => {
         const eligible = personnel.filter(p =>
             ['Tech', 'Supervisor', 'Office', 'HR'].includes(p.appRole ?? '') && p.status === 'Active'
@@ -553,8 +565,8 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                         onChange={e => setSelectedProject(e.target.value)}
                         className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10"
                     >
-                        <option value="">{t('attendance.project_placeholder')}</option>
-                        {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        <option value="">{activeProjects.length === 0 ? (t('attendance.loading_projects', 'Cargando proyectos...') || 'Cargando proyectos...') : t('attendance.project_placeholder')}</option>
+                        {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}{p.codeName ? ` (${p.codeName})` : ''}</option>)}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
@@ -786,6 +798,27 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         });
         return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
     })();
+
+    // Auto-select user's assigned project (or default office) when projects load or change
+    useEffect(() => {
+        if (!selectedProject && activeProjects.length > 0) {
+            if (todayEntry?.projectId) {
+                setSelectedProject(todayEntry.projectId);
+                return;
+            }
+            // 1. Check if user is assigned to an active project
+            const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
+            if (assigned) {
+                setSelectedProject(assigned.id);
+                return;
+            }
+            // 2. Default to base CDMX office or first active project
+            const defaultOffice = activeProjects.find((p: any) => p.id === 'f0eead03-0e28-43fa-96c2-7480bdd579b7' || (p.name && p.name.includes('CDMX'))) || activeProjects[0];
+            if (defaultOffice) {
+                setSelectedProject(defaultOffice.id);
+            }
+        }
+    }, [activeProjects, selectedProject, todayEntry?.projectId, personnelId]);
     const gpsReady = workMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
     const gpsDenied = gps.status === 'denied';
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -986,7 +1019,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             <div className="relative">
                                 <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
                                     className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10">
-                                    <option value="">{t('attendance.project_placeholder')}</option>
+                                    <option value="">{activeProjects.length === 0 ? (t('attendance.loading_projects', 'Cargando proyectos...') || 'Cargando proyectos...') : t('attendance.project_placeholder')}</option>
                                     {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}{p.codeName ? ` (${p.codeName})` : ''}</option>)}
                                 </select>
                                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />

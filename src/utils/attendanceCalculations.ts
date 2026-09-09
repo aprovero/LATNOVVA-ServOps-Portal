@@ -252,8 +252,9 @@ export function calculateDailyAttendance(
     for (const ts of sortedTimesheets) {
         const isZombie = isZombieTimesheet(ts);
         if (isZombie) {
-            // REGLA: Los turnos autocerrados deben contemplar 8 horas de trabajo
-            totalWorkedMinutes += (ts.hours && ts.hours > 0 ? ts.hours * 60 : 8 * 60);
+            // REGLA: Los turnos autocerrados deben contemplar las horas estándar del horario (10h o según schedule)
+            const zombieStandardHours = schedule?.standardDailyHours || 10.0;
+            totalWorkedMinutes += (ts.hours && ts.hours > 0 ? ts.hours * 60 : zombieStandardHours * 60);
             continue;
         }
         if (ts.timeIn && ts.timeOut) {
@@ -307,8 +308,9 @@ export function calculateDailyAttendance(
                 for (const ts of dayTS) {
                     const isZombie = isZombieTimesheet(ts);
                     if (isZombie) {
-                        // REGLA: Los turnos autocerrados deben contemplar 8 horas de trabajo
-                        priorMinsOfWeek += (ts.hours && ts.hours > 0 ? ts.hours * 60 : 8 * 60);
+                        // REGLA: Los turnos autocerrados deben contemplar las horas estándar del horario (10h o según schedule)
+                        const zombieStandardHours = schedule?.standardDailyHours || 10.0;
+                        priorMinsOfWeek += (ts.hours && ts.hours > 0 ? ts.hours * 60 : zombieStandardHours * 60);
                         continue;
                     }
                     if (ts.timeIn && ts.timeOut) {
@@ -391,7 +393,8 @@ export function calculateDailyAttendance(
             let shiftHours = t.hours || 0;
             const isZombie = isZombieTimesheet(t);
             if (isZombie) {
-                shiftHours = (t.hours && t.hours > 0 ? t.hours : 8.0);
+                const zombieStandardHours = schedule?.standardDailyHours || 10.0;
+                shiftHours = (t.hours && t.hours > 0 ? t.hours : zombieStandardHours);
             } else if (!shiftHours && t.timeIn && shiftTimeOut) {
                 const c = calculateWorkedHours(t.timeIn, t.lunchStart, t.lunchEnd, shiftTimeOut);
                 shiftHours = !c.error ? Number((c.totalWorkedMinutes / 60).toFixed(2)) : 8;

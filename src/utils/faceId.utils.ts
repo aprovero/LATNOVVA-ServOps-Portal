@@ -67,87 +67,100 @@ export interface FaceValidationResult {
 }
 
 /**
- * Analyzes a face image (base64 string) to extract the face descriptor with adaptive multi-scale detection.
+ * Checks a live video stream for a centered face (lightweight 224px check for auto-snap).
+ */
+export async function detectFaceInVideo(video: HTMLVideoElement): Promise<{
+  detected: boolean;
+  isCentered: boolean;
+  box?: { x: number; y: number; width: number; height: number };
+}> {
+  if (!modelsLoaded || !video || video.readyState < 2 || video.paused || video.ended) {
+    return { detected: false, isCentered: false };
+  }
+
+  try {
+    const detection = await faceapi.detectSingleFace(
+      video,
+      new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.25 })
+    );
+
+    if (!detection) {
+      return { detected: false, isCentered: false };
+    }
+
+    const { box } = detection;
+    const vWidth = video.videoWidth || 640;
+    const vHeight = video.videoHeight || 480;
+
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+
+    // Check if face is centered within the middle 35% bounding zone
+    const isCenteredX = centerX >= vWidth * 0.32 && centerX <= vWidth * 0.68;
+    const isCenteredY = centerY >= vHeight * 0.25 && centerY <= vHeight * 0.75;
+    // Check if face is sufficiently close / large in frame (>22% and <85% of width)
+    const isGoodSize = box.width >= vWidth * 0.22 && box.width <= vWidth * 0.85;
+
+    return {
+      detected: true,
+      isCentered: isCenteredX && isCenteredY && isGoodSize,
+      box: { x: box.x, y: box.y, width: box.width, height: box.height },
+    };
+  } catch {
+    return { detected: false, isCentered: false };
+  }
+}
+
+/**
+ * Analyzes a face image (base64 string) to extract the face descriptor with fast 2-tier detection.
+ * Extracts 68-point landmarks and descriptor EXACTLY ONCE on the detected face box (< 400ms).
  */
 export async function validateImageQualityAndGetDescriptor(
   imageSrc: string
 ): Promise<FaceValidationResult> {
-  try {
-    await loadFaceModels();
-    const img = await loadImage(imageSrc);
+  const processPromise = (async (): Promise<FaceValidationResult> => {
+    try {
+      await loadFaceModels();
+      const img = await loadImage(imageSrc);
 
-    // Multi-scale adaptive detection across various input sizes
-    // TinyFaceDetector inputSize must be multiple of 32: 320, 416, 512, 224, 160
-    const candidateSizes = [320, 416, 512, 224, 160];
-    let detections: any[] = [];
+      // Fast Tier 1: optimal 320 resolution (~150ms)
+      let detectedFace = await faceapi
+        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.22 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
 
-    for (const inputSize of candidateSizes) {
-      try {
-        const result = await faceapi
-          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.25 }))
+      // Fast Tier 2 Fallback: if Tier 1 misses due to glasses reflection/dim lighting, try 416 with softer threshold
+      if (!detectedFace) {
+        detectedFace = await faceapi
+          .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.16 }))
           .withFaceLandmarks()
-          .withFaceDescriptors();
-
-        if (result && result.length > 0) {
-          detections = result;
-          break;
-        }
-      } catch (err) {
-        console.warn(`[FaceID] TinyFaceDetector failed at size ${inputSize}:`, err);
+          .withFaceDescriptor();
       }
-    }
 
-    // Fallback pass with lower threshold if no detection on primary pass
-    if (detections.length === 0) {
-      for (const inputSize of [320, 416, 224]) {
-        try {
-          const result = await faceapi
-            .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.15 }))
-            .withFaceLandmarks()
-            .withFaceDescriptors();
-
-          if (result && result.length > 0) {
-            detections = result;
-            break;
-          }
-        } catch {}
+      if (!detectedFace) {
+        return { success: false, error: 'no_face_detected' };
       }
+
+      // Convert Float32Array to standard number array for database storage
+      const descriptorArray = Array.from(detectedFace.descriptor);
+
+      return {
+        success: true,
+        descriptor: descriptorArray as number[],
+        confidence: detectedFace.detection.score,
+      };
+    } catch (error: any) {
+      console.error('[FaceID] Validation error:', error);
+      return { success: false, error: error.message || 'unknown_error' };
     }
+  })();
 
-    if (detections.length === 0) {
-      return { success: false, error: 'no_face_detected' };
-    }
+  // 8-second safety timeout so user is never frozen indefinitely
+  const timeoutPromise = new Promise<FaceValidationResult>((resolve) =>
+    setTimeout(() => resolve({ success: false, error: 'timeout' }), 8000)
+  );
 
-    // Sort detections by bounding box area (largest face in foreground)
-    detections.sort((a, b) => {
-      const areaA = (a.detection?.box?.width || 0) * (a.detection?.box?.height || 0);
-      const areaB = (b.detection?.box?.width || 0) * (b.detection?.box?.height || 0);
-      return areaB - areaA;
-    });
-
-    const primaryFace = detections[0];
-
-    // Check if there is genuinely a second person in frame (>45% size of primary and high score)
-    if (detections.length > 1) {
-      const areaPrimary = primaryFace.detection.box.width * primaryFace.detection.box.height;
-      const areaSecondary = detections[1].detection.box.width * detections[1].detection.box.height;
-      if (areaSecondary > areaPrimary * 0.45 && detections[1].detection.score > 0.45) {
-        return { success: false, error: 'multiple_faces_detected' };
-      }
-    }
-
-    // Convert Float32Array to standard number array for database storage
-    const descriptorArray = Array.from(primaryFace.descriptor);
-
-    return {
-      success: true,
-      descriptor: descriptorArray as number[],
-      confidence: primaryFace.detection.score,
-    };
-  } catch (error: any) {
-    console.error('[FaceID] Validation error:', error);
-    return { success: false, error: error.message || 'unknown_error' };
-  }
+  return Promise.race([processPromise, timeoutPromise]);
 }
 
 /**

@@ -80,10 +80,10 @@ export default defineConfig({
         // Force new service worker to activate immediately — no waiting for tabs to close
         skipWaiting: true,
         clientsClaim: true,
-        // Cache everything up to 15 MB to accommodate Face-API neural network models
-        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
-        // Pre-cache all core assets including ML models and manifests
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,ttf,bin,json}'],
+        // Cache everything up to 5 MB for core web assets
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Pre-cache all core web assets (Face-API models are cached on-demand via runtimeCaching)
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}'],
         // Clean stale caches on each service worker update
         cleanupOutdatedCaches: true,
         // Single page app fallback — serves index.html for all navigation
