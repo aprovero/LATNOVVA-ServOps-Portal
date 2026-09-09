@@ -227,7 +227,7 @@ export default function AttendanceGrid({
                                                             const gpsThreshold = platformSettings.gpsAccuracyThreshold ?? 100;
                                                             const targetProjId = dayTimesheet.projectId;
                                                             const targetProject = targetProjId ? projects.find((proj: any) => proj.id === targetProjId) : null;
-                                                            const radius = targetProject?.geofenceRadius || platformSettings.geofenceRadius || 250;
+                                                            const radius = targetProject?.geofenceRadius || platformSettings.geofenceRadius || 1000;
                                                             const geofenceRequired = targetProject?.locationValidated ?? false;
                                                             const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
                                                             
