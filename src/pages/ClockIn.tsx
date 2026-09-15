@@ -769,7 +769,30 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         return assigned?.id ?? '';
     });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
-    const [workMode, setWorkMode] = useState<'On Site' | 'Home Office'>('On Site');
+    const activeShiftMode: 'On Site' | 'Home Office' = (activeEntry?.type === 'Home Office' || activeEntry?.punches?.some((p: any) => p.workMode === 'Home Office'))
+        ? 'Home Office'
+        : 'On Site';
+
+    const [workMode, setWorkMode] = useState<'On Site' | 'Home Office'>(() => {
+        if (activeEntry) {
+            return (activeEntry.type === 'Home Office' || activeEntry.punches?.some((p: any) => p.workMode === 'Home Office'))
+                ? 'Home Office'
+                : 'On Site';
+        }
+        return 'On Site';
+    });
+
+    // Keep workMode in sync if an active shift is detected or updated
+    useEffect(() => {
+        if (activeEntry) {
+            const shiftMode = (activeEntry.type === 'Home Office' || activeEntry.punches?.some((p: any) => p.workMode === 'Home Office'))
+                ? 'Home Office'
+                : 'On Site';
+            setWorkMode(shiftMode);
+        }
+    }, [activeEntry]);
+
+    const effectiveWorkMode = step === 'clocked-in' ? activeShiftMode : workMode;
     
     const userRole = useStore(state => state.userRole);
     const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
@@ -781,7 +804,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const geofenceRadius = targetProject?.geofenceRadius || platformSettings?.geofenceRadius || 1000;
     const isBypass = isWarehouseBypass(personnelId, gps.lat, gps.lng, geofenceRadius);
     const isOutsideGeofence = !!(
-        workMode === 'On Site' &&
+        effectiveWorkMode === 'On Site' &&
         targetProject?.locationValidated &&
         projCoords &&
         gps.lat !== null &&
@@ -825,7 +848,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             }
         }
     }, [activeProjects, selectedProject, todayEntry?.projectId, personnelId]);
-    const gpsReady = workMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
+    const gpsReady = effectiveWorkMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
     const gpsDenied = gps.status === 'denied';
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -953,14 +976,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 accuracy: gps.accuracy ?? 9999, type,
                 timeSource: overrideTime ? 'device' : best.source,
                 ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
-                workMode,
+                workMode: effectiveWorkMode,
                 faceVerified: faceMeta?.faceVerified,
                 faceBypassReason: faceMeta?.faceBypassReason,
                 selfieBlob: faceMeta?.selfieBlob,
             };
             
             const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
-            const finalProjectId = workMode === 'Home Office'
+            const finalProjectId = effectiveWorkMode === 'Home Office'
                 ? (assignedProj?.id || selectedProject || undefined)
                 : (selectedProject || undefined);
                 
@@ -1144,6 +1167,15 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
             {step === 'clocked-in' && (
                 <div className="space-y-3">
+                    {effectiveWorkMode === 'Home Office' && (
+                        <div className="flex items-center gap-2.5 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl text-sm font-semibold text-blue-800">
+                            <span className="text-base">🏠</span>
+                            <div>
+                                <p className="font-bold text-[10px] uppercase tracking-wider text-blue-600">Modalidad Activa</p>
+                                <p className="text-xs">Turno en curso como <strong>Home Office</strong> (Sin restricción de geocerca)</p>
+                            </div>
+                        </div>
+                    )}
                     {/* Restricción de fin de semana para rol Office */}
                     {isOfficeBlockedWeekend && (
                         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-sm animate-in slide-in-from-top-1 duration-300">
@@ -1402,6 +1434,8 @@ export default function ClockIn() {
 
     // Current step for individual mode (used for status chip only)
     const myStep = getPunchStep(timesheets, resolvedPersonnelId);
+    const myActiveEntry = timesheets.find((t: any) => t.personnelId === resolvedPersonnelId && t.timeIn && !t.timeOut);
+    const isMyShiftHomeOffice = myActiveEntry?.type === 'Home Office' || myActiveEntry?.punches?.some((p: any) => p.workMode === 'Home Office');
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
@@ -1429,12 +1463,14 @@ export default function ClockIn() {
                 <div className={`px-5 py-2 rounded-full text-sm font-bold shadow-md border-2 border-white ${
                     viewMode === 'batch' ? 'bg-purple-50 text-purple-700' :
                     myStep === 'idle' ? 'bg-gray-100 text-gray-600' :
-                    myStep === 'clocked-in' ? 'bg-teal-50 text-teal-700' :
+                    myStep === 'clocked-in' ? (isMyShiftHomeOffice ? 'bg-blue-50 text-blue-700' : 'bg-teal-50 text-teal-700') :
                     'bg-green-50 text-green-700'
                 }`}>
                     {viewMode === 'batch' && <><Users size={14} className="inline mr-1 -mt-0.5" /> {t('attendance.labels.team_batch_mode')}</>}
                     {viewMode === 'individual' && myStep === 'idle' && `○ ${t('attendance.status.not_in')}`}
-                    {viewMode === 'individual' && myStep === 'clocked-in' && `● ${t('attendance.status.on_site')}`}
+                    {viewMode === 'individual' && myStep === 'clocked-in' && (
+                        isMyShiftHomeOffice ? `🏠 Home Office` : `● ${t('attendance.status.on_site')}`
+                    )}
                     {viewMode === 'individual' && myStep === 'clocked-out' && `✓ ${t('attendance.status.done')}`}
                 </div>
 

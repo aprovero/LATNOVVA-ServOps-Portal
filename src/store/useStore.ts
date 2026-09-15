@@ -1079,7 +1079,7 @@ export const useStore = create<AppState>()(
                         supabase.from('projects').select('*'),
                         supabase.from('mx_personnel').select('*'),
                         supabase.from('reports').select('*').gte('date', thirtyDaysAgoStr),
-                        supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr),
+                        supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
                         supabase.from('tools').select('*'),
                         supabase.from('mx_attendance_overrides').select('*'),
                         supabase.from('mx_work_schedules').select('*'),
@@ -1235,9 +1235,22 @@ export const useStore = create<AppState>()(
                                     .map(item => item.id)
                             );
 
-                            const updatedDbEntries = dbMapped.filter(t => !pendingIds.has(t.id));
-                            const pendingLocalEntries = state.timesheets.filter(t => pendingIds.has(t.id));
-                            return [...updatedDbEntries, ...pendingLocalEntries];
+                            const dbMap = new Map(dbMapped.map(t => [t.id, t]));
+                            const merged = state.timesheets.map(t => {
+                                if (pendingIds.has(t.id)) return t;
+                                const fromDb = dbMap.get(t.id);
+                                if (fromDb) {
+                                    dbMap.delete(t.id);
+                                    return fromDb;
+                                }
+                                return t;
+                            });
+                            for (const remaining of dbMap.values()) {
+                                if (!pendingIds.has(remaining.id)) {
+                                    merged.push(remaining);
+                                }
+                            }
+                            return merged;
                         })(),
                         tools: toolsDB?.length
                             ? toolsDB.map(t => ({
@@ -1350,8 +1363,12 @@ export const useStore = create<AppState>()(
 
             refreshAttendance: async () => {
                 try {
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
                     const [timesheetsRes, overridesRes] = await Promise.all([
-                        supabase.from('mx_timesheets').select('*'),
+                        supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
                         supabase.from('mx_attendance_overrides').select('*')
                     ]);
 
@@ -1393,9 +1410,22 @@ export const useStore = create<AppState>()(
                                     .map(item => item.id)
                             );
 
-                            const updatedDbEntries = dbMapped.filter(t => !pendingIds.has(t.id));
-                            const pendingLocalEntries = state.timesheets.filter(t => pendingIds.has(t.id));
-                            newState.timesheets = [...updatedDbEntries, ...pendingLocalEntries];
+                            const dbMap = new Map(dbMapped.map(t => [t.id, t]));
+                            const merged = state.timesheets.map(t => {
+                                if (pendingIds.has(t.id)) return t;
+                                const fromDb = dbMap.get(t.id);
+                                if (fromDb) {
+                                    dbMap.delete(t.id);
+                                    return fromDb;
+                                }
+                                return t;
+                            });
+                            for (const remaining of dbMap.values()) {
+                                if (!pendingIds.has(remaining.id)) {
+                                    merged.push(remaining);
+                                }
+                            }
+                            newState.timesheets = merged;
                         }
 
                         if (overridesDB) {

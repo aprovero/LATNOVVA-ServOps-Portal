@@ -41,33 +41,42 @@ export default function Personnel() {
         const headers = [
             // 1. Información General / Core Info
             'EMPRESA',
+            'SEDE',
             'NOMBRE',
             'PUESTO',
             'NUMERO_EMPLEADO',
             'ROL_APP',
             'ESTATUS',
             'PROYECTO',
+            'SITIO',
             'FECHA_NACIMIENTO',
             'EDAD',
+            'LUGAR_NACIMIENTO',
+            'NACIONALIDAD',
             'GENERO',
             'EDO_CIVIL',
+            'HIJOS',
             'DOMICILIO',
             'CORP_EMAIL',
             'EMAIL',
             'TEL',
+            'TEL_FIJO',
             'CONTACTO_EMERGENCIA',
             'TEL_EMERGENCIA',
             'PARENTESCO_EMERGENCIA',
             'CARPETA_CERTIFICADOS',
 
-            // 2. Identificación & Demografía (Mexico HR)
+            // 2. Identificación & Demografía (Mexico & Centroamérica)
             'CURP',
             'INE',
+            'DPI',
             'RFC',
+            'NIT',
             'CP_FISCAL',
             'NSS',
+            'IGSS',
 
-            // 3. Datos Laborales & Contratación (Mexico HR)
+            // 3. Datos Laborales & Contratación
             'TIPO_TRABAJADOR',
             'NIVEL_ESTUDIOS',
             'ESPECIALIDAD',
@@ -77,9 +86,10 @@ export default function Personnel() {
             'VENCE_PRUEBA',
             'ALTA_IMSS',
             'REGISTRO_PATRONAL',
+            'SIROC',
             'INGRESO',
 
-            // 4. Nómina, Percepciones & Banco (Mexico HR)
+            // 4. Nómina, Percepciones & Banco
             'PERIODICIDAD_PAGO',
             'BANCO',
             'CLABE',
@@ -91,12 +101,14 @@ export default function Personnel() {
             'BONOS',
             'DIAS_AGUINALDO',
             'DIAS_VACACIONES_TOTAL',
+            'DIAS_VACACIONES_DISFRUTADOS',
             'DIAS_VACACIONES_RESTANTES',
             'CREDITO_INFONAVIT',
             'MONTO_INFONAVIT',
             'BENEFICIARIO_PRINCIPAL',
+            'TEL_BENEFICIARIO',
 
-            // 5. Logística & Tallas (Mexico HR)
+            // 5. Logística & Tallas
             'TALLA_CHALECO',
             'TALLA_CAMISA',
             'TALLA_CALZADO',
@@ -109,29 +121,38 @@ export default function Personnel() {
 
         const sampleRow = [
             'LATNOVVA',
+            'CDMX',
             'JUAN PEREZ SANCHEZ',
             'TECHNICIAN',
             'MX-LNV-0001',
             'Tech',
             'Active',
             'EST-LNV-000 CDMX',
+            'CIUDAD DE MEXICO',
             '1980-04-04',
             '46',
+            'CIUDAD DE MEXICO',
+            'MEXICANA',
             'MASCULINO',
             'SOLTERO(A)',
+            '2',
             'AV REFORMA 123 CDMX',
             'jperez@latnovva.com',
             'juan.perez@gmail.com',
             '5512345678',
+            '5555123456',
             'MARIA SANCHEZ',
             '5587654321',
             'MADRE',
             'https://drive.google.com/drive/folders/sample',
             'PESJ800404HQRMRS03',
             'IDMEX1952181883',
+            '',
             'PESJ800404BW7',
+            '',
             '06010',
             '82968014975',
+            '',
             'LOCAL',
             'LICENCIATURA',
             'INGENIERIA ELECTRICA',
@@ -141,6 +162,7 @@ export default function Personnel() {
             '18/09/2026',
             '19/03/2026',
             'Y1234567890',
+            '3',
             '19/03/2026',
             'QUINCENAL',
             'BBVA',
@@ -153,10 +175,12 @@ export default function Personnel() {
             '1500',
             '15',
             '12',
+            '2',
             '10',
             'NO',
             '0',
             'MARIA SANCHEZ PEREZ',
+            '5587654321',
             'L',
             'L',
             '28',
@@ -571,11 +595,25 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                 const idxCertsFolder = getCol(['CARPETA_CERTIFICADOS', 'CERTIFICADOS', 'CERTS_FOLDER', 'SHARED_FOLDER_LINK', 'SHARED_FOLDER']);
 
                 // Identifiers
-                const idxCurp = getCol(['CURP']);
+                const idxCurp = getCol(['CURP', 'DPI']);
                 const idxIne = getCol(['INE', 'ID_OFICIAL']);
-                const idxRfc = getCol(['RFC']);
-                const idxCpFiscal = getCol(['CP_FISCAL', 'RFC_POSTAL_CODE', 'CODIGO_POSTAL_FISCAL', 'CP', 'ZIP_CODE']);
-                const idxNss = getCol(['NSS', 'NUMERO_SEGURO_SOCIAL', 'SEGURO_SOCIAL']);
+                const idxDpi = getCol(['DPI']);
+                const idxRfc = getCol(['RFC', 'NIT']);
+                const idxNit = getCol(['NIT']);
+                const idxCpFiscal = getCol(['CP_FISCAL', 'RFC_POSTAL_CODE', 'CODIGO_POSTAL_FISCAL', 'CP', 'ZIP_CODE', 'CODIGO_POSTAL']);
+                const idxNss = getCol(['NSS', 'NUMERO_SEGURO_SOCIAL', 'SEGURO_SOCIAL', 'NO_DE_AFILIACION_DE_IGSS', 'AFILIACION_IGSS', 'IGSS']);
+                const idxIgss = getCol(['IGSS', 'NO_DE_AFILIACION_DE_IGSS']);
+
+                // Additional Demographics & Office
+                const idxSede = getCol(['SEDE', 'BRANCH_OFFICE', 'SUCURSAL']);
+                const idxSitio = getCol(['SITIO', 'SITE', 'UBICACION']);
+                const idxLugarNac = getCol(['LUGAR_NACIMIENTO', 'LUGAR_DE_NACIMIENTO', 'BIRTH_PLACE']);
+                const idxNacionalidad = getCol(['NACIONALIDAD', 'NATIONALITY']);
+                const idxHijos = getCol(['HIJOS', 'NUMERO_HIJOS', 'CHILDREN']);
+                const idxTelFijo = getCol(['TEL_FIJO', 'TELEFONO_FIJO', 'TEL_CASA', 'LANDLINE']);
+                const idxSiroc = getCol(['SIROC', 'REGISTRO_SIROC']);
+                const idxVacacionesTomadas = getCol(['DIAS_VACACIONES_DISFRUTADOS', 'DIAS_DISFRUTADOS', 'VACACIONES_DISFRUTADAS']);
+                const idxTelBeneficiario = getCol(['TEL_BENEFICIARIO', 'CONTACTO_DE_BENEFICARIO', 'TELEFONO_BENEFICIARIO']);
 
                 // Employment
                 const idxTipoTrabajador = getCol(['TIPO_TRABAJADOR', 'WORKER_TYPE', 'TIPO_EMPLEADO']);
@@ -585,7 +623,7 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                 const idxContrato = getCol(['CONTRATO', 'DURACION_CONTRATO', 'CONTRACT_DURATION', 'TIPO_CONTRATO']);
                 const idxVenceContrato = getCol(['VENCE_CONTRATO', 'CONTRACT_EXPIRY', 'FIN_CONTRATO', 'VENCIMIENTO_CONTRATO']);
                 const idxVencePrueba = getCol(['VENCE_PRUEBA', 'PROBATION_EXPIRY', 'FIN_PRUEBA', 'VENCIMIENTO_PRUEBA']);
-                const idxAltaImss = getCol(['ALTA_IMSS', 'IMSS_DATE', 'FECHA_IMSS', 'FECHA_ALTA_IMSS']);
+                const idxAltaImss = getCol(['ALTA_IMSS', 'ALTA_IGSS', 'IMSS_DATE', 'FECHA_IMSS', 'FECHA_ALTA_IMSS']);
                 const idxRegPatronal = getCol(['REGISTRO_PATRONAL', 'PATRONAL']);
                 const idxIngreso = getCol(['INGRESO', 'HIRE_DATE', 'FECHA_INGRESO', 'FECHA_DE_INGRESO', 'ONBOARDING_DATE']);
 
@@ -594,7 +632,7 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                 const idxBanco = getCol(['BANCO', 'BANK', 'BANK_NAME', 'INSTITUCION_BANCARIA']);
                 const idxClabe = getCol(['CLABE', 'CUENTA_CLABE', 'CLABE_INTERBANCARIA']);
                 const idxNominaPpp = getCol(['NOMINA_PPP', 'SUELDO_PPP', 'PPP', 'NOMINA_NETA']);
-                const idxNominaImss = getCol(['NOMINA_IMSS', 'SUELDO_IMSS', 'IMSS_SALARY', 'NOMINA_FISCAL']);
+                const idxNominaImss = getCol(['NOMINA_IMSS', 'NOMINA_IGSS', 'SUELDO_IMSS', 'IMSS_SALARY', 'NOMINA_FISCAL']);
                 const idxSdi = getCol(['SDI', 'SALARIO_DIARIO_INTEGRADO']);
                 const idxTotal = getCol(['TOTAL', 'TOTAL_GROSS', 'SUELDO_TOTAL', 'SALARIO_TOTAL', 'TOTAL_MENSUAL']);
                 const idxViaticos = getCol(['VIATICOS_MENSUALES', 'VIATICOS', 'MONTHLY_VIATICOS', 'VIATICO']);
@@ -739,7 +777,19 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                         primaryBeneficiary: idxBeneficiario !== -1 ? cleanStr(row[idxBeneficiario]) : '',
                         vestSize: idxTallaChaleco !== -1 ? cleanStr(row[idxTallaChaleco]).toUpperCase() : '',
                         shirtSize: idxTallaCamisa !== -1 ? cleanStr(row[idxTallaCamisa]).toUpperCase() : '',
-                        shoeSize: idxTallaCalzado !== -1 ? cleanStr(row[idxTallaCalzado]) : ''
+                        shoeSize: idxTallaCalzado !== -1 ? cleanStr(row[idxTallaCalzado]) : '',
+                        site: idxSitio !== -1 ? cleanStr(row[idxSitio]) : '',
+                        branchOffice: idxSede !== -1 ? cleanStr(row[idxSede]) : '',
+                        birthPlace: idxLugarNac !== -1 ? cleanStr(row[idxLugarNac]) : '',
+                        nationality: idxNacionalidad !== -1 ? cleanStr(row[idxNacionalidad]) : '',
+                        landlinePhone: idxTelFijo !== -1 ? cleanStr(row[idxTelFijo]) : '',
+                        childrenCount: idxHijos !== -1 ? cleanNum(row[idxHijos]) : undefined,
+                        siroc: idxSiroc !== -1 ? cleanStr(row[idxSiroc]) : '',
+                        vacationDaysTaken: idxVacacionesTomadas !== -1 ? cleanNum(row[idxVacacionesTomadas]) : undefined,
+                        beneficiaryPhone: idxTelBeneficiario !== -1 ? cleanStr(row[idxTelBeneficiario]) : '',
+                        nit: idxNit !== -1 ? cleanStr(row[idxNit]) : '',
+                        dpi: idxDpi !== -1 ? cleanStr(row[idxDpi]) : '',
+                        igss: idxIgss !== -1 ? cleanStr(row[idxIgss]) : ''
                     };
 
                     const newPersonId = crypto.randomUUID();
