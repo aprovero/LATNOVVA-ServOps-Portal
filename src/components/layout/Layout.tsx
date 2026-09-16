@@ -720,6 +720,13 @@ export default function Layout() {
                                 >
                                     {t('auth.logout')}
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <div className="px-3 py-2 flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-b-xl select-none">
+                                    <span className="font-semibold text-gray-400 uppercase tracking-wider text-[9px]">Versión</span>
+                                    <span className="font-mono font-bold text-brand-teal bg-white px-2 py-0.5 rounded-md border border-gray-200 shadow-2xs">
+                                        v{__APP_VERSION__}
+                                    </span>
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
 
@@ -886,6 +893,13 @@ export default function Layout() {
                                 <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 gap-2" onClick={() => signOut()}>
                                     {t('auth.logout')}
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <div className="px-3 py-2 flex items-center justify-between text-[11px] text-gray-500 bg-gray-50 rounded-b-xl select-none">
+                                    <span className="font-semibold text-gray-400 uppercase tracking-wider text-[9px]">Versión</span>
+                                    <span className="font-mono font-bold text-brand-teal bg-white px-2 py-0.5 rounded-md border border-gray-200 shadow-2xs">
+                                        v{__APP_VERSION__}
+                                    </span>
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -1250,10 +1264,15 @@ export default function Layout() {
             <Dialog open={isAccountModalOpen} onOpenChange={setIsAccountModalOpen}>
                 <DialogContent className="sm:max-w-[425px] rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
-                            <User size={20} className="text-brand-teal" />
-                            {t('nav.my_profile', 'My Profile')}
-                        </DialogTitle>
+                        <div className="flex items-center justify-between pr-6">
+                            <DialogTitle className="text-xl font-bold text-accent-greyDark flex items-center gap-2">
+                                <User size={20} className="text-brand-teal" />
+                                {t('nav.my_profile', 'My Profile')}
+                            </DialogTitle>
+                            <span className="text-[11px] font-mono font-bold text-brand-teal bg-brand-teal/5 px-2.5 py-0.5 rounded-full border border-brand-teal/20">
+                                v{__APP_VERSION__}
+                            </span>
+                        </div>
                     </DialogHeader>
                     <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1">
                         <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100 flex flex-col items-center gap-4">
