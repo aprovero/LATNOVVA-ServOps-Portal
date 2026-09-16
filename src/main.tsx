@@ -49,6 +49,27 @@ if (storedVersion !== currentVersion) {
     window.location.reload();
 }
 
+// ── PWA Auto-Update Hardening ──────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+    // When a new service worker takes over (skipWaiting: true), auto-reload to load new assets
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.warn('[PWA] New service worker activated. Reloading page for updates...');
+        window.location.reload();
+    });
+
+    // Periodically check for SW updates (every 15 min and on window focus)
+    const checkSwUpdate = () => {
+        navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) {
+                reg.update().catch(err => console.warn('[PWA] SW update check failed:', err));
+            }
+        }).catch(() => {});
+    };
+
+    window.addEventListener('focus', checkSwUpdate);
+    setInterval(checkSwUpdate, 15 * 60 * 1000);
+}
+
 const renderApp = () => {
     ReactDOM.createRoot(document.getElementById('root')!).render(
         <React.StrictMode>

@@ -1539,15 +1539,28 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                                         </p>
                                     </div>
 
-                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 uppercase ${
-                                        isSelected
-                                            ? 'bg-white/20 text-white'
-                                            : person.appRole === 'Supervisor'
-                                                ? 'bg-blue-100 text-blue-600'
-                                                : 'bg-gray-100 text-gray-500'
-                                    }`}>
-                                        {person.appRole}
-                                    </span>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        {person.subsidiaryMetadata?.appVersion && (
+                                            <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${
+                                                isSelected
+                                                    ? 'bg-white/20 text-white'
+                                                    : person.subsidiaryMetadata.appVersion === __APP_VERSION__
+                                                        ? 'bg-emerald-50 text-emerald-700'
+                                                        : 'bg-amber-100 text-amber-800 font-bold'
+                                            }`} title={`Running v${person.subsidiaryMetadata.appVersion}`}>
+                                                v{person.subsidiaryMetadata.appVersion}
+                                            </span>
+                                        )}
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase ${
+                                            isSelected
+                                                ? 'bg-white/20 text-white'
+                                                : person.appRole === 'Supervisor'
+                                                    ? 'bg-blue-100 text-blue-600'
+                                                    : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                            {person.appRole}
+                                        </span>
+                                    </div>
                                 </button>
                             );
                         })}
@@ -1613,6 +1626,16 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                                                         <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
                                                             #{selectedPerson.employeeNumber}
                                                         </span>
+                                                        {selectedPerson.subsidiaryMetadata?.appVersion && (
+                                                            <span className={`inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                                                                selectedPerson.subsidiaryMetadata.appVersion === __APP_VERSION__
+                                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                    : 'bg-amber-50 text-amber-700 border-amber-200 font-bold'
+                                                            }`} title={`Client App Version. Last active: ${selectedPerson.subsidiaryMetadata.lastActiveAt ? new Date(selectedPerson.subsidiaryMetadata.lastActiveAt).toLocaleString() : 'N/A'}`}>
+                                                                App v{selectedPerson.subsidiaryMetadata.appVersion}
+                                                                {selectedPerson.subsidiaryMetadata.appVersion !== __APP_VERSION__ ? ' (Outdated)' : ' (Latest)'}
+                                                            </span>
+                                                        )}
                                                         {selectedPerson.prevailingWage && (
                                                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/10 text-amber-600 border border-amber-400/20 shadow-sm">
                                                                 <Award size={10} /> Prevailing Wage

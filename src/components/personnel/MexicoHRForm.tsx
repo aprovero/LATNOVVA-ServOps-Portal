@@ -45,6 +45,15 @@ export function MexicoHRForm({ data, onChange, defaultOpen = false }: MexicoHRFo
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {md.appVersion && (
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                            md.appVersion === __APP_VERSION__ 
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : 'bg-amber-200 text-amber-950 border-amber-400'
+                        }`} title={`Última actividad: ${md.lastActiveAt ? new Date(md.lastActiveAt).toLocaleString() : 'N/A'}`}>
+                            App v{md.appVersion} {md.appVersion !== __APP_VERSION__ ? '(Desactualizado)' : '(Actualizado)'}
+                        </span>
+                    )}
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900 uppercase">
                         {isOpen ? 'Ocultar' : 'Expandir'}
                     </span>

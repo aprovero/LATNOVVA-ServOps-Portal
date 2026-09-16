@@ -1051,8 +1051,8 @@ export const useStore = create<AppState>()(
             initDb: async () => {
                 const now = Date.now();
                 const lastInit = (get() as any)._lastInitTime || 0;
-                if (get().isInitializing && (now - lastInit < 8000)) {
-                    console.log('[initDb] Already initializing (<8s), skipping...');
+                if (get().isInitializing || (now - lastInit < 15000)) {
+                    console.log('[initDb] Already initializing or throttled (<15s), skipping...');
                     return;
                 }
                 set({ isInitializing: true, _lastInitTime: now } as any);

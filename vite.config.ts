@@ -116,19 +116,7 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            // Supabase API — network first, short stale window
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 5, // 5 minutes
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
+
           {
             // Google Fonts — cache first (they're immutable)
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,

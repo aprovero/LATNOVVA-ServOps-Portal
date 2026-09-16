@@ -60,6 +60,62 @@ async function fetchAccountData(userId: string): Promise<{ profile: IdentityProf
     return { profile, personnel };
 }
 
+// Record the client's running app version in Supabase on login/session init
+async function recordAppVersion(userId: string, email?: string | null) {
+    const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+    const now = new Date().toISOString();
+
+    console.log(`[Auth] Diagnosing client: v${version} for user: ${email || userId}`);
+
+    // Asynchronously update profiles, mx_personnel, and app_version_logs
+    try {
+        Promise.allSettled([
+            (supabase as any)
+                .from('profiles')
+                .update({ 
+                    last_app_version: version,
+                    last_active_at: now
+                })
+                .eq('id', userId),
+
+            (supabase as any)
+                .from('app_version_logs')
+                .insert({
+                    user_id: userId,
+                    email: email || null,
+                    app_version: version,
+                    user_agent: userAgent
+                }),
+
+            (async () => {
+                const { data: pData } = await (supabase as any)
+                    .from('mx_personnel')
+                    .select('subsidiary_metadata')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                if (pData) {
+                    const currentMeta = pData.subsidiary_metadata || {};
+                    await (supabase as any)
+                        .from('mx_personnel')
+                        .update({
+                            subsidiary_metadata: {
+                                ...currentMeta,
+                                appVersion: version,
+                                lastActiveAt: now,
+                                userAgent
+                            }
+                        })
+                        .eq('id', userId);
+                }
+            })()
+        ]).catch(() => {});
+    } catch (e) {
+        console.warn('[Auth] Non-fatal error recording app version:', e);
+    }
+}
+
 
 interface AuthState {
     session: Session | null;
@@ -114,6 +170,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 const currentSession = get().session;
                 if (newSession && currentSession?.user?.id === newSession.user.id) {
                     set({ session: newSession, loading: false });
+                    recordAppVersion(newSession.user.id, newSession.user.email);
                     
                     // Auto-refresh push subscription in background if permission is granted
                     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
@@ -126,6 +183,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
                 // Set the session immediately so the user is authenticated in the UI
                 set({ session: newSession, user: newSession.user });
+                recordAppVersion(newSession.user.id, newSession.user.email);
 
                 // ── STEP 1: Fetch account data and init DB under a safety timeout race ──
                 const initPromise = (async () => {

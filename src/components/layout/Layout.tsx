@@ -219,14 +219,20 @@ export default function Layout() {
     }, []);
 
     useEffect(() => {
-        const handleFocus = () => {
-            console.log('[Layout] Tab focused, triggering background database refresh...');
-            initDb().catch(e => console.error('[Layout] Failed to refresh DB on focus:', e));
-        };
-        window.addEventListener('focus', handleFocus);
-        
         // Initial mount database load/refresh
         initDb().catch(e => console.error('[Layout] Failed to run initial DB init:', e));
+
+        // Background throttle: only refresh DB on focus if at least 15 minutes have elapsed
+        let lastFocusRefresh = Date.now();
+        const handleFocus = () => {
+            const now = Date.now();
+            if (now - lastFocusRefresh > 15 * 60 * 1000) {
+                lastFocusRefresh = now;
+                console.log('[Layout] Tab focused after >15m, refreshing database in background...');
+                initDb().catch(e => console.error('[Layout] Failed to refresh DB on focus:', e));
+            }
+        };
+        window.addEventListener('focus', handleFocus);
 
         return () => window.removeEventListener('focus', handleFocus);
     }, [initDb]);
