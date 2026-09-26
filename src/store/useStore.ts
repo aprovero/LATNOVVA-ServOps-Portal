@@ -6,6 +6,8 @@ import { idbStorage } from '../lib/idbStorage';
 import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 
 export const TIMESHEET_LIGHTWEIGHT_COLUMNS = 'id, personnel_id, project_id, date, time_in, time_out, hours, type, classification, notes, status, approved_by, gps_verified, source, manual_reason, created_at, updated_at, corrected_by, corrected_at, correction_reason, lunch_start, lunch_end';
+export const PERSONNEL_LIGHTWEIGHT_COLUMNS = 'id, name, position, app_role, employee_number, status, email, phone_number, certifications, supervisor_id, manager_id, client_id, prevailing_wage, bench_exempt, regular_rate, rainy_day_rate, overtime_rate, meal_allowance, gas_allowance, truck_allowance, lead_pay, per_diem, dbo, emergency_contact_name, emergency_contact_phone, subsidiary, subsidiary_metadata';
+
 
 export interface PendingSyncItem {
     table: string;
@@ -1078,7 +1080,7 @@ export const useStore = create<AppState>()(
                     ] = await Promise.allSettled([
                         supabase.from('clients').select('*'),
                         supabase.from('projects').select('*'),
-                        supabase.from('mx_personnel').select('id, name, position, app_role, employee_number, status, email, phone_number, supervisor_id, manager_id, client_id, subsidiary_metadata'),
+                        supabase.from('mx_personnel').select(PERSONNEL_LIGHTWEIGHT_COLUMNS),
                         supabase.from('mx_timesheets').select(TIMESHEET_LIGHTWEIGHT_COLUMNS).gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
                         supabase.from('tools').select('*'),
                         supabase.from('mx_work_schedules').select('*'),
