@@ -129,7 +129,8 @@ export default function Attendance() {
 
     // Compute stats for today & selected date range (for overtime)
     const computeStats = () => {
-        const activeCount = filteredPersonnel.filter(p => p.status === 'Active').length;
+        const activePersonnel = filteredPersonnel.filter(p => p.status === 'Active');
+        const activeCount = activePersonnel.length;
         const todayStr = new Date().toLocaleDateString('en-CA');
         
         let presentToday = 0;
@@ -155,7 +156,7 @@ export default function Attendance() {
 
         const rangeDates = getDatesInRange(startDate, endDate);
 
-        filteredPersonnel.forEach(emp => {
+        activePersonnel.forEach(emp => {
             // Today's states
             const dv = calculateDailyAttendance(emp, todayStr, timesheets, attendanceOverrides, workSchedules);
             if (dv.displayStatus === 'Present' || dv.displayStatus === 'Home Office') presentToday++;
@@ -163,6 +164,7 @@ export default function Attendance() {
             if (dv.displayStatus === 'Sick Leave') onSickLeave++;
             if (dv.displayStatus === 'Home Office') onHomeOffice++;
             if (dv.displayStatus === 'Absent') absentToday++;
+
             if (dv.missingPunch) missingPunches++;
             if (dv.conflict) pendingConflicts++;
             
