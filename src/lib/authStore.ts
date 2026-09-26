@@ -62,6 +62,14 @@ async function fetchAccountData(userId: string): Promise<{ profile: IdentityProf
 
 // Record the client's running app version in Supabase on login/session init
 async function recordAppVersion(userId: string, email?: string | null) {
+    if (typeof window !== 'undefined') {
+        const sessionKey = `app_version_logged_${userId}`;
+        if (sessionStorage.getItem(sessionKey)) {
+            return; // Skip repeated version logs for the current session
+        }
+        sessionStorage.setItem(sessionKey, 'true');
+    }
+
     const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';
     const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
     const now = new Date().toISOString();

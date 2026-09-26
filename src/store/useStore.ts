@@ -5,6 +5,8 @@ import { createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from '../lib/idbStorage';
 import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 
+export const TIMESHEET_LIGHTWEIGHT_COLUMNS = 'id, personnel_id, project_id, date, time_in, time_out, hours, type, classification, notes, status, approved_by, gps_verified, source, manual_reason, created_at, updated_at, corrected_by, corrected_at, correction_reason, lunch_start, lunch_end';
+
 export interface PendingSyncItem {
     table: string;
     id: string;
@@ -457,6 +459,7 @@ interface AppState {
     resolvePersonnelId: () => string | null;
     initDb: () => Promise<void>;
     fetchTimesheetsForRange: (startDate: string, endDate: string) => Promise<void>;
+    fetchTimesheetDetail: (timesheetId: string) => Promise<any>;
     fetchReportsForRange: (startDate: string, endDate: string) => Promise<void>;
     resetDb: () => void;
     setAuthData: (id: string, email: string) => void;
@@ -1068,20 +1071,16 @@ export const useStore = create<AppState>()(
                         clientsRes,
                         projectsRes,
                         personnelRes,
-                        reportsRes,
                         timesheetsRes,
                         toolsRes,
-                        overridesRes,
                         schedulesRes,
                         settingsRes
                     ] = await Promise.allSettled([
                         supabase.from('clients').select('*'),
                         supabase.from('projects').select('*'),
-                        supabase.from('mx_personnel').select('*'),
-                        supabase.from('reports').select('*').gte('date', thirtyDaysAgoStr),
-                        supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
+                        supabase.from('mx_personnel').select('id, name, position, app_role, employee_number, status, email, phone_number, supervisor_id, manager_id, client_id, subsidiary_metadata'),
+                        supabase.from('mx_timesheets').select(TIMESHEET_LIGHTWEIGHT_COLUMNS).gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
                         supabase.from('tools').select('*'),
-                        supabase.from('mx_attendance_overrides').select('*'),
                         supabase.from('mx_work_schedules').select('*'),
                         supabase.from('platform_settings').select('*').eq('id', 'global').maybeSingle()
                     ]);
@@ -1089,10 +1088,8 @@ export const useStore = create<AppState>()(
                     const clientsDB = clientsRes.status === 'fulfilled' ? clientsRes.value.data : null;
                     const projectsDB = projectsRes.status === 'fulfilled' ? projectsRes.value.data : null;
                     const personnelDB = personnelRes.status === 'fulfilled' ? personnelRes.value.data : null;
-                    const reportsDB = reportsRes.status === 'fulfilled' ? reportsRes.value.data : null;
                     const timesheetsDB = timesheetsRes.status === 'fulfilled' ? timesheetsRes.value.data : null;
                     const toolsDB = toolsRes.status === 'fulfilled' ? toolsRes.value.data : null;
-                    const overridesDB = overridesRes.status === 'fulfilled' ? overridesRes.value.data : null;
                     const schedulesDB = schedulesRes.status === 'fulfilled' ? schedulesRes.value.data : null;
                     const settingsDB = settingsRes.status === 'fulfilled' ? settingsRes.value.data : null;
 
@@ -1134,7 +1131,7 @@ export const useStore = create<AppState>()(
                             : state.projects,
                         personnel: (() => {
                             const dbRecords = personnelDB?.length
-                                ? personnelDB.map(p => ({
+                                ? personnelDB.map((p: any) => ({
                                     id: p.id,
                                     name: p.name,
                                     position: p.position,
@@ -1169,42 +1166,10 @@ export const useStore = create<AppState>()(
 
                             return dbRecords;
                         })(),
-                        reports: reportsDB?.length
-                            ? reportsDB.map(r => ({
-                                id: r.id,
-                                projectId: r.project_id,
-                                projectName: '',
-                                clientId: r.client_id,
-                                date: r.date,
-                                state: r.state,
-                                schedule: r.schedule,
-                                weather: r.weather,
-                                location: r.location,
-                                equipment: r.equipment || [],
-                                customSections: r.custom_sections || [],
-                                comments: r.comments || [],
-                                labor: r.labor || [],
-                                media: r.media || [],
-                                occurrences: r.occurrences || [],
-                                checklists: r.checklists || [],
-                                subReportIds: r.sub_report_ids || [],
-                                attachments: r.attachments || [],
-                                externalAttachments: r.external_attachments || [],
-                                notes: r.notes || '',
-                                signatures: r.signatures || [],
-                                usedTools: r.used_tools || [],
-                                health: r.health,
-                                activityLogs: r.activity_logs || [],
-                                createdAt: r.created_at,
-                                createdBy: r.created_by,
-                                updatedAt: r.updated_at,
-                                updatedBy: r.updated_by,
-                                discipline: r.discipline
-                            }))
-                            : state.reports,
+                        reports: state.reports,
                         timesheets: (() => {
                             if (!timesheetsDB) return state.timesheets;
-                            const dbMapped = timesheetsDB.map(t => ({
+                            const dbMapped = timesheetsDB.map((t: any) => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1219,7 +1184,7 @@ export const useStore = create<AppState>()(
                                 notes: t.notes,
                                 status: t.status,
                                 approvedBy: t.approved_by,
-                                signature: t.signature,
+                                signature: t.signature || undefined,
                                 punches: t.punches || [],
                                 gpsVerified: t.gps_verified,
                                 source: (t as any).source || 'manual',
@@ -1241,7 +1206,11 @@ export const useStore = create<AppState>()(
                                 const fromDb = dbMap.get(t.id);
                                 if (fromDb) {
                                     dbMap.delete(t.id);
-                                    return fromDb;
+                                    return {
+                                        ...fromDb,
+                                        punches: (t.punches && t.punches.length > 0) ? t.punches : (fromDb.punches || []),
+                                        signature: t.signature || fromDb.signature,
+                                    };
                                 }
                                 return t;
                             });
@@ -1263,22 +1232,7 @@ export const useStore = create<AppState>()(
                                 history: t.history || []
                             }))
                             : state.tools,
-                        attendanceOverrides: overridesDB?.length
-                            ? overridesDB.map(o => ({
-                                id: o.id,
-                                employeeId: o.employee_id,
-                                startDate: o.start_date,
-                                endDate: o.end_date,
-                                type: o.type,
-                                duration: o.duration,
-                                customHours: o.custom_hours,
-                                notes: o.notes,
-                                approvedBy: o.approved_by,
-                                createdBy: o.created_by,
-                                createdAt: o.created_at,
-                                updatedAt: o.updated_at
-                            }))
-                            : [],
+                        attendanceOverrides: [],
                         workSchedules: schedulesDB?.length
                             ? schedulesDB.map(s => ({
                                 id: s.id,
@@ -1368,8 +1322,8 @@ export const useStore = create<AppState>()(
                     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
                     const [timesheetsRes, overridesRes] = await Promise.all([
-                        supabase.from('mx_timesheets').select('*').gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
-                        supabase.from('mx_attendance_overrides').select('*')
+                        supabase.from('mx_timesheets').select(TIMESHEET_LIGHTWEIGHT_COLUMNS).gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
+                        supabase.from('mx_attendance_overrides').select('*').gte('start_date', thirtyDaysAgoStr)
                     ]);
 
                     const { data: timesheetsDB } = timesheetsRes;
@@ -1379,7 +1333,7 @@ export const useStore = create<AppState>()(
                         const newState: Partial<AppState> = {};
 
                         if (timesheetsDB) {
-                            const dbMapped = timesheetsDB.map(t => ({
+                            const dbMapped = timesheetsDB.map((t: any) => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1394,7 +1348,7 @@ export const useStore = create<AppState>()(
                                 notes: t.notes,
                                 status: t.status,
                                 approvedBy: t.approved_by,
-                                signature: t.signature,
+                                signature: t.signature || undefined,
                                 punches: t.punches || [],
                                 gpsVerified: t.gps_verified,
                                 source: (t as any).source || 'manual',
@@ -1416,7 +1370,11 @@ export const useStore = create<AppState>()(
                                 const fromDb = dbMap.get(t.id);
                                 if (fromDb) {
                                     dbMap.delete(t.id);
-                                    return fromDb;
+                                    return {
+                                        ...fromDb,
+                                        punches: (t.punches && t.punches.length > 0) ? t.punches : (fromDb.punches || []),
+                                        signature: t.signature || fromDb.signature,
+                                    };
                                 }
                                 return t;
                             });
@@ -1429,7 +1387,7 @@ export const useStore = create<AppState>()(
                         }
 
                         if (overridesDB) {
-                            newState.attendanceOverrides = overridesDB.map(o => ({
+                            newState.attendanceOverrides = (overridesDB as any[]).map(o => ({
                                 id: o.id,
                                 employeeId: o.employee_id,
                                 startDate: o.start_date,
@@ -1440,8 +1398,8 @@ export const useStore = create<AppState>()(
                                 notes: o.notes,
                                 approvedBy: o.approved_by,
                                 createdBy: o.created_by,
-                                createdAt: o.created_at,
-                                updatedAt: o.updated_at
+                                createdAt: o.createdAt || o.created_at,
+                                updatedAt: o.updatedAt || o.updated_at
                             }));
                         }
 
@@ -1462,13 +1420,13 @@ export const useStore = create<AppState>()(
                 try {
                     const { data } = await supabase
                         .from('mx_timesheets')
-                        .select('*')
+                        .select(TIMESHEET_LIGHTWEIGHT_COLUMNS)
                         .gte('date', startDate)
                         .lte('date', endDate);
                     
                     if (data && data.length > 0) {
                         set((state) => {
-                            const dbMapped = data.map(t => ({
+                            const dbMapped = data.map((t: any) => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1483,7 +1441,7 @@ export const useStore = create<AppState>()(
                                 notes: t.notes,
                                 status: t.status,
                                 approvedBy: t.approved_by,
-                                signature: t.signature,
+                                signature: t.signature || undefined,
                                 punches: t.punches || [],
                                 gpsVerified: t.gps_verified,
                                 source: (t as any).source || 'manual',
@@ -1493,17 +1451,62 @@ export const useStore = create<AppState>()(
                                 correctionReason: (t as any).correction_reason,
                             }));
 
-                            const existingIds = new Set(state.timesheets.map(t => t.id));
-                            const merged = [
-                                ...state.timesheets,
-                                ...dbMapped.filter(t => !existingIds.has(t.id))
-                            ];
+                            const existingMap = new Map(state.timesheets.map(t => [t.id, t]));
+                            const merged = state.timesheets.map(t => {
+                                const fromDb = dbMapped.find(d => d.id === t.id);
+                                if (fromDb) {
+                                    return {
+                                        ...fromDb,
+                                        punches: (t.punches && t.punches.length > 0) ? t.punches : (fromDb.punches || []),
+                                        signature: t.signature || fromDb.signature,
+                                    };
+                                }
+                                return t;
+                            });
+                            for (const fresh of dbMapped) {
+                                if (!existingMap.has(fresh.id)) {
+                                    merged.push(fresh);
+                                }
+                            }
                             return { timesheets: merged };
                         });
                     }
                 } catch (e) {
                     console.error('[Store] Failed to fetch timesheets for range:', e);
                 }
+            },
+            fetchTimesheetDetail: async (timesheetId: string) => {
+                if (!timesheetId) return null;
+                try {
+                    const { data, error } = await supabase
+                        .from('mx_timesheets')
+                        .select('id, punches, signature')
+                        .eq('id', timesheetId)
+                        .maybeSingle();
+
+                    if (error) {
+                        console.warn('[fetchTimesheetDetail] Error fetching detail:', error);
+                        return null;
+                    }
+
+                    if (data) {
+                        set((state) => ({
+                            timesheets: state.timesheets.map(t =>
+                                t.id === timesheetId
+                                    ? {
+                                        ...t,
+                                        punches: data.punches || t.punches || [],
+                                        signature: data.signature ?? t.signature
+                                      }
+                                    : t
+                            )
+                        }));
+                        return data;
+                    }
+                } catch (err) {
+                    console.error('[fetchTimesheetDetail] Exception:', err);
+                }
+                return null;
             },
 
             fetchReportsForRange: async (startDate: string, endDate: string) => {
@@ -2352,6 +2355,22 @@ export const useStore = create<AppState>()(
                     if (recentlyClosedToday) {
                         console.warn(`[clockPunch] Personnel ${personnelId} already clocked out recently (${recentlyClosedToday.id}). Duplicate clockOut ignored.`);
                         return;
+                    }
+                }
+
+                // Salvaguarda Anti-truncamiento: Si la sesión existente no ha cargado el detalle de punches,
+                // intentar recuperar la lista completa de Supabase. Si no está creada localmente offline
+                // y el fetch falla (offline / RLS / timeout), abortar para no sobreescribir historial en el servidor.
+                if (existing && (!existing.punches || existing.punches.length === 0)) {
+                    const isLocalUnsynced = get().pendingSync.some(p => p.table === 'mx_timesheets' && p.id === existing!.id);
+                    if (!isLocalUnsynced) {
+                        const detailResult = await get().fetchTimesheetDetail(existing.id);
+                        const refreshed = get().timesheets.find(t => t.id === existing!.id);
+                        if (!detailResult && (!refreshed?.punches || refreshed.punches.length === 0)) {
+                            console.error(`[clockPunch] Aborting punch mutation for ${existing.id}: unable to load authoritative punch history from server.`);
+                            throw new Error('No se pudo verificar el historial de marcajes con el servidor. Reintente con conexión.');
+                        }
+                        existing = refreshed || existing;
                     }
                 }
 

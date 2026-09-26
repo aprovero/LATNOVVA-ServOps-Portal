@@ -94,6 +94,13 @@ export const subscribeUserToPush = async (): Promise<void> => {
 
         console.log('[Push] Subscription obtained:', subscription);
 
+        const currentEndpoint = subscription.endpoint;
+        const savedEndpoint = typeof localStorage !== 'undefined' ? localStorage.getItem('registered_push_endpoint') : null;
+        if (savedEndpoint === currentEndpoint) {
+            console.log('[Push] Subscription endpoint unchanged, skipping DB upsert.');
+            return;
+        }
+
         // Get current auth user ID
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -117,6 +124,9 @@ export const subscribeUserToPush = async (): Promise<void> => {
         if (error) {
             console.error('[Push] Failed to save subscription to database:', error);
         } else {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('registered_push_endpoint', currentEndpoint);
+            }
             console.log('[Push] Subscription successfully registered in Supabase');
         }
     } catch (err) {

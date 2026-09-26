@@ -63,6 +63,14 @@ export default function Attendance() {
         const overridesTable = isMx ? 'mx_attendance_overrides' : 'attendance_overrides';
         const personnelTable = isMx ? 'mx_personnel' : 'personnel';
 
+        let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+        const debouncedRefresh = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                refreshAttendance();
+            }, 1500);
+        };
+
         const channel = supabase
             .channel(`attendance-db-realtime-${activeSubsidiary}`)
             .on(
@@ -70,7 +78,7 @@ export default function Attendance() {
                 { event: '*', schema: 'public', table: timesheetTable },
                 (payload) => {
                     console.log(`[Realtime] Timesheet change detected on ${timesheetTable}:`, payload);
-                    refreshAttendance();
+                    debouncedRefresh();
                 }
             )
             .on(
@@ -78,7 +86,7 @@ export default function Attendance() {
                 { event: '*', schema: 'public', table: overridesTable },
                 (payload) => {
                     console.log(`[Realtime] Attendance override change detected on ${overridesTable}:`, payload);
-                    refreshAttendance();
+                    debouncedRefresh();
                 }
             )
             .on(
@@ -86,12 +94,13 @@ export default function Attendance() {
                 { event: '*', schema: 'public', table: personnelTable },
                 (payload) => {
                     console.log(`[Realtime] Personnel change detected on ${personnelTable}:`, payload);
-                    refreshAttendance();
+                    debouncedRefresh();
                 }
             )
             .subscribe();
 
         return () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
             supabase.removeChannel(channel);
         };
     }, [refreshAttendance, activeSubsidiary]);

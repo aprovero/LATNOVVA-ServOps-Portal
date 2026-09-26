@@ -792,6 +792,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         }
     }, [activeEntry]);
 
+    const activeOrTodayId = activeEntry?.id || todayEntry?.id;
+    useEffect(() => {
+        if (activeOrTodayId) {
+            useStore.getState().fetchTimesheetDetail(activeOrTodayId);
+        }
+    }, [activeOrTodayId]);
+
     const effectiveWorkMode = step === 'clocked-in' ? activeShiftMode : workMode;
     
     const userRole = useStore(state => state.userRole);
@@ -1386,8 +1393,12 @@ export default function ClockIn() {
 
     useEffect(() => {
         refreshAttendance();
-        // Periodically refresh every 30 seconds while in ClockIn view to ensure real-time status
-        const id = setInterval(() => refreshAttendance(), 30000);
+        // Periodically refresh every 30 seconds while in ClockIn view to ensure real-time status (only when visible)
+        const id = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                refreshAttendance();
+            }
+        }, 30000);
         return () => clearInterval(id);
     }, [refreshAttendance]);
 

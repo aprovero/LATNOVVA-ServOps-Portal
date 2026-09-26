@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore, Personnel, Project } from '../../store/useStore';
 import { calculateDailyAttendance, getStatusLabel, formatDisplayDate } from '../../utils/attendanceCalculations';
@@ -17,12 +17,19 @@ interface DayDetailPanelProps {
 export default function DayDetailPanel({ employee, date, project, onClose }: DayDetailPanelProps) {
     const { t, i18n } = useTranslation();
     const lang = i18n.language === 'en' ? 'en' : 'es';
-    const { timesheets, attendanceOverrides, workSchedules, projects, userRole, platformSettings, updateTimesheet } = useStore();
+    const { timesheets, attendanceOverrides, workSchedules, projects, userRole, platformSettings, updateTimesheet, fetchTimesheetDetail } = useStore();
     const [isEditing, setIsEditing] = useState(false);
 
     // Compute details for this date
     const dayView = calculateDailyAttendance(employee, date, timesheets, attendanceOverrides, workSchedules, lang, projects);
     const timesheetEntry = timesheets.find(t => t.personnelId === employee.id && t.date === date);
+
+    const timesheetId = timesheetEntry?.id;
+    useEffect(() => {
+        if (timesheetId) {
+            fetchTimesheetDetail(timesheetId);
+        }
+    }, [timesheetId, fetchTimesheetDetail]);
     const dayOverride = attendanceOverrides.find(o => 
         o.employeeId === employee.id && 
         new Date(date + 'T00:00:00') >= new Date(o.startDate + 'T00:00:00') && 
