@@ -14,21 +14,18 @@ const currentVersion = __APP_VERSION__;
 const storedVersion = localStorage.getItem('latnovva_app_version');
 
 if (storedVersion !== currentVersion) {
-    console.warn(`[App] Version mismatch: ${storedVersion} -> ${currentVersion}. Forcing cache wipe...`);
+    console.warn(`[App] Version updated: ${storedVersion} -> ${currentVersion}. Refreshing web cache while preserving offline attendance state...`);
     
-    // 1. Wipe IndexedDB natively (no store import needed)
-    if (typeof indexedDB !== 'undefined') {
-        indexedDB.databases?.().then(dbs => {
-            dbs.forEach(db => db.name && indexedDB.deleteDatabase(db.name));
-        }).catch(() => {
-            // Fallback: blindly delete known DB names
-            ['latnovva-db', 'supabase', 'keyval-store'].forEach(name => indexedDB.deleteDatabase(name));
-        });
+    // 1. Preserve pending local storage item (latnovva-storage contains Zustand state & pendingSync)
+    const preservedStore = localStorage.getItem('latnovva-storage');
+
+    // 2. Clear non-essential session & localStorage keys (DO NOT call localStorage.clear() blindly)
+    try {
+        const keysToRemove = Object.keys(localStorage).filter(k => k !== 'latnovva-storage' && !k.startsWith('app_version_logged_'));
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+        console.warn('[App] Non-fatal localStorage cleanup warning:', e);
     }
-    
-    // 2. Clear Local & Session Storage
-    localStorage.clear();
-    sessionStorage.clear();
     
     // 3. Clear Service Worker Caches
     if ('caches' in window) {
@@ -46,6 +43,9 @@ if (storedVersion !== currentVersion) {
     
     // 5. Store the new version and reload
     localStorage.setItem('latnovva_app_version', currentVersion);
+    if (preservedStore) {
+        localStorage.setItem('latnovva-storage', preservedStore);
+    }
     window.location.reload();
 }
 

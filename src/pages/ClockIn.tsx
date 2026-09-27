@@ -7,6 +7,7 @@ import { useStore, ClockPunch, Personnel } from '../store/useStore';
 import { formatTime } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { useAttendance } from '../hooks/useAttendance';
+import { getActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
 import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 import QuickAddWorker from '../components/shared/QuickAddWorker';
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
@@ -62,8 +63,9 @@ function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'dev
 }
 
 function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
-    const today = getLocalDate();
-    const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeIn && !t.timeOut);
+    const activeState = getActiveShift(personnelId) || recoverActiveShift(personnelId, timesheets);
+    if (activeState) return 'clocked-in';
+    const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
     if (openEntry) return 'clocked-in';
     return 'idle';
 }
@@ -755,7 +757,16 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const punches: ClockPunch[] = todayEntry?.punches ?? [];
     const step = getPunchStep(timesheets, personnelId);
 
-    const activeEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+    const activeShiftState = getActiveShift(personnelId) || recoverActiveShift(personnelId, timesheets);
+    const activeEntry = activeShiftState
+        ? timesheets.find((t: any) => t.id === activeShiftState.timesheetId)
+        : [...timesheets]
+            .filter((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut)
+            .sort((a: any, b: any) => {
+                const tA = new Date(a.createdAt || `${a.date}T${a.timeIn || '00:00'}:00`).getTime();
+                const tB = new Date(b.createdAt || `${b.date}T${b.timeIn || '00:00'}:00`).getTime();
+                return tB - tA;
+            })[0];
     const staleEntry = timesheets.find((t: any) =>
         t.personnelId === personnelId &&
         t.timeIn &&

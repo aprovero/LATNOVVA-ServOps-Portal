@@ -12,6 +12,9 @@ interface IdentityProfile {
     email: string | null;
     role: string | null;
     client_id: string | null;
+    password_policy_version?: number | null;
+    password_changed_at?: string | null;
+    is_service_account?: boolean | null;
 }
 
 // Fetches the identity profile and optionally the personnel data.
@@ -137,6 +140,7 @@ interface AuthState {
     signInWithOtp: (email: string) => Promise<void>;
     signOut: () => Promise<void>;
     updateAccount: (name: string, password?: string) => Promise<void>;
+    completePasswordRotation: (newPassword: string) => Promise<void>;
 }
 
 // Module-level guard to ensure the Supabase listener is only registered once
@@ -368,23 +372,22 @@ export const useAuthStore = create<AuthState>((set, get) => {
             }
         },
 
-        updateAccount: async (name, password) => {
+        updateAccount: async (name: string, password?: string) => {
             set({ loading: true, error: null });
             try {
-                const updateData: any = {
-                    data: { name }
-                };
-                if (password) updateData.password = password;
+                if (password) {
+                    await get().completePasswordRotation(password);
+                }
 
-                const { data, error: authError } = await supabase.auth.updateUser(updateData);
+                const { data, error: authError } = await supabase.auth.updateUser({
+                    data: { name }
+                });
                 if (authError) throw authError;
 
-                // Update session state with new user metadata
                 if (data.user) {
                     set({ user: data.user });
                 }
 
-                // Sync with personnel table if user is personnel
                 const currentProfile = get().profile;
                 if (currentProfile) {
                     const { error: dbError } = await (supabase as any)
@@ -393,9 +396,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                         .eq('id', currentProfile.id);
                     
                     if (!dbError) {
-                        // LATNOVVA SYSTEM OPS // v2.5.8
                         set({ profile: { ...currentProfile, name } });
-                        // Also update the main store personnel list to reflect name change globally
                         useStore.getState().updatePersonnel(currentProfile.id, { name });
                     }
                 }
@@ -404,6 +405,56 @@ export const useAuthStore = create<AuthState>((set, get) => {
             } catch (error: any) {
                 set({ error: error.message, loading: false });
                 throw error;
+            }
+        },
+
+        completePasswordRotation: async (newPassword: string) => {
+            set({ loading: true, error: null });
+            try {
+                if (!newPassword || newPassword.length < 12) {
+                    throw new Error('Password must be at least 12 characters long');
+                }
+                if (newPassword === 'Latnovva2026!') {
+                    throw new Error('New password cannot be the default shared password');
+                }
+
+                // 1. Call Edge Function to rotate password & set trusted app_metadata
+                const { data, error: funcErr } = await supabase.functions.invoke(
+                    'complete-password-rotation',
+                    { body: { newPassword } }
+                );
+
+                if (funcErr) {
+                    throw new Error(funcErr.message || 'Failed to complete password rotation');
+                }
+
+                if (data?.error) {
+                    throw new Error(data.error);
+                }
+
+                // 2. Perform global sign-out from browser
+                try {
+                    await supabase.auth.signOut({ scope: 'global' });
+                } catch (e) {
+                    console.warn('[Auth] Global sign-out warning:', e);
+                }
+
+                // 3. Clear auth/session state without purging local attendance sync queues or timesheet data
+                set({ session: null, user: null, identity: null, profile: null, loading: false });
+
+                // Purge auth tokens from localStorage only
+                try {
+                    const keys = Object.keys(localStorage);
+                    keys.forEach(k => {
+                        if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
+                            localStorage.removeItem(k);
+                        }
+                    });
+                } catch (e) {}
+
+            } catch (err: any) {
+                set({ error: err.message, loading: false });
+                throw err;
             }
         },
     };

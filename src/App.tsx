@@ -22,6 +22,8 @@ import SurveyResults from './pages/SurveyResults';
 import SplashScreen from './components/common/SplashScreen';
 import FaceLockScreen from './components/shared/FaceLockScreen';
 import CommercialPortal from './pages/CommercialPortal';
+import VersionUpdateGate from './components/VersionUpdateGate';
+import PasswordChangeGate from './components/PasswordChangeGate';
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -82,6 +84,9 @@ function App() {
 
     return (
         <>
+            <VersionUpdateGate />
+            <PasswordChangeGate />
+
             <SplashScreen onComplete={() => {}} />
             
             {showLockScreen && (

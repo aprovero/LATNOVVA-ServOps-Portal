@@ -49,3 +49,11 @@ desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# Database backup artifacts only
+/backups/
+/backup/
+/supabase_backup_*
+/roles.sql
+/schema.sql
+/data.sql

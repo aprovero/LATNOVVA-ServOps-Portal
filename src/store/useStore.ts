@@ -5,6 +5,10 @@ import { createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from '../lib/idbStorage';
 import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 
+import { USE_NORMALIZED_PUNCHES } from '../config/flags';
+import { NormalizedPendingPunch, processNormalizedPunchItem, getSignedMediaUrl } from '../lib/normalizedPunchSync';
+import { getActiveShift, setActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
+
 export const TIMESHEET_LIGHTWEIGHT_COLUMNS = 'id, personnel_id, project_id, date, time_in, time_out, hours, type, classification, notes, status, approved_by, gps_verified, source, manual_reason, created_at, updated_at, corrected_by, corrected_at, correction_reason, lunch_start, lunch_end';
 export const PERSONNEL_LIGHTWEIGHT_COLUMNS = 'id, name, position, app_role, employee_number, status, email, phone_number, certifications, supervisor_id, manager_id, client_id, prevailing_wage, bench_exempt, regular_rate, rainy_day_rate, overtime_rate, meal_allowance, gas_allowance, truck_allowance, lead_pay, per_diem, dbo, emergency_contact_name, emergency_contact_phone, subsidiary, subsidiary_metadata';
 
@@ -280,6 +284,7 @@ export interface ScheduledEvent {
 }
 
 export interface ClockPunch {
+    id?: string;
     timestamp: string;   // ISO string — always UTC
     lat: number;
     lng: number;
@@ -289,13 +294,16 @@ export interface ClockPunch {
     manualAdjustment?: boolean; // true if time was entered retroactively
     adjustmentNote?: string;
     selfieBlob?: string; // base64 JPEG thumbnail for identity verification
+    selfieUrl?: string; // Storage path / signed URL for private selfie image
     supervisorSignatureBlob?: string; // base64 PNG — supervisor's drawn signature for batch punches
+    supervisorSignatureUrl?: string; // Storage path / signed URL for private signature image
     isOutsourced?: boolean; // true for non-registered / contract personnel
     outsourcedName?: string; // display name when isOutsourced is true
     workMode?: 'On Site' | 'Home Office';
     isZombieClose?: boolean;
     faceVerified?: boolean;
     faceBypassReason?: string;
+    gpsVerified?: boolean;
 }
 
 export interface TimesheetEntry {
@@ -503,7 +511,7 @@ interface AppState {
     deleteTimesheet: (id: string) => void;
     approveTimesheet: (id: string, approverId: string) => void;
     rejectTimesheet: (id: string, approverId: string) => void;
-    clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean) => void;
+    clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean, explicitTimesheetId?: string) => Promise<void>;
     discardStaleShift: (timesheetId: string) => Promise<void>;
     attendanceOverrides: AttendanceOverride[];
     workSchedules: WorkSchedule[];
@@ -550,6 +558,12 @@ interface AppState {
         enableFacialId: boolean;
         enableFastLogin: boolean;
         customProjectTypes?: string[];
+        minimumClientVersion: string;
+        minimumClientVersionEffectiveAt: string | null;
+        minimumClientVersionEnabled: boolean;
+        requiredPasswordPolicyVersion: number;
+        passwordRotationEffectiveAt: string | null;
+        passwordRotationEnabled: boolean;
     };
     updatePlatformSettings: (settings: Partial<AppState['platformSettings']>) => void;
     checkZombieSessions: () => Promise<void>;
@@ -919,6 +933,12 @@ export const useStore = create<AppState>()(
                 enableFacialId: true,
                 enableFastLogin: false,
                 customProjectTypes: [],
+                minimumClientVersion: '5.0.0',
+                minimumClientVersionEffectiveAt: null,
+                minimumClientVersionEnabled: false,
+                requiredPasswordPolicyVersion: 1,
+                passwordRotationEffectiveAt: null,
+                passwordRotationEnabled: false,
             },
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
@@ -927,13 +947,16 @@ export const useStore = create<AppState>()(
             },
 
             checkZombieSessions: async () => {
-                const { timesheets, platformSettings, clockPunch, pendingSync } = get();
+                const { timesheets, platformSettings, clockPunch, pendingSync, userRole, userId } = get();
                 if (!platformSettings.enableAutoClockOut) return;
 
                 // Find open sessions where the current time is past 11:59 PM (23:59) on the shift's date
                 const zombies = timesheets.filter(t => {
                     if (!t.timeIn || t.timeOut) return false;
                     
+                    // Tech role can only auto-close their own zombie shifts (prevents RPC 400 forbidden errors)
+                    if (userRole === 'Tech' && userId && t.personnelId !== userId) return false;
+
                     // Skip if it's already in the pendingSync queue to be updated/inserted
                     const hasPendingSync = pendingSync.some(p => p.table === 'mx_timesheets' && p.id === t.id);
                     if (hasPendingSync) return false;
@@ -987,6 +1010,28 @@ export const useStore = create<AppState>()(
                     // Process while we have items and we are online
                     while (get().pendingSync.length > 0 && navigator.onLine) {
                         const item = get().pendingSync[0]; // Take the first one
+
+                        // Stage 2 Normalized Punch Event Queue Handler
+                        if (item.action === ('normalized_punch' as any) || item.table === 'mx_timesheet_punches') {
+                            const personnel = get().personnel.find(p => p.id === item.payload?.targetPersonnelId);
+                            const subsidiary = personnel?.subsidiary || 'MX';
+                            const { updatedItem, isComplete } = await processNormalizedPunchItem(item.payload, subsidiary);
+                            
+                            if (isComplete) {
+                                set(state => ({
+                                    pendingSync: state.pendingSync.filter(i => i !== item)
+                                }));
+                            } else {
+                                // Update payload in queue with state machine progression
+                                set(state => ({
+                                    pendingSync: state.pendingSync.map(i => i === item ? { ...i, payload: updatedItem } : i)
+                                }));
+                                // On retryable/conflict error, break out of loop
+                                break;
+                            }
+                            continue;
+                        }
+
                         try {
                             let query;
                             const payload = { ...item.payload };
@@ -1258,6 +1303,12 @@ export const useStore = create<AppState>()(
                                 enableFacialId: settingsDB.enableFacialId !== null ? !!settingsDB.enableFacialId : state.platformSettings.enableFacialId,
                                 enableFastLogin: settingsDB.enableFastLogin !== null ? !!settingsDB.enableFastLogin : state.platformSettings.enableFastLogin,
                                 customProjectTypes: Array.isArray(settingsDB.customProjectTypes) ? settingsDB.customProjectTypes : state.platformSettings.customProjectTypes || [],
+                                minimumClientVersion: settingsDB.minimum_client_version || settingsDB.minimumClientVersion || state.platformSettings.minimumClientVersion,
+                                minimumClientVersionEffectiveAt: settingsDB.minimum_client_version_effective_at || settingsDB.minimumClientVersionEffectiveAt || null,
+                                minimumClientVersionEnabled: settingsDB.minimum_client_version_enabled !== undefined && settingsDB.minimum_client_version_enabled !== null ? !!settingsDB.minimum_client_version_enabled : (settingsDB.minimumClientVersionEnabled !== undefined ? !!settingsDB.minimumClientVersionEnabled : state.platformSettings.minimumClientVersionEnabled),
+                                requiredPasswordPolicyVersion: Number(settingsDB.required_password_policy_version || settingsDB.requiredPasswordPolicyVersion) || state.platformSettings.requiredPasswordPolicyVersion,
+                                passwordRotationEffectiveAt: settingsDB.password_rotation_effective_at || settingsDB.passwordRotationEffectiveAt || null,
+                                passwordRotationEnabled: settingsDB.password_rotation_enabled !== undefined && settingsDB.password_rotation_enabled !== null ? !!settingsDB.password_rotation_enabled : (settingsDB.passwordRotationEnabled !== undefined ? !!settingsDB.passwordRotationEnabled : state.platformSettings.passwordRotationEnabled),
                             }
                             : state.platformSettings,
                     }));
@@ -1480,6 +1531,53 @@ export const useStore = create<AppState>()(
             fetchTimesheetDetail: async (timesheetId: string) => {
                 if (!timesheetId) return null;
                 try {
+                    if (USE_NORMALIZED_PUNCHES) {
+                        const { data: punchesData, error } = await supabase
+                            .from('mx_timesheet_punches')
+                            .select('*')
+                            .eq('timesheet_id', timesheetId)
+                            .order('timestamp', { ascending: true });
+
+                        if (!error && punchesData) {
+                            const mappedPunches = await Promise.all(punchesData.map(async (p: any) => {
+                                const selfieSigned = await getSignedMediaUrl(p.selfie_url);
+                                const sigSigned = await getSignedMediaUrl(p.supervisor_signature_url);
+                                return {
+                                    id: p.id,
+                                    timestamp: p.timestamp,
+                                    type: p.type as ('clockIn' | 'clockOut'),
+                                    workMode: p.work_mode,
+                                    lat: p.lat,
+                                    lng: p.lng,
+                                    accuracy: p.accuracy,
+                                    timeSource: p.time_source,
+                                    manualAdjustment: p.manual_adjustment,
+                                    adjustmentNote: p.adjustment_note,
+                                    faceVerified: p.face_verified,
+                                    faceBypassReason: p.face_bypass_reason,
+                                    isOutsourced: p.is_outsourced,
+                                    outsourcedName: p.outsourced_name,
+                                    isZombieClose: p.is_zombie_close,
+                                    gpsVerified: p.gps_verified,
+                                    selfieBlob: selfieSigned || undefined,
+                                    selfieUrl: selfieSigned || undefined,
+                                    supervisorSignatureBlob: sigSigned || undefined,
+                                    supervisorSignatureUrl: sigSigned || undefined,
+                                };
+                            }));
+
+                            set((state) => ({
+                                timesheets: state.timesheets.map(t =>
+                                    t.id === timesheetId
+                                        ? { ...t, punches: mappedPunches }
+                                        : t
+                                )
+                            }));
+                            return { id: timesheetId, punches: mappedPunches };
+                        }
+                    }
+
+                    // Legacy shadow read fallback
                     const { data, error } = await supabase
                         .from('mx_timesheets')
                         .select('id, punches, signature')
@@ -2326,7 +2424,7 @@ export const useStore = create<AppState>()(
                     console.error('[discardStaleShift] Sync error:', e);
                 }
             },
-            clockPunch: async (personnelId, punch, projectId) => {
+            clockPunch: async (personnelId: string, punch: ClockPunch, projectId?: string, _lunchSkipped?: boolean, explicitTimesheetId?: string) => {
                 const _d = new Date();
                 const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
 
@@ -2335,30 +2433,78 @@ export const useStore = create<AppState>()(
                     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
                 };
 
-                // C-01: Al checar entrada, buscar ÚNICAMENTE sesión activa de HOY.
-                // Nunca asociar checada nueva a turnos huérfanos de días pasados.
-                let existing = punch.type === 'clockIn'
-                    ? get().timesheets.find(t => t.personnelId === personnelId && t.date === today && t.timeIn && !t.timeOut)
-                    : get().timesheets.find(t => t.personnelId === personnelId && t.date === today && t.timeIn && !t.timeOut);
+                let targetId: string = '';
+                let existing: any = null;
 
-                // Para salida, si no hay sesión hoy, buscar la más reciente abierta
-                if (punch.type === 'clockOut' && !existing) {
-                    existing = [...get().timesheets]
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+                if (USE_NORMALIZED_PUNCHES) {
+                    if (punch.type === 'clockIn') {
+                        const active = getActiveShift(personnelId);
+                        if (active) {
+                            console.warn(`[clockPunch] Personnel ${personnelId} already has an active open shift (${active.timesheetId}). Rejecting duplicate clockIn.`);
+                            return;
+                        }
+                        targetId = explicitTimesheetId || crypto.randomUUID();
+                        existing = null;
+                        setActiveShift({
+                            personnelId,
+                            timesheetId: targetId,
+                            date: today,
+                            projectId: projectId || '',
+                            workMode: punch.workMode || 'On Site',
+                            startedAt: punch.timestamp,
+                            clockInPunchId: punch.id || crypto.randomUUID()
+                        });
+                    } else { // clockOut
+                        let active = explicitTimesheetId ? { timesheetId: explicitTimesheetId } : getActiveShift(personnelId);
+                        if (!active) {
+                            const recovered = recoverActiveShift(personnelId, get().timesheets);
+                            if (recovered) {
+                                active = recovered;
+                            }
+                        }
+                        if (!active || !active.timesheetId) {
+                            console.error(`[clockPunch] FAIL CLOSED: Unable to resolve stable active timesheet ID for clockOut of personnel ${personnelId}.`);
+                            throw new Error(`MissingTimesheetForClockOut: Cannot clock out personnel ${personnelId} because no active timesheet ID is available.`);
+                        }
+                        targetId = active.timesheetId;
+                        existing = get().timesheets.find(t => t.id === targetId) || null;
+                    }
+                } else {
+                    const openToday = get().timesheets
+                        .filter(t => t.personnelId === personnelId && t.date === today && t.timeIn && !t.timeOut)
+                        .sort((a, b) => {
+                            const tA = new Date((a as any).createdAt || `${a.date}T${a.timeIn || '00:00'}:00`).getTime();
+                            const tB = new Date((b as any).createdAt || `${b.date}T${b.timeIn || '00:00'}:00`).getTime();
+                            return tB - tA;
+                        });
+                    existing = openToday[0];
 
-                    // Salvaguarda: Si no hay turno abierto pero acaba de checar salida hace menos de 60s, ignorar duplicado
-                    const recentlyClosedToday = get().timesheets.find(t =>
-                        t.personnelId === personnelId &&
-                        t.date === today &&
-                        t.timeOut &&
-                        t.punches?.some(p => p.type === 'clockOut' && (Math.abs(new Date(punch.timestamp).getTime() - new Date(p.timestamp).getTime()) < 60000))
-                    );
-                    if (recentlyClosedToday) {
-                        console.warn(`[clockPunch] Personnel ${personnelId} already clocked out recently (${recentlyClosedToday.id}). Duplicate clockOut ignored.`);
+                    if (punch.type === 'clockOut' && !existing) {
+                        existing = [...get().timesheets]
+                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                            .find(t => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+
+                        const recentlyClosedToday = get().timesheets.find(t =>
+                            t.personnelId === personnelId &&
+                            t.date === today &&
+                            t.timeOut &&
+                            t.punches?.some(p => p.type === 'clockOut' && (Math.abs(new Date(punch.timestamp).getTime() - new Date(p.timestamp).getTime()) < 60000))
+                        );
+                        if (recentlyClosedToday) {
+                            console.warn(`[clockPunch] Personnel ${personnelId} already clocked out recently (${recentlyClosedToday.id}). Duplicate clockOut ignored.`);
+                            return;
+                        }
+                    }
+
+                    if (punch.type === 'clockIn' && existing) {
+                        console.warn(`[clockPunch] Personnel ${personnelId} already has an active open shift (${existing.id}). Rejecting duplicate clockIn.`);
                         return;
                     }
+
+                    targetId = existing ? existing.id : crypto.randomUUID();
                 }
+
+                const isNewEntry = !existing && punch.type === 'clockIn';
 
                 // Salvaguarda Anti-truncamiento: Si la sesión existente no ha cargado el detalle de punches,
                 // intentar recuperar la lista completa de Supabase. Si no está creada localmente offline
@@ -2376,15 +2522,7 @@ export const useStore = create<AppState>()(
                     }
                 }
 
-                // Salvaguarda Anti-duplicados:
-                // 1. Si el usuario ya tiene una sesión abierta hoy (timeIn y sin timeOut) y llega otro clockIn,
-                // ignorar para evitar duplicar el marcaje de Entrada (evita caso de múltiples Entradas como Nancy Ramos).
-                if (punch.type === 'clockIn' && existing) {
-                    console.warn(`[clockPunch] Personnel ${personnelId} already has an active open shift (${existing.id}). Rejecting duplicate clockIn.`);
-                    return;
-                }
-
-                // 2. Cooldown anti-rebote (30 segundos) para el mismo tipo de marcaje en la sesión
+                // Cooldown anti-rebote (30 segundos) para el mismo tipo de marcaje en la sesión
                 if (existing?.punches && existing.punches.length > 0) {
                     const lastPunch = existing.punches[existing.punches.length - 1];
                     const lastTime = new Date(lastPunch.timestamp).getTime();
@@ -2395,11 +2533,10 @@ export const useStore = create<AppState>()(
                     }
                 }
                 
-                const isNewEntry = !existing && punch.type === 'clockIn';
-                const targetId = existing ? existing.id : crypto.randomUUID();
+                const punchId = punch.id || crypto.randomUUID();
+                const punchWithId: ClockPunch = { ...punch, id: punchId };
 
                 set((state) => {
-                    // Re-find in current state for the setter using ID if existing was found
                     let sessionToUpdate = existing ? state.timesheets.find(t => t.id === existing.id) : null;
 
                     const activeProjId = projectId || sessionToUpdate?.projectId || '';
@@ -2408,7 +2545,7 @@ export const useStore = create<AppState>()(
                     const projCoords = parseCoordinates(targetProject?.location);
                     const threshold = getGPSAccuracyThreshold(state.platformSettings?.gpsAccuracyThreshold);
 
-                    const updatedPunches = [...(sessionToUpdate?.punches ?? []), punch];
+                    const updatedPunches = [...(sessionToUpdate?.punches ?? []), punchWithId];
                     const radius = targetProject?.geofenceRadius || state.platformSettings?.geofenceRadius || 1000;
                     const allAccurate = updatedPunches.every(p => {
                         if (p.accuracy > threshold) return false;
@@ -2429,7 +2566,6 @@ export const useStore = create<AppState>()(
                     if (clockIn && clockOut) {
                         const isZombie = punch.isZombieClose || (punch.adjustmentNote && punch.adjustmentNote.includes('Auto closed'));
                         if (isZombie) {
-                            // REGLA DE NEGOCIO: Turno autocerrado acredita horas estándar (10h para turnos de oficina MX 8 a 6)
                             const person = state.personnel.find(p => p.id === personnelId);
                             const sched = state.workSchedules?.find(s => s.id === person?.subsidiaryMetadata?.defaultScheduleId);
                             computedHours = sched?.standardDailyHours || 10.0;
@@ -2477,10 +2613,40 @@ export const useStore = create<AppState>()(
                 });
 
                 try {
-                    // Find the actual updated entry from the new state by its unique targetId
                     const updated = get().timesheets.find(t => t.id === targetId);
-                    
-                    if (updated) {
+
+                    if (USE_NORMALIZED_PUNCHES) {
+                        const threshold = getGPSAccuracyThreshold(get().platformSettings?.gpsAccuracyThreshold);
+                        const normItem: NormalizedPendingPunch = {
+                            punchId: punchId,
+                            timestamp: punchWithId.timestamp,
+                            date: today,
+                            type: punchWithId.type,
+                            targetPersonnelId: personnelId,
+                            timesheetId: targetId,
+                            projectId: projectId || updated?.projectId,
+                            workMode: punchWithId.workMode || 'On Site',
+                            lat: punchWithId.lat,
+                            lng: punchWithId.lng,
+                            accuracy: punchWithId.accuracy,
+                            timeSource: punchWithId.timeSource || 'device',
+                            manualAdjustment: punchWithId.manualAdjustment || false,
+                            adjustmentNote: punchWithId.adjustmentNote,
+                            faceVerified: punchWithId.faceVerified || false,
+                            faceBypassReason: punchWithId.faceBypassReason,
+                            isOutsourced: punchWithId.isOutsourced || false,
+                            outsourcedName: punchWithId.outsourcedName,
+                            isZombieClose: punchWithId.isZombieClose || false,
+                            gpsVerified: (punchWithId.accuracy ?? 9999) <= threshold,
+                            selfieBase64: punchWithId.selfieBlob,
+                            signatureBase64: punchWithId.supervisorSignatureBlob,
+                            queueState: 'LOCAL_PENDING',
+                            retryCount: 0,
+                            createdAt: new Date().toISOString()
+                        };
+
+                        await get().safeSync('mx_timesheet_punches', punchId, 'normalized_punch' as any, normItem);
+                    } else if (updated) {
                         const dbPayload: any = {
                             id: updated.id,
                             personnel_id: updated.personnelId,
@@ -2496,14 +2662,12 @@ export const useStore = create<AppState>()(
                             notes: updated.notes || null,
                         };
 
-                        // Optional columns - only include if they have values to avoid schema errors on older DBs
                         if (updated.source) dbPayload.source = updated.source;
                         if ((updated as any).manualReason) dbPayload.manual_reason = (updated as any).manualReason;
 
                         if (isNewEntry) {
                             await get().safeSync('mx_timesheets', updated.id, 'insert', dbPayload);
                         } else {
-                            // Use upsert for existing to handle potential race conditions or missing local records
                             await get().safeSync('mx_timesheets', updated.id, 'upsert', dbPayload);
                         }
                     }
@@ -2717,3 +2881,9 @@ export const useStore = create<AppState>()(
         }
     )
 );
+
+if (typeof window !== 'undefined') {
+    (window as any).__ZUSTAND_STORE__ = useStore;
+}
+
+
