@@ -935,15 +935,28 @@ export const useStore = create<AppState>()(
                 customProjectTypes: [],
                 minimumClientVersion: '5.0.0',
                 minimumClientVersionEffectiveAt: null,
-                minimumClientVersionEnabled: false,
+                minimumClientVersionEnabled: true,
                 requiredPasswordPolicyVersion: 1,
                 passwordRotationEffectiveAt: null,
-                passwordRotationEnabled: false,
+                passwordRotationEnabled: true,
             },
             updatePlatformSettings: (settings) => {
                 const next = { ...get().platformSettings, ...settings };
                 set({ platformSettings: next });
-                get().safeSync('platform_settings', 'global', 'upsert', { id: 'global', ...next });
+                const dbPayload = {
+                    id: 'global',
+                    ...next,
+                    minimum_version: next.minimumClientVersion,
+                    minimum_client_version: next.minimumClientVersion,
+                    minimum_version_enabled: next.minimumClientVersionEnabled,
+                    minimum_client_version_enabled: next.minimumClientVersionEnabled,
+                    minimum_version_effective_at: next.minimumClientVersionEffectiveAt,
+                    minimum_client_version_effective_at: next.minimumClientVersionEffectiveAt,
+                    required_password_policy_version: next.requiredPasswordPolicyVersion,
+                    password_rotation_enabled: next.passwordRotationEnabled,
+                    password_rotation_effective_at: next.passwordRotationEffectiveAt
+                };
+                get().safeSync('platform_settings', 'global', 'upsert', dbPayload);
             },
 
             checkZombieSessions: async () => {
