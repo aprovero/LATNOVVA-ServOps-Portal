@@ -24,11 +24,27 @@ export const PasswordChangeGate: React.FC = () => {
     const userPolicyVer = appMetaPolicyVer !== undefined ? Number(appMetaPolicyVer) : (identity?.password_policy_version ?? 0);
     const isServiceAccount = (session?.user?.app_metadata as any)?.is_service_account || identity?.is_service_account || false;
 
-    const isRotationRequired = isEnabled && !isServiceAccount && userPolicyVer < reqVersion;
+    // MUST require an active session, otherwise logged out users get trapped on the modal
+    const isRotationRequired = !!session && isEnabled && !isServiceAccount && userPolicyVer < reqVersion;
 
     if (!isRotationRequired) {
-        return null; // Compliant
+        return null; // Compliant or unauthenticated
     }
+
+    const handleSignOut = async () => {
+        setIsSubmitting(true);
+        try {
+            await signOut();
+        } catch (e) {
+            console.error('[Auth] Error during sign out:', e);
+        } finally {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+            } catch (e) {}
+            window.location.href = '/login';
+        }
+    };
 
     // Live validation checks & 2026 NIST/OWASP security recommendations
     const hasMinLength = newPassword.length >= 12;
@@ -177,7 +193,7 @@ export const PasswordChangeGate: React.FC = () => {
                     <div className="flex items-center justify-between gap-3 pt-2">
                         <button
                             type="button"
-                            onClick={() => signOut()}
+                            onClick={handleSignOut}
                             className="flex items-center space-x-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl transition-all"
                         >
                             <LogOut className="w-4 h-4" />

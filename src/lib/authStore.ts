@@ -350,25 +350,23 @@ export const useAuthStore = create<AuthState>((set, get) => {
             set({ session: null, user: null, identity: null, profile: null, loading: false });
             useStore.getState().resetDb();
             
-            // ── STEP 3: Clear Storage Hard Link ──────────────────────────────
-            // This force-kills GoTrue locks and stale tokens that cause "nothing happens" loops.
+            // ── STEP 3: Clear Storage & Auth Tokens ──────────────────────────
             try {
-                const keys = Object.keys(localStorage);
-                keys.forEach(k => {
-                    if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
-                        localStorage.removeItem(k);
-                    }
-                });
+                localStorage.clear();
+                sessionStorage.clear();
             } catch (e) {
-                console.warn('[Auth] Failed to purge localStorage:', e);
+                console.warn('[Auth] Failed to purge storage:', e);
             }
 
-            // ── STEP 4: Supabase Cloud SignOut ──────────────────────────────
+            // ── STEP 4: Supabase Cloud SignOut & Redirect ─────────────────────
             try {
-                // Non-blocking call — session is already cleared locally.
-                supabase.auth.signOut().catch(() => {});
-            } catch {
+                await supabase.auth.signOut();
+            } catch (e) {
                 // Ignore — local state is primary
+            }
+
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
             }
         },
 
