@@ -14,6 +14,14 @@ export function getActiveShiftKey(personnelId: string): string {
   return `${STORAGE_KEY_PREFIX}${personnelId}`;
 }
 
+function getLocalDateStr(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function getActiveShift(personnelId: string): NormalizedActiveShift | null {
   if (!personnelId) return null;
   try {
@@ -21,6 +29,11 @@ export function getActiveShift(personnelId: string): NormalizedActiveShift | nul
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && parsed.timesheetId && parsed.personnelId === personnelId) {
+      if (parsed.date && parsed.date < getLocalDateStr()) {
+        console.warn(`[activeShiftManager] Clearing stale active shift from previous date (${parsed.date}) for personnel ${personnelId}`);
+        clearActiveShift(personnelId);
+        return null;
+      }
       return parsed as NormalizedActiveShift;
     }
   } catch (e) {
