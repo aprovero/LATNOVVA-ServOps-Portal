@@ -292,6 +292,7 @@ export interface ClockPunch {
     type: 'clockIn' | 'clockOut';
     timeSource: 'gps' | 'device'; // gps = satellite atomic clock, device = system clock
     manualAdjustment?: boolean; // true if time was entered retroactively
+    adjustmentReason?: string; // e.g. 'FORGOTTEN_CLOCKOUT'
     adjustmentNote?: string;
     selfieBlob?: string; // base64 JPEG thumbnail for identity verification
     selfieUrl?: string; // Storage path / signed URL for private selfie image
@@ -467,6 +468,8 @@ interface AppState {
     getCurrentUserName: () => string;
     /** Resolves the Personnel ID for the currently logged-in user. */
     resolvePersonnelId: () => string | null;
+    normalizedAttendanceEnabled: boolean;
+    checkAttendanceWriteMode: () => Promise<boolean>;
     initDb: () => Promise<void>;
     fetchTimesheetsForRange: (startDate: string, endDate: string) => Promise<void>;
     fetchTimesheetDetail: (timesheetId: string) => Promise<any>;
@@ -593,6 +596,7 @@ export const useStore = create<AppState>()(
             personnel: [],
             dismissedNotifications: [],
             pendingSync: [],
+            clearSyncQueue: () => set({ pendingSync: [] }),
             isSyncing: false,
             isInitializing: false,
             syncError: null,
@@ -1107,8 +1111,21 @@ export const useStore = create<AppState>()(
                 await get().processSyncQueue();
             },
 
-            clearSyncQueue: () => {
-                set({ pendingSync: [], syncError: null });
+            normalizedAttendanceEnabled: false,
+
+            checkAttendanceWriteMode: async () => {
+                try {
+                    const { data, error } = await supabase.rpc('get_attendance_write_mode');
+                    if (!error && data && typeof data.normalized_attendance_enabled === 'boolean') {
+                        const enabled = data.normalized_attendance_enabled;
+                        set({ normalizedAttendanceEnabled: enabled });
+                        return enabled;
+                    }
+                } catch (e) {
+                    console.warn('[checkAttendanceWriteMode] RPC failed:', e);
+                }
+                set({ normalizedAttendanceEnabled: false });
+                return false;
             },
 
             initDb: async () => {
@@ -1122,6 +1139,7 @@ export const useStore = create<AppState>()(
                 try {
                     // Ensure auth session is loaded/refreshed first to prevent concurrent lock issues
                     await supabase.auth.getSession();
+                    await get().checkAttendanceWriteMode();
 
                     const thirtyDaysAgo = new Date();
                     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -1544,7 +1562,7 @@ export const useStore = create<AppState>()(
             fetchTimesheetDetail: async (timesheetId: string) => {
                 if (!timesheetId) return null;
                 try {
-                    if (USE_NORMALIZED_PUNCHES) {
+                    if (USE_NORMALIZED_PUNCHES || get().normalizedAttendanceEnabled) {
                         const { data: punchesData, error } = await supabase
                             .from('mx_timesheet_punches')
                             .select('*')
@@ -1728,7 +1746,10 @@ export const useStore = create<AppState>()(
                 }
                 return null;
             },
-            setAuthData: (id, email) => set({ userId: id, userEmail: email }),
+            setAuthData: (id, email) => {
+                set({ userId: id, userEmail: email });
+                get().checkAttendanceWriteMode();
+            },
             setUserRole: (role) => set({ userRole: role }),
             setActiveSubsidiary: (sub) => set({ activeSubsidiary: sub }),
             setClientId: (id) => set({ clientId: id }),
@@ -2449,7 +2470,12 @@ export const useStore = create<AppState>()(
                 let targetId: string = '';
                 let existing: any = null;
 
-                if (USE_NORMALIZED_PUNCHES) {
+                let isNormalized = USE_NORMALIZED_PUNCHES || get().normalizedAttendanceEnabled;
+                if (!isNormalized && !USE_NORMALIZED_PUNCHES) {
+                    isNormalized = await get().checkAttendanceWriteMode() || USE_NORMALIZED_PUNCHES;
+                }
+
+                if (isNormalized) {
                     if (punch.type === 'clockIn') {
                         const active = getActiveShift(personnelId);
                         if (active) {
@@ -2548,6 +2574,7 @@ export const useStore = create<AppState>()(
                 
                 const punchId = punch.id || crypto.randomUUID();
                 const punchWithId: ClockPunch = { ...punch, id: punchId };
+                const isForgottenPunch = punchWithId.adjustmentReason === 'FORGOTTEN_CLOCKOUT' || Boolean(punchWithId.adjustmentNote && punchWithId.adjustmentNote.includes('Olvidé registrar mi salida'));
 
                 set((state) => {
                     let sessionToUpdate = existing ? state.timesheets.find(t => t.id === existing.id) : null;
@@ -2576,12 +2603,12 @@ export const useStore = create<AppState>()(
                     const clockOut = updatedPunches.find(p => p.type === 'clockOut');
 
                     let computedHours = 0;
+                    const isZombie = punch.isZombieClose || (punch.adjustmentNote && punch.adjustmentNote.includes('Auto closed'));
+                    const isForgotten = isForgottenPunch;
+
                     if (clockIn && clockOut) {
-                        const isZombie = punch.isZombieClose || (punch.adjustmentNote && punch.adjustmentNote.includes('Auto closed'));
-                        if (isZombie) {
-                            const person = state.personnel.find(p => p.id === personnelId);
-                            const sched = state.workSchedules?.find(s => s.id === person?.subsidiaryMetadata?.defaultScheduleId);
-                            computedHours = sched?.standardDailyHours || 10.0;
+                        if (isZombie || isForgotten) {
+                            computedHours = 8.0;
                         } else {
                             const totalMs = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
                             computedHours = Math.round((totalMs / 3600000) * 100) / 100;
@@ -2595,8 +2622,8 @@ export const useStore = create<AppState>()(
 
                     const entryUpdates: Partial<TimesheetEntry> = {
                         punches: updatedPunches,
-                        gpsVerified: allAccurate,
-                        source: 'gps',
+                        gpsVerified: isForgotten ? false : allAccurate,
+                        source: isForgotten ? 'manual' : 'gps',
                         ...(clockIn ? { timeIn: toHHMM(clockIn.timestamp) } : {}),
                         ...(clockOut ? { timeOut: toHHMM(clockOut.timestamp), status: 'Pending' } : {}),
                         hours: computedHours,
@@ -2628,7 +2655,7 @@ export const useStore = create<AppState>()(
                 try {
                     const updated = get().timesheets.find(t => t.id === targetId);
 
-                    if (USE_NORMALIZED_PUNCHES) {
+                    if (isNormalized) {
                         const threshold = getGPSAccuracyThreshold(get().platformSettings?.gpsAccuracyThreshold);
                         const normItem: NormalizedPendingPunch = {
                             punchId: punchId,
@@ -2643,14 +2670,15 @@ export const useStore = create<AppState>()(
                             lng: punchWithId.lng,
                             accuracy: punchWithId.accuracy,
                             timeSource: punchWithId.timeSource || 'device',
-                            manualAdjustment: punchWithId.manualAdjustment || false,
+                            manualAdjustment: punchWithId.manualAdjustment || isForgottenPunch || false,
+                            adjustmentReason: punchWithId.adjustmentReason || (isForgottenPunch ? 'FORGOTTEN_CLOCKOUT' : undefined),
                             adjustmentNote: punchWithId.adjustmentNote,
                             faceVerified: punchWithId.faceVerified || false,
                             faceBypassReason: punchWithId.faceBypassReason,
                             isOutsourced: punchWithId.isOutsourced || false,
                             outsourcedName: punchWithId.outsourcedName,
                             isZombieClose: punchWithId.isZombieClose || false,
-                            gpsVerified: (punchWithId.accuracy ?? 9999) <= threshold,
+                            gpsVerified: isForgottenPunch ? false : ((punchWithId.accuracy ?? 9999) <= threshold),
                             selfieBase64: punchWithId.selfieBlob,
                             signatureBase64: punchWithId.supervisorSignatureBlob,
                             queueState: 'LOCAL_PENDING',

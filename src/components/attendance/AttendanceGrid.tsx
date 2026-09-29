@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Personnel, Project, TimesheetEntry, AttendanceOverride, WorkSchedule, useStore } from '../../store/useStore';
-import { calculateDailyAttendance } from '../../utils/attendanceCalculations';
+import { calculateDailyAttendance, isForgottenClockOutTimesheet } from '../../utils/attendanceCalculations';
 import { parseCoordinates, getDistanceMeters, isWarehouseBypass } from '../../utils/datetime.utils';
 import DayDetailPanel from './DayDetailPanel';
 
@@ -293,7 +293,7 @@ export default function AttendanceGrid({
                                                                                 </span>
                                                                             ) : null}
                                                                         </>
-                                                                    )}
+                                                                     )}
                                                                 </div>
                                                             ) : (
                                                                 <span className="text-[10px] font-extrabold uppercase leading-none tracking-tight block truncate text-center">
@@ -315,6 +315,9 @@ export default function AttendanceGrid({
                                                             )}
                                                             {dayView.zombie && (
                                                                 <span className="absolute bottom-1 right-1 bg-amber-600 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold border border-white" title="Turno Sin Cierre">⏰</span>
+                                                            )}
+                                                            {isForgottenClockOutTimesheet(dayTimesheet) && (
+                                                                <span className="absolute bottom-1 left-1 bg-purple-600 text-white w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold border border-white" title="Salida olvidada — requiere revisión">🚪</span>
                                                             )}
                                                         </div>
                                                     </td>

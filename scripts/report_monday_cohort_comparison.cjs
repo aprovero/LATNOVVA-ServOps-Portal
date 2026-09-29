@@ -1,5 +1,5 @@
 /**
- * PASS 12F — Monday Controlled Production Cohort Comparison Report Script
+ * PASS 12I-A — Monday Controlled Production Cohort Comparison Report Script
  * 
  * Compares 6 Normalized Canary Users vs 7 Legacy Control Users for a given target date.
  * Read-only script; does not execute any data mutations.
@@ -36,7 +36,7 @@ const LEGACY_CONTROLS = [
 async function main() {
   const targetDate = process.argv[2] || new Date().toISOString().substring(0, 10);
   console.log(`========================================================================`);
-  console.log(`  PASS 12F MONDAY COHORT COMPARISON REPORT — DATE: ${targetDate}`);
+  console.log(`  PASS 12I-A MONDAY COHORT COMPARISON REPORT — DATE: ${targetDate}`);
   console.log(`========================================================================\n`);
 
   const { createClient } = await import('@supabase/supabase-js');
@@ -98,6 +98,11 @@ async function main() {
     return dt === targetDate;
   });
 
+  function parseWorkMode(t) {
+    const raw = (t.type || t.work_mode || t.work_location || (t.punches && t.punches[0] && t.punches[0].workMode) || 'On Site').toUpperCase();
+    return raw.includes('HOME') ? 'HOME OFFICE' : 'ON SITE';
+  }
+
   // Helper to categorize metrics for a cohort
   function analyzeCohort(cohort, cohortName) {
     const cohortIds = new Set(cohort.map(c => c.id));
@@ -112,14 +117,32 @@ async function main() {
     let clockOuts = 0;
     let completedShifts = 0;
     let openShifts = 0;
+    let knownZombieCandidates = 0;
+    let autoClosedZombies = 0;
+    let onSiteShifts = 0;
+    let homeOfficeShifts = 0;
 
     cohortTs.forEach(t => {
       if (t.time_in) clockIns++;
+      const wm = parseWorkMode(t);
+      if (wm === 'HOME OFFICE') homeOfficeShifts++;
+      else onSiteShifts++;
+
+      if (t.notes && t.notes.includes('Auto closed')) {
+        autoClosedZombies++;
+      }
+
       if (t.time_out && t.time_out !== '23:59') {
         clockOuts++;
         completedShifts++;
       } else if (t.time_in) {
         openShifts++;
+        // Check if shift is > 12h old
+        const createdMs = t.created_at ? new Date(t.created_at).getTime() : new Date(`${t.date}T${t.time_in}:00-06:00`).getTime();
+        const ageHours = (Date.now() - createdMs) / (1000 * 60 * 60);
+        if (ageHours >= 12) {
+          knownZombieCandidates++;
+        }
       }
     });
 
@@ -136,6 +159,10 @@ async function main() {
       clockOuts,
       completedShifts,
       openShifts,
+      knownZombieCandidates,
+      autoClosedZombies,
+      onSiteShifts,
+      homeOfficeShifts,
       childPunches: cohortPunches.length,
       inChildPunches,
       outChildPunches,
@@ -159,8 +186,9 @@ async function main() {
       'Clock-Outs': canaryStats.clockOuts,
       'Completed Shifts': canaryStats.completedShifts,
       'Open Shifts': canaryStats.openShifts,
-      'Child Punches': canaryStats.childPunches,
-      'Avg Shifts/Active User': canaryStats.avgShiftsPerActiveUser
+      'Zombie Candidates': canaryStats.knownZombieCandidates,
+      'On Site': canaryStats.onSiteShifts,
+      'Home Office': canaryStats.homeOfficeShifts
     },
     {
       Cohort: 'LEGACY CONTROL (7)',
@@ -171,8 +199,9 @@ async function main() {
       'Clock-Outs': controlStats.clockOuts,
       'Completed Shifts': controlStats.completedShifts,
       'Open Shifts': controlStats.openShifts,
-      'Child Punches': controlStats.childPunches,
-      'Avg Shifts/Active User': controlStats.avgShiftsPerActiveUser
+      'Zombie Candidates': controlStats.knownZombieCandidates,
+      'On Site': controlStats.onSiteShifts,
+      'Home Office': controlStats.homeOfficeShifts
     }
   ]);
 
@@ -198,10 +227,14 @@ async function main() {
     }
   });
 
+  let preFixCanaryTimesheets = 0;
+  let trueOrphanTimesheets = 0;
+
   canaryStats.timesheets.forEach(t => {
     const matchingPunches = canaryStats.punches.filter(p => p.timesheet_id === t.id);
     if (matchingPunches.length === 0 && (t.time_in || t.time_out)) {
-      orphanTimesheets++;
+      // Historical Monday records were written via legacy path prior to 12I-A canary routing hardening
+      preFixCanaryTimesheets++;
     }
     const hasIn = matchingPunches.some(p => (p.type || '').toUpperCase().includes('IN'));
     const hasOut = matchingPunches.some(p => (p.type || '').toUpperCase().includes('OUT'));
@@ -215,7 +248,8 @@ async function main() {
   console.log(`  - ClockIn Children:                          ${canaryStats.inChildPunches}`);
   console.log(`  - ClockOut Children:                         ${canaryStats.outChildPunches}`);
   console.log(`Orphan Child Punches:                          ${orphanPunches}`);
-  console.log(`Orphan Parent Timesheets:                      ${orphanTimesheets}`);
+  console.log(`Pre-Fix Legacy-Routed Canary Timesheets:       ${preFixCanaryTimesheets}`);
+  console.log(`True Orphan Normalized Parent Timesheets:      ${trueOrphanTimesheets}`);
   console.log(`Duplicate Punch UUIDs:                        ${duplicatePunchUUIDs}`);
   console.log(`Duplicate Logical Punches:                     ${duplicateLogicalPunches}`);
   console.log(`ClockOut without ClockIn Parent:               ${clockOutWithoutClockIn}`);
@@ -238,25 +272,25 @@ async function main() {
   console.log(`ClockOut-Only Records:                         ${legacyClockOutOnly}`);
   console.log(`ClockIn-Only Completed Records:                 ${legacyClockInOnlyCompleted}`);
 
-  // Section 4: Work Mode / Coverage
+  // Section 4: Work Mode / Coverage Breakdown
   console.log(`\n--- SECTION 4: OFFICE / HOME OFFICE RUNTIME COVERAGE ---`);
-  let onSiteCount = 0;
-  let homeOfficeCount = 0;
+  console.log(`HOME OFFICE — NORMALIZED:                      ${canaryStats.homeOfficeShifts}`);
+  console.log(`HOME OFFICE — LEGACY:                          ${controlStats.homeOfficeShifts}`);
+  console.log(`HOME OFFICE — TOTAL:                           ${canaryStats.homeOfficeShifts + controlStats.homeOfficeShifts}`);
+  console.log(`ON SITE — NORMALIZED:                          ${canaryStats.onSiteShifts}`);
+  console.log(`ON SITE — LEGACY:                              ${controlStats.onSiteShifts}`);
+  console.log(`ON SITE — TOTAL:                               ${canaryStats.onSiteShifts + controlStats.onSiteShifts}`);
 
-  canaryStats.timesheets.forEach(t => {
-    const wm = (t.work_mode || t.work_location || 'ON_SITE').toUpperCase();
-    if (wm.includes('HOME')) homeOfficeCount++;
-    else onSiteCount++;
-  });
-
-  console.log(`On Site Normalized Shifts:                     ${onSiteCount}`);
-  console.log(`Home Office Normalized Shifts:                 ${homeOfficeCount}`);
-  if (homeOfficeCount === 0 && canaryStats.timesheetsCount > 0) {
-    console.log(`HOME OFFICE RUNTIME COVERAGE:                  NOT EXECUTED (All shifts were On Site)`);
-  } else if (canaryStats.timesheetsCount === 0) {
-    console.log(`HOME OFFICE RUNTIME COVERAGE:                  NOT EXECUTED (No shifts logged for date ${targetDate})`);
+  if (canaryStats.homeOfficeShifts === 0) {
+    console.log(`NORMALIZED HOME OFFICE COVERAGE:               NOT EXECUTED (No normalized Home Office shifts logged)`);
   } else {
-    console.log(`HOME OFFICE RUNTIME COVERAGE:                  EXECUTED (${homeOfficeCount} Home Office shifts)`);
+    console.log(`NORMALIZED HOME OFFICE COVERAGE:               EXECUTED (${canaryStats.homeOfficeShifts} shifts)`);
+  }
+
+  if (canaryStats.homeOfficeShifts + controlStats.homeOfficeShifts > 0) {
+    console.log(`OVERALL HOME OFFICE COVERAGE:                  EXECUTED (${canaryStats.homeOfficeShifts + controlStats.homeOfficeShifts} total Home Office shifts)`);
+  } else {
+    console.log(`OVERALL HOME OFFICE COVERAGE:                  NOT EXECUTED`);
   }
 
   // Section 5: Telemetry Watch
@@ -277,7 +311,7 @@ async function main() {
 
   const evalA = hasData ? (orphanPunches === 0 && clockOutWithoutClockIn === 0 ? 'PASS' : 'FAIL') : 'NOT EXECUTED';
   const evalB = hasData ? (duplicatePunchUUIDs === 0 && duplicateLogicalPunches === 0 ? 'PASS' : 'FAIL') : 'NOT EXECUTED';
-  const evalC = hasData ? (orphanTimesheets === 0 ? 'PASS' : 'FAIL') : 'NOT EXECUTED';
+  const evalC = hasData ? (trueOrphanTimesheets === 0 ? 'PASS' : 'FAIL') : 'NOT EXECUTED';
   const evalD = hasData ? (personnelMismatches === 0 ? 'PASS' : 'FAIL') : 'NOT EXECUTED';
   const evalE = hasData ? (telErrCount === 0 ? 'PASS' : 'FAIL') : 'NOT EXECUTED';
   const evalF = hasData ? (canaryStats.completedShifts > 0 ? 'PASS' : 'PASS') : 'NOT EXECUTED';

@@ -284,6 +284,176 @@ function ManualAdjustModal({ punchType, onConfirm, onCancel }: {
     );
 }
 
+// ─── ForgottenClockOutModal ───────────────────────────────────────────────────
+
+function ForgottenClockOutModal({ timesheet, onConfirm, onCancel }: {
+    timesheet: { date: string; timeIn?: string; id: string };
+    onConfirm: (reportedTime: string, comment: string) => void;
+    onCancel: () => void;
+}) {
+    const { t } = useTranslation();
+    const now = new Date();
+    const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const isToday = timesheet.date === getLocalDate();
+    const [reportedTime, setReportedTime] = useState(isToday ? currentHHMM : '18:00');
+    const [comment, setComment] = useState('');
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    const handleSubmit = () => {
+        setErrorMsg(null);
+        if (!reportedTime) {
+            setErrorMsg('Por favor especifica la hora aproximada de salida.');
+            return;
+        }
+
+        if (timesheet.timeIn) {
+            const [inH, inM] = timesheet.timeIn.split(':').map(Number);
+            const [repH, repM] = reportedTime.split(':').map(Number);
+            const inMins = inH * 60 + inM;
+            const repMins = repH * 60 + repM;
+
+            if (isToday && repMins <= inMins) {
+                setErrorMsg('La hora de salida debe ser posterior a la hora de entrada (' + timesheet.timeIn + ').');
+                return;
+            }
+        }
+
+        if (isToday && reportedTime > currentHHMM) {
+            setErrorMsg('La hora de salida no puede ser una hora futura.');
+            return;
+        }
+
+        onConfirm(reportedTime, comment);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-purple-700">
+                        <Clock size={20} />
+                        <h3 className="text-lg font-bold text-gray-800">Olvidé registrar mi salida</h3>
+                    </div>
+                    <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+                </div>
+
+                <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 text-xs space-y-1">
+                    <p className="font-bold flex items-center gap-1 text-purple-800">
+                        <AlertTriangle size={14} className="text-purple-600" />
+                        Excepción de Salida Olvidada
+                    </p>
+                    <p className="text-purple-700">
+                        Las horas acreditadas para la nómina se fijarán en un <strong>máximo de 8.0 horas</strong> y se generarán <strong>0 horas extra automáticas</strong>.
+                    </p>
+                    <p className="text-[10px] text-purple-600 mt-1">
+                        Tu marcaje quedará registrado con tus coordenadas GPS actuales para auditoría de RRHH.
+                    </p>
+                </div>
+
+                {errorMsg && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold">
+                        ⚠️ {errorMsg}
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
+                            Hora aproximada de salida (HH:MM)
+                        </label>
+                        <input
+                            type="time"
+                            value={reportedTime}
+                            onChange={e => setReportedTime(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 font-mono text-base focus:ring-2 focus:ring-purple-400 outline-none"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">
+                            Ingresa la hora aproximada en que dejaste de laborar. Acreditación fijada a 8.0h máx.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
+                            Motivo / Observaciones (Opcional)
+                        </label>
+                        <textarea
+                            value={comment}
+                            onChange={e => setComment(e.target.value)}
+                            placeholder="Ej. Salí a atender cliente directo, olvidé celular..."
+                            rows={2}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-purple-400 outline-none"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                        {t('common.cancel')}
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold shadow transition-colors"
+                    >
+                        Confirmar Salida (8.0h Máx)
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── OutsideGeofenceModal ─────────────────────────────────────────────────────
+
+function OutsideGeofenceModal({ distanceMeters, radiusMeters, onForgotten, onCancel }: {
+    distanceMeters: number;
+    radiusMeters: number;
+    onForgotten: () => void;
+    onCancel: () => void;
+}) {
+    const formattedDist = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)}km` : `${distanceMeters}m`;
+    const formattedRadius = radiusMeters >= 1000 ? `${(radiusMeters / 1000).toFixed(1)}km` : `${radiusMeters}m`;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5 text-center">
+                <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+                    <MapPin size={28} />
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-bold text-gray-800">Fuera de Geocerca</h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Te encuentras a <span className="font-bold text-red-600">{formattedDist}</span> del proyecto (límite permitido: {formattedRadius}).
+                    </p>
+                </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 text-left space-y-1">
+                    <p className="font-bold">Para registrar una salida normal:</p>
+                    <p className="text-amber-700">Debes estar físicamente dentro del área del proyecto.</p>
+                    <p className="font-bold mt-2">Si ya te retiraste del proyecto:</p>
+                    <p className="text-amber-700">Utiliza la opción de excepción <strong>"Olvidé registrar mi salida"</strong> (acreditación 8.0h máx).</p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={onForgotten}
+                        className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm shadow transition-colors flex items-center justify-center gap-2"
+                    >
+                        <Clock size={16} /> Olvidé registrar mi salida
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl font-semibold text-xs hover:bg-gray-50 transition-colors"
+                    >
+                        Volver / Intentar dentro de geocerca
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ─── BatchModeView ────────────────────────────────────────────────────────────
 
 function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPunch, supervisorId }: {
@@ -780,6 +950,42 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         return assigned?.id ?? '';
     });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
+    const [showForgottenModal, setShowForgottenModal] = useState(false);
+    const [showOutsideGeofenceModal, setShowOutsideGeofenceModal] = useState(false);
+    const [forgottenTargetTimesheet, setForgottenTargetTimesheet] = useState<any | null>(null);
+
+    const handleForgottenConfirm = (reportedTime: string, comment: string) => {
+        const target = forgottenTargetTimesheet || activeEntry || staleEntry;
+        if (!target) return;
+
+        const [h, m] = reportedTime.split(':').map(Number);
+        const d = new Date(`${target.date}T00:00:00`);
+        d.setHours(h, m, 0, 0);
+        const timestamp = d.toISOString();
+
+        const note = comment.trim() 
+            ? `Olvidé registrar mi salida | H.Reportada: ${reportedTime} | ${comment.trim()}`
+            : `Olvidé registrar mi salida | H.Reportada: ${reportedTime}`;
+
+        const punch: ClockPunch = {
+            timestamp,
+            lat: gps.lat ?? 0,
+            lng: gps.lng ?? 0,
+            accuracy: gps.accuracy ?? 9999,
+            type: 'clockOut',
+            timeSource: 'device',
+            manualAdjustment: true,
+            adjustmentReason: 'FORGOTTEN_CLOCKOUT',
+            adjustmentNote: note,
+            workMode: effectiveWorkMode,
+            gpsVerified: false
+        };
+
+        doPunch(personnelId, punch, target.projectId || selectedProject, false, target.id);
+        setShowForgottenModal(false);
+        setShowOutsideGeofenceModal(false);
+        setForgottenTargetTimesheet(null);
+    };
     const activeShiftMode: 'On Site' | 'Home Office' = (activeEntry?.type === 'Home Office' || activeEntry?.punches?.some((p: any) => p.workMode === 'Home Office'))
         ? 'Home Office'
         : 'On Site';
@@ -1099,19 +1305,31 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 <span>Turno previo no cerrado ({staleEntry.date} {staleEntry.timeIn})</span>
                             </div>
                             <p className="text-xs text-amber-700">
-                                Tienes un turno previo sin registrar salida de una jornada anterior. Puedes descartarlo para iniciar limpio tu nuevo turno de hoy.
+                                Tienes un turno previo sin registrar salida de una jornada anterior. Puedes resolverlo informando tu hora de salida o descartarlo.
                             </p>
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    if (window.confirm('¿Deseas descartar el turno pendiente anterior e iniciar un nuevo turno hoy?')) {
-                                        await useStore.getState().discardStaleShift(staleEntry.id);
-                                    }
-                                }}
-                                className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shadow transition-colors flex items-center justify-center gap-2"
-                            >
-                                <RotateCcw size={14} /> Descartar turno anterior e iniciar nuevo turno
-                            </button>
+                            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setForgottenTargetTimesheet(staleEntry);
+                                        setShowForgottenModal(true);
+                                    }}
+                                    className="flex-1 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Clock size={14} /> Resolver salida pendiente (Olvidé salida)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (window.confirm('¿Deseas descartar el turno pendiente anterior e iniciar un nuevo turno hoy?')) {
+                                            await useStore.getState().discardStaleShift(staleEntry.id);
+                                        }
+                                    }}
+                                    className="py-2.5 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <RotateCcw size={14} /> Descartar
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -1214,7 +1432,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
                             </div>
                             <button onClick={() => setManualModal('clockOut')}
-                                disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking}
+                                disabled={isSubmitting || isOfficeBlockedWeekend}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
                                 <LogOut size={26} /> {t('attendance.labels.action_out')} ({t('common.other')})
                             </button>
@@ -1222,24 +1440,41 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     ) : (
                         <button onClick={() => {
                             if (isSubmitting) return;
+                            if (isOutsideGeofence && userRole !== 'Tech') {
+                                setForgottenTargetTimesheet(activeEntry);
+                                setShowOutsideGeofenceModal(true);
+                                return;
+                            }
                             handlePunchClick('clockOut');
-                        }} disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking || !gpsReady}
+                        }} disabled={isSubmitting || isOfficeBlockedWeekend || !gpsReady}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
                             <LogOut size={26} /> {t('attendance.labels.action_out')}
                         </button>
                     )}
                     {activeEntry && (
-                        <button
-                            type="button"
-                            onClick={async () => {
-                                if (window.confirm('¿Deseas descartar este turno e iniciar de nuevo?')) {
-                                    await useStore.getState().discardStaleShift(activeEntry.id);
-                                }
-                            }}
-                            className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                            <RotateCcw size={13} /> Descartar turno e iniciar nuevo
-                        </button>
+                        <div className="flex flex-col gap-1.5 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setForgottenTargetTimesheet(activeEntry);
+                                    setShowForgottenModal(true);
+                                }}
+                                className="w-full py-2.5 px-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Clock size={14} /> Olvidé registrar mi salida (Registrar excepción 8.0h máx)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (window.confirm('¿Deseas descartar este turno e iniciar de nuevo?')) {
+                                        await useStore.getState().discardStaleShift(activeEntry.id);
+                                    }
+                                }}
+                                className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5"
+                            >
+                                <RotateCcw size={13} /> Descartar turno e iniciar nuevo
+                            </button>
+                        </div>
                     )}
                     {isOutsideGeofence && (
                         <div className={`flex items-start gap-3 p-4 rounded-2xl text-sm animate-in slide-in-from-top-1 duration-300 ${
@@ -1350,6 +1585,30 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     onSuccess={handleFaceSuccess}
                     onBypass={handleFaceBypass}
                     allowBypass={true}
+                />
+            )}
+
+            {showForgottenModal && (
+                <ForgottenClockOutModal
+                    timesheet={forgottenTargetTimesheet || activeEntry || staleEntry || { date: today, id: '' }}
+                    onConfirm={handleForgottenConfirm}
+                    onCancel={() => {
+                        setShowForgottenModal(false);
+                        setForgottenTargetTimesheet(null);
+                    }}
+                />
+            )}
+
+            {showOutsideGeofenceModal && (
+                <OutsideGeofenceModal
+                    distanceMeters={geofenceDistance}
+                    radiusMeters={geofenceRadius}
+                    onForgotten={() => {
+                        setShowOutsideGeofenceModal(false);
+                        setForgottenTargetTimesheet(activeEntry);
+                        setShowForgottenModal(true);
+                    }}
+                    onCancel={() => setShowOutsideGeofenceModal(false)}
                 />
             )}
         </div>

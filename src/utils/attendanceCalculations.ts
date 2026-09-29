@@ -80,6 +80,29 @@ export function isZombieTimesheet(ts?: TimesheetEntry | null): boolean {
     return false;
 }
 
+/** Determines if a timesheet is a forgotten clockout exception shift */
+export function isForgottenClockOutTimesheet(ts?: TimesheetEntry | null): boolean {
+    if (!ts) return false;
+    if (ts.notes && (
+        ts.notes.includes('Olvidé registrar mi salida') || 
+        ts.notes.includes('FORGOTTEN_CLOCKOUT') ||
+        ts.notes.includes('Salida olvidada')
+    )) {
+        return true;
+    }
+    if (ts.punches && ts.punches.some(p => 
+        p.adjustmentReason === 'FORGOTTEN_CLOCKOUT' || 
+        (p.adjustmentNote && (
+            p.adjustmentNote.includes('Olvidé registrar mi salida') || 
+            p.adjustmentNote.includes('FORGOTTEN_CLOCKOUT') ||
+            p.adjustmentNote.includes('Salida olvidada')
+        ))
+    )) {
+        return true;
+    }
+    return false;
+}
+
 /** Determines if a date string falls inside a range (inclusive) */
 export function isDateInRange(dateStr: string, startStr: string, endStr: string): boolean {
     const d = new Date(dateStr + 'T00:00:00');
@@ -286,8 +309,14 @@ export function calculateDailyAttendance(
         }
     }
 
+    const hasZombieOrForgotten = sortedTimesheets.some(t => isZombieTimesheet(t) || isForgottenClockOutTimesheet(t));
+
     if (totalWorkedMinutes > 0) {
-        if (employee.subsidiary === 'MX') {
+        if (hasZombieOrForgotten) {
+            // Zombie and Forgotten ClockOut shifts: fixed at 8.0h max with 0 automatic overtime
+            regularHours = Math.min(totalWorkedMinutes / 60, 8.0);
+            overtimeHours = 0;
+        } else if (employee.subsidiary === 'MX') {
             // Mexico weekly calculation: 48 hours limit per week (Monday to Sunday)
             // 1. Find the Monday of the week for the current date
             const monday = new Date(date + 'T00:00:00');
@@ -307,10 +336,10 @@ export function calculateDailyAttendance(
                 const dayTS = timesheets.filter(t => t.personnelId === employee.id && t.date === dateStr);
                 for (const ts of dayTS) {
                     const isZombie = isZombieTimesheet(ts);
-                    if (isZombie) {
-                        // REGLA: Los turnos autocerrados deben contemplar las horas estándar del horario (10h o según schedule)
-                        const zombieStandardHours = schedule?.standardDailyHours || 10.0;
-                        priorMinsOfWeek += (ts.hours && ts.hours > 0 ? ts.hours * 60 : zombieStandardHours * 60);
+                    const isForgotten = isForgottenClockOutTimesheet(ts);
+                    if (isZombie || isForgotten) {
+                        const fixedH = ts.hours && ts.hours > 0 ? Math.min(ts.hours, 8.0) : 8.0;
+                        priorMinsOfWeek += fixedH * 60;
                         continue;
                     }
                     if (ts.timeIn && ts.timeOut) {

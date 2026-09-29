@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore, Personnel, Project } from '../../store/useStore';
-import { calculateDailyAttendance, getStatusLabel, formatDisplayDate } from '../../utils/attendanceCalculations';
+import { calculateDailyAttendance, getStatusLabel, formatDisplayDate, isForgottenClockOutTimesheet } from '../../utils/attendanceCalculations';
 import { X, AlertTriangle, AlertOctagon, Edit3 } from 'lucide-react';
 import ManualCorrectionPanel from './ManualCorrectionPanel';
 import { getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../../utils/datetime.utils';
@@ -23,6 +23,10 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
     // Compute details for this date
     const dayView = calculateDailyAttendance(employee, date, timesheets, attendanceOverrides, workSchedules, lang, projects);
     const timesheetEntry = timesheets.find(t => t.personnelId === employee.id && t.date === date);
+    const isForgotten = isForgottenClockOutTimesheet(timesheetEntry);
+    const employeeForgottenCount = timesheets.filter(t => 
+        t.personnelId === employee.id && isForgottenClockOutTimesheet(t)
+    ).length;
 
     const timesheetId = timesheetEntry?.id;
     useEffect(() => {
@@ -181,6 +185,21 @@ export default function DayDetailPanel({ employee, date, project, onClose }: Day
                             <p className="text-amber-700/80 mt-1">
                                 {t('attendance.alerts.missing_punch_desc', 'El colaborador tiene un marcaje de Entrada o Salida registrado, pero falta la contraparte.')}
                             </p>
+                        </div>
+                    </div>
+                )}
+
+                {isForgotten && (
+                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl text-purple-900 text-xs space-y-2">
+                        <div className="flex items-center gap-2 font-bold text-purple-800">
+                            <AlertTriangle size={16} className="text-purple-600 shrink-0" />
+                            <span>Salida olvidada — requiere revisión</span>
+                        </div>
+                        <p className="text-purple-700">
+                            Esta jornada cuenta con una excepción registrada por salida olvidada. Las horas acreditadas están limitadas a un máximo de <strong>8.0 hrs</strong> (0 horas extra autorizadas).
+                        </p>
+                        <div className="text-[11px] font-semibold text-purple-800 bg-purple-100/60 p-2.5 rounded-xl">
+                            📊 Registro histórico del empleado: <strong>{employeeForgottenCount}</strong> excepción(es) de salida olvidada acumulada(s).
                         </div>
                     </div>
                 )}

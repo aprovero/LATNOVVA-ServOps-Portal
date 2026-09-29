@@ -26,6 +26,7 @@ export interface NormalizedPendingPunch {
   accuracy?: number;
   timeSource?: 'gps' | 'device';
   manualAdjustment?: boolean;
+  adjustmentReason?: string;
   adjustmentNote?: string;
   faceVerified?: boolean;
   faceBypassReason?: string;
