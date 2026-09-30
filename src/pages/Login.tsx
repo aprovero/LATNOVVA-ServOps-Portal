@@ -27,8 +27,17 @@ export const Login: React.FC = () => {
     const [tempImage, setTempImage] = useState<string | null>(null);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [showVerifyPrompt, setShowVerifyPrompt] = useState(false);
+    const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
     const isConfirmed = React.useRef(false);
     const { personnel } = useStore();
+
+    React.useEffect(() => {
+        const handleResize = () => {
+            setIsDesktop(window.innerWidth >= 1024);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     React.useEffect(() => {
         if (session && !loading) {
@@ -249,16 +258,18 @@ export const Login: React.FC = () => {
 
             {/* Left Side: Branding / Marketing Pattern */}
             <div className="hidden lg:flex flex-col flex-1 p-12 justify-between relative overflow-hidden bg-[#00606B]">
-                {/* Video Background */}
-                <video 
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline 
-                    className="absolute inset-0 w-full h-full object-cover z-0"
-                >
-                    <source src="/HOME-LATNOVVA.mp4" type="video/mp4" />
-                </video>
+                {/* Video Background - Loaded conditionally only on desktop (lg: >=1024px) */}
+                {isDesktop && (
+                    <video 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline 
+                        className="absolute inset-0 w-full h-full object-cover z-0"
+                    >
+                        <source src="/HOME-LATNOVVA.mp4" type="video/mp4" />
+                    </video>
+                )}
                 {/* Dark Overlay */}
                 <div className="absolute inset-0 bg-black/40 z-0" />
 

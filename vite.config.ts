@@ -80,16 +80,35 @@ export default defineConfig({
         // Force new service worker to activate immediately — no waiting for tabs to close
         skipWaiting: true,
         clientsClaim: true,
-        // Cache everything up to 5 MB for core web assets
+        // Allow caching up to 5 MB for the core JS/CSS app bundles
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        // Pre-cache all core web assets (Face-API models are cached on-demand via runtimeCaching)
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}'],
+        // Pre-cache only essential app shell files (HTML, JS, CSS, icons, fonts)
+        // General images, logos, brochures and heavy media are cached on-demand via runtimeCaching
+        globPatterns: [
+          '**/*.{js,css,html,ico}',
+          'pwa-*.png',
+          'apple-touch-icon.png',
+          '*-logo.png'
+        ],
         // Clean stale caches on each service worker update
         cleanupOutdatedCaches: true,
         // Single page app fallback — serves index.html for all navigation
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
+          {
+            // Images, logos, and brochure assets — on-demand CacheFirst
+            urlPattern: /\.(?:png|jpg|jpeg|svg|webp)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             // Face-API ML Models & weights — CacheFirst for 100% offline field operation
             urlPattern: /\/models\/.*(\.bin|\.json)$/i,

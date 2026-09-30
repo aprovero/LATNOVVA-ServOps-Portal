@@ -14,14 +14,20 @@ const currentVersion = __APP_VERSION__;
 const storedVersion = localStorage.getItem('latnovva_app_version');
 
 if (storedVersion !== currentVersion) {
-    console.warn(`[App] Version updated: ${storedVersion} -> ${currentVersion}. Refreshing web cache while preserving offline attendance state...`);
+    console.warn(`[App] Version updated: ${storedVersion} -> ${currentVersion}. Refreshing web cache while preserving offline attendance state & auth...`);
     
     // 1. Preserve pending local storage item (latnovva-storage contains Zustand state & pendingSync)
     const preservedStore = localStorage.getItem('latnovva-storage');
 
-    // 2. Clear non-essential session & localStorage keys (DO NOT call localStorage.clear() blindly)
+    // 2. Clear non-essential scratch keys (PRESERVE auth tokens and critical app state)
     try {
-        const keysToRemove = Object.keys(localStorage).filter(k => k !== 'latnovva-storage' && !k.startsWith('app_version_logged_'));
+        const keysToRemove = Object.keys(localStorage).filter(k => 
+            k !== 'latnovva-storage' && 
+            k !== 'latnovva_app_version' &&
+            !k.startsWith('app_version_logged_') &&
+            !k.startsWith('sb-') &&
+            !k.includes('supabase.auth')
+        );
         keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch (e) {
         console.warn('[App] Non-fatal localStorage cleanup warning:', e);
@@ -34,30 +40,25 @@ if (storedVersion !== currentVersion) {
         });
     }
     
-    // 4. Unregister Service Workers
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-            registrations.forEach(registration => registration.unregister());
-        });
-    }
-    
-    // 5. Store the new version and reload
+    // 4. Update the stored version without disruptive immediate hard-reload loop
     localStorage.setItem('latnovva_app_version', currentVersion);
     if (preservedStore) {
         localStorage.setItem('latnovva-storage', preservedStore);
     }
-    window.location.reload();
 }
 
 // ── PWA Auto-Update Hardening ──────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-    // When a new service worker takes over (skipWaiting: true), auto-reload to load new assets
+    let refreshing = false;
+    // When a new service worker takes over (skipWaiting: true), auto-reload ONCE to load new assets
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
         console.warn('[PWA] New service worker activated. Reloading page for updates...');
         window.location.reload();
     });
 
-    // Periodically check for SW updates (every 15 min and on window focus)
+    // Periodically check for SW updates
     const checkSwUpdate = () => {
         navigator.serviceWorker.getRegistration().then(reg => {
             if (reg) {
@@ -66,8 +67,16 @@ if ('serviceWorker' in navigator) {
         }).catch(() => {});
     };
 
-    window.addEventListener('focus', checkSwUpdate);
-    setInterval(checkSwUpdate, 15 * 60 * 1000);
+    // Throttle focus event to at most once every 5 minutes to prevent spamming network on tab switches
+    let lastFocusCheck = 0;
+    window.addEventListener('focus', () => {
+        const now = Date.now();
+        if (now - lastFocusCheck > 5 * 60 * 1000) {
+            lastFocusCheck = now;
+            checkSwUpdate();
+        }
+    });
+    setInterval(checkSwUpdate, 30 * 60 * 1000);
 }
 
 const renderApp = () => {
