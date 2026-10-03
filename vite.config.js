@@ -3,10 +3,19 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import pkg from './package.json';
+import { execSync } from 'child_process';
+var buildId = 'unknown';
+try {
+    buildId = execSync('git rev-parse --short HEAD').toString().trim();
+}
+catch (e) {
+    buildId = process.env.RENDER_GIT_COMMIT ? process.env.RENDER_GIT_COMMIT.substring(0, 8) : 'unknown';
+}
 // https://vitejs.dev/config/
 export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
+        __BUILD_ID__: JSON.stringify(buildId),
     },
     plugins: [
         react(),

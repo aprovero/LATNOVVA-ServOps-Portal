@@ -466,6 +466,9 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 }) {
     const { t } = useTranslation();
     const { getAttendanceState } = useAttendance();
+    const { attendanceWriteMode, checkAttendanceWriteMode } = useStore();
+    const isRoutingPending = attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'RESOLVING';
+    const isRoutingError = attendanceWriteMode === 'ERROR';
 
     const [selectedProject, setSelectedProject] = useState(() => {
         const assigned = projects.find(p => (p.status === 'Active' || p.status === 'In Progress') && p.assignedPersonnel?.includes(supervisorId));
@@ -592,6 +595,10 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     };
 
     const commitBatch = useCallback((sigBlob: string, faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }) => {
+        if (isRoutingPending || isRoutingError) {
+            alert(isRoutingPending ? 'Verificando modo de asistencia con el servidor...' : 'Error verificando modo de asistencia con el servidor. Reintente.');
+            return;
+        }
         const entries = buildEntries();
         const action = dominantAction();
         
@@ -749,6 +756,22 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
 
             <div className="flex justify-center"><GpsBadge gps={gps} /></div>
 
+            {isRoutingError && (
+                <div className="flex items-center justify-between p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle size={16} className="shrink-0 text-red-500" />
+                        <span>No se pudo verificar el modo de asistencia con el servidor.</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => checkAttendanceWriteMode()}
+                        className="px-3 py-1 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        Reintentar
+                    </button>
+                </div>
+            )}
+
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -856,14 +879,15 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
                         </div>
                         <button
                             onClick={() => setShowConfirm(true)}
-                            className={`flex items-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold text-sm transition-colors ${hasMixedActions ? 'bg-amber-500' : 'bg-teal-500'}`}
+                            disabled={isRoutingPending || isRoutingError}
+                            className={`flex items-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${hasMixedActions ? 'bg-amber-500' : 'bg-teal-500'}`}
                         >
                             <LogIn size={15} />
-                            {(() => {
+                            {isRoutingPending ? 'Verificando...' : `${(() => {
                                 const a = dominantAction();
                                 const labelMap = { clockIn: t('attendance.labels.action_in'), clockOut: t('attendance.labels.action_out') };
                                 return labelMap[a];
-                            })()} {selCount}
+                            })()} ${selCount}`}
                         </button>
                     </div>
                 </div>
@@ -920,7 +944,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     clockPunch: (...args: any[]) => void;
 }) {
     const { t } = useTranslation();
-    const { platformSettings } = useStore();
+    const { platformSettings, attendanceWriteMode, checkAttendanceWriteMode } = useStore();
+    const isRoutingPending = attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'RESOLVING';
+    const isRoutingError = attendanceWriteMode === 'ERROR';
     const today = getLocalDate(getBestDate(gps));
     const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut); // find a finished one for summary
     const hasFinishedToday = !!todayEntry;
@@ -1347,6 +1373,22 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         </div>
                     )}
 
+                    {isRoutingError && (
+                        <div className="flex items-center justify-between p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle size={16} className="shrink-0 text-red-500" />
+                                <span>No se pudo verificar el modo de asistencia con el servidor.</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => checkAttendanceWriteMode()}
+                                className="px-3 py-1 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Reintentar
+                            </button>
+                        </div>
+                    )}
+
                     {/* M-01: GPS denied — amber enabled button, opens manual modal automatically */}
                     {workMode === 'On Site' && gpsDenied ? (
                         <>
@@ -1356,10 +1398,10 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </div>
                             <button
                                 onClick={() => setManualModal('clockIn')}
-                                disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking || !selectedProject}
+                                disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || geofenceBlocking || !selectedProject}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.labels.action_in')} (${t('common.other')})`}
+                                <LogIn size={26} /> {isRoutingPending ? 'Verificando servidor...' : (hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.labels.action_in')} (${t('common.other')})`)}
                             </button>
                         </>
                     ) : (
@@ -1367,9 +1409,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             if (isSubmitting) return;
                             if (hasFinishedToday && !window.confirm(t('attendance.alerts.double_shift'))) return;
                             handlePunchClick('clockIn');
-                        }} disabled={isSubmitting || isOfficeBlockedWeekend || geofenceBlocking || !gpsReady || (workMode === 'On Site' && !selectedProject)}
+                        }} disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || geofenceBlocking || !gpsReady || (workMode === 'On Site' && !selectedProject)}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
-                            <LogIn size={26} /> {hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.labels.action_in')}
+                            <LogIn size={26} /> {isRoutingPending ? 'Verificando servidor...' : (hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.labels.action_in'))}
                         </button>
                     )}
                     {workMode === 'On Site' && gps.status === 'poor' && (
@@ -1424,6 +1466,22 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </div>
                         </div>
                     )}
+                    {isRoutingError && (
+                        <div className="flex items-center justify-between p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle size={16} className="shrink-0 text-red-500" />
+                                <span>No se pudo verificar el modo de asistencia con el servidor.</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => checkAttendanceWriteMode()}
+                                className="px-3 py-1 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Reintentar
+                            </button>
+                        </div>
+                    )}
+
                     {/* C-02: GPS denied fallback for Clock Out */}
                     {gpsDenied ? (
                         <>
@@ -1432,9 +1490,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
                             </div>
                             <button onClick={() => setManualModal('clockOut')}
-                                disabled={isSubmitting || isOfficeBlockedWeekend}
+                                disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
-                                <LogOut size={26} /> {t('attendance.labels.action_out')} ({t('common.other')})
+                                <LogOut size={26} /> {isRoutingPending ? 'Verificando servidor...' : `${t('attendance.labels.action_out')} (${t('common.other')})`}
                             </button>
                         </>
                     ) : (
@@ -1446,9 +1504,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 return;
                             }
                             handlePunchClick('clockOut');
-                        }} disabled={isSubmitting || isOfficeBlockedWeekend || !gpsReady}
+                        }} disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || !gpsReady}
                             className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
-                            <LogOut size={26} /> {t('attendance.labels.action_out')}
+                            <LogOut size={26} /> {isRoutingPending ? 'Verificando servidor...' : t('attendance.labels.action_out')}
                         </button>
                     )}
                     {activeEntry && (

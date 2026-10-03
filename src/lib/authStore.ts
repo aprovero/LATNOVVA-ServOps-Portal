@@ -74,10 +74,12 @@ async function recordAppVersion(userId: string, email?: string | null) {
     }
 
     const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';
-    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+    const buildId = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'unknown';
+    const rawUserAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+    const userAgent = `${rawUserAgent} [build:${buildId}]`;
     const now = new Date().toISOString();
 
-    console.log(`[Auth] Diagnosing client: v${version} for user: ${email || userId}`);
+    console.log(`[Auth] Diagnosing client: v${version} (build: ${buildId}) for user: ${email || userId}`);
 
     // Asynchronously update profiles, mx_personnel, and app_version_logs
     try {
@@ -85,7 +87,7 @@ async function recordAppVersion(userId: string, email?: string | null) {
             (supabase as any)
                 .from('profiles')
                 .update({ 
-                    last_app_version: version,
+                    last_app_version: `${version} (${buildId})`,
                     last_active_at: now
                 })
                 .eq('id', userId),
@@ -183,6 +185,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 if (newSession && currentSession?.user?.id === newSession.user.id) {
                     set({ session: newSession, loading: false });
                     recordAppVersion(newSession.user.id, newSession.user.email);
+                    useStore.getState().checkAttendanceWriteMode().catch(() => {});
                     
                     // Auto-refresh push subscription in background if permission is granted
                     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {

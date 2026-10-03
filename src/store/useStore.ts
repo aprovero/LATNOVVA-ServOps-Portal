@@ -9,6 +9,8 @@ import { USE_NORMALIZED_PUNCHES } from '../config/flags';
 import { NormalizedPendingPunch, processNormalizedPunchItem, getSignedMediaUrl } from '../lib/normalizedPunchSync';
 import { getActiveShift, setActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
 
+export type AttendanceWriteMode = 'UNKNOWN' | 'RESOLVING' | 'CANARY' | 'LEGACY' | 'ERROR';
+
 export const TIMESHEET_LIGHTWEIGHT_COLUMNS = 'id, personnel_id, project_id, date, time_in, time_out, hours, type, classification, notes, status, approved_by, gps_verified, source, manual_reason, created_at, updated_at, corrected_by, corrected_at, correction_reason, lunch_start, lunch_end';
 export const PERSONNEL_LIGHTWEIGHT_COLUMNS = 'id, name, position, app_role, employee_number, status, email, phone_number, certifications, supervisor_id, manager_id, client_id, prevailing_wage, bench_exempt, regular_rate, rainy_day_rate, overtime_rate, meal_allowance, gas_allowance, truck_allowance, lead_pay, per_diem, dbo, emergency_contact_name, emergency_contact_phone, subsidiary, subsidiary_metadata';
 
@@ -468,6 +470,7 @@ interface AppState {
     getCurrentUserName: () => string;
     /** Resolves the Personnel ID for the currently logged-in user. */
     resolvePersonnelId: () => string | null;
+    attendanceWriteMode: AttendanceWriteMode;
     normalizedAttendanceEnabled: boolean;
     checkAttendanceWriteMode: () => Promise<boolean>;
     initDb: () => Promise<void>;
@@ -1111,20 +1114,27 @@ export const useStore = create<AppState>()(
                 await get().processSyncQueue();
             },
 
+            attendanceWriteMode: 'UNKNOWN' as AttendanceWriteMode,
             normalizedAttendanceEnabled: false,
 
             checkAttendanceWriteMode: async () => {
+                set({ attendanceWriteMode: 'RESOLVING' });
                 try {
                     const { data, error } = await supabase.rpc('get_attendance_write_mode');
-                    if (!error && data && typeof data.normalized_attendance_enabled === 'boolean') {
-                        const enabled = data.normalized_attendance_enabled;
-                        set({ normalizedAttendanceEnabled: enabled });
-                        return enabled;
+                    if (!error && data && typeof data.mode === 'string') {
+                        const isCanary = data.mode === 'CANARY';
+                        set({ 
+                            attendanceWriteMode: isCanary ? 'CANARY' : 'LEGACY',
+                            normalizedAttendanceEnabled: isCanary 
+                        });
+                        return isCanary;
                     }
+                    console.error('[checkAttendanceWriteMode] RPC error or invalid data:', error || data);
                 } catch (e) {
-                    console.warn('[checkAttendanceWriteMode] RPC failed:', e);
+                    console.error('[checkAttendanceWriteMode] RPC exception:', e);
                 }
-                set({ normalizedAttendanceEnabled: false });
+                // FAIL CLOSED: If lookup fails, do NOT assume legacy! Set ERROR and do not enable legacy fallback silently!
+                set({ attendanceWriteMode: 'ERROR', normalizedAttendanceEnabled: false });
                 return false;
             },
 
@@ -2470,10 +2480,18 @@ export const useStore = create<AppState>()(
                 let targetId: string = '';
                 let existing: any = null;
 
-                let isNormalized = USE_NORMALIZED_PUNCHES || get().normalizedAttendanceEnabled;
-                if (!isNormalized && !USE_NORMALIZED_PUNCHES) {
-                    isNormalized = await get().checkAttendanceWriteMode() || USE_NORMALIZED_PUNCHES;
+                let currentMode = get().attendanceWriteMode;
+                if (currentMode === 'UNKNOWN' || currentMode === 'RESOLVING') {
+                    await get().checkAttendanceWriteMode();
+                    currentMode = get().attendanceWriteMode;
                 }
+
+                if (currentMode === 'ERROR' && !USE_NORMALIZED_PUNCHES) {
+                    console.error(`[clockPunch] FAIL CLOSED: Attendance routing mode is ERROR for ${personnelId}. Rejecting punch to prevent silent legacy fallback.`);
+                    throw new Error('No se pudo verificar el modo de sincronización de asistencia con el servidor. Por favor verifique su conexión e intente nuevamente.');
+                }
+
+                const isNormalized = USE_NORMALIZED_PUNCHES || currentMode === 'CANARY' || get().normalizedAttendanceEnabled;
 
                 if (isNormalized) {
                     if (punch.type === 'clockIn') {
@@ -2913,10 +2931,12 @@ export const useStore = create<AppState>()(
                     state.isInitializing = false;
                     state.isSyncing = false;
                     state.syncError = null;
+                    state.attendanceWriteMode = 'UNKNOWN';
+                    state.normalizedAttendanceEnabled = false;
                 }
             },
             partialize: (state) => {
-                const { isInitializing, isSyncing, syncError, ...rest } = state;
+                const { isInitializing, isSyncing, syncError, attendanceWriteMode, normalizedAttendanceEnabled, ...rest } = state;
                 return rest;
             }
         }

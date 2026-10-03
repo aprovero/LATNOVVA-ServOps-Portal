@@ -9,14 +9,14 @@ interface VersionUpdateGateProps {
 }
 
 export const VersionUpdateGate: React.FC<VersionUpdateGateProps> = ({
-    currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '5.0.0',
+    currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '5.0.1',
     minimumVersion
 }) => {
     const platformSettings = useStore(s => s.platformSettings);
     const pendingSync = useStore(s => s.pendingSync);
     const processSyncQueue = useStore(s => s.processSyncQueue);
 
-    const targetMinVersion = minimumVersion || platformSettings.minimumClientVersion || '5.0.0';
+    const targetMinVersion = minimumVersion || platformSettings.minimumClientVersion || '5.0.1';
     const isEnabled = platformSettings.minimumClientVersionEnabled;
 
     const [isUpdating, setIsUpdating] = useState(false);
