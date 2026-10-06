@@ -19,8 +19,9 @@ const _client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
     global: {
         headers: {
-            'x-latnovva-client-version': typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '5.0.2',
-            'x-latnovva-build-id': typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'unknown'
+            'x-latnovva-client-version': typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '5.0.3',
+            'x-latnovva-build-id': typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'unknown',
+            'x-latnovva-release-id': String(typeof __RELEASE_ID__ !== 'undefined' ? __RELEASE_ID__ : 43)
         }
     }
 });

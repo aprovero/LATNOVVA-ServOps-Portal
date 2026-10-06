@@ -7,6 +7,8 @@ import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehou
 
 import { NormalizedPendingPunch, processNormalizedPunchItem, getSignedMediaUrl } from '../lib/normalizedPunchSync';
 import { getActiveShift, setActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
+import { checkRequiredClientRelease, recordReleaseTelemetry, ReleaseCheckStatus } from '../lib/releaseCheck';
+import { getReleaseId } from '../config/release';
 
 export type AttendanceWriteMode = 'UNKNOWN' | 'RESOLVING' | 'CANARY' | 'LEGACY' | 'ERROR';
 
@@ -472,6 +474,9 @@ interface AppState {
     attendanceWriteMode: AttendanceWriteMode;
     normalizedAttendanceEnabled: boolean;
     checkAttendanceWriteMode: () => Promise<boolean>;
+    clientReleaseStatus: ReleaseCheckStatus;
+    showUpdateModal: boolean;
+    setShowUpdateModal: (show: boolean) => void;
     initDb: () => Promise<void>;
     fetchTimesheetsForRange: (startDate: string, endDate: string) => Promise<void>;
     fetchTimesheetDetail: (timesheetId: string) => Promise<any>;
@@ -1101,6 +1106,19 @@ export const useStore = create<AppState>()(
             },
 
             safeSync: async (table, id, action, payload) => {
+                // PASS 12N: Client-Side Canary Write Boundary Guard
+                if (table === 'mx_timesheets' && (action === 'insert' || action === 'update' || action === 'upsert')) {
+                    if (get().attendanceWriteMode === 'CANARY' || get().normalizedAttendanceEnabled) {
+                        const targetPid = payload?.personnel_id;
+                        const callerPid = get().resolvePersonnelId() || get().userId;
+                        if (targetPid && (targetPid === callerPid) && (payload?.time_in || payload?.time_out || payload?.punches)) {
+                            console.error(`[safeSync] CANARY direct legacy attendance write blocked for ${targetPid}`);
+                            await recordReleaseTelemetry('CANARY_LEGACY_WRITE_BLOCKED', { personnelId: targetPid, operation: action });
+                            throw new Error('CANARY_NORMALIZED_WRITE_REQUIRED');
+                        }
+                    }
+                }
+
                 const syncItem: PendingSyncItem = { table, id, action, payload, timestamp: new Date().toISOString() };
                 
                 // Add to queue first (Optimistic)
@@ -1112,6 +1130,10 @@ export const useStore = create<AppState>()(
                 // Immediately try to process the queue
                 await get().processSyncQueue();
             },
+
+            clientReleaseStatus: 'CURRENT' as ReleaseCheckStatus,
+            showUpdateModal: false,
+            setShowUpdateModal: (show: boolean) => set({ showUpdateModal: show }),
 
             attendanceWriteMode: 'UNKNOWN' as AttendanceWriteMode,
             normalizedAttendanceEnabled: false,
@@ -1168,6 +1190,18 @@ export const useStore = create<AppState>()(
                     // Ensure auth session is loaded/refreshed first to prevent concurrent lock issues
                     await supabase.auth.getSession();
                     await get().checkAttendanceWriteMode();
+
+                    // PASS 12N: Central Release Freshness Check on startup
+                    try {
+                        const releaseCheck = await checkRequiredClientRelease();
+                        if (releaseCheck.status === 'UPDATE_REQUIRED') {
+                            set({ showUpdateModal: true, clientReleaseStatus: 'UPDATE_REQUIRED' });
+                        } else {
+                            set({ clientReleaseStatus: releaseCheck.status });
+                        }
+                    } catch (rcErr) {
+                        console.warn('[initDb] Release check warning:', rcErr);
+                    }
 
                     const thirtyDaysAgo = new Date();
                     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -2498,6 +2532,20 @@ export const useStore = create<AppState>()(
                 let targetId: string = '';
                 let existing: any = null;
 
+                // PASS 12N Step 1: Authoritative Pre-Write Release Freshness Gate
+                const releaseCheck = await checkRequiredClientRelease();
+                if (releaseCheck.status === 'UPDATE_REQUIRED') {
+                    console.warn(`[clockPunch] Stale client blocked at transaction boundary (client r${getReleaseId()} < r${releaseCheck.requiredRelease}). Rejecting punch.`);
+                    set({ showUpdateModal: true, clientReleaseStatus: 'UPDATE_REQUIRED' });
+                    throw new Error('Actualización requerida: Debes actualizar la aplicación antes de registrar asistencia.');
+                }
+                if (releaseCheck.status === 'CHECK_ERROR') {
+                    console.error(`[clockPunch] FAIL CLOSED: Release check failed (${releaseCheck.error}). Rejecting punch.`);
+                    set({ clientReleaseStatus: 'CHECK_ERROR' });
+                    throw new Error('No se pudo verificar la versión de la aplicación con el servidor. Intente nuevamente.');
+                }
+                set({ clientReleaseStatus: 'CURRENT' });
+
                 let currentMode = get().attendanceWriteMode;
                 if (currentMode === 'UNKNOWN' || currentMode === 'RESOLVING') {
                     await get().checkAttendanceWriteMode();
@@ -2951,10 +2999,12 @@ export const useStore = create<AppState>()(
                     state.syncError = null;
                     state.attendanceWriteMode = 'UNKNOWN';
                     state.normalizedAttendanceEnabled = false;
+                    state.clientReleaseStatus = 'CURRENT';
+                    state.showUpdateModal = false;
                 }
             },
             partialize: (state) => {
-                const { isInitializing, isSyncing, syncError, attendanceWriteMode, normalizedAttendanceEnabled, ...rest } = state;
+                const { isInitializing, isSyncing, syncError, attendanceWriteMode, normalizedAttendanceEnabled, showUpdateModal, clientReleaseStatus, ...rest } = state;
                 return rest;
             }
         }
