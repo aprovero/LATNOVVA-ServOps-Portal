@@ -1676,7 +1676,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 // ─── Main ClockIn Page ────────────────────────────────────────────────────────
 
 export default function ClockIn() {
-    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings, initDb } = useStore();
+    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings, initDb, attendanceWriteMode, checkAttendanceWriteMode } = useStore();
+
+    // Auto re-resolve attendance routing mode if previously unresolved/errored once userId is authenticated
+    useEffect(() => {
+        if (userId && (attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'ERROR')) {
+            checkAttendanceWriteMode().catch(() => {});
+        }
+    }, [userId, attendanceWriteMode, checkAttendanceWriteMode]);
 
     useEffect(() => {
         if (personnel.length === 0 || projects.length === 0) {

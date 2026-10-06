@@ -5,7 +5,6 @@ import { createJSONStorage } from 'zustand/middleware';
 import { idbStorage } from '../lib/idbStorage';
 import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 
-import { USE_NORMALIZED_PUNCHES } from '../config/flags';
 import { NormalizedPendingPunch, processNormalizedPunchItem, getSignedMediaUrl } from '../lib/normalizedPunchSync';
 import { getActiveShift, setActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
 
@@ -1122,12 +1121,31 @@ export const useStore = create<AppState>()(
                 try {
                     const { data, error } = await supabase.rpc('get_attendance_write_mode');
                     if (!error && data && typeof data.mode === 'string') {
-                        const isCanary = data.mode === 'CANARY';
-                        set({ 
-                            attendanceWriteMode: isCanary ? 'CANARY' : 'LEGACY',
-                            normalizedAttendanceEnabled: isCanary 
-                        });
-                        return isCanary;
+                        // FAIL CLOSED: If server reports ERROR or identity was unresolved, never assume legacy!
+                        if (data.mode === 'ERROR' || !data.personnel_id) {
+                            console.warn('[checkAttendanceWriteMode] Identity unresolved or server ERROR:', data.reason || 'Missing personnel_id');
+                            set({ 
+                                attendanceWriteMode: 'ERROR', 
+                                normalizedAttendanceEnabled: false 
+                            });
+                            return false;
+                        }
+
+                        if (data.mode === 'CANARY') {
+                            set({ 
+                                attendanceWriteMode: 'CANARY',
+                                normalizedAttendanceEnabled: true 
+                            });
+                            return true;
+                        }
+
+                        if (data.mode === 'LEGACY') {
+                            set({ 
+                                attendanceWriteMode: 'LEGACY',
+                                normalizedAttendanceEnabled: false 
+                            });
+                            return false;
+                        }
                     }
                     console.error('[checkAttendanceWriteMode] RPC error or invalid data:', error || data);
                 } catch (e) {
@@ -1572,7 +1590,7 @@ export const useStore = create<AppState>()(
             fetchTimesheetDetail: async (timesheetId: string) => {
                 if (!timesheetId) return null;
                 try {
-                    if (USE_NORMALIZED_PUNCHES || get().normalizedAttendanceEnabled) {
+                    if (get().attendanceWriteMode === 'CANARY' || get().normalizedAttendanceEnabled) {
                         const { data: punchesData, error } = await supabase
                             .from('mx_timesheet_punches')
                             .select('*')
@@ -2486,12 +2504,12 @@ export const useStore = create<AppState>()(
                     currentMode = get().attendanceWriteMode;
                 }
 
-                if (currentMode === 'ERROR' && !USE_NORMALIZED_PUNCHES) {
-                    console.error(`[clockPunch] FAIL CLOSED: Attendance routing mode is ERROR for ${personnelId}. Rejecting punch to prevent silent legacy fallback.`);
+                if (currentMode === 'ERROR' || currentMode === 'UNKNOWN' || currentMode === 'RESOLVING') {
+                    console.error(`[clockPunch] FAIL CLOSED: Attendance routing mode is ${currentMode} for ${personnelId}. Rejecting punch to prevent unverified write.`);
                     throw new Error('No se pudo verificar el modo de sincronización de asistencia con el servidor. Por favor verifique su conexión e intente nuevamente.');
                 }
 
-                const isNormalized = USE_NORMALIZED_PUNCHES || currentMode === 'CANARY' || get().normalizedAttendanceEnabled;
+                const isNormalized = currentMode === 'CANARY';
 
                 if (isNormalized) {
                     if (punch.type === 'clockIn') {

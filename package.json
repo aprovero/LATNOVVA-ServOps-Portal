@@ -2,7 +2,7 @@
   "name": "latnovva-servicetool",
   "private": true,
   "license": "UNLICENSED",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
