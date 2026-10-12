@@ -16,7 +16,7 @@ export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
         __BUILD_ID__: JSON.stringify(buildId),
-        __RELEASE_ID__: 44,
+        __RELEASE_ID__: 45,
     },
     plugins: [
         react(),
@@ -103,7 +103,7 @@ export default defineConfig({
                 cleanupOutdatedCaches: true,
                 // Single page app fallback — serves index.html for all navigation
                 navigateFallback: 'index.html',
-                navigateFallbackDenylist: [/^\/api\//],
+                navigateFallbackDenylist: [/^\/api\//, /^\/models\//],
                 runtimeCaching: [
                     {
                         // Images, logos, and brochure assets — on-demand CacheFirst
@@ -119,7 +119,7 @@ export default defineConfig({
                         },
                     },
                     {
-                        // Face-API ML Models & weights — CacheFirst for 100% offline field operation
+                        // Face-API ML Models & weights from origin — CacheFirst for offline operation
                         urlPattern: /\/models\/.*(\.bin|\.json)$/i,
                         handler: 'CacheFirst',
                         options: {
@@ -128,7 +128,20 @@ export default defineConfig({
                                 maxEntries: 30,
                                 maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                             },
-                            cacheableResponse: { statuses: [0, 200] },
+                            cacheableResponse: { statuses: [200] },
+                        },
+                    },
+                    {
+                        // Face-API ML Models from jsDelivr CDN
+                        urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/@vladmandic\/face-api\/model\/.*(\.bin|\.json)$/i,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'face-api-models-cache',
+                            expiration: {
+                                maxEntries: 30,
+                                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                            },
+                            cacheableResponse: { statuses: [200] },
                         },
                     },
                     {

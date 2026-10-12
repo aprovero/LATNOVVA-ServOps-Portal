@@ -153,6 +153,8 @@ export default function FaceCameraModal({
           msg = t('attendance.face_camera.multiple_faces', 'Se detectaron múltiples rostros. Solo una persona debe estar visible.');
         } else if (res.error === 'timeout') {
           msg = 'Tiempo de espera de detección agotado. Puedes reintentar o registrar con contingencia.';
+        } else if (res.error && (res.error.includes('model') || res.error.includes('modelos'))) {
+          msg = 'No se pudieron descargar los modelos de visión artificial. Puedes reintentar o registrar tu asistencia de inmediato sin Face ID.';
         } else if (res.error) {
           msg = `Error de detección: ${res.error}`;
         }
@@ -410,7 +412,21 @@ export default function FaceCameraModal({
                   <div className="space-y-2 mt-1">
                     <div className="text-xs text-red-500 font-semibold bg-red-50 p-2.5 rounded-xl border border-red-100 flex items-start gap-2 text-left">
                       <ShieldAlert size={14} className="shrink-0 mt-0.5" />
-                      <span>{errorMsg}</span>
+                      <div className="flex-1">
+                        <span>{errorMsg}</span>
+                        {allowBypass && onBypass && (
+                          <div className="mt-1.5 pt-1.5 border-t border-red-200/60">
+                            <button
+                              type="button"
+                              onClick={() => setShowBypassView(true)}
+                              className="text-amber-800 hover:text-amber-900 hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                            >
+                              <AlertTriangle size={12} className="text-amber-600 shrink-0" />
+                              <span>Continuar con registro de contingencia (Sin Face ID) →</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -452,13 +468,22 @@ export default function FaceCameraModal({
                   >
                     <RefreshCw size={12} /> {t('attendance.face_camera.retake', 'Repetir')}
                   </Button>
-                  <Button 
-                    disabled={isProcessing || !tempDescriptor}
-                    className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold" 
-                    onClick={handleConfirm}
-                  >
-                    {tempDescriptor ? '✓ Registrando...' : t('common.continue', 'Continuar')}
-                  </Button>
+                  {errorMsg && allowBypass && onBypass && !tempDescriptor ? (
+                    <Button 
+                      className="flex-1 h-11 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold gap-1 shadow-sm" 
+                      onClick={() => setShowBypassView(true)}
+                    >
+                      <AlertTriangle size={13} /> {t('attendance.face_camera.bypass_btn', 'Continuar sin Face ID')}
+                    </Button>
+                  ) : (
+                    <Button 
+                      disabled={isProcessing || !tempDescriptor}
+                      className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold" 
+                      onClick={handleConfirm}
+                    >
+                      {tempDescriptor ? '✓ Registrando...' : t('common.continue', 'Continuar')}
+                    </Button>
+                  )}
                 </>
               )}
             </div>

@@ -1678,6 +1678,18 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 export default function ClockIn() {
     const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings, initDb, attendanceWriteMode, checkAttendanceWriteMode } = useStore();
 
+    // Silently warm up face recognition models in background so they are ready when modal opens
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const timer = setTimeout(() => {
+                import('../utils/faceId.utils').then(m => m.loadFaceModels()).catch((err) => {
+                    console.warn('[ClockIn] Background model preload note:', err);
+                });
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
     // Auto re-resolve attendance routing mode if previously unresolved/errored once userId is authenticated
     useEffect(() => {
         if (userId && (attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'ERROR')) {

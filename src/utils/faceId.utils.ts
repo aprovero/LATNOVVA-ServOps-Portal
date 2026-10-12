@@ -4,41 +4,78 @@ let modelsLoaded = false;
 let modelLoadingPromise: Promise<void> | null = null;
 
 /**
- * Loads the face-api models if they aren't already loaded.
+ * Loads individual models sequentially from a candidate URL if not already loaded.
+ */
+async function loadModelsFromSource(sourceUrl: string): Promise<boolean> {
+  try {
+    if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+      await faceapi.nets.tinyFaceDetector.loadFromUri(sourceUrl);
+    }
+    if (!faceapi.nets.faceLandmark68Net.isLoaded) {
+      await faceapi.nets.faceLandmark68Net.loadFromUri(sourceUrl);
+    }
+    if (!faceapi.nets.faceRecognitionNet.isLoaded) {
+      await faceapi.nets.faceRecognitionNet.loadFromUri(sourceUrl);
+    }
+    return (
+      faceapi.nets.tinyFaceDetector.isLoaded &&
+      faceapi.nets.faceLandmark68Net.isLoaded &&
+      faceapi.nets.faceRecognitionNet.isLoaded
+    );
+  } catch (err) {
+    console.warn(`[FaceID] Could not load all neural network models from ${sourceUrl}:`, err);
+    return false;
+  }
+}
+
+/**
+ * Loads the face-api models if they aren't already loaded with multi-tier fallback (origin -> relative -> jsDelivr CDN).
  */
 export async function loadFaceModels(): Promise<void> {
-  if (modelsLoaded) return;
+  if (
+    modelsLoaded ||
+    (faceapi.nets.tinyFaceDetector.isLoaded &&
+      faceapi.nets.faceLandmark68Net.isLoaded &&
+      faceapi.nets.faceRecognitionNet.isLoaded)
+  ) {
+    modelsLoaded = true;
+    return;
+  }
+
   if (modelLoadingPromise) return modelLoadingPromise;
 
   modelLoadingPromise = (async () => {
-    try {
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const MODEL_URL = `${baseUrl}/models`;
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-      ]);
-      modelsLoaded = true;
-      console.log('[FaceID] Models loaded successfully from', MODEL_URL);
-    } catch (error: any) {
-      console.warn('[FaceID] Failed loading from origin, trying /models relative path...', error);
-      try {
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-          faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-        ]);
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const candidateSources = [
+      origin ? `${origin}/models` : '/models',
+      '/models',
+      'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'
+    ];
+
+    for (const source of candidateSources) {
+      const ok = await loadModelsFromSource(source);
+      if (ok) {
         modelsLoaded = true;
-        console.log('[FaceID] Models loaded successfully from /models');
-      } catch (err2: any) {
-        console.error('[FaceID] Error loading face recognition models:', err2);
-        throw new Error('Failed to load facial recognition models.');
+        console.log('[FaceID] Models loaded successfully from', source);
+        return;
       }
-    } finally {
-      modelLoadingPromise = null;
     }
-  })();
+
+    // Secondary retry with 1s pause in case of temporary network glitch
+    await new Promise((r) => setTimeout(r, 1000));
+    for (const source of candidateSources) {
+      const ok = await loadModelsFromSource(source);
+      if (ok) {
+        modelsLoaded = true;
+        console.log('[FaceID] Models loaded successfully on retry from', source);
+        return;
+      }
+    }
+
+    throw new Error('No se han podido cargar los modelos de reconocimiento facial. Por favor verifica tu conexión o utiliza la opción de continuar sin Face ID.');
+  })().finally(() => {
+    modelLoadingPromise = null;
+  });
 
   return modelLoadingPromise;
 }
