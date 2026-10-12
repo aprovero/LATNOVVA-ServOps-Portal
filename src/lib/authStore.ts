@@ -420,15 +420,32 @@ export const useAuthStore = create<AuthState>((set, get) => {
                 }
 
                 // 1. Call Edge Function to rotate password & set trusted app_metadata
-                const { data, error: funcErr } = await supabase.functions.invoke(
-                    'complete-password-rotation',
-                    { body: { newPassword } }
-                );
-
-                if (funcErr) {
-                    throw new Error(funcErr.message || 'Failed to complete password rotation');
+                // Direct fetch with standard auth headers prevents custom client telemetry headers
+                // (x-latnovva-build-id, x-latnovva-release-id) from causing browser CORS preflight errors.
+                const token = get().session?.access_token;
+                if (!token) {
+                    throw new Error('No active session found. Please log in again.');
                 }
 
+                const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+                const anonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+                const response = await fetch(`${supabaseUrl}/functions/v1/complete-password-rotation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'apikey': anonKey
+                    },
+                    body: JSON.stringify({ newPassword })
+                });
+
+                if (!response.ok) {
+                    const errBody = await response.json().catch(() => ({}));
+                    throw new Error(errBody.error || `Error (${response.status}): Failed to complete password rotation`);
+                }
+
+                const data = await response.json().catch(() => ({}));
                 if (data?.error) {
                     throw new Error(data.error);
                 }
@@ -452,6 +469,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
                         }
                     });
                 } catch (e) {}
+
+                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
 
             } catch (err: any) {
                 set({ error: err.message, loading: false });

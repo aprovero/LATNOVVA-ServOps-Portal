@@ -72,7 +72,7 @@ export async function checkRequiredClientRelease(): Promise<ReleaseCheckResult> 
 
         if (!rpcErr && bootstrap) {
             serverMinVer = bootstrap.minimum_client_version;
-            serverReqRel = bootstrap.required_client_release !== undefined ? Number(bootstrap.required_client_release) : 43;
+            serverReqRel = bootstrap.required_client_release !== undefined ? Number(bootstrap.required_client_release) : 44;
             isGateEnabled = bootstrap.minimum_client_version_enabled ?? true;
         } else {
             // Attempt 2: Fallback query to platform_settings directly

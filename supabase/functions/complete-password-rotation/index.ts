@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-latnovva-client-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-latnovva-client-version, x-latnovva-build-id, x-latnovva-release-id, *",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 

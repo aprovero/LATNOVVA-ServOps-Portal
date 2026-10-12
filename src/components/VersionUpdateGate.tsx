@@ -20,7 +20,7 @@ export const VersionUpdateGate: React.FC<VersionUpdateGateProps> = ({
     const showUpdateModal = useStore(s => s.showUpdateModal);
     const clientReleaseStatus = useStore(s => s.clientReleaseStatus);
 
-    const targetMinVersion = minimumVersion || platformSettings.minimumClientVersion || '5.0.3';
+    const targetMinVersion = minimumVersion || platformSettings.minimumClientVersion || '5.0.4';
     const isEnabled = platformSettings.minimumClientVersionEnabled;
 
     const [isUpdating, setIsUpdating] = useState(false);
