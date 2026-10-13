@@ -2186,6 +2186,27 @@ export const useStore = create<AppState>()(
                 };
                 await get().safeSync('mx_personnel', person.id, 'upsert', dbPayload);
 
+                // Auto-provision Auth if the person has an email and login-capable role, or a corporate email
+                if (person.email && (['Office', 'HR', 'Manager', 'Supervisor'].includes(person.appRole || '') || person.email.includes('@latnovva.com'))) {
+                    try {
+                        const { data: existingUid } = await supabase.rpc('get_user_id_by_email' as any, { email_query: person.email.trim() } as any);
+                        if (!existingUid) {
+                            console.log(`[AutoProvision] Provisioning Auth user for ${person.email}...`);
+                            const { data: newUid } = await supabase.rpc('admin_create_user' as any, {
+                                user_email: person.email.trim(),
+                                user_name: person.name || 'LATNOVVA Staff',
+                                user_role: person.appRole || 'Tech',
+                                user_password: 'Latnovva2026!'
+                            } as any);
+                            if (newUid && person.id !== newUid) {
+                                await (supabase.from('mx_personnel') as any).update({ id: newUid }).eq('id', person.id);
+                            }
+                        }
+                    } catch (autoErr) {
+                        console.warn('[AutoProvision] Non-fatal auto-provisioning error:', autoErr);
+                    }
+                }
+
                 // Ensure the profiles record is also synchronized to the proper subsidiary
                 try {
                     await (supabase.from('profiles') as any).update({ subsidiary: sub }).eq('id', person.id);
@@ -2228,6 +2249,30 @@ export const useStore = create<AppState>()(
                 if (updates.subsidiaryMetadata !== undefined) dbPayload.subsidiary_metadata = updates.subsidiaryMetadata;
                 if (Object.keys(dbPayload).length > 0) {
                     await get().safeSync('mx_personnel', id, 'update', dbPayload);
+
+                    // Auto-provision Auth if the user now has an email and login-capable role, but is missing an Auth record
+                    const currentPerson = get().personnel.find(p => p.id === id);
+                    const targetEmail = updates.email || currentPerson?.email;
+                    const targetRole = updates.appRole || currentPerson?.appRole;
+                    if (targetEmail && (['Office', 'HR', 'Manager', 'Supervisor'].includes(targetRole || '') || targetEmail.includes('@latnovva.com'))) {
+                        try {
+                            const { data: existingUid } = await supabase.rpc('get_user_id_by_email' as any, { email_query: targetEmail.trim() } as any);
+                            if (!existingUid) {
+                                console.log(`[AutoProvision] Provisioning Auth user during update for ${targetEmail}...`);
+                                const { data: newUid } = await supabase.rpc('admin_create_user' as any, {
+                                    user_email: targetEmail.trim(),
+                                    user_name: updates.name || currentPerson?.name || 'LATNOVVA Staff',
+                                    user_role: targetRole || 'Tech',
+                                    user_password: 'Latnovva2026!'
+                                } as any);
+                                if (newUid && id !== newUid) {
+                                    await (supabase.from('mx_personnel') as any).update({ id: newUid }).eq('id', id);
+                                }
+                            }
+                        } catch (autoErr) {
+                            console.warn('[AutoProvision] Non-fatal update auto-provisioning error:', autoErr);
+                        }
+                    }
 
                     // HR-04: Sync core identity fields to the 'profiles' table.
                     // This ensures the next login or multi-tab fetch gets the correct role/client assignment.
