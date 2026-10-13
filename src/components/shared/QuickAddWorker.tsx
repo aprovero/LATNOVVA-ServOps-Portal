@@ -34,6 +34,7 @@ export default function QuickAddWorker({ open, onOpenChange, onSuccess }: QuickA
             status: 'Active',
             appRole: 'Tech',
             certifications: [],
+            subsidiary: 'MX',
         });
 
         onSuccess(newId, name.trim(), role.trim() || 'Technician');

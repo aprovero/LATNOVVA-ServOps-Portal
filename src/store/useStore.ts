@@ -1263,7 +1263,7 @@ export const useStore = create<AppState>()(
                                 hasNoDefinedScope: p.has_no_defined_scope || false,
                                 disciplines: p.disciplines || [],
                                 scopes: p.scopes || [],
-                                subsidiary: p.subsidiary || 'US',
+                                subsidiary: p.subsidiary || 'MX',
                                 subsidiaryMetadata: p.subsidiary_metadata || {},
                                 defaultScheduleId: p.subsidiary_metadata?.defaultScheduleId || p.default_schedule_id || undefined,
                                 geofenceRadius: p.subsidiary_metadata?.geofenceRadius ? Number(p.subsidiary_metadata.geofenceRadius) : (p.geofence_radius ? Number(p.geofence_radius) : undefined)
@@ -1299,7 +1299,7 @@ export const useStore = create<AppState>()(
                                     dbo: p.dbo,
                                     emergencyContactName: p.emergency_contact_name,
                                     emergencyContactPhone: p.emergency_contact_phone,
-                                    subsidiary: p.subsidiary || 'US',
+                                    subsidiary: p.subsidiary || 'MX',
                                     subsidiaryMetadata: p.subsidiary_metadata || {}
                                 }))
                                 : state.personnel;
@@ -1831,7 +1831,8 @@ export const useStore = create<AppState>()(
                 await get().safeSync('clients', id, 'delete', null);
             },
             addProject: async (project) => {
-                set((state) => ({ projects: [...state.projects, project] }));
+                const sub = project.subsidiary || 'MX';
+                set((state) => ({ projects: [...state.projects, { ...project, subsidiary: sub }] }));
                 const dbPayload = {
                     id: project.id,
                     client_id: project.clientId,
@@ -1850,7 +1851,7 @@ export const useStore = create<AppState>()(
                     has_no_defined_scope: project.hasNoDefinedScope || false,
                     disciplines: project.disciplines || [],
                     prevailing_wage: project.prevailingWage || false,
-                    subsidiary: project.subsidiary || 'US',
+                    subsidiary: sub,
                     subsidiary_metadata: {
                         ...(project.subsidiaryMetadata || {}),
                         ...(project.defaultScheduleId ? { defaultScheduleId: project.defaultScheduleId } : {}),
@@ -2150,7 +2151,8 @@ export const useStore = create<AppState>()(
                 await get().safeSync('tools', id, 'delete', null);
             },
             addPersonnel: async (person) => {
-                set((state) => ({ personnel: [...state.personnel, person] }));
+                const sub = person.subsidiary || 'MX';
+                set((state) => ({ personnel: [...state.personnel, { ...person, subsidiary: sub }] }));
                 const dbPayload = {
                     id: person.id,
                     name: person.name || 'Unnamed Personnel',
@@ -2179,10 +2181,17 @@ export const useStore = create<AppState>()(
                     per_diem: person.totalPerdiem,
                     emergency_contact_name: person.emergencyContactName,
                     emergency_contact_phone: person.emergencyContactPhone,
-                    subsidiary: person.subsidiary || 'US',
+                    subsidiary: sub,
                     subsidiary_metadata: person.subsidiaryMetadata || {}
                 };
                 await get().safeSync('mx_personnel', person.id, 'upsert', dbPayload);
+
+                // Ensure the profiles record is also synchronized to the proper subsidiary
+                try {
+                    await (supabase.from('profiles') as any).update({ subsidiary: sub }).eq('id', person.id);
+                } catch (e) {
+                    // Non-fatal profile sync
+                }
             },
             updatePersonnel: async (id, updates) => {
                 set((state) => ({
@@ -2227,6 +2236,7 @@ export const useStore = create<AppState>()(
                     if (updates.email !== undefined) profilePayload.email = updates.email;
                     if (updates.appRole !== undefined) profilePayload.role = updates.appRole;
                     if (updates.clientId !== undefined) profilePayload.client_id = updates.clientId;
+                    if (updates.subsidiary !== undefined) profilePayload.subsidiary = updates.subsidiary;
 
                     if (Object.keys(profilePayload).length > 0) {
                         await get().safeSync('profiles', id, 'update', profilePayload);

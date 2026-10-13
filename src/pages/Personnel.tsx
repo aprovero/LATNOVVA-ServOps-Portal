@@ -980,6 +980,13 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
 
             if (error) throw error;
 
+            // Ensure profile is explicitly set to active subsidiary ('MX')
+            try {
+                await (supabase.from('profiles') as any).update({ subsidiary: activeSubsidiary || 'MX' }).eq('id', newUserId);
+            } catch (err) {
+                console.warn('[Personnel] Failed to set profile subsidiary:', err);
+            }
+
             const created: PersonnelType = {
                 id: newUserId,
                 name: newPerson.name,
@@ -1005,7 +1012,7 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                 truckAllowance: newPerson.truckAllowance,
                 leadPay: newPerson.leadPay,
                 totalPerdiem: newPerson.totalPerdiem,
-                subsidiary: activeSubsidiary,
+                subsidiary: activeSubsidiary || 'MX',
                 subsidiaryMetadata: newPerson.subsidiaryMetadata || {}
             };
             
@@ -1059,7 +1066,7 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
     // Filter + sort: active first, inactive at bottom
     const filteredPersonnel = personnel
         .filter(p => !['Customer'].includes(p.appRole || ''))
-        .filter(p => (p.subsidiary || 'US') === activeSubsidiary)
+        .filter(p => (p.subsidiary || 'MX') === activeSubsidiary)
         .filter(p => {
             if (filterRole === 'All') return true;
             if (filterRole === 'Prevailing Wage') return p.prevailingWage;

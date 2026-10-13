@@ -72,7 +72,7 @@ export default function Projects() {
         prevailingWage: false,
         locationValidated: true,
         geofenceRadius: platformSettings?.geofenceRadius || 1000,
-        subsidiary: activeSubsidiary,
+        subsidiary: activeSubsidiary || 'MX',
         defaultScheduleId: '',
         systemType: 'Solar'
     });
@@ -126,7 +126,7 @@ export default function Projects() {
 
     // Filter projects for the selected client and user role
     const visibleProjects = useMemo(() => {
-        let filtered = projects.filter(p => (p.subsidiary || 'US') === activeSubsidiary);
+        let filtered = projects.filter(p => (p.subsidiary || 'MX') === activeSubsidiary);
 
         if (userRole === 'Customer') {
             filtered = filtered.filter(p => p.clientId === clientId);
@@ -815,6 +815,7 @@ export default function Projects() {
                                 addProject({
                                     ...newProject as Project,
                                     id: crypto.randomUUID(),
+                                    subsidiary: newProject.subsidiary || activeSubsidiary || 'MX',
                                     progress: 0,
                                     scopes: [],
                                     assignedPersonnel: newProject.assignedPersonnel || [],

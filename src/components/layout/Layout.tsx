@@ -305,6 +305,7 @@ export default function Layout() {
             location: newProjectLocation,
             projectSize: newProjectSize,
             systemType: newProjectSystemType,
+            subsidiary: activeSubsidiary || 'MX',
         };
         addProject(newProj);
         setIsCreateProjectOpen(false);

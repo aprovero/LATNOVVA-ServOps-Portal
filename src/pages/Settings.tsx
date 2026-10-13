@@ -150,6 +150,13 @@ export default function Settings() {
 
             if (!newUserId) throw new Error('User creation/restoration failed.');
 
+            // Ensure profile subsidiary is explicitly MX
+            try {
+                await (supabase.from('profiles') as any).update({ subsidiary: 'MX' }).eq('id', newUserId);
+            } catch (e) {
+                // Non-fatal
+            }
+
             addPersonnel({
                 id: newUserId,
                 name: inviteEmail.split('@')[0],
@@ -160,7 +167,8 @@ export default function Settings() {
                 certifications: [],
                 appRole: inviteRole,
                 clientId: inviteRole === 'Customer' ? inviteCompany : undefined,
-                hasPassword: !!invitePassword
+                hasPassword: !!invitePassword,
+                subsidiary: 'MX'
             });
             setIsInviteModalOpen(false);
             setInviteEmail('');

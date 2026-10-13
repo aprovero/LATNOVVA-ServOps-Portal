@@ -429,6 +429,8 @@ export interface Database {
           user_name: string
           user_role: string
           user_password: string
+          user_client_id?: string | null
+          user_subsidiary?: string | null
         }
         Returns: string
       }

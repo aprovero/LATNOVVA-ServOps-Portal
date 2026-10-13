@@ -1726,7 +1726,7 @@ export default function ClockIn() {
                                 hasNoDefinedScope: p.has_no_defined_scope || false,
                                 disciplines: p.disciplines || [],
                                 scopes: p.scopes || [],
-                                subsidiary: p.subsidiary || 'US',
+                                subsidiary: p.subsidiary || 'MX',
                                 subsidiaryMetadata: p.subsidiary_metadata || {},
                                 defaultScheduleId: p.subsidiary_metadata?.defaultScheduleId || p.default_schedule_id || undefined,
                                 geofenceRadius: p.subsidiary_metadata?.geofenceRadius ? Number(p.subsidiary_metadata.geofenceRadius) : (p.geofence_radius ? Number(p.geofence_radius) : undefined)

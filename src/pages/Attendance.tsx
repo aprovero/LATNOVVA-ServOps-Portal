@@ -14,11 +14,11 @@ export default function Attendance() {
     const { personnel, projects, timesheets, attendanceOverrides, workSchedules, refreshAttendance, activeSubsidiary, fetchTimesheetsForRange } = useStore();
 
     const filteredPersonnel = useMemo(() => {
-        return personnel.filter(p => (p.subsidiary || 'US') === activeSubsidiary);
+        return personnel.filter(p => (p.subsidiary || 'MX') === activeSubsidiary);
     }, [personnel, activeSubsidiary]);
 
     const filteredProjects = useMemo(() => {
-        return projects.filter(p => (p.subsidiary || 'US') === activeSubsidiary);
+        return projects.filter(p => (p.subsidiary || 'MX') === activeSubsidiary);
     }, [projects, activeSubsidiary]);
 
     // Default dates: Current Week (Monday to Sunday)

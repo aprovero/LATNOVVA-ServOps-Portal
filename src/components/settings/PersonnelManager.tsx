@@ -34,6 +34,7 @@ export default function PersonnelManager({ onBack }: PersonnelManagerProps) {
             addPersonnel({
                 ...formData,
                 id: crypto.randomUUID(),
+                subsidiary: 'MX',
             } as Personnel);
         }
         resetForm();

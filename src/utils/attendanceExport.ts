@@ -11,7 +11,7 @@ export function exportAttendanceToCSV(
     startDate: string,
     endDate: string,
     lang: 'en' | 'es' = 'es',
-    subsidiary: string = 'US'
+    subsidiary: string = 'MX'
 ) {
     const headers = lang === 'es' ? [
         'Nombre Completo',
@@ -127,7 +127,7 @@ export function exportDetailedPunchesToCSV(
     startDate: string,
     endDate: string,
     lang: 'en' | 'es' = 'es',
-    subsidiary: string = 'US'
+    subsidiary: string = 'MX'
 ) {
     const headers = lang === 'es' ? [
         'Nombre Completo',
@@ -334,7 +334,7 @@ export function exportBinaryAttendanceToCSV(
     startDate: string,
     endDate: string,
     lang: 'en' | 'es' = 'es',
-    subsidiary: string = 'US'
+    subsidiary: string = 'MX'
 ) {
     const getDatesArray = (start: string, end: string): string[] => {
         const arr = [];
@@ -402,7 +402,7 @@ export function exportVacationsToCSV(
     startDate: string,
     endDate: string,
     lang: 'en' | 'es' = 'es',
-    subsidiary: string = 'US'
+    subsidiary: string = 'MX'
 ) {
     const todayStr = new Date().toLocaleDateString('en-CA');
 

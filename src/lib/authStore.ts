@@ -88,7 +88,8 @@ async function recordAppVersion(userId: string, email?: string | null) {
                 .from('profiles')
                 .update({ 
                     last_app_version: `${version} (${buildId})`,
-                    last_active_at: now
+                    last_active_at: now,
+                    subsidiary: 'MX'
                 })
                 .eq('id', userId),
 
