@@ -279,9 +279,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
         },
 
         signInWithEmail: async (email, password) => {
+            const cleanEmail = (email || '').trim().toLowerCase();
+            const cleanPassword = (password || '').trim();
             set({ loading: true, error: null });
             try {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
                 if (error) {
                     console.error('[Auth Error Details] signInWithPassword failed:', error);
                     throw error;
@@ -294,10 +296,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
         },
 
         signInWithOtp: async (email) => {
+            const cleanEmail = (email || '').trim().toLowerCase();
             set({ loading: true, error: null });
             try {
                 const { error } = await supabase.auth.signInWithOtp({
-                    email,
+                    email: cleanEmail,
                     options: { emailRedirectTo: window.location.origin },
                 });
                 if (error) throw error;

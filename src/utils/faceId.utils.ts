@@ -192,9 +192,9 @@ export async function validateImageQualityAndGetDescriptor(
     }
   })();
 
-  // 8-second safety timeout so user is never frozen indefinitely
+  // 15-second safety timeout so slower devices or first-time neural net downloads never time out prematurely
   const timeoutPromise = new Promise<FaceValidationResult>((resolve) =>
-    setTimeout(() => resolve({ success: false, error: 'timeout' }), 8000)
+    setTimeout(() => resolve({ success: false, error: 'timeout' }), 15000)
   );
 
   return Promise.race([processPromise, timeoutPromise]);

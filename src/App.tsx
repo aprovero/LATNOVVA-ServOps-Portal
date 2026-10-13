@@ -70,6 +70,16 @@ function App() {
         // initializeAuth is now a no-op — onAuthStateChange in authStore fires automatically.
         // We still call it to avoid breaking any callers that may depend on it.
         useAuthStore.getState().initializeAuth();
+
+        // Warm up biometric models silently in background so Face ID opens instantly
+        if (typeof window !== 'undefined') {
+            const idlePreload = 'requestIdleCallback' in window
+                ? (window as any).requestIdleCallback(() => import('./utils/faceId.utils').then(m => m.loadFaceModels()).catch(() => {}))
+                : setTimeout(() => import('./utils/faceId.utils').then(m => m.loadFaceModels()).catch(() => {}), 1500);
+            return () => {
+                if (typeof idlePreload === 'number') clearTimeout(idlePreload);
+            };
+        }
     }, []);
 
     useEffect(() => {

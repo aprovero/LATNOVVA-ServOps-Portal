@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ArrowRight, ShieldCheck, Component, CheckCircle2 } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck, Component, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 import { requestInitialPermissions } from '../lib/permissions';
 import { useStore } from '../store/useStore';
@@ -14,6 +14,7 @@ export const Login: React.FC = () => {
     const { signInWithEmail, signInWithOtp, loading, error } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
     const [localSuccess, setLocalSuccess] = useState<string | null>(null);
 
@@ -126,12 +127,14 @@ export const Login: React.FC = () => {
         e.preventDefault();
         setLocalError(null);
         setLocalSuccess(null);
-        if (!email || !password) {
+        const cleanEmail = (email || '').trim().toLowerCase();
+        const cleanPassword = (password || '').trim();
+        if (!cleanEmail || !cleanPassword) {
             setLocalError('Please enter both email and password.');
             return;
         }
         try {
-            await signInWithEmail(email, password);
+            await signInWithEmail(cleanEmail, cleanPassword);
             // Trigger permissions request on successful login
             requestInitialPermissions();
         } catch (err: any) {
@@ -142,12 +145,13 @@ export const Login: React.FC = () => {
     const handleMagicLink = async () => {
         setLocalError(null);
         setLocalSuccess(null);
-        if (!email) {
+        const cleanEmail = (email || '').trim().toLowerCase();
+        if (!cleanEmail) {
             setLocalError('Please enter your email to receive a magic link.');
             return;
         }
         try {
-            await signInWithOtp(email);
+            await signInWithOtp(cleanEmail);
             // Trigger permissions request when link is sent to pre-approve the device
             requestInitialPermissions();
             setLocalSuccess('Magic link sent! Check your inbox.');
@@ -359,12 +363,22 @@ export const Login: React.FC = () => {
                                     <Lock className="h-5 w-5" />
                                 </div>
                                 <input
-                                    type="password"
+                                    type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="block w-full pl-11 pr-4 py-4 border border-slate-200 bg-slate-50 rounded-2xl text-slate-900 focus:ring-2 focus:ring-[#0097A7]/20 focus:border-[#0097A7] focus:bg-white transition-all shadow-sm outline-none font-mono text-sm placeholder:font-sans placeholder:text-slate-400"
+                                    className="block w-full pl-11 pr-12 py-4 border border-slate-200 bg-slate-50 rounded-2xl text-slate-900 focus:ring-2 focus:ring-[#0097A7]/20 focus:border-[#0097A7] focus:bg-white transition-all shadow-sm outline-none font-mono text-sm placeholder:font-sans placeholder:text-slate-400"
                                     placeholder="••••••••••••"
+                                    autoComplete="current-password"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(prev => !prev)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                                    tabIndex={-1}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
                             </div>
                         </div>
 
