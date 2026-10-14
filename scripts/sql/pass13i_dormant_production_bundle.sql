@@ -5,17 +5,6 @@
 -- SUPABASE PROJECT: dvkkxwtqonjgrvloisid
 -- BASELINE: PASS 12N / Release ID 48 / Commit 64bb2510 / feature/mexico-subsidiary
 -- STATUS: PREPARATION ONLY — NOT EXECUTED ON PRODUCTION
---
--- ARCHITECTURAL CONTRACT:
--- 1. CLEAN FORWARD-ONLY ATTENDANCE V2 SCHEMA (9 Dedicated Tables).
--- 2. IMMUTABLE LEDGER TRIGGERS (attendance_events, adjustments, audit_log, geofences).
--- 3. SERVER-AUTHORITATIVE ENGINE & RPCs (Advisory Locks, 29-field Canonical Hash).
--- 4. STRICT ZERO-MUTATION FAIL-CLOSED STATE:
---    - system_state: 'LEGACY_ACTIVE'
---    - minimum_v2_client_release_id: NULL (Pinning Pending)
---    - Legacy PASS 12N writes (mx_timesheets, mx_timesheet_punches) remain untouched.
--- 5. ROW-LEVEL SECURITY & DIRECT WRITE TABLE LOCKDOWN:
---    - authenticated / anon roles cannot INSERT, UPDATE, or DELETE directly.
 -- ==============================================================================
 
 BEGIN;
@@ -33,7 +22,6 @@ BEGIN
         RAISE EXCEPTION 'Prerequisite table public.projects is missing';
     END IF;
 END $$;
-
 
 -- >>> SECTION 1: SCHEMA & LEDGER IMMUTABILITY (PASS 13D-R) <<<
 -- ==============================================================================
@@ -637,23 +625,28 @@ ALTER TABLE IF EXISTS public.projects ADD COLUMN IF NOT EXISTS client_id UUID NU
 
 GRANT SELECT ON public.profiles, public.mx_personnel, public.projects TO authenticated;
 
-CREATE SCHEMA IF NOT EXISTS auth;
-
-CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS UUID
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
-$$;
-
-CREATE OR REPLACE FUNCTION auth.jwt()
-RETURNS JSONB
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb);
-$$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
+        CREATE SCHEMA auth;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid WHERE pg_namespace.nspname = 'auth' AND proname = 'uid') THEN
+        EXECUTE $fn$
+            CREATE OR REPLACE FUNCTION auth.uid()
+            RETURNS UUID LANGUAGE sql STABLE AS $sql$
+                SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
+            $sql$;
+        $fn$;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid WHERE pg_namespace.nspname = 'auth' AND proname = 'jwt') THEN
+        EXECUTE $fn$
+            CREATE OR REPLACE FUNCTION auth.jwt()
+            RETURNS JSONB LANGUAGE sql STABLE AS $sql$
+                SELECT coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb);
+            $sql$;
+        $fn$;
+    END IF;
+END $$;
 
 CREATE OR REPLACE FUNCTION public.get_authoritative_personnel_id()
 RETURNS TEXT
@@ -788,7 +781,7 @@ BEGIN
     );
 
     v_canonical_text := v_canonical::text;
-    RETURN encode(digest(convert_to(v_canonical_text, 'UTF8'), 'sha256'), 'hex');
+    RETURN encode(sha256(convert_to(v_canonical_text, 'UTF8')), 'hex');
 END;
 $$;
 
@@ -2006,7 +1999,6 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.confirm_attendance_selfie_upload(UUID, TEXT, INT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.confirm_attendance_selfie_upload(UUID, TEXT, INT, TEXT) TO authenticated;
-
 
 
 COMMIT;

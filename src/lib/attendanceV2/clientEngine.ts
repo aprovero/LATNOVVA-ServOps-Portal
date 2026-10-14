@@ -10,8 +10,7 @@ import {
   DurableActiveShift,
   AttendanceV2ClientConfig,
   AttendanceWorkType,
-  GeofenceStatus,
-  CachedOfflineLease
+  GeofenceStatus
 } from './types';
 import { AttendanceV2Database, attendanceV2Db } from './db';
 
@@ -519,7 +518,7 @@ export class AttendanceV2ClientEngine {
     let failedCount = 0;
 
     // Process each shift independently
-    for (const [shiftId, events] of shiftsMap.entries()) {
+    for (const [, events] of shiftsMap.entries()) {
       // Sort strictly by local causal ordinal sequence (CLOCK_IN before CLOCK_OUT)
       events.sort((a, b) => a.causal_sequence - b.causal_sequence);
 

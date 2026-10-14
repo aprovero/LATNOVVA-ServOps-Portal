@@ -9,8 +9,10 @@ import { NormalizedPendingPunch, processNormalizedPunchItem, getSignedMediaUrl }
 import { getActiveShift, setActiveShift, clearActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
 import { checkRequiredClientRelease, recordReleaseTelemetry, ReleaseCheckStatus } from '../lib/releaseCheck';
 import { getReleaseId } from '../config/release';
+import { getAttendanceV2Engine } from '../lib/attendanceV2/transport';
+import { attendanceV2Db } from '../lib/attendanceV2/db';
 
-export type AttendanceWriteMode = 'UNKNOWN' | 'RESOLVING' | 'CANARY' | 'LEGACY' | 'ERROR';
+export type AttendanceWriteMode = 'UNKNOWN' | 'RESOLVING' | 'CANARY' | 'LEGACY' | 'ERROR' | 'V2';
 
 export const TIMESHEET_LIGHTWEIGHT_COLUMNS = 'id, personnel_id, project_id, date, time_in, time_out, hours, type, classification, notes, status, approved_by, gps_verified, source, manual_reason, created_at, updated_at, corrected_by, corrected_at, correction_reason, lunch_start, lunch_end';
 export const PERSONNEL_LIGHTWEIGHT_COLUMNS = 'id, name, position, app_role, employee_number, status, email, phone_number, certifications, supervisor_id, manager_id, client_id, prevailing_wage, bench_exempt, regular_rate, rainy_day_rate, overtime_rate, meal_allowance, gas_allowance, truck_allowance, lead_pay, per_diem, dbo, emergency_contact_name, emergency_contact_phone, subsidiary, subsidiary_metadata';
@@ -1141,6 +1143,31 @@ export const useStore = create<AppState>()(
             checkAttendanceWriteMode: async () => {
                 set({ attendanceWriteMode: 'RESOLVING' });
                 try {
+                    // PASS 13I-0: Check Attendance V2 Authoritative Control State
+                    try {
+                        const { data: v2Control, error: v2Err } = await supabase
+                            .from('attendance_v2_control')
+                            .select('system_state, minimum_v2_client_release_id')
+                            .eq('control_id', 1)
+                            .maybeSingle();
+
+                        if (!v2Err && v2Control && v2Control.system_state === 'V2_ACTIVE') {
+                            const myRelease = getReleaseId();
+                            if (v2Control.minimum_v2_client_release_id && myRelease < v2Control.minimum_v2_client_release_id) {
+                                console.warn(`[checkAttendanceWriteMode] V2 active but client release ${myRelease} < required ${v2Control.minimum_v2_client_release_id}`);
+                                set({ attendanceWriteMode: 'ERROR', clientReleaseStatus: 'UPDATE_REQUIRED', showUpdateModal: true });
+                                return false;
+                            }
+                            set({ 
+                                attendanceWriteMode: 'V2', 
+                                normalizedAttendanceEnabled: true 
+                            });
+                            return true;
+                        }
+                    } catch (v2CheckEx) {
+                        // Non-fatal if table does not exist in legacy database
+                    }
+
                     const { data, error } = await supabase.rpc('get_attendance_write_mode');
                     if (!error && data && typeof data.mode === 'string') {
                         // FAIL CLOSED: If server reports ERROR or identity was unresolved, never assume legacy!
@@ -2610,6 +2637,111 @@ export const useStore = create<AppState>()(
                 if (currentMode === 'ERROR' || currentMode === 'UNKNOWN' || currentMode === 'RESOLVING') {
                     console.error(`[clockPunch] FAIL CLOSED: Attendance routing mode is ${currentMode} for ${personnelId}. Rejecting punch to prevent unverified write.`);
                     throw new Error('No se pudo verificar el modo de sincronización de asistencia con el servidor. Por favor verifique su conexión e intente nuevamente.');
+                }
+
+                if (currentMode === 'V2') {
+                    const { engine, mediaSync } = getAttendanceV2Engine();
+                    const workType = punch.workMode === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE';
+                    const isForgotten = Boolean(punch.manualAdjustment && punch.adjustmentReason === 'FORGOTTEN_CLOCKOUT');
+
+                    let geofenceStatus = 'UNKNOWN';
+                    if (workType === 'HOME_OFFICE') {
+                        geofenceStatus = 'NOT_APPLICABLE';
+                    } else if (punch.gpsVerified) {
+                        geofenceStatus = 'INSIDE';
+                    } else {
+                        geofenceStatus = 'OUTSIDE';
+                    }
+
+                    if (punch.type === 'clockIn') {
+                        const res = await engine.clockIn({
+                            personnel_id: personnelId,
+                            project_id: projectId || '',
+                            work_type: workType,
+                            latitude: punch.lat,
+                            longitude: punch.lng,
+                            accuracy_meters: punch.accuracy,
+                            gps_verified: Boolean(punch.gpsVerified),
+                            geofence_status: geofenceStatus as any,
+                            face_verified: Boolean(punch.faceVerified),
+                            face_bypass_reason: punch.faceBypassReason || null
+                        });
+
+                        if (!res.success) {
+                            throw new Error(`Error en registro V2 (Entrada): ${res.error || res.status}`);
+                        }
+
+                        if (punch.selfieBlob) {
+                            try {
+                                const base64Data = punch.selfieBlob.replace(/^data:image\/[a-z]+;base64,/, '');
+                                const byteSize = Math.round((base64Data.length * 3) / 4);
+                                await mediaSync.queueSelfie({
+                                    eventId: res.event_id,
+                                    shiftId: res.shift_id,
+                                    personnelId: personnelId,
+                                    subsidiary: 'MX',
+                                    dataBase64: punch.selfieBlob,
+                                    mimeType: 'image/jpeg',
+                                    sha256Hash: 'selfie_' + res.event_id,
+                                    byteSize: byteSize
+                                });
+                                mediaSync.syncAllPendingMedia().catch((err: any) => console.warn('[AttendanceV2] Background media sync error:', err));
+                            } catch (mErr) {
+                                console.warn('[AttendanceV2] Failed to queue selfie:', mErr);
+                            }
+                        }
+
+                        await get().refreshAttendance();
+                        return;
+                    } else { // clockOut
+                        const active = await attendanceV2Db.getCurrentActiveShiftForPersonnel(personnelId);
+                        if (!active) {
+                            console.error(`[clockPunch] V2: No active shift found for personnel ${personnelId}`);
+                            throw new Error('No se encontró un turno activo para registrar la salida.');
+                        }
+
+                        const res = await engine.clockOut({
+                            shift_id: active.shift_id,
+                            personnel_id: personnelId,
+                            latitude: punch.lat,
+                            longitude: punch.lng,
+                            accuracy_meters: punch.accuracy,
+                            gps_verified: Boolean(punch.gpsVerified),
+                            geofence_status: geofenceStatus as any,
+                            face_verified: Boolean(punch.faceVerified),
+                            face_bypass_reason: punch.faceBypassReason || null,
+                            is_forgotten_clockout: isForgotten,
+                            reported_departure_timestamp: isForgotten ? punch.timestamp : null,
+                            worker_explanation: isForgotten ? (punch.adjustmentNote || null) : null
+                        });
+
+                        if (!res.success) {
+                            throw new Error(`Error en registro V2 (Salida): ${res.error || res.status}`);
+                        }
+
+                        if (punch.selfieBlob) {
+                            try {
+                                const base64Data = punch.selfieBlob.replace(/^data:image\/[a-z]+;base64,/, '');
+                                const byteSize = Math.round((base64Data.length * 3) / 4);
+                                await mediaSync.queueSelfie({
+                                    eventId: res.event_id,
+                                    shiftId: res.shift_id,
+                                    personnelId: personnelId,
+                                    subsidiary: 'MX',
+                                    dataBase64: punch.selfieBlob,
+                                    mimeType: 'image/jpeg',
+                                    sha256Hash: 'selfie_' + res.event_id,
+                                    byteSize: byteSize
+                                });
+                                mediaSync.syncAllPendingMedia().catch((err: any) => console.warn('[AttendanceV2] Background media sync error:', err));
+                            } catch (mErr) {
+                                console.warn('[AttendanceV2] Failed to queue selfie:', mErr);
+                            }
+                        }
+
+                        await get().refreshAttendance();
+                        return;
+                    }
                 }
 
                 const isNormalized = currentMode === 'CANARY';

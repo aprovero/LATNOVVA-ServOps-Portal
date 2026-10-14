@@ -21,7 +21,9 @@ const { Client } = require('pg');
 require('dotenv').config({ path: '.env' });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://dvkkxwtqonjgrvloisid.supabase.co';
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const rawServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceKey = (rawServiceKey && rawServiceKey.startsWith('eyJ')) ? rawServiceKey : anonKey;
 const directConn = process.env.DATABASE_URL;
 
 const supabase = createClient(supabaseUrl, serviceKey, {
@@ -51,8 +53,21 @@ async function runProductionPreflight() {
   };
 
   try {
+    if (serviceKey === anonKey) {
+      console.log('Authenticating preflight session as technician...');
+      const { data: authSession, error: authErr } = await supabase.auth.signInWithPassword({
+        email: 'tech@latnovva.com',
+        password: 'CanaryPassword123!'
+      });
+      if (authErr) {
+        console.warn('  ⚠️ Authenticated session login warning:', authErr.message);
+      } else {
+        console.log('  ✅ Authenticated as technician (id:', authSession?.user?.id + ')');
+      }
+    }
+
     // 1. DB Health & Connectivity via PostgREST
-    console.log('1. Checking DB Health & PostgREST Connectivity...');
+    console.log('\n1. Checking DB Health & PostgREST Connectivity...');
     const { data: profileSample, error: profileErr } = await supabase
       .from('profiles')
       .select('id, role, subsidiary')
@@ -111,14 +126,15 @@ async function runProductionPreflight() {
     }
 
     // 5. Open Shifts in legacy public.mx_timesheets
-    console.log('\n5. Inspecting Open Legacy Timesheets (clock_out IS NULL)...');
+    console.log('\n5. Inspecting Open Legacy Timesheets (time_out IS NULL)...');
     const { data: openShifts, error: openErr } = await supabase
       .from('mx_timesheets')
-      .select('id, employee_id, clock_in, clock_out, project_id, shift_type')
-      .is('clock_out', null);
+      .select('id, personnel_id, date, time_in, time_out, project_id, type')
+      .is('time_out', null);
 
     if (openErr) {
       console.error('  ❌ Error checking open shifts in mx_timesheets:', openErr.message);
+      throw new Error(`Failed to query open shifts in mx_timesheets: ${openErr.message}`);
     } else {
       report.openLegacyShiftsCount = openShifts.length;
       report.openLegacyShifts = openShifts;
@@ -127,7 +143,7 @@ async function runProductionPreflight() {
       } else {
         console.log(`  ⚠️ ATTENTION: ${openShifts.length} open legacy shifts currently exist in mx_timesheets:`);
         openShifts.forEach(s => {
-          console.log(`     - Timesheet ID: ${s.id}, Employee: ${s.employee_id}, Clock-In: ${s.clock_in}, Project: ${s.project_id}`);
+          console.log(`     - Timesheet ID: ${s.id}, Personnel: ${s.personnel_id}, Date: ${s.date}, Time In: ${s.time_in}, Project: ${s.project_id}, Type: ${s.type}`);
         });
       }
     }
@@ -136,7 +152,7 @@ async function runProductionPreflight() {
     console.log('\n6. Inspecting Canary Punches in public.mx_timesheet_punches...');
     const { data: punches, error: punchErr, count: punchCount } = await supabase
       .from('mx_timesheet_punches')
-      .select('id, punch_type, created_at', { count: 'exact' })
+      .select('id, type, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -145,7 +161,7 @@ async function runProductionPreflight() {
     } else {
       console.log(`  ✅ Recent canary punches inspected. Total count: ${punchCount ?? punches.length}`);
       punches.forEach(p => {
-        console.log(`     - Punch ID: ${p.id}, Type: ${p.punch_type}, At: ${p.created_at}`);
+        console.log(`     - Punch ID: ${p.id}, Type: ${p.type}, At: ${p.created_at}`);
       });
     }
 
@@ -180,12 +196,16 @@ async function runProductionPreflight() {
     console.log('========================================================================\n');
 
   } catch (err) {
-    console.error('Fatal preflight error:', err);
+    console.error('\n❌ FATAL PREFLIGHT ERROR (FAIL-CLOSED):', err.message || err);
+    process.exit(1);
   }
 }
 
 if (require.main === module) {
-  runProductionPreflight().then(() => process.exit(0));
+  runProductionPreflight().catch((err) => {
+    console.error('Preflight runner failed:', err);
+    process.exit(1);
+  });
 }
 
 module.exports = { runProductionPreflight };
