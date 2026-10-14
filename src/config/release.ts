@@ -1,6 +1,6 @@
 // PASS 12N Authoritative Release Metadata
-export const APP_VERSION = '5.0.7';
-export const RELEASE_ID = 47;
+export const APP_VERSION = '5.0.8';
+export const RELEASE_ID = 48;
 
 export const getAppVersion = (): string => {
     return typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : APP_VERSION;

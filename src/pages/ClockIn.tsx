@@ -7,7 +7,7 @@ import { useStore, ClockPunch, Personnel } from '../store/useStore';
 import { formatTime } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { useAttendance } from '../hooks/useAttendance';
-import { getActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
+import { getActiveShift, clearActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
 import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 import QuickAddWorker from '../components/shared/QuickAddWorker';
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
@@ -63,8 +63,24 @@ function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'dev
 }
 
 function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
-    const activeState = getActiveShift(personnelId) || recoverActiveShift(personnelId, timesheets);
-    if (activeState) return 'clocked-in';
+    const activeState = getActiveShift(personnelId);
+    if (activeState) {
+        const correspondingTs = timesheets.find((t: any) => t.id === activeState.timesheetId);
+        if (correspondingTs && correspondingTs.timeOut) {
+            clearActiveShift(personnelId);
+        } else {
+            return 'clocked-in';
+        }
+    }
+    const recovered = recoverActiveShift(personnelId, timesheets);
+    if (recovered) {
+        const correspondingTs = timesheets.find((t: any) => t.id === recovered.timesheetId);
+        if (correspondingTs && correspondingTs.timeOut) {
+            clearActiveShift(personnelId);
+        } else {
+            return 'clocked-in';
+        }
+    }
     const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
     if (openEntry) return 'clocked-in';
     return 'idle';
@@ -955,7 +971,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
     const activeShiftState = getActiveShift(personnelId) || recoverActiveShift(personnelId, timesheets);
     const activeEntry = activeShiftState
-        ? timesheets.find((t: any) => t.id === activeShiftState.timesheetId)
+        ? timesheets.find((t: any) => t.id === activeShiftState.timesheetId && !t.timeOut)
         : [...timesheets]
             .filter((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut)
             .sort((a: any, b: any) => {
@@ -1238,6 +1254,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 : (selectedProject || undefined);
                 
             doPunch(personnelId, punch, finalProjectId);
+            if (type === 'clockOut') {
+                clearActiveShift(personnelId);
+            }
         } finally {
             // Slight delay before re-enabling to ensure store updates
             setTimeout(() => setIsSubmitting(false), 2000);

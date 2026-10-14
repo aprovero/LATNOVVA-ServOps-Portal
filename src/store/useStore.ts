@@ -6,7 +6,7 @@ import { idbStorage } from '../lib/idbStorage';
 import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
 
 import { NormalizedPendingPunch, processNormalizedPunchItem, getSignedMediaUrl } from '../lib/normalizedPunchSync';
-import { getActiveShift, setActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
+import { getActiveShift, setActiveShift, clearActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
 import { checkRequiredClientRelease, recordReleaseTelemetry, ReleaseCheckStatus } from '../lib/releaseCheck';
 import { getReleaseId } from '../config/release';
 
@@ -2850,6 +2850,10 @@ export const useStore = create<AppState>()(
                         } else {
                             await get().safeSync('mx_timesheets', updated.id, 'upsert', dbPayload);
                         }
+                    }
+
+                    if (punch.type === 'clockOut') {
+                        clearActiveShift(personnelId);
                     }
                 } catch (e) {
                     console.warn('[clockPunch] Sync queue failed:', e);
