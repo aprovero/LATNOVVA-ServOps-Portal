@@ -16,7 +16,7 @@ export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
         __BUILD_ID__: JSON.stringify(buildId),
-        __RELEASE_ID__: 48,
+        __RELEASE_ID__: 49,
     },
     plugins: [
         react(),
