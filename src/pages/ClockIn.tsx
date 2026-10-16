@@ -12,6 +12,8 @@ import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordin
 import QuickAddWorker from '../components/shared/QuickAddWorker';
 import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
 import FaceCameraModal from '../components/shared/FaceCameraModal';
+import { useAttendanceLocation } from '../hooks/useAttendanceLocation';
+import { AttendanceLocationCard } from '../components/attendance/AttendanceLocationCard';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1068,20 +1070,36 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const targetProject = currentProjId ? projects.find((p: any) => p.id === currentProjId) : null;
     const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
     const geofenceRadius = targetProject?.geofenceRadius || platformSettings?.geofenceRadius || 1000;
+
+    // Attendance V2 Reactive Multi-Location Resolver
+    const { result: resolvedLocation } = useAttendanceLocation({
+        lat: gps.lat,
+        lng: gps.lng,
+        accuracy: gps.accuracy,
+        gpsStatus: gps.status,
+        projectId: currentProjId,
+        projectName: targetProject?.name || 'Proyecto',
+        primaryCoords: projCoords,
+        primaryRadius: geofenceRadius,
+        personnelId,
+        workMode: effectiveWorkMode
+    });
+
     const isBypass = isWarehouseBypass(personnelId, gps.lat, gps.lng, geofenceRadius);
     const isOutsideGeofence = !!(
         effectiveWorkMode === 'On Site' &&
         targetProject?.locationValidated &&
-        projCoords &&
         gps.lat !== null &&
         gps.lng !== null &&
-        getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng) > geofenceRadius &&
+        resolvedLocation.status === 'OUTSIDE' &&
         !isBypass
     );
-    const geofenceBlocking = isOutsideGeofence && userRole !== 'Tech';
-    const geofenceDistance = projCoords && gps.lat !== null && gps.lng !== null
-        ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
-        : 0;
+    const geofenceBlocking = isOutsideGeofence;
+    const geofenceDistance = resolvedLocation.distanceMeters ?? (
+        projCoords && gps.lat !== null && gps.lng !== null
+            ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
+            : 0
+    );
     const activeProjects = (() => {
         const filtered = projects.filter((p: any) => {
             const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
@@ -1246,6 +1264,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 faceVerified: faceMeta?.faceVerified,
                 faceBypassReason: faceMeta?.faceBypassReason,
                 selfieBlob: faceMeta?.selfieBlob,
+                gpsVerified: !isOutsideGeofence && (gps.status === 'locked' || gps.status === 'poor'),
             };
             
             const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
@@ -1323,6 +1342,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                             </div>
                         </div>
+                    )}
+
+                    {workMode === 'On Site' && selectedProject && (
+                        <AttendanceLocationCard
+                            result={resolvedLocation}
+                            userRole={userRole}
+                            projectName={targetProject?.name}
+                        />
                     )}
                 </div>
             )}
@@ -1439,26 +1466,6 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             <span>GPS signal is weak (±{Math.round(gps.accuracy!)}m). Punch will be flagged.</span>
                         </div>
                     )}
-                    {isOutsideGeofence && (
-                        <div className={`flex items-start gap-3 p-4 rounded-2xl text-sm animate-in slide-in-from-top-1 duration-300 ${
-                            userRole === 'Tech'
-                                ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                                : 'bg-red-50 border border-red-200 text-red-800'
-                        }`}>
-                            <AlertTriangle className={`shrink-0 mt-0.5 ${userRole === 'Tech' ? 'text-amber-500' : 'text-red-500'}`} size={18} />
-                            <div>
-                                <p className="font-bold">
-                                    {userRole === 'Tech' ? 'Fuera de geocerca (Permitido para Técnico)' : 'Fuera de geocerca (Checada bloqueada)'}
-                                </p>
-                                <p className="text-xs mt-1">
-                                    {userRole === 'Tech'
-                                        ? `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio: ${geofenceRadius}m). Como Técnico, se te permite checar; tus coordenadas GPS quedarán registradas para validación de supervisión.`
-                                        : `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio permitido: ${geofenceRadius}m). El personal que no es técnico en campo no tiene permitido checar fuera de la geocerca.`
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -1517,7 +1524,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     ) : (
                         <button onClick={() => {
                             if (isSubmitting) return;
-                            if (isOutsideGeofence && userRole !== 'Tech') {
+                            if (isOutsideGeofence) {
                                 setForgottenTargetTimesheet(activeEntry);
                                 setShowOutsideGeofenceModal(true);
                                 return;
@@ -1553,25 +1560,12 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                             </button>
                         </div>
                     )}
-                    {isOutsideGeofence && (
-                        <div className={`flex items-start gap-3 p-4 rounded-2xl text-sm animate-in slide-in-from-top-1 duration-300 ${
-                            userRole === 'Tech'
-                                ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                                : 'bg-red-50 border border-red-200 text-red-800'
-                        }`}>
-                            <AlertTriangle className={`shrink-0 mt-0.5 ${userRole === 'Tech' ? 'text-amber-500' : 'text-red-500'}`} size={18} />
-                            <div>
-                                <p className="font-bold">
-                                    {userRole === 'Tech' ? 'Fuera de geocerca (Permitido para Técnico)' : 'Fuera de geocerca (Checada bloqueada)'}
-                                </p>
-                                <p className="text-xs mt-1">
-                                    {userRole === 'Tech'
-                                        ? `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio: ${geofenceRadius}m). Como Técnico, se te permite checar; tus coordenadas GPS quedarán registradas para validación de supervisión.`
-                                        : `Te encuentras a ${geofenceDistance >= 1000 ? `${(geofenceDistance / 1000).toFixed(1)}km` : `${geofenceDistance}m`} del proyecto (radio permitido: ${geofenceRadius}m). El personal que no es técnico en campo no tiene permitido checar fuera de la geocerca.`
-                                    }
-                                </p>
-                            </div>
-                        </div>
+                    {effectiveWorkMode === 'On Site' && currentProjId && (
+                        <AttendanceLocationCard
+                            result={resolvedLocation}
+                            userRole={userRole}
+                            projectName={targetProject?.name}
+                        />
                     )}
                 </div>
             )}

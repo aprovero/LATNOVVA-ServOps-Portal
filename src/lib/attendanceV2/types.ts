@@ -124,6 +124,14 @@ export interface CachedOfflineLease {
     accuracy_threshold_meters: number;
     warehouse_bypass_allowed: boolean;
     home_office_allowed: boolean;
+    secondary_locations?: Array<{
+      location_id: string;
+      location_name: string;
+      latitude: number;
+      longitude: number;
+      radius_meters: number;
+      accuracy_threshold_meters: number;
+    }>;
   }>;
 }
 
