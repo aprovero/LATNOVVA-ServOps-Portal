@@ -33,7 +33,7 @@ const formatPunchTime = (iso: string) => formatTime(iso);
 
 export default function Timesheets() {
     const { t } = useTranslation();
-    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName, resolvePersonnelId, fetchTimesheetsForRange } = useStore();
+    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName, resolvePersonnelId, fetchTimesheetsForRange, activeSubsidiary } = useStore();
     const resolvedPersonnelId = resolvePersonnelId() || userId;
 
     const punchLabel: Record<string, string> = {
@@ -496,7 +496,7 @@ export default function Timesheets() {
                                         onChange={e => setNewEntry({ ...newEntry, projectId: e.target.value })}
                                     >
                                         <option value="">{t('timesheets.modals.none_admin')}</option>
-                                        {projects.filter(p => p.status === 'Active' || p.status === 'In Progress').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        {projects.filter(p => (p.status === 'Active' || p.status === 'In Progress') && (!activeSubsidiary || (p.subsidiary || 'MX') === activeSubsidiary) && !p.name.toLowerCase().includes('test')).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
 
@@ -1075,7 +1075,7 @@ export default function Timesheets() {
                                     }}
                                 >
                                     <option value="">{t('timesheets.modals.project_optional').split(' (')[0]}...</option>
-                                    {projects.filter(p => p.status === 'Active' || p.status === 'In Progress').map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
+                                    {projects.filter(p => (p.status === 'Active' || p.status === 'In Progress') && (!activeSubsidiary || (p.subsidiary || 'MX') === activeSubsidiary) && !p.name.toLowerCase().includes('test')).map(p => <option key={p.id} value={p.id}>{p.codeName || p.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">

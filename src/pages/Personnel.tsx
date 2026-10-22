@@ -953,6 +953,32 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
 
                 if (error) throw error;
             }
+
+            // Sync project assignment if siteAssigned, branchOffice, or project_id in metadata points to an active project
+            const targetSite = editDraft.subsidiaryMetadata?.siteAssigned || editDraft.subsidiaryMetadata?.branchOffice || editDraft.subsidiaryMetadata?.site;
+            let matchedProject = null;
+            if (editDraft.subsidiaryMetadata?.project_id) {
+                matchedProject = projects.find(p => p.id === editDraft.subsidiaryMetadata.project_id);
+            }
+            if (!matchedProject && targetSite) {
+                const s = String(targetSite).toLowerCase().trim();
+                matchedProject = projects.find(p => 
+                    p.status === 'Active' && (
+                        p.name.toLowerCase().trim() === s ||
+                        p.codeName?.toLowerCase().trim() === s ||
+                        p.name.toLowerCase().includes(s) ||
+                        p.codeName?.toLowerCase().includes(s)
+                    )
+                );
+            }
+            if (matchedProject && !matchedProject.assignedPersonnel?.includes(editDraft.id)) {
+                await transferPersonnel(editDraft.id, matchedProject.id);
+                if (editDraft.subsidiaryMetadata) {
+                    editDraft.subsidiaryMetadata.project_id = matchedProject.id;
+                    editDraft.subsidiaryMetadata.siteAssigned = matchedProject.name;
+                    editDraft.subsidiaryMetadata.assigned_projects = [matchedProject.id];
+                }
+            }
             
             updatePersonnel(editDraft.id, editDraft);
             setIsSaved(true);
@@ -987,6 +1013,51 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                 console.warn('[Personnel] Failed to set profile subsidiary:', err);
             }
 
+            // Resolve target project from tempProjectId or metadata (siteAssigned, branchOffice, etc.)
+            let targetProjId = newPerson.tempProjectId;
+            const targetSite = newPerson.subsidiaryMetadata?.siteAssigned || newPerson.subsidiaryMetadata?.branchOffice || newPerson.subsidiaryMetadata?.site;
+            if (!targetProjId && targetSite) {
+                const s = String(targetSite).toLowerCase().trim();
+                const matched = projects.find(p => 
+                    p.status === 'Active' && (
+                        p.name.toLowerCase().trim() === s ||
+                        p.codeName?.toLowerCase().trim() === s ||
+                        p.name.toLowerCase().includes(s) ||
+                        p.codeName?.toLowerCase().includes(s)
+                    )
+                );
+                if (matched) {
+                    targetProjId = matched.id;
+                }
+            }
+
+            // Fallback to CDMX only if no site or project was indicated and subsidiary is MX
+            if (!targetProjId && activeSubsidiary === 'MX') {
+                const cdmxProj = projects.find(p => 
+                    p.status === 'Active' && (
+                        p.name.toLowerCase().includes('cdmx') || 
+                        p.codeName?.toLowerCase().includes('cdmx') ||
+                        p.name === 'EST-LNV-000' ||
+                        p.codeName === 'EST-LNV-000' ||
+                        p.name.toLowerCase().includes('ciudad de méxico') ||
+                        p.name.toLowerCase().includes('mexico city')
+                    )
+                );
+                if (cdmxProj) {
+                    targetProjId = cdmxProj.id;
+                }
+            }
+
+            const targetProjectObj = targetProjId ? projects.find(p => p.id === targetProjId) : null;
+            const updatedMetadata = {
+                ...(newPerson.subsidiaryMetadata || {}),
+                ...(targetProjId ? {
+                    project_id: targetProjId,
+                    siteAssigned: targetProjectObj?.name || newPerson.subsidiaryMetadata?.siteAssigned || '',
+                    assigned_projects: [targetProjId]
+                } : {})
+            };
+
             const created: PersonnelType = {
                 id: newUserId,
                 name: newPerson.name,
@@ -1013,26 +1084,11 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                 leadPay: newPerson.leadPay,
                 totalPerdiem: newPerson.totalPerdiem,
                 subsidiary: activeSubsidiary || 'MX',
-                subsidiaryMetadata: newPerson.subsidiaryMetadata || {}
+                subsidiaryMetadata: updatedMetadata
             };
             
             // Sync locally & backend via zustand trigger updates
             addPersonnel(created);
-            
-            let targetProjId = newPerson.tempProjectId;
-            if (!targetProjId && activeSubsidiary === 'MX') {
-                const cdmxProj = projects.find(p => 
-                    p.name.toLowerCase().includes('cdmx') || 
-                    p.codeName?.toLowerCase().includes('cdmx') ||
-                    p.name === 'EST-LNV-000' ||
-                    p.codeName === 'EST-LNV-000' ||
-                    p.name.toLowerCase().includes('ciudad de méxico') ||
-                    p.name.toLowerCase().includes('mexico city')
-                );
-                if (cdmxProj) {
-                    targetProjId = cdmxProj.id;
-                }
-            }
 
             if (targetProjId) {
                 await transferPersonnel(created.id, targetProjId);
@@ -1253,7 +1309,7 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                                                 >
                                                     <option value="">{t('personnel.unassigned', 'Unassigned / Ninguno')}</option>
                                                     {projects
-                                                        .filter(p => p.status === 'Active')
+                                                        .filter(p => p.status === 'Active' && (!activeSubsidiary || (p.subsidiary || 'MX') === activeSubsidiary) && !p.name.toLowerCase().includes('test'))
                                                         .map(p => (
                                                             <option key={p.id} value={p.id}>{p.name}</option>
                                                         ))
@@ -1688,7 +1744,7 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                                                                             {assignedProjects.length > 0 ? `+ ${t('personnel.transfer_project', 'Transfer Project')}` : `+ ${t('personnel.assign_project', 'Assign Project')}`}
                                                                         </option>
                                                                         {projects
-                                                                            .filter(p => p.status === 'Active' && !assignedProjects.some(ap => ap.id === p.id))
+                                                                            .filter(p => p.status === 'Active' && (!activeSubsidiary || (p.subsidiary || 'MX') === activeSubsidiary) && !p.name.toLowerCase().includes('test') && !assignedProjects.some(ap => ap.id === p.id))
                                                                             .map(p => (
                                                                                 <option key={p.id} value={p.id}>{p.name} {p.prevailingWage ? '(PW)' : ''}</option>
                                                                             ))
@@ -1861,14 +1917,16 @@ abiertas sin cerrar y que la columna 'NOMBRE' contenga informacion en cada fila.
                                                             ...d,
                                                             subsidiaryMetadata: {
                                                                 ...d.subsidiaryMetadata,
-                                                                siteAssigned: pName
+                                                                siteAssigned: pName,
+                                                                project_id: pId || undefined,
+                                                                assigned_projects: pId ? [pId] : []
                                                             }
                                                         } : d);
                                                     }}
                                                 >
                                                     <option value="">{t('personnel.unassigned', 'Unassigned / Ninguno')}</option>
                                                     {projects
-                                                        .filter(p => p.status === 'Active')
+                                                        .filter(p => p.status === 'Active' && (!activeSubsidiary || (p.subsidiary || 'MX') === activeSubsidiary) && !p.name.toLowerCase().includes('test'))
                                                         .map(p => (
                                                             <option key={p.id} value={p.id}>{p.name}</option>
                                                         ))

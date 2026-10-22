@@ -506,7 +506,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
     const activeProjects = (() => {
         const filtered = projects.filter((p: any) => {
             const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
-            const isSubMatch = p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary;
+            const isSubMatch = (p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary) && !p.name.toLowerCase().includes('test') && !p.name.toLowerCase().includes('prueba');
             return isStatusMatch && isSubMatch;
         });
         return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
@@ -1103,7 +1103,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const activeProjects = (() => {
         const filtered = projects.filter((p: any) => {
             const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
-            const isSubMatch = p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary;
+            const isSubMatch = (p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary) && !p.name.toLowerCase().includes('test') && !p.name.toLowerCase().includes('prueba');
             return isStatusMatch && isSubMatch;
         });
         return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
@@ -1124,7 +1124,19 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     setSelectedProject(assigned.id);
                     return;
                 }
-                // 2. Default to base CDMX office or first active project
+                // 2. Check if user has siteAssigned, branchOffice, or site matching an office project
+                const myPerson = (useStore.getState().personnel || []).find((p: any) => p.id === personnelId);
+                const userSite = (myPerson?.subsidiaryMetadata?.siteAssigned || myPerson?.subsidiaryMetadata?.branchOffice || myPerson?.subsidiaryMetadata?.site || '').toLowerCase();
+                if (userSite) {
+                    const matchedSiteProject = activeProjects.find((p: any) => 
+                        p.name.toLowerCase().includes(userSite) || (p.codeName && p.codeName.toLowerCase().includes(userSite))
+                    );
+                    if (matchedSiteProject) {
+                        setSelectedProject(matchedSiteProject.id);
+                        return;
+                    }
+                }
+                // 3. Default to base CDMX office or first active project
                 const defaultOffice = activeProjects.find((p: any) => p.id === 'f0eead03-0e28-43fa-96c2-7480bdd579b7' || (p.name && p.name.includes('CDMX'))) || activeProjects[0];
                 if (defaultOffice) {
                     setSelectedProject(defaultOffice.id);
@@ -1303,7 +1315,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     <div className="grid grid-cols-3 gap-3 text-sm">
                         <div><p className="text-emerald-100 text-xs">{t('attendance.punches.clockIn')}</p><p className="font-bold text-lg">{todayEntry.timeIn ?? '—'}</p></div>
                         <div><p className="text-emerald-100 text-xs">{t('attendance.punches.clockOut')}</p><p className="font-bold text-lg">{todayEntry.timeOut ?? '—'}</p></div>
-                        <div><p className="text-emerald-100 text-xs">{t('projects.table.reported_time')}</p><p className="font-bold text-2xl">{todayEntry.hours.toFixed(2)}</p></div>
+                        <div><p className="text-emerald-100 text-xs">{t('projects.table.reported_time')}</p><p className="font-bold text-2xl">{(Number(todayEntry.hours) || 0).toFixed(2)}</p></div>
                     </div>
                 </div>
             )}
@@ -1595,7 +1607,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                     {p.lat !== 0 && (
                                         <a href={`https://maps.google.com/?q=${p.lat},${p.lng}`} target="_blank" rel="noreferrer"
                                             className="flex items-center gap-1 text-xs text-teal-600 hover:underline mt-1">
-                                            <MapPin size={10} /> {p.lat.toFixed(4)}, {p.lng.toFixed(4)} · ±{Math.round(p.accuracy)}m
+                                            <MapPin size={10} /> {Number(p.lat || 0).toFixed(4)}, {Number(p.lng || 0).toFixed(4)} · ±{Math.round(Number(p.accuracy) || 0)}m
                                         </a>
                                     )}
                                     {p.selfieBlob && (
