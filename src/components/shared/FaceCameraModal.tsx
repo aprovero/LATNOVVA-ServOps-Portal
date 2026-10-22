@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Camera, RefreshCw, ShieldAlert, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { validateImageQualityAndGetDescriptor, matchDescriptors, loadFaceModels } from '../../utils/faceId.utils';
 
@@ -99,6 +99,9 @@ export default function FaceCameraModal({
     centeredCountRef.current = 0;
     setIsFaceCentered(false);
     try {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('El navegador no soporta captura de cámara o requiere conexión HTTPS segura.');
+      }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false,
@@ -109,7 +112,7 @@ export default function FaceCameraModal({
       }
     } catch (err: any) {
       console.error('Error accessing camera:', err);
-      setErrorMsg(t('attendance.face_camera.access_denied', 'Acceso a la cámara denegado. Por favor otorga permisos de cámara para continuar con la verificación biométrica.'));
+      setErrorMsg(t('attendance.face_camera.access_denied', 'Acceso a la cámara no disponible o denegado. Puedes registrar tu asistencia sin Face ID usando la opción de contingencia abajo.'));
     }
   }
 
@@ -220,6 +223,9 @@ export default function FaceCameraModal({
               </>
             )}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {mode === 'enroll' ? 'Registro facial para control de asistencia' : 'Verificación biométrica de identidad'}
+          </DialogDescription>
         </DialogHeader>
 
         {showBypassView ? (

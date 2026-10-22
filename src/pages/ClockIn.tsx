@@ -1155,6 +1155,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 
     const handlePunchClick = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
         if (isSubmitting) return;
+
+        // Si la verificación facial está desactivada en la configuración de la plataforma, ejecutar directamente
+        const isFaceIdGloballyEnabled = platformSettings?.enableFacialId !== false;
+        if (!isFaceIdGloballyEnabled) {
+            executePunch(type, overrideTime, note);
+            return;
+        }
+
         const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
         const currentUserId = (useStore.getState().userId || '');
         const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail) || (p.id === currentUserId));
@@ -1654,15 +1662,21 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     }}
                     mode={faceModalMode}
                     referenceDescriptor={(() => {
-                        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
-                        const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail));
-                        if (myProfile?.faceDescriptor && myProfile.faceDescriptor.length > 0) {
-                            return myProfile.faceDescriptor;
-                        }
                         try {
+                            const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+                            const currentUserId = (useStore.getState().userId || '');
+                            const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail) || (p.id === currentUserId));
+                            if (myProfile?.faceDescriptor && Array.isArray(myProfile.faceDescriptor) && myProfile.faceDescriptor.length > 0) {
+                                return myProfile.faceDescriptor;
+                            }
                             const rawDesc = localStorage.getItem('cached_user_descriptor');
-                            if (rawDesc) return JSON.parse(rawDesc);
-                        } catch {}
+                            if (rawDesc) {
+                                const parsed = JSON.parse(rawDesc);
+                                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                            }
+                        } catch (e) {
+                            console.warn('[ClockIn] Error resolving referenceDescriptor:', e);
+                        }
                         return undefined;
                     })()}
                     onSuccess={handleFaceSuccess}
