@@ -994,6 +994,21 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         return assigned?.id ?? '';
     });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
+
+    // Temporary enforcement for Friday, Nov 6, 2026: disable manual punch fallback when GPS is denied
+    const isManualPunchDisabledToday = useMemo(() => {
+        try {
+            const nowMx = new Intl.DateTimeFormat('en-CA', { 
+                timeZone: 'America/Mexico_City', 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit' 
+            }).format(new Date());
+            return nowMx === '2026-11-06';
+        } catch {
+            return false;
+        }
+    }, []);
     const [showForgottenModal, setShowForgottenModal] = useState(false);
     const [showOutsideGeofenceModal, setShowOutsideGeofenceModal] = useState(false);
     const [forgottenTargetTimesheet, setForgottenTargetTimesheet] = useState<any | null>(null);
@@ -1263,6 +1278,10 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }
     ) => {
         if (isSubmitting) return;
+        if (isManualPunchDisabledToday && (overrideTime || note)) {
+            alert('El registro manual está temporalmente deshabilitado para esta jornada. Por favor active los permisos de ubicación en su navegador.');
+            return;
+        }
         setIsSubmitting(true);
         
         try {
@@ -1473,16 +1492,26 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                         </div>
                     )}
 
-                    {/* M-01: GPS denied — amber enabled button, opens manual modal automatically */}
+                    {/* M-01: GPS denied — amber enabled button, opens manual modal automatically (unless disabled) */}
                     {workMode === 'On Site' && gpsDenied ? (
                         <>
-                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
-                                <AlertTriangle size={16} className="shrink-0" />
-                                <span>{t('attendance.gps.none')} - {t('attendance.manual.title')}</span>
+                            <div className={`flex items-center gap-2 p-3 ${isManualPunchDisabledToday ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'} rounded-xl text-sm`}>
+                                <AlertTriangle size={16} className={`shrink-0 ${isManualPunchDisabledToday ? 'text-red-600' : 'text-amber-600'}`} />
+                                <div>
+                                    <p className="font-bold">{isManualPunchDisabledToday ? 'Registro manual deshabilitado hoy' : `${t('attendance.gps.none')} - ${t('attendance.manual.title')}`}</p>
+                                    {isManualPunchDisabledToday && (
+                                        <p className="text-xs text-red-600 mt-0.5">
+                                            El registro manual está temporalmente deshabilitado para esta jornada. Por favor otorgue permisos de ubicación en su navegador para registrar asistencia.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                             <button
-                                onClick={() => setManualModal('clockIn')}
-                                disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || geofenceBlocking || !selectedProject}
+                                onClick={() => {
+                                    if (isManualPunchDisabledToday) return;
+                                    setManualModal('clockIn');
+                                }}
+                                disabled={isManualPunchDisabledToday || isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || geofenceBlocking || !selectedProject}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
                                 <LogIn size={26} /> {isRoutingPending ? 'Verificando servidor...' : (hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.labels.action_in')} (${t('common.other')})`)}
@@ -1549,12 +1578,22 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     {/* C-02: GPS denied fallback for Clock Out */}
                     {gpsDenied ? (
                         <>
-                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
-                                <AlertTriangle size={16} className="shrink-0" />
-                                <span>No GPS. Manual punch will be flagged for Supervisor review.</span>
+                            <div className={`flex items-center gap-2 p-3 ${isManualPunchDisabledToday ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'} rounded-xl text-sm`}>
+                                <AlertTriangle size={16} className={`shrink-0 ${isManualPunchDisabledToday ? 'text-red-600' : 'text-amber-600'}`} />
+                                <div>
+                                    <p className="font-bold">{isManualPunchDisabledToday ? 'Registro manual deshabilitado hoy' : 'Sin señal GPS'}</p>
+                                    {isManualPunchDisabledToday && (
+                                        <p className="text-xs text-red-600 mt-0.5">
+                                            El registro manual está temporalmente deshabilitado para esta jornada. Active los permisos de ubicación en su navegador para checar salida.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                            <button onClick={() => setManualModal('clockOut')}
-                                disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend}
+                            <button onClick={() => {
+                                if (isManualPunchDisabledToday) return;
+                                setManualModal('clockOut');
+                            }}
+                                disabled={isManualPunchDisabledToday || isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend}
                                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
                                 <LogOut size={26} /> {isRoutingPending ? 'Verificando servidor...' : `${t('attendance.labels.action_out')} (${t('common.other')})`}
                             </button>
