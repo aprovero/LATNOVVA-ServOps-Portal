@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   AuthorizedAttendanceLocation,
   ResolvedLocationResult,
@@ -36,6 +36,14 @@ export function useAttendanceLocation(props: UseAttendanceLocationProps) {
   const [authorizedLocations, setAuthorizedLocations] = useState<AuthorizedAttendanceLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
+  // Extract primitive numbers to prevent object reference churn from triggering infinite render loops
+  const primaryLat = primaryCoords?.lat ?? null;
+  const primaryLng = primaryCoords?.lng ?? null;
+
+  const stablePrimaryCoords = useMemo(() => {
+    return (primaryLat !== null && primaryLng !== null) ? { lat: primaryLat, lng: primaryLng } : null;
+  }, [primaryLat, primaryLng]);
+
   // Detect offline status
   const isOffline = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean' && !navigator.onLine;
 
@@ -51,7 +59,7 @@ export function useAttendanceLocation(props: UseAttendanceLocationProps) {
       const locs = await getAuthorizedLocationsForProject({
         projectId,
         projectName,
-        primaryCoords,
+        primaryCoords: stablePrimaryCoords,
         primaryRadius,
         personnelId,
         isOffline
@@ -62,22 +70,24 @@ export function useAttendanceLocation(props: UseAttendanceLocationProps) {
     } finally {
       setIsLoadingLocations(false);
     }
-  }, [projectId, projectName, primaryCoords, primaryRadius, personnelId, isOffline, workMode]);
+  }, [projectId, projectName, stablePrimaryCoords, primaryRadius, personnelId, isOffline, workMode]);
 
   useEffect(() => {
     loadLocations();
   }, [loadLocations]);
 
-  // Compute resolved location reactively
-  const result: ResolvedLocationResult = resolveAttendanceLocation({
-    lat,
-    lng,
-    accuracy,
-    gpsStatus,
-    authorizedLocations,
-    targetProjectName: projectName,
-    isOffline
-  });
+  // Compute resolved location reactively with memoization to avoid thrashing consumer renders
+  const result: ResolvedLocationResult = useMemo(() => {
+    return resolveAttendanceLocation({
+      lat,
+      lng,
+      accuracy,
+      gpsStatus,
+      authorizedLocations,
+      targetProjectName: projectName,
+      isOffline
+    });
+  }, [lat, lng, accuracy, gpsStatus, authorizedLocations, projectName, isOffline]);
 
   return {
     result,

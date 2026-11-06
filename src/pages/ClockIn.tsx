@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, Trash2, UserPlus, Clock, UserCheck, RotateCcw
 } from 'lucide-react';
@@ -1068,7 +1068,9 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     
     const currentProjId = step === 'clocked-in' ? (activeEntry?.projectId ?? '') : selectedProject;
     const targetProject = currentProjId ? projects.find((p: any) => p.id === currentProjId) : null;
-    const projCoords = targetProject ? parseCoordinates(targetProject.location) : null;
+    const projCoords = useMemo(() => {
+        return targetProject ? parseCoordinates(targetProject.location) : null;
+    }, [targetProject?.location]);
     const geofenceRadius = targetProject?.geofenceRadius || platformSettings?.geofenceRadius || 1000;
 
     // Attendance V2 Reactive Multi-Location Resolver
@@ -1100,14 +1102,14 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
             : 0
     );
-    const activeProjects = (() => {
+    const activeProjects = useMemo(() => {
         const filtered = projects.filter((p: any) => {
             const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
             const isSubMatch = (p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary) && !p.name.toLowerCase().includes('test') && !p.name.toLowerCase().includes('prueba');
             return isStatusMatch && isSubMatch;
         });
         return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
-    })();
+    }, [projects]);
 
     // Auto-select user's assigned project (or default office) when projects load or change
     useEffect(() => {
@@ -1124,19 +1126,34 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                     setSelectedProject(assigned.id);
                     return;
                 }
-                // 2. Check if user has siteAssigned, branchOffice, or site matching an office project
+                // 2. Check if user has siteAssigned, branchOffice, or site matching an office project (bidirectional)
                 const myPerson = (useStore.getState().personnel || []).find((p: any) => p.id === personnelId);
                 const userSite = (myPerson?.subsidiaryMetadata?.siteAssigned || myPerson?.subsidiaryMetadata?.branchOffice || myPerson?.subsidiaryMetadata?.site || '').toLowerCase();
                 if (userSite) {
                     const matchedSiteProject = activeProjects.find((p: any) => 
-                        p.name.toLowerCase().includes(userSite) || (p.codeName && p.codeName.toLowerCase().includes(userSite))
+                        (p.name && p.name.toLowerCase().includes(userSite)) ||
+                        (userSite && p.name && userSite.includes(p.name.toLowerCase())) ||
+                        (p.codeName && p.codeName.toLowerCase().includes(userSite)) ||
+                        (userSite && p.codeName && userSite.includes(p.codeName.toLowerCase()))
                     );
                     if (matchedSiteProject) {
                         setSelectedProject(matchedSiteProject.id);
                         return;
                     }
+
+                    // 3. Prevent silent CDMX fallback if user is in Merida / Yucatan
+                    if (userSite.includes('merida') || userSite.includes('mérida') || userSite.includes('mid')) {
+                        const meridaOffice = activeProjects.find((p: any) => 
+                            p.id === 'c95e8081-3323-4c55-87f5-259207865768' || 
+                            (p.name && (p.name.toLowerCase().includes('merida') || p.name.toLowerCase().includes('mérida')))
+                        );
+                        if (meridaOffice) {
+                            setSelectedProject(meridaOffice.id);
+                            return;
+                        }
+                    }
                 }
-                // 3. Default to base CDMX office or first active project
+                // 4. Default to base CDMX office or first active project
                 const defaultOffice = activeProjects.find((p: any) => p.id === 'f0eead03-0e28-43fa-96c2-7480bdd579b7' || (p.name && p.name.includes('CDMX'))) || activeProjects[0];
                 if (defaultOffice) {
                     setSelectedProject(defaultOffice.id);
@@ -1188,6 +1205,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         }
 
         // El enrolamiento y la obligatoriedad de Face ID comienzan en su próximo check-in (clockIn)
+        import('../utils/faceId.utils').then(m => m.loadFaceModels()).catch(() => {});
         setPendingPunchParams({ type, overrideTime, note });
         if (!hasEnrolledFace) {
             setFaceModalMode('enroll');
@@ -1717,18 +1735,6 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
 export default function ClockIn() {
     const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings, initDb, attendanceWriteMode, checkAttendanceWriteMode } = useStore();
 
-    // Silently warm up face recognition models in background so they are ready when modal opens
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const timer = setTimeout(() => {
-                import('../utils/faceId.utils').then(m => m.loadFaceModels()).catch((err) => {
-                    console.warn('[ClockIn] Background model preload note:', err);
-                });
-            }, 800);
-            return () => clearTimeout(timer);
-        }
-    }, []);
-
     // Auto re-resolve attendance routing mode if previously unresolved/errored once userId is authenticated
     useEffect(() => {
         if (userId && (attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'ERROR')) {
@@ -1788,28 +1794,91 @@ export default function ClockIn() {
         return () => clearInterval(id);
     }, [refreshAttendance]);
 
-    // GPS state with satellite timestamp
-    const [gps, setGps] = useState<GpsState>({
-        lat: null, lng: null, accuracy: null, status: 'acquiring',
-        gpsTimestampMs: null, gpsReceivedAt: null,
+    // GPS state with satellite timestamp and instant local cache hot-start
+    const [gps, setGps] = useState<GpsState>(() => {
+        try {
+            const raw = localStorage.getItem('latnovva_last_gps_fix');
+            if (raw) {
+                const cached = JSON.parse(raw);
+                if (cached && cached.lat && cached.lng && (Date.now() - cached.timestamp < 900000)) {
+                    return {
+                        lat: cached.lat,
+                        lng: cached.lng,
+                        accuracy: cached.accuracy,
+                        status: cached.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor',
+                        gpsTimestampMs: cached.gpsTimestampMs || Date.now(),
+                        gpsReceivedAt: performance.now(),
+                    };
+                }
+            }
+        } catch {}
+        return {
+            lat: null, lng: null, accuracy: null, status: 'acquiring',
+            gpsTimestampMs: null, gpsReceivedAt: null,
+        };
     });
     const watchRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (!navigator.geolocation) { setGps(g => ({ ...g, status: 'denied' })); return; }
-        watchRef.current = navigator.geolocation.watchPosition(
-            pos => setGps({
-                lat: pos.coords.latitude, lng: pos.coords.longitude,
-                accuracy: pos.coords.accuracy,
-                status: pos.coords.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor',
-                gpsTimestampMs: pos.timestamp,
-                gpsReceivedAt: performance.now(),
-            }),
-            () => setGps(g => ({ ...g, status: 'denied' })),
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+
+        // Tier 1: Fast Hot-Start (0-200ms using browser cached location up to 5 mins old)
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                setGps(prev => {
+                    if (prev.status === 'locked' && (prev.accuracy || 9999) <= pos.coords.accuracy) {
+                        return prev;
+                    }
+                    return {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy,
+                        status: pos.coords.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor',
+                        gpsTimestampMs: pos.timestamp,
+                        gpsReceivedAt: performance.now(),
+                    };
+                });
+            },
+            () => {},
+            { enableHighAccuracy: false, timeout: 2500, maximumAge: 300000 }
         );
-        return () => { if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current); };
-    }, []);
+
+        // Tier 2: Background High-Accuracy Refinement (Hot Polish)
+        watchRef.current = navigator.geolocation.watchPosition(
+            pos => {
+                const status = pos.coords.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor';
+                setGps({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    status,
+                    gpsTimestampMs: pos.timestamp,
+                    gpsReceivedAt: performance.now(),
+                });
+                try {
+                    localStorage.setItem('latnovva_last_gps_fix', JSON.stringify({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy,
+                        gpsTimestampMs: pos.timestamp,
+                        timestamp: Date.now()
+                    }));
+                } catch {}
+            },
+            () => setGps(g => (g.lat === null ? { ...g, status: 'denied' } : g)),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+        );
+
+        // Graceful fallback: If after 8s still in 'acquiring', gracefully transition so UI does not freeze permanently
+        const acquiringFallbackTimer = setTimeout(() => {
+            setGps(g => (g.status === 'acquiring' ? { ...g, status: 'poor' } : g));
+        }, 8000);
+
+        return () => {
+            if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
+            clearTimeout(acquiringFallbackTimer);
+        };
+    }, [platformSettings?.gpsAccuracyThreshold]);
 
     // Live clock driven by GPS time when available
     const [displayTime, setDisplayTime] = useState(new Date());
