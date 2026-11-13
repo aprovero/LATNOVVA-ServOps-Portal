@@ -341,6 +341,55 @@ export interface TimesheetEntry {
     correctionReason?: string;
 }
 
+export function mapV2ShiftToTimesheetEntry(s: any): TimesheetEntry {
+    const startDate = new Date(s.first_clock_in_at);
+    const dateStr = s.first_clock_in_at ? s.first_clock_in_at.split('T')[0] : new Date().toISOString().split('T')[0];
+    const timeInStr = s.first_clock_in_at
+        ? `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`
+        : null;
+    let timeOutStr: string | null = null;
+    if (s.final_clock_out_at) {
+        const endDate = new Date(s.final_clock_out_at);
+        timeOutStr = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+    }
+    const workMode = s.work_type === 'HOME_OFFICE' ? 'Home Office' : 'On Site';
+    return {
+        id: s.shift_id,
+        personnelId: s.personnel_id,
+        projectId: s.project_id,
+        date: dateStr,
+        timeIn: timeInStr,
+        timeOut: timeOutStr,
+        hours: Number(s.payable_hours) || 0,
+        type: workMode as any,
+        status: s.status === 'OPEN' ? 'Pending' : (s.requires_review ? 'Pending' : 'Approved'),
+        gpsVerified: true,
+        source: 'gps',
+        punches: [
+            {
+                type: 'clockIn',
+                timestamp: s.first_clock_in_at,
+                workMode: workMode as any,
+                lat: 0,
+                lng: 0,
+                accuracy: 0,
+                timeSource: 'device',
+                gpsVerified: true
+            },
+            ...(s.final_clock_out_at ? [{
+                type: 'clockOut' as const,
+                timestamp: s.final_clock_out_at,
+                workMode: workMode as any,
+                lat: 0,
+                lng: 0,
+                accuracy: 0,
+                timeSource: 'device' as const,
+                gpsVerified: true
+            }] : [])
+        ]
+    };
+}
+
 export interface ProjectActivity {
     id: string;
     title: string;
@@ -1241,7 +1290,8 @@ export const useStore = create<AppState>()(
                         timesheetsRes,
                         toolsRes,
                         schedulesRes,
-                        settingsRes
+                        settingsRes,
+                        v2ShiftsRes
                     ] = await Promise.allSettled([
                         supabase.from('clients').select('*'),
                         supabase.from('projects').select('*'),
@@ -1249,7 +1299,8 @@ export const useStore = create<AppState>()(
                         supabase.from('mx_timesheets').select(TIMESHEET_LIGHTWEIGHT_COLUMNS).gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
                         supabase.from('tools').select('*'),
                         supabase.from('mx_work_schedules').select('*'),
-                        supabase.from('platform_settings').select('*').eq('id', 'global').maybeSingle()
+                        supabase.from('platform_settings').select('*').eq('id', 'global').maybeSingle(),
+                        supabase.from('attendance_shifts').select('*').gte('first_clock_in_at', thirtyDaysAgoStr).order('first_clock_in_at', { ascending: false })
                     ]);
 
                     const clientsDB = clientsRes.status === 'fulfilled' ? clientsRes.value.data : null;
@@ -1259,6 +1310,7 @@ export const useStore = create<AppState>()(
                     const toolsDB = toolsRes.status === 'fulfilled' ? toolsRes.value.data : null;
                     const schedulesDB = schedulesRes.status === 'fulfilled' ? schedulesRes.value.data : null;
                     const settingsDB = settingsRes.status === 'fulfilled' ? settingsRes.value.data : null;
+                    const v2ShiftsDB = v2ShiftsRes.status === 'fulfilled' ? v2ShiftsRes.value.data : null;
 
                     // Guard: only overwrite store state if Supabase returned actual rows.
                     // An empty array [] is truthy in JS, so `data || fallback` would wipe
@@ -1335,8 +1387,8 @@ export const useStore = create<AppState>()(
                         })(),
                         reports: state.reports,
                         timesheets: (() => {
-                            if (!timesheetsDB) return state.timesheets;
-                            const dbMapped = timesheetsDB.map((t: any) => ({
+                            if (!timesheetsDB && !v2ShiftsDB) return state.timesheets;
+                            const legacyMapped = (timesheetsDB || []).map((t: any) => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1360,6 +1412,9 @@ export const useStore = create<AppState>()(
                                 correctedAt: (t as any).corrected_at,
                                 correctionReason: (t as any).correction_reason,
                             }));
+
+                            const v2Mapped = (v2ShiftsDB || []).map(mapV2ShiftToTimesheetEntry);
+                            const dbMapped = [...legacyMapped, ...v2Mapped];
 
                             const pendingIds = new Set(
                                 state.pendingSync
@@ -1494,19 +1549,21 @@ export const useStore = create<AppState>()(
                     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-                    const [timesheetsRes, overridesRes] = await Promise.all([
+                    const [timesheetsRes, overridesRes, v2ShiftsRes] = await Promise.allSettled([
                         supabase.from('mx_timesheets').select(TIMESHEET_LIGHTWEIGHT_COLUMNS).gte('date', thirtyDaysAgoStr).order('date', { ascending: false }),
-                        supabase.from('mx_attendance_overrides').select('*').gte('start_date', thirtyDaysAgoStr)
+                        supabase.from('mx_attendance_overrides').select('*').gte('start_date', thirtyDaysAgoStr),
+                        supabase.from('attendance_shifts').select('*').gte('first_clock_in_at', thirtyDaysAgoStr).order('first_clock_in_at', { ascending: false })
                     ]);
 
-                    const { data: timesheetsDB } = timesheetsRes;
-                    const { data: overridesDB } = overridesRes;
+                    const timesheetsDB = timesheetsRes.status === 'fulfilled' ? timesheetsRes.value.data : null;
+                    const overridesDB = overridesRes.status === 'fulfilled' ? overridesRes.value.data : null;
+                    const v2ShiftsDB = v2ShiftsRes.status === 'fulfilled' ? v2ShiftsRes.value.data : null;
 
                     set(state => {
                         const newState: Partial<AppState> = {};
 
-                        if (timesheetsDB) {
-                            const dbMapped = timesheetsDB.map((t: any) => ({
+                        if (timesheetsDB || v2ShiftsDB) {
+                            const legacyMapped = (timesheetsDB || []).map((t: any) => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1530,6 +1587,9 @@ export const useStore = create<AppState>()(
                                 correctedAt: (t as any).corrected_at,
                                 correctionReason: (t as any).correction_reason,
                             }));
+
+                            const v2Mapped = (v2ShiftsDB || []).map(mapV2ShiftToTimesheetEntry);
+                            const dbMapped = [...legacyMapped, ...v2Mapped];
 
                             const pendingIds = new Set(
                                 state.pendingSync
@@ -1591,15 +1651,25 @@ export const useStore = create<AppState>()(
             fetchTimesheetsForRange: async (startDate: string, endDate: string) => {
                 if (!startDate || !endDate) return;
                 try {
-                    const { data } = await supabase
-                        .from('mx_timesheets')
-                        .select(TIMESHEET_LIGHTWEIGHT_COLUMNS)
-                        .gte('date', startDate)
-                        .lte('date', endDate);
+                    const [legacyRes, v2Res] = await Promise.allSettled([
+                        supabase
+                            .from('mx_timesheets')
+                            .select(TIMESHEET_LIGHTWEIGHT_COLUMNS)
+                            .gte('date', startDate)
+                            .lte('date', endDate),
+                        supabase
+                            .from('attendance_shifts')
+                            .select('*')
+                            .gte('first_clock_in_at', `${startDate}T00:00:00.000Z`)
+                            .lte('first_clock_in_at', `${endDate}T23:59:59.999Z`)
+                    ]);
                     
-                    if (data && data.length > 0) {
+                    const legacyData = legacyRes.status === 'fulfilled' ? legacyRes.value.data : null;
+                    const v2Data = v2Res.status === 'fulfilled' ? v2Res.value.data : null;
+
+                    if ((legacyData && legacyData.length > 0) || (v2Data && v2Data.length > 0)) {
                         set((state) => {
-                            const dbMapped = data.map((t: any) => ({
+                            const legacyMapped = (legacyData || []).map((t: any) => ({
                                 id: t.id,
                                 personnelId: t.personnel_id,
                                 projectId: t.project_id,
@@ -1623,6 +1693,9 @@ export const useStore = create<AppState>()(
                                 correctedAt: (t as any).corrected_at,
                                 correctionReason: (t as any).correction_reason,
                             }));
+
+                            const v2Mapped = (v2Data || []).map(mapV2ShiftToTimesheetEntry);
+                            const dbMapped = [...legacyMapped, ...v2Mapped];
 
                             const existingMap = new Map(state.timesheets.map(t => [t.id, t]));
                             const merged = state.timesheets.map(t => {
@@ -2691,10 +2764,41 @@ export const useStore = create<AppState>()(
                             }
                         }
 
+                        setActiveShift({
+                            personnelId,
+                            timesheetId: res.shift_id,
+                            date: today,
+                            projectId: projectId || '',
+                            workMode: punch.workMode || 'On Site',
+                            startedAt: punch.timestamp,
+                            clockInPunchId: res.event_id || crypto.randomUUID()
+                        });
                         await get().refreshAttendance();
                         return;
                     } else { // clockOut
-                        const active = await attendanceV2Db.getCurrentActiveShiftForPersonnel(personnelId);
+                        let active = await attendanceV2Db.getCurrentActiveShiftForPersonnel(personnelId);
+                        if (!active) {
+                            const localActive = getActiveShift(personnelId);
+                            if (localActive) {
+                                active = {
+                                    shift_id: localActive.timesheetId,
+                                    personnel_id: personnelId,
+                                    clock_in_event_id: localActive.clockInPunchId || crypto.randomUUID(),
+                                    project_id: localActive.projectId || '',
+                                    work_type: localActive.workMode === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE',
+                                    started_at: localActive.startedAt,
+                                    timezone_offset_minutes: 0,
+                                    created_offline: false,
+                                    offline_lease_id: null,
+                                    geofence_version_id: null,
+                                    protocol_version: 2,
+                                    client_release_id: 51,
+                                    state: 'ACTIVE',
+                                    created_at: localActive.startedAt,
+                                    updated_at: localActive.startedAt
+                                };
+                            }
+                        }
                         if (!active) {
                             console.error(`[clockPunch] V2: No active shift found for personnel ${personnelId}`);
                             throw new Error('No se encontró un turno activo para registrar la salida.');
@@ -2739,6 +2843,7 @@ export const useStore = create<AppState>()(
                             }
                         }
 
+                        clearActiveShift(personnelId);
                         await get().refreshAttendance();
                         return;
                     }

@@ -128,14 +128,25 @@ export class AttendanceV2ClientEngine {
     // 1. Check if user already has an active shift
     const existingActive = await this.db.getCurrentActiveShiftForPersonnel(params.personnel_id);
     if (existingActive) {
-      return {
-        success: false,
-        status: 'ACTIVE_SHIFT_CONFLICT',
-        shift_id: existingActive.shift_id,
-        event_id: existingActive.clock_in_event_id,
-        created_offline: false,
-        error: 'Personnel already has an active open shift.'
-      };
+      const now = Date.now();
+      const shiftStartTime = new Date(existingActive.started_at).getTime();
+      const shiftAgeHours = isNaN(shiftStartTime) ? 999 : (now - shiftStartTime) / (1000 * 60 * 60);
+      const nowUtcStr = new Date().toISOString();
+      const isPriorDay = (existingActive.started_at || '').split('T')[0] < nowUtcStr.split('T')[0];
+
+      if (shiftAgeHours > 14 || isPriorDay) {
+        console.warn(`[AttendanceV2] Purging stale local active shift ${existingActive.shift_id} (age: ${shiftAgeHours.toFixed(1)}h, started: ${existingActive.started_at})`);
+        await this.db.deleteActiveShift(existingActive.shift_id);
+      } else {
+        return {
+          success: false,
+          status: 'ACTIVE_SHIFT_CONFLICT',
+          shift_id: existingActive.shift_id,
+          event_id: existingActive.clock_in_event_id,
+          created_offline: false,
+          error: 'Personnel already has an active open shift.'
+        };
+      }
     }
 
     // 2. Generate stable UUIDs before network call
@@ -331,7 +342,10 @@ export class AttendanceV2ClientEngine {
     error?: string;
   }> {
     // 1. Locate active shift by exact shift_id
-    const activeShift = await this.db.getActiveShift(params.shift_id);
+    let activeShift = await this.db.getActiveShift(params.shift_id);
+    if (!activeShift) {
+      activeShift = await this.db.getCurrentActiveShiftForPersonnel(params.personnel_id);
+    }
     if (!activeShift) {
       return {
         success: false,

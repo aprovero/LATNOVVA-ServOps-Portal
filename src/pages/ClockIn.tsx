@@ -1185,13 +1185,13 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     const [faceModalMode, setFaceModalMode] = useState<'enroll' | 'verify'>('verify');
     const [pendingPunchParams, setPendingPunchParams] = useState<{ type: ClockPunch['type']; overrideTime?: string; note?: string } | null>(null);
 
-    const handlePunchClick = (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
+    const handlePunchClick = async (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
         if (isSubmitting) return;
 
         // Si la verificación facial está desactivada en la configuración de la plataforma, ejecutar directamente
         const isFaceIdGloballyEnabled = platformSettings?.enableFacialId !== false;
         if (!isFaceIdGloballyEnabled) {
-            executePunch(type, overrideTime, note);
+            await executePunch(type, overrideTime, note);
             return;
         }
 
@@ -1215,7 +1215,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         // Si es salida (clockOut) y el turno actual no inició con Face ID (o el usuario aún no tiene rostro enrolado),
         // permitir checar salida normalmente sin pedir Face ID ni enrolamiento.
         if (type === 'clockOut' && (!currentShiftCheckedInWithFace || !hasEnrolledFace)) {
-            executePunch(type, overrideTime, note);
+            await executePunch(type, overrideTime, note);
             return;
         }
 
@@ -1248,7 +1248,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         }
         
         if (pendingPunchParams) {
-            executePunch(
+            await executePunch(
                 pendingPunchParams.type, 
                 pendingPunchParams.overrideTime, 
                 pendingPunchParams.note,
@@ -1258,10 +1258,10 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         }
     };
 
-    const handleFaceBypass = (reason: string = 'Cámara no disponible / Anulación de Face ID') => {
+    const handleFaceBypass = async (reason: string = 'Cámara no disponible / Anulación de Face ID') => {
         setIsFaceModalOpen(false);
         if (pendingPunchParams) {
-            executePunch(
+            await executePunch(
                 pendingPunchParams.type,
                 pendingPunchParams.overrideTime,
                 pendingPunchParams.note ? `${pendingPunchParams.note} [Sin Face ID: ${reason}]` : `[Sin Face ID: ${reason}]`,
@@ -1271,7 +1271,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         }
     };
 
-    const executePunch = (
+    const executePunch = async (
         type: ClockPunch['type'], 
         overrideTime?: string, 
         note?: string,
@@ -1329,13 +1329,16 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 ? (assignedProj?.id || selectedProject || undefined)
                 : (selectedProject || undefined);
                 
-            doPunch(personnelId, punch, finalProjectId);
+            await doPunch(personnelId, punch, finalProjectId);
             if (type === 'clockOut') {
                 clearActiveShift(personnelId);
             }
+        } catch (err: any) {
+            console.error('[ClockIn] Error during punch:', err);
+            alert(`Error al registrar asistencia: ${err?.message || err}`);
         } finally {
             // Slight delay before re-enabling to ensure store updates
-            setTimeout(() => setIsSubmitting(false), 2000);
+            setTimeout(() => setIsSubmitting(false), 1000);
         }
     };
 
