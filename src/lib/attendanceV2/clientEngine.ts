@@ -131,10 +131,8 @@ export class AttendanceV2ClientEngine {
       const now = Date.now();
       const shiftStartTime = new Date(existingActive.started_at).getTime();
       const shiftAgeHours = isNaN(shiftStartTime) ? 999 : (now - shiftStartTime) / (1000 * 60 * 60);
-      const nowUtcStr = new Date().toISOString();
-      const isPriorDay = (existingActive.started_at || '').split('T')[0] < nowUtcStr.split('T')[0];
 
-      if (shiftAgeHours > 14 || isPriorDay) {
+      if (shiftAgeHours > 14) {
         console.warn(`[AttendanceV2] Purging stale local active shift ${existingActive.shift_id} (age: ${shiftAgeHours.toFixed(1)}h, started: ${existingActive.started_at})`);
         await this.db.deleteActiveShift(existingActive.shift_id);
       } else {
@@ -322,6 +320,8 @@ export class AttendanceV2ClientEngine {
   public async clockOut(params: {
     shift_id: string;
     personnel_id: string;
+    project_id?: string | null;
+    work_type?: 'ON_SITE' | 'HOME_OFFICE';
     latitude?: number | null;
     longitude?: number | null;
     accuracy_meters?: number | null;
@@ -331,6 +331,7 @@ export class AttendanceV2ClientEngine {
     face_verified: boolean;
     face_bypass_reason?: string | null;
     is_forgotten_clockout?: boolean;
+    is_short_shift_discard?: boolean;
     reported_departure_timestamp?: string | null;
     worker_explanation?: string | null;
     force_offline?: boolean;
@@ -341,10 +342,36 @@ export class AttendanceV2ClientEngine {
     event_id: string;
     error?: string;
   }> {
+    const eventId = crypto.randomUUID();
+    const nowUtc = new Date().toISOString();
+    const tzOffset = this.getLocalTimezoneOffsetMinutes();
+
     // 1. Locate active shift by exact shift_id
     let activeShift = await this.db.getActiveShift(params.shift_id);
     if (!activeShift) {
       activeShift = await this.db.getCurrentActiveShiftForPersonnel(params.personnel_id);
+    }
+    if (!activeShift && params.shift_id) {
+      // Fallback: Synthesize active shift when shift_id is provided so that
+      // device switches, cache clears, or prior-day unclosed shifts can be closed on the authoritative server.
+      activeShift = {
+        shift_id: params.shift_id,
+        personnel_id: params.personnel_id,
+        clock_in_event_id: crypto.randomUUID(),
+        project_id: params.project_id || '',
+        work_type: params.work_type || 'ON_SITE',
+        started_at: nowUtc,
+        timezone_offset_minutes: tzOffset,
+        created_offline: false,
+        offline_lease_id: null,
+        geofence_version_id: null,
+        protocol_version: this.config.protocol_version,
+        client_release_id: this.config.client_release_id,
+        state: 'ACTIVE',
+        created_at: nowUtc,
+        updated_at: nowUtc
+      };
+      await this.db.saveActiveShift(activeShift);
     }
     if (!activeShift) {
       return {
@@ -360,15 +387,15 @@ export class AttendanceV2ClientEngine {
       return {
         success: false,
         status: 'REJECTED',
-        shift_id: params.shift_id,
+        shift_id: activeShift.shift_id,
         event_id: '',
         error: 'Active shift belongs to different personnel.'
       };
     }
 
-    const eventId = crypto.randomUUID();
-    const nowUtc = new Date().toISOString();
-    const tzOffset = this.getLocalTimezoneOffsetMinutes();
+    const effectiveShiftId = activeShift.shift_id;
+    const effectiveProjectId = activeShift.project_id || params.project_id || '';
+    const effectiveWorkType = activeShift.work_type || params.work_type || 'ON_SITE';
 
     const isBrowserOffline = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean' && !navigator.onLine;
     let createdOffline = Boolean(params.force_offline || isBrowserOffline);
@@ -380,7 +407,8 @@ export class AttendanceV2ClientEngine {
       }
     }
 
-    // 2. Mark shift as CLOSED_LOCAL immediately to prevent double clock-out
+    // 2. Mark shift as CLOSED_LOCAL temporarily while submitting (rolled back on rejection)
+    const previousState = activeShift.state;
     activeShift.state = 'CLOSED_LOCAL';
     activeShift.clock_out_event_id = eventId;
     activeShift.closed_at = nowUtc;
@@ -388,13 +416,15 @@ export class AttendanceV2ClientEngine {
 
     // 3. Construct 29-field evidence envelope
     const isForgotten = Boolean(params.is_forgotten_clockout);
+    const isShortDiscard = Boolean(params.is_short_shift_discard);
+    const isBypassGps = isForgotten || isShortDiscard;
     const envelope: AttendanceEvidenceEnvelope = {
       event_id: eventId,
-      shift_id: params.shift_id,
+      shift_id: effectiveShiftId,
       personnel_id: params.personnel_id,
-      project_id: activeShift.project_id,
+      project_id: effectiveProjectId,
       event_type: 'CLOCK_OUT',
-      work_type: activeShift.work_type,
+      work_type: effectiveWorkType,
       device_event_timestamp: nowUtc,
       timezone_offset_minutes: tzOffset,
       device_id: this.config.device_id,
@@ -405,19 +435,19 @@ export class AttendanceV2ClientEngine {
       attendance_protocol_version: this.config.protocol_version,
       created_offline: createdOffline,
       offline_lease_id: offlineLeaseId,
-      latitude: isForgotten ? null : (params.latitude ?? null),
-      longitude: isForgotten ? null : (params.longitude ?? null),
-      accuracy_meters: isForgotten ? null : (params.accuracy_meters ?? null),
-      gps_verified: isForgotten ? false : params.gps_verified,
-      geofence_status: isForgotten ? 'NOT_APPLICABLE' : params.geofence_status,
-      geofence_distance_meters: isForgotten ? null : (params.geofence_distance_meters ?? null),
-      geofence_version_id: isForgotten ? null : (activeShift.geofence_version_id || null),
+      latitude: isBypassGps ? null : (params.latitude ?? null),
+      longitude: isBypassGps ? null : (params.longitude ?? null),
+      accuracy_meters: isBypassGps ? null : (params.accuracy_meters ?? null),
+      gps_verified: isBypassGps ? false : params.gps_verified,
+      geofence_status: isBypassGps ? 'NOT_APPLICABLE' : params.geofence_status,
+      geofence_distance_meters: isBypassGps ? null : (params.geofence_distance_meters ?? null),
+      geofence_version_id: isBypassGps ? null : (activeShift.geofence_version_id || null),
       face_verified: params.face_verified,
       face_bypass_reason: params.face_verified ? null : (params.face_bypass_reason || 'UNSPECIFIED_BYPASS'),
-      is_manual_adjustment: isForgotten,
-      adjustment_reason: isForgotten ? 'FORGOTTEN_CLOCKOUT' : null,
+      is_manual_adjustment: isForgotten || isShortDiscard,
+      adjustment_reason: isShortDiscard ? 'SHORT_SHIFT_DISCARD' : (isForgotten ? 'FORGOTTEN_CLOCKOUT' : null),
       reported_departure_timestamp: isForgotten ? (params.reported_departure_timestamp || null) : null,
-      worker_explanation: isForgotten ? (params.worker_explanation || null) : null
+      worker_explanation: (isForgotten || isShortDiscard) ? (params.worker_explanation || null) : null
     };
 
     // 4. Attempt online submission if transport available
@@ -442,15 +472,19 @@ export class AttendanceV2ClientEngine {
           return {
             success: true,
             status: res.status || 'APPLIED',
-            shift_id: params.shift_id,
+            shift_id: effectiveShiftId,
             event_id: eventId
           };
         } else {
-          // Server rejected -> keep active shift in CLOSED_LOCAL / RETRYABLE state for recovery
+          // Roll back local state so user can retry cleanly
+          activeShift.state = previousState;
+          activeShift.clock_out_event_id = undefined;
+          activeShift.closed_at = undefined;
+          await this.db.saveActiveShift(activeShift);
           return {
             success: false,
             status: res.status || 'REJECTED',
-            shift_id: params.shift_id,
+            shift_id: effectiveShiftId,
             event_id: eventId,
             error: res.error || 'Server rejected Clock-Out'
           };
@@ -459,7 +493,15 @@ export class AttendanceV2ClientEngine {
         if (this.isGenuineNetworkFailure(err)) {
           createdOffline = true;
           envelope.created_offline = true;
+          if (!envelope.offline_lease_id) {
+            const lease = await this.db.getLatestOfflineLeaseForPersonnel(params.personnel_id);
+            if (lease) envelope.offline_lease_id = lease.lease_id;
+          }
         } else {
+          activeShift.state = previousState;
+          activeShift.clock_out_event_id = undefined;
+          activeShift.closed_at = undefined;
+          await this.db.saveActiveShift(activeShift);
           throw err;
         }
       }
@@ -504,8 +546,12 @@ export class AttendanceV2ClientEngine {
     }
 
     const allQueued = await this.db.getAllQueuedEvents();
+    const staleSyncCutoff = Date.now() - 2 * 60 * 1000;
     const pendingEvents = allQueued.filter(
-      (e) => e.sync_status === 'QUEUED' || e.sync_status === 'RETRYABLE'
+      (e) =>
+        e.sync_status === 'QUEUED' ||
+        e.sync_status === 'RETRYABLE' ||
+        (e.sync_status === 'SYNCING' && (!e.last_attempted_at || new Date(e.last_attempted_at).getTime() < staleSyncCutoff))
     );
 
     if (pendingEvents.length === 0) {
@@ -559,7 +605,18 @@ export class AttendanceV2ClientEngine {
         await this.db.saveQueuedEvent(ev);
 
         try {
-          const res = await this.transport.recordAttendanceEvent(ev);
+          // Strip local queue metadata to send a clean 29-field AttendanceEvidenceEnvelope
+          const {
+            causal_sequence: _cs,
+            sync_status: _ss,
+            retry_count: _rc,
+            last_attempted_at: _la,
+            server_receipt_at: _sr,
+            error_message: _em,
+            created_at: _ca,
+            ...cleanEnvelope
+          } = ev;
+          const res = await this.transport.recordAttendanceEvent(cleanEnvelope);
 
           if (res.success && (res.status === 'APPLIED' || res.status === 'ALREADY_APPLIED')) {
             ev.sync_status = 'ACKED';

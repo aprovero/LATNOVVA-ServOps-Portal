@@ -34,6 +34,8 @@ export class AttendanceV2Database {
     media_blobs: new Map<string, CachedMediaBlob>(),
   };
 
+  private initPromise: Promise<void> | null = null;
+
   constructor(forceMemory = false) {
     if (forceMemory || typeof window === 'undefined' || !window.indexedDB) {
       this.isMemoryFallback = true;
@@ -41,28 +43,28 @@ export class AttendanceV2Database {
   }
 
   public async init(): Promise<void> {
-    if (this.isMemoryFallback) {
+    if (this.isMemoryFallback || this.db) {
       return;
     }
-
-    if (this.db) {
-      return;
+    if (this.initPromise) {
+      return this.initPromise;
     }
 
-    // Request persistent storage if supported
-    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
-      try {
-        await navigator.storage.persist();
-      } catch (err) {
-        console.warn('[AttendanceV2DB] Persistent storage request error:', err);
+    this.initPromise = (async () => {
+      // Request persistent storage if supported
+      if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+        try {
+          await navigator.storage.persist();
+        } catch (err) {
+          console.warn('[AttendanceV2DB] Persistent storage request error:', err);
+        }
       }
-    }
 
-    return new Promise((resolve) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      return new Promise<void>((resolve) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = () => {
-        console.warn('[AttendanceV2DB] IndexedDB open error, falling back to in-memory store');
+        request.onerror = () => {
+          console.warn('[AttendanceV2DB] IndexedDB open error, falling back to in-memory store');
         this.isMemoryFallback = true;
         resolve();
       };
@@ -108,7 +110,10 @@ export class AttendanceV2Database {
           store.createIndex('by_sync_status', 'sync_status', { unique: false });
         }
       };
-    });
+      });
+    })();
+
+    return this.initPromise;
   }
 
   // --- QUEUED EVENTS ---
@@ -258,9 +263,11 @@ export class AttendanceV2Database {
 
   public async getLatestOfflineLeaseForPersonnel(personnelId: string): Promise<CachedOfflineLease | null> {
     await this.init();
+    const nowMs = Date.now();
+    const isValidLease = (l: CachedOfflineLease) => !l.is_revoked && new Date(l.valid_until).getTime() > nowMs;
     if (this.isMemoryFallback) {
       const leases = Array.from(this.memoryStores.active_leases.values())
-        .filter((l) => l.personnel_id === personnelId && !l.is_revoked)
+        .filter((l) => l.personnel_id === personnelId && isValidLease(l))
         .sort((a, b) => new Date(b.valid_until).getTime() - new Date(a.valid_until).getTime());
       return leases[0] || null;
     }
@@ -271,7 +278,7 @@ export class AttendanceV2Database {
       const req = index.getAll(personnelId);
       req.onsuccess = () => {
         const leases = (req.result as CachedOfflineLease[])
-          .filter((l) => !l.is_revoked)
+          .filter(isValidLease)
           .sort((a, b) => new Date(b.valid_until).getTime() - new Date(a.valid_until).getTime());
         resolve(leases[0] || null);
       };
@@ -335,17 +342,20 @@ export class AttendanceV2Database {
 
   public async getPendingMediaBlobs(): Promise<CachedMediaBlob[]> {
     await this.init();
+    const staleCutoff = Date.now() - 5 * 60 * 1000;
+    const isEligible = (m: CachedMediaBlob) =>
+      m.sync_status === 'PENDING' ||
+      m.sync_status === 'FAILED_RETRYABLE' ||
+      (m.sync_status === 'UPLOADING' && new Date(m.updated_at || m.created_at).getTime() < staleCutoff);
+
     if (this.isMemoryFallback) {
-      return Array.from(this.memoryStores.media_blobs.values()).filter(
-        (m) => m.sync_status === 'PENDING' || m.sync_status === 'FAILED_RETRYABLE'
-      );
+      return Array.from(this.memoryStores.media_blobs.values()).filter(isEligible);
     }
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction(STORES.MEDIA_BLOBS, 'readonly');
       const store = tx.objectStore(STORES.MEDIA_BLOBS);
-      const index = store.index('by_sync_status');
-      const req = index.getAll('PENDING');
-      req.onsuccess = () => resolve((req.result as CachedMediaBlob[]) || []);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(((req.result as CachedMediaBlob[]) || []).filter(isEligible));
       req.onerror = () => reject(req.error);
     });
   }

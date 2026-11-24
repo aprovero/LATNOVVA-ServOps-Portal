@@ -199,46 +199,16 @@ export const Login: React.FC = () => {
                 }));
             }
 
-            // Direct DB upsert to guarantee cross-device persistence
-            if (userId) {
-                const payload = {
-                    id: userId,
-                    email: email,
-                    name: session?.user?.user_metadata?.full_name || email.split('@')[0],
-                    image: finalImage,
-                    faceDescriptor: finalDescriptor,
-                    status: 'Active',
-                    app_role: 'Technician',
-                    subsidiary: 'MX'
-                };
-
-                // Upsert to mx_personnel (primary Mexico table)
-                try {
-                    await (supabase.from('mx_personnel') as any).upsert(payload);
-                } catch (err) {
-                    console.warn('[Login] mx_personnel upsert face warning:', err);
-                }
-
-                // Upsert to personnel (universal table)
-                try {
-                    await (supabase.from('personnel') as any).upsert(payload);
-                } catch (err) {
-                    console.warn('[Login] personnel upsert face warning:', err);
-                }
-
-                // Update profiles if supported
-                try {
-                    await (supabase.from('profiles') as any).update({
-                        faceDescriptor: finalDescriptor
-                    }).eq('id', userId);
-                } catch (err) {
-                    // non-fatal
-                }
-            }
-
-            // Also update Zustand store
+            // Safely update face descriptor on the matched personnel record only (never upsert with hardcoded role/subsidiary)
             const targetPerson = personnel.find(p => p.email?.toLowerCase() === email || p.id === userId);
             if (targetPerson) {
+                try {
+                    await (supabase.from('mx_personnel') as any)
+                        .update({ face_descriptor: finalDescriptor, image: finalImage })
+                        .eq('id', targetPerson.id);
+                } catch (err) {
+                    console.warn('[Login] mx_personnel face_descriptor update warning:', err);
+                }
                 await useStore.getState().updatePersonnel(targetPerson.id, {
                     image: finalImage,
                     faceDescriptor: finalDescriptor

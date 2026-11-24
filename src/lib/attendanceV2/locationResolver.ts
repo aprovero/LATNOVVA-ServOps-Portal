@@ -427,12 +427,37 @@ export function resolveAttendanceLocation(params: {
   const candidatesInside = sortedEvaluations.filter((c) => c.isInside);
   const overlappingMatchesCount = candidatesInside.length;
 
-  // 1. MATCH FOUND
+  // 1. MATCH FOUND (verify GPS accuracy threshold)
   if (overlappingMatchesCount >= 1) {
-    // If multiple overlap, select deterministically using closest valid location
-    // (candidatesInside is already sorted by distance ascending)
-    const bestMatch = candidatesInside[0];
+    const validAccuracyMatches = candidatesInside.filter((c) => c.isAccuracyAcceptable);
+    const bestMatch = validAccuracyMatches[0] || candidatesInside[0];
     const loc = bestMatch.location;
+
+    if (validAccuracyMatches.length === 0) {
+      return {
+        status: 'ACCURACY_POOR',
+        matchedLocation: null,
+        displayName: loc.name,
+        distanceMeters: bestMatch.distanceMeters,
+        radiusMeters: loc.radiusMeters,
+        accuracyMeters: accuracy,
+        authorizationPolicy: 'NONE',
+        attendanceLocationId: loc.attendanceLocationId || null,
+        isOffline,
+        requiresServerSync: isOffline,
+        allEvaluations,
+        closestCandidate,
+        overlappingMatchesCount,
+        diagnosticDetails: {
+          gpsLat: lat,
+          gpsLng: lng,
+          accuracyMeters: accuracy,
+          evaluatedPoliciesCount: authorizedLocations.length,
+          matchedSource: null,
+          resolvedAt: new Date().toISOString()
+        }
+      };
+    }
 
     const authPolicy = loc.type === 'PRIMARY_GEOFENCE' ? 'PRIMARY_GEOFENCE' : 'SECONDARY_GEOFENCE';
 

@@ -17,19 +17,56 @@ import {
 } from './ui/table';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
+import { attendanceV2Db } from '../lib/attendanceV2/db';
+import { getAttendanceV2Engine } from '../lib/attendanceV2/transport';
 
 export const SyncStatus: React.FC = () => {
-    const { pendingSync, isSyncing, syncError, processSyncQueue, clearSyncQueue } = useStore();
+    const { pendingSync, isSyncing, syncError, processSyncQueue, clearSyncQueue, userRole } = useStore();
     const [isOpen, setIsOpen] = useState(false);
-    const isOffline = !navigator.onLine;
-    const pendingCount = pendingSync.length;
+    const [isOffline, setIsOffline] = useState(!navigator.onLine);
+    const [v2PendingCount, setV2PendingCount] = useState(0);
+    const pendingCount = pendingSync.length + v2PendingCount;
+
+    const refreshV2Count = async () => {
+        try {
+            const [queuedEvents, pendingMedia] = await Promise.all([
+                attendanceV2Db.getAllQueuedEvents(),
+                attendanceV2Db.getPendingMediaBlobs()
+            ]);
+            const pendingEv = queuedEvents.filter(e => e.sync_status === 'QUEUED' || e.sync_status === 'RETRYABLE' || e.sync_status === 'SYNCING').length;
+            setV2PendingCount(pendingEv + pendingMedia.length);
+        } catch {
+            // non-fatal
+        }
+    };
+
+    const triggerFullSync = async () => {
+        await processSyncQueue();
+        if (navigator.onLine) {
+            try {
+                const { engine, mediaSync } = getAttendanceV2Engine();
+                await engine.syncOfflineQueue();
+                await mediaSync.syncAllPendingMedia();
+            } catch { /* non-fatal */ }
+        }
+        await refreshV2Count();
+    };
 
     useEffect(() => {
+        refreshV2Count();
+        const interval = setInterval(refreshV2Count, 15000);
         const handleOnline = () => {
-            processSyncQueue();
+            setIsOffline(false);
+            triggerFullSync();
         };
+        const handleOffline = () => setIsOffline(true);
         window.addEventListener('online', handleOnline);
-        return () => window.removeEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
     }, [processSyncQueue]);
 
     const renderBadge = () => {
@@ -120,7 +157,7 @@ export const SyncStatus: React.FC = () => {
                                 Sync Queue Details
                             </DialogTitle>
                             <div className="flex items-center gap-2">
-                                {pendingCount > 0 && (
+                                {pendingSync.length > 0 && ['Manager', 'Admin', 'SuperAdmin', 'HR'].includes(userRole) && (
                                     <Button 
                                         variant="outline" 
                                         size="sm" 
@@ -139,7 +176,7 @@ export const SyncStatus: React.FC = () => {
                                 {!isOffline && pendingCount > 0 && (
                                     <Button 
                                         size="sm" 
-                                        onClick={() => processSyncQueue()}
+                                        onClick={() => triggerFullSync()}
                                         className="h-8 text-xs font-bold bg-brand-teal hover:bg-brand-teal/90 text-white rounded-lg gap-1.5 shadow-sm"
                                     >
                                         <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />

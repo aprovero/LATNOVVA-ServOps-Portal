@@ -23,7 +23,7 @@ export default function ManualCorrectionPanel({ employeeId, date, existingTimesh
     const [notes, setNotes] = useState(existingTimesheet?.notes || '');
     const [correctionReason, setCorrectionReason] = useState('');
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!correctionReason.trim()) {
             alert(t('attendance.correction.reason_required', 'Debe ingresar un motivo para la corrección manual.'));
             return;
@@ -55,31 +55,35 @@ export default function ManualCorrectionPanel({ employeeId, date, existingTimesh
             status: 'Approved' // HR corrections are auto-approved
         };
 
-        if (existingTimesheet) {
-            updateTimesheet(existingTimesheet.id, payload);
-        } else {
-            const newEntry: TimesheetEntry = {
-                id: `TS-CORR-${Date.now()}`,
-                personnelId: employeeId,
-                date,
-                hours: Number(hours.toFixed(2)),
-                type: 'On Site',
-                status: 'Approved',
-                timeIn: timeIn || undefined,
-                lunchStart: lunchStart || undefined,
-                lunchEnd: lunchEnd || undefined,
-                timeOut: timeOut || undefined,
-                notes: notes || undefined,
-                correctedBy: username,
-                correctedAt: timestamp,
-                correctionReason: correctionReason,
-                source: 'manual'
-            };
-            addTimesheet(newEntry);
-        }
+        try {
+            if (existingTimesheet) {
+                await updateTimesheet(existingTimesheet.id, payload);
+            } else {
+                const newEntry: TimesheetEntry = {
+                    id: crypto.randomUUID(),
+                    personnelId: employeeId,
+                    date,
+                    hours: Number(hours.toFixed(2)),
+                    type: 'On Site',
+                    status: 'Approved',
+                    timeIn: timeIn || undefined,
+                    lunchStart: lunchStart || undefined,
+                    lunchEnd: lunchEnd || undefined,
+                    timeOut: timeOut || undefined,
+                    notes: notes || undefined,
+                    correctedBy: username,
+                    correctedAt: timestamp,
+                    correctionReason: correctionReason,
+                    source: 'manual'
+                };
+                await addTimesheet(newEntry);
+            }
 
-        alert(t('attendance.correction.success_alert', 'Registro corregido exitosamente.'));
-        onClose();
+            alert(t('attendance.correction.success_alert', 'Registro corregido exitosamente.'));
+            onClose();
+        } catch (err: any) {
+            alert(`Error al guardar corrección: ${err?.message || err}`);
+        }
     };
 
     return (

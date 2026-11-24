@@ -125,7 +125,7 @@ export default function Settings() {
                     // or just use the RPC to get them if they are completely gone from public chairs.
                     
                     const { data: existingUser, error: findError } = await supabase
-                        .from('personnel' as any)
+                        .from('mx_personnel' as any)
                         .select('id' as any)
                         .eq('email', inviteEmail)
                         .maybeSingle();
@@ -1194,6 +1194,7 @@ export default function Settings() {
 
                                 if (error) {
                                     alert('Failed to sync auth credentials to backend: ' + error.message);
+                                    return;
                                 }
 
                                 // 2. Dispatch updates to the local store and database

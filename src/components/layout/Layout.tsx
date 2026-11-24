@@ -406,21 +406,11 @@ export default function Layout() {
             });
             try {
                 await (supabase.from('mx_personnel') as any).update({
-                    faceDescriptor: null
+                    face_descriptor: null
                 }).or(`id.eq.${targetId},email.ilike.${userEmail}`);
-            } catch (e) {}
-
-            try {
-                await (supabase.from('personnel') as any).update({
-                    faceDescriptor: null
-                }).or(`id.eq.${targetId},email.ilike.${userEmail}`);
-            } catch (e) {}
-
-            try {
-                await (supabase.from('profiles') as any).update({
-                    faceDescriptor: null
-                }).eq('id', user?.id || targetId);
-            } catch (e) {}
+            } catch (e) {
+                console.warn('[Layout] disableFaceId mx_personnel warning:', e);
+            }
         }
 
         if (userEmail) {

@@ -8,7 +8,33 @@ import { AttendanceEvidenceEnvelope } from './types';
 import { TransportClient, AttendanceV2ClientEngine } from './clientEngine';
 import { MediaRpcClient, StorageUploader, AttendanceV2MediaSync } from './mediaSync';
 import { attendanceV2Db } from './db';
-import { getAppVersion, getReleaseId } from '../../config/release';
+import { getAppVersion, getBuildId, getReleaseId } from '../../config/release';
+
+/**
+ * Computes a real 64-char hex SHA-256 hash of a base64-encoded image for V2 selfie confirmation.
+ */
+export async function computeSelfieSha256(dataBase64: string): Promise<string> {
+  const clean = dataBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  // Fallback deterministic 64-hex if subtle crypto is unavailable (non-HTTPS localhost)
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < bytes.length; i++) {
+    h1 = Math.imul(h1 ^ bytes[i], 2654435761);
+    h2 = Math.imul(h2 ^ bytes[i], 1597334677);
+  }
+  const part = ((h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0')).repeat(4);
+  return part.slice(0, 64);
+}
 
 export class SupabaseAttendanceTransport implements TransportClient, MediaRpcClient, StorageUploader {
   async recordAttendanceEvent(event: AttendanceEvidenceEnvelope): Promise<{
@@ -20,11 +46,16 @@ export class SupabaseAttendanceTransport implements TransportClient, MediaRpcCli
   }> {
     const { data, error } = await supabase.rpc('record_attendance_event', { p_event: event });
     if (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed') || msg.includes('network request failed')) {
+        throw new Error(error.message);
+      }
       return { success: false, status: 'ERROR', error: error.message };
     }
+    const status = data?.status || 'UNKNOWN';
     return {
-      success: data?.status === 'APPLIED' || data?.status === 'IDEMPOTENT_DUPLICATE',
-      status: data?.status || 'UNKNOWN',
+      success: Boolean(data?.success) || status === 'APPLIED' || status === 'ALREADY_APPLIED' || status === 'IDEMPOTENT_DUPLICATE',
+      status,
       event_id: data?.event_id,
       shift_id: data?.shift_id,
       error: data?.error
@@ -61,7 +92,7 @@ export class SupabaseAttendanceTransport implements TransportClient, MediaRpcCli
       return { success: false, error: error.message };
     }
     return {
-      success: data?.success ?? true,
+      success: Boolean(data?.success),
       bucket: data?.bucket || 'attendance-v2-media-private',
       storage_path: data?.storage_path,
       error: data?.error
@@ -89,7 +120,7 @@ export class SupabaseAttendanceTransport implements TransportClient, MediaRpcCli
       return { success: false, error: error.message };
     }
     return {
-      success: data?.success ?? true,
+      success: Boolean(data?.success),
       media_id: data?.media_id,
       status: data?.status,
       error: data?.error
@@ -143,7 +174,7 @@ export function getAttendanceV2Engine(): {
         protocol_version: 2,
         client_release_id: getReleaseId(),
         client_app_version: getAppVersion(),
-        client_commit_hash: 'pass13-candidate',
+        client_commit_hash: getBuildId(),
         device_id:
           typeof localStorage !== 'undefined'
             ? localStorage.getItem('attendance_device_id') ||

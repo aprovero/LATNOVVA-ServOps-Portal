@@ -83,6 +83,14 @@ export default function Attendance() {
             )
             .on(
                 'postgres_changes',
+                { event: '*', schema: 'public', table: 'attendance_shifts' },
+                (payload) => {
+                    console.log('[Realtime] Attendance V2 shift change detected:', payload);
+                    debouncedRefresh();
+                }
+            )
+            .on(
+                'postgres_changes',
                 { event: '*', schema: 'public', table: overridesTable },
                 (payload) => {
                     console.log(`[Realtime] Attendance override change detected on ${overridesTable}:`, payload);

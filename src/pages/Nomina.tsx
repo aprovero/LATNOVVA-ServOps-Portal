@@ -226,6 +226,7 @@ export default function Nomina() {
 
             const pTimesheets = timesheets.filter(ts => {
                 if (ts.personnelId !== p.id) return false;
+                if (ts.status === 'Rejected') return false;
                 if (ts.date < startDate || ts.date > endDate) return false;
                 
                 if (filterMode === 'projects') {
@@ -247,8 +248,9 @@ export default function Nomina() {
             const daysWorked = uniqueDates.size > 0 ? uniqueDates.size : (filterMode === 'manual' ? 15 : 0);
 
             let totalOvertimeHours = 0;
-            pTimesheets.forEach(ts => {
-                const dv = calculateDailyAttendance(p, ts.date, timesheets, attendanceOverrides, workSchedules);
+            // Iterate once per unique date to prevent double-counting overtime on multi-shift days
+            uniqueDates.forEach(dateStr => {
+                const dv = calculateDailyAttendance(p, dateStr, timesheets, attendanceOverrides, workSchedules);
                 totalOvertimeHours += dv.overtimeHours || 0;
             });
 

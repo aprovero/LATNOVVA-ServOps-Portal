@@ -172,8 +172,8 @@ export default function Timesheets() {
             return;
         }
 
-        // H-04: Require justification for ALL manually-entered or edited timesheets
-        if (!newEntry.manualReason?.trim()) {
+        // H-04: Require justification for manually-entered timesheets (not hidden on edit)
+        if (!editingEntryId && !newEntry.manualReason?.trim()) {
             alert(t('timesheets.alerts.reason_required'));
             return;
         }
@@ -325,8 +325,20 @@ export default function Timesheets() {
 
     const handleBatchDelete = () => {
         if (selectedEntries.length === 0) return;
-        if (confirm(t('timesheets.alerts.delete_selected_confirm', { count: selectedEntries.length }))) {
-            selectedEntries.forEach(id => {
+        if (!['Manager', 'Supervisor', 'Admin', 'HR'].includes(userRole)) {
+            alert('No tienes permisos para eliminar registros en lote.');
+            return;
+        }
+        const deletable = selectedEntries.filter(id => {
+            const entry = timesheets.find(t => t.id === id);
+            return entry && entry.status !== 'Approved';
+        });
+        if (deletable.length === 0) {
+            alert('No se pueden eliminar registros ya aprobados.');
+            return;
+        }
+        if (confirm(t('timesheets.alerts.delete_selected_confirm', { count: deletable.length }))) {
+            deletable.forEach(id => {
                 deleteTimesheet(id);
             });
             setSelectedEntries([]);
@@ -595,7 +607,7 @@ export default function Timesheets() {
                                 >
                                     {t('timesheets.filters.all_projects')}
                                 </div>
-                                {projects.filter(p => (p.status === 'Active' || p.status === 'In Progress') && p.subsidiary === 'MX' && (!projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase()))).map(p => (
+                                {projects.filter(p => (p.status === 'Active' || p.status === 'In Progress') && (!activeSubsidiary || p.subsidiary === activeSubsidiary) && (!projectSearchDropdown || ((p.name || '') + (p.codeName || '')).toLowerCase().includes(projectSearchDropdown.toLowerCase()))).map(p => (
                                     <div 
                                         key={p.id}
                                         className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold flex items-center gap-2 transition-colors ${filterProject.includes(p.id) ? 'bg-brand-teal/10 text-brand-teal' : 'hover:bg-gray-50 text-gray-700'}`}
@@ -708,12 +720,14 @@ export default function Timesheets() {
                                 <CheckCircle size={14} /> {t('timesheets.status.approved')}
                             </Button>
                         )}
-                        <Button 
-                            onClick={handleBatchDelete}
-                            className="bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-2 text-xs font-bold gap-1.5 h-9 shadow-sm"
-                        >
-                            <Trash2 size={14} /> {t('common.actions')}
-                        </Button>
+                        {['Manager', 'Supervisor', 'Admin', 'HR'].includes(userRole) && (
+                            <Button 
+                                onClick={handleBatchDelete}
+                                className="bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-2 text-xs font-bold gap-1.5 h-9 shadow-sm"
+                            >
+                                <Trash2 size={14} /> {t('common.actions')}
+                            </Button>
+                        )}
                         <div className="w-px h-6 bg-white/20 mx-1" />
                         <Button 
                             variant="ghost" 

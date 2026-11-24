@@ -124,7 +124,7 @@ function GpsBadge({ gps }: { gps: GpsState }) {
     );
     if (gps.status === 'poor') return (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full text-xs font-semibold">
-            <AlertTriangle size={12} /> {t('attendance.gps.poor', { accuracy: Math.round(gps.accuracy!) })}
+            <AlertTriangle size={12} /> {gps.accuracy !== null ? t('attendance.gps.poor', { accuracy: Math.round(gps.accuracy) }) : t('attendance.gps.none')}
         </div>
     );
     return (
@@ -612,7 +612,7 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         return result;
     };
 
-    const commitBatch = useCallback((sigBlob: string, faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }) => {
+    const commitBatch = useCallback(async (sigBlob: string, faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }) => {
         if (isRoutingPending || isRoutingError) {
             alert(isRoutingPending ? 'Verificando modo de asistencia con el servidor...' : 'Error verificando modo de asistencia con el servidor. Reintente.');
             return;
@@ -633,28 +633,53 @@ function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPun
         const best = getBestTimestampISO(gps);
         const timestamp = best.iso;
         const names: string[] = [];
-        entries.forEach((entry: any) => {
-            const punch: ClockPunch = {
-                timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
-                accuracy: gps.accuracy ?? 9999,
-                type: entry.action,
-                timeSource: best.source,
-                supervisorSignatureBlob: sigBlob,
-                faceVerified: faceMeta?.faceVerified,
-                faceBypassReason: faceMeta?.faceBypassReason,
-                selfieBlob: faceMeta?.selfieBlob,
-                ...(entry.isOutsourced ? { isOutsourced: true, outsourcedName: entry.name } : {}),
-            };
-            doPunch(entry.isOutsourced ? `OUT-${entry.id.replace('OUT-', '')}` : entry.id, punch, selectedProject || undefined);
-            names.push(entry.name);
+        const failedNames: string[] = [];
+        const hasValidCoords = gps.lat !== null && gps.lng !== null && gps.accuracy !== null;
+        const gpsOk = hasValidCoords && (gps.status === 'locked' || gps.status === 'poor');
+
+        const results = await Promise.allSettled(
+            entries.map(async (entry: any) => {
+                const punch: ClockPunch = {
+                    timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
+                    accuracy: gps.accuracy ?? 9999,
+                    type: entry.action,
+                    timeSource: best.source,
+                    workMode: 'On Site',
+                    gpsVerified: gpsOk,
+                    supervisorSignatureBlob: sigBlob,
+                    faceVerified: faceMeta?.faceVerified,
+                    faceBypassReason: faceMeta?.faceBypassReason,
+                    selfieBlob: faceMeta?.selfieBlob,
+                    ...(entry.isOutsourced ? { isOutsourced: true, outsourcedName: entry.name } : {}),
+                };
+                await doPunch(entry.isOutsourced ? `OUT-${entry.id.replace('OUT-', '')}` : entry.id, punch, selectedProject || undefined);
+                return entry.name;
+            })
+        );
+
+        results.forEach((r, idx) => {
+            if (r.status === 'fulfilled') {
+                names.push(r.value);
+            } else {
+                const errMsg = (r.reason as any)?.message || String(r.reason);
+                failedNames.push(`${entries[idx]?.name || 'Usuario'}: ${errMsg}`);
+            }
         });
+
+        if (failedNames.length > 0) {
+            alert(`Algunos registros fallaron:\n${failedNames.join('\n')}`);
+        }
+        if (names.length === 0) {
+            setShowConfirm(false);
+            return;
+        }
         const finalAction = entries[0]?.action ?? 'clockIn';
         setLastBatch({ names, action: getPunchLabel(t)[finalAction], time: formatShort(timestamp) });
         setShowConfirm(false);
         setSelectedIds(new Set());
         setScreen('success');
         setCountdown(4);
-    }, [gps, selectedIds, timesheets, outsourcedList, selectedProject, doPunch]);
+    }, [gps, selectedIds, timesheets, outsourcedList, selectedProject, doPunch, isRoutingPending, isRoutingError]);
 
     const handleBatchConfirmTrigger = (sigBlob: string) => {
         setShowConfirm(false);
@@ -995,31 +1020,25 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
     });
     const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
 
-    // Temporary enforcement for Friday, Nov 6, 2026: disable manual punch fallback when GPS is denied
-    const isManualPunchDisabledToday = useMemo(() => {
-        try {
-            const nowMx = new Intl.DateTimeFormat('en-CA', { 
-                timeZone: 'America/Mexico_City', 
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit' 
-            }).format(new Date());
-            return nowMx === '2026-11-06';
-        } catch {
-            return false;
-        }
-    }, []);
+    const isManualPunchDisabledToday = false;
     const [showForgottenModal, setShowForgottenModal] = useState(false);
     const [showOutsideGeofenceModal, setShowOutsideGeofenceModal] = useState(false);
     const [forgottenTargetTimesheet, setForgottenTargetTimesheet] = useState<any | null>(null);
 
-    const handleForgottenConfirm = (reportedTime: string, comment: string) => {
+    const handleForgottenConfirm = async (reportedTime: string, comment: string) => {
         const target = forgottenTargetTimesheet || activeEntry || staleEntry;
         if (!target) return;
 
         const [h, m] = reportedTime.split(':').map(Number);
         const d = new Date(`${target.date}T00:00:00`);
         d.setHours(h, m, 0, 0);
+        // Handle overnight shifts where reported departure is past midnight
+        if (target.timeIn) {
+            const [inH, inM] = target.timeIn.split(':').map(Number);
+            if (h * 60 + m < inH * 60 + inM) {
+                d.setDate(d.getDate() + 1);
+            }
+        }
         const timestamp = d.toISOString();
 
         const note = comment.trim() 
@@ -1040,10 +1059,19 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
             gpsVerified: false
         };
 
-        doPunch(personnelId, punch, target.projectId || selectedProject, false, target.id);
-        setShowForgottenModal(false);
-        setShowOutsideGeofenceModal(false);
-        setForgottenTargetTimesheet(null);
+        setIsSubmitting(true);
+        try {
+            await doPunch(personnelId, punch, target.projectId || selectedProject, false, target.id);
+            clearActiveShift(personnelId);
+            setShowForgottenModal(false);
+            setShowOutsideGeofenceModal(false);
+            setForgottenTargetTimesheet(null);
+        } catch (err: any) {
+            console.error('[ClockIn] Error in handleForgottenConfirm:', err);
+            alert(`Error al registrar salida pendiente: ${err?.message || err}`);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
     const activeShiftMode: 'On Site' | 'Home Office' = (activeEntry?.type === 'Home Office' || activeEntry?.punches?.some((p: any) => p.workMode === 'Home Office'))
         ? 'Home Office'
@@ -1286,17 +1314,17 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
         
         try {
             if (type === 'clockOut') {
-                const activeEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
-                if (activeEntry && activeEntry.timeIn) {
+                const openShift = activeEntry || timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+                if (openShift && openShift.timeIn && openShift.date) {
                     const now = new Date();
-                    const [inH, inM] = activeEntry.timeIn.split(':').map(Number);
-                    const inTime = new Date();
+                    const [inH, inM] = openShift.timeIn.split(':').map(Number);
+                    const inTime = new Date(`${openShift.date}T00:00:00`);
                     inTime.setHours(inH, inM, 0, 0);
                     const diffMins = (now.getTime() - inTime.getTime()) / 60000;
                     
                     if (diffMins < 3 && diffMins >= 0) {
                         if (window.confirm(t('attendance.alerts.short_shift_dismiss', 'Este turno dura menos de 3 minutos. ¿Fue un error al registrar la entrada? Haz clic en Aceptar para descartarlo o en Cancelar para registrar la salida normalmente.'))) {
-                            useStore.getState().deleteTimesheet(activeEntry.id);
+                            await useStore.getState().discardShortShift(openShift.id);
                             setIsSubmitting(false);
                             return;
                         }
@@ -1312,6 +1340,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 d.setHours(parseInt(h), parseInt(m), 0, 0);
                 timestamp = d.toISOString();
             }
+            const hasValidGpsCoords = gps.lat !== null && gps.lng !== null && gps.accuracy !== null;
             const punch: ClockPunch = {
                 timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
                 accuracy: gps.accuracy ?? 9999, type,
@@ -1321,7 +1350,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 faceVerified: faceMeta?.faceVerified,
                 faceBypassReason: faceMeta?.faceBypassReason,
                 selfieBlob: faceMeta?.selfieBlob,
-                gpsVerified: !isOutsideGeofence && (gps.status === 'locked' || gps.status === 'poor'),
+                gpsVerified: hasValidGpsCoords && !isOutsideGeofence && (gps.status === 'locked' || gps.status === 'poor'),
             };
             
             const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
@@ -1414,6 +1443,42 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                 </div>
             )}
 
+            {/* Turno previo pendiente / zombie (visible incluso si step === 'clocked-in') */}
+            {staleEntry && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm space-y-2 animate-in slide-in-from-top-1 duration-300">
+                    <div className="flex items-center gap-2 font-bold">
+                        <AlertTriangle className="text-amber-600 shrink-0" size={18} />
+                        <span>Turno previo no cerrado ({staleEntry.date} {staleEntry.timeIn})</span>
+                    </div>
+                    <p className="text-xs text-amber-700">
+                        Tienes un turno previo sin registrar salida de una jornada anterior. Puedes informar tu hora de salida o cerrarlo con jornada estándar (8.0h).
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setForgottenTargetTimesheet(staleEntry);
+                                setShowForgottenModal(true);
+                            }}
+                            className="flex-1 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Clock size={14} /> Resolver salida pendiente (Olvidé salida)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (window.confirm('¿Deseas cerrar el turno pendiente anterior con 8.0h estándar e iniciar un nuevo turno hoy?')) {
+                                    await useStore.getState().discardStaleShift(staleEntry.id);
+                                }
+                            }}
+                            className="py-2.5 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                        >
+                            <RotateCcw size={14} /> Cerrar (8.0h)
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {step === 'idle' && (
                 <div className="space-y-3">
                     {/* Restricción de fin de semana para rol Office */}
@@ -1425,42 +1490,6 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 <p className="text-xs text-red-700 mt-1">
                                     Personal administrativo/oficina no tiene permitido checar en fin de semana. En caso de trabajar en horario de fin de semana, solicitar a RH agregar los turnos correspondientes.
                                 </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Turno previo pendiente / zombie */}
-                    {staleEntry && (
-                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm space-y-2 animate-in slide-in-from-top-1 duration-300">
-                            <div className="flex items-center gap-2 font-bold">
-                                <AlertTriangle className="text-amber-600 shrink-0" size={18} />
-                                <span>Turno previo no cerrado ({staleEntry.date} {staleEntry.timeIn})</span>
-                            </div>
-                            <p className="text-xs text-amber-700">
-                                Tienes un turno previo sin registrar salida de una jornada anterior. Puedes resolverlo informando tu hora de salida o descartarlo.
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setForgottenTargetTimesheet(staleEntry);
-                                        setShowForgottenModal(true);
-                                    }}
-                                    className="flex-1 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <Clock size={14} /> Resolver salida pendiente (Olvidé salida)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        if (window.confirm('¿Deseas descartar el turno pendiente anterior e iniciar un nuevo turno hoy?')) {
-                                            await useStore.getState().discardStaleShift(staleEntry.id);
-                                        }
-                                    }}
-                                    className="py-2.5 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <RotateCcw size={14} /> Descartar
-                                </button>
                             </div>
                         </div>
                     )}
@@ -1791,8 +1820,9 @@ export default function ClockIn() {
         }
         // Direct project fetch safeguard to guarantee project dropdown populates immediately
         if (projects.length === 0) {
+            const activeSub = useStore.getState().activeSubsidiary || 'MX';
             import('../lib/supabase').then(({ supabase }) => {
-                supabase.from('projects').select('*').then(({ data }) => {
+                supabase.from('projects').select('*').eq('subsidiary', activeSub).then(({ data }) => {
                     if (data && data.length > 0) {
                         console.log('[ClockIn] Direct project safeguard loaded', data.length, 'projects');
                         useStore.setState({

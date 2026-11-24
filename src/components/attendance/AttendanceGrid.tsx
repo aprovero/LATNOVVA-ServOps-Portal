@@ -223,7 +223,7 @@ export default function AttendanceGrid({
                                                 const shiftCount = dayTimesheets.length;
                                                 const dynamicGpsVerified = !dayTimesheet ? true : (
                                                     dayTimesheet.gpsVerified || (
-                                                        !dayTimesheet.punches || dayTimesheet.punches.every((p: any) => {
+                                                        Array.isArray(dayTimesheet.punches) && dayTimesheet.punches.length > 0 && dayTimesheet.punches.every((p: any) => {
                                                             const gpsThreshold = platformSettings.gpsAccuracyThreshold ?? 100;
                                                             const targetProjId = dayTimesheet.projectId;
                                                             const targetProject = targetProjId ? projects.find((proj: any) => proj.id === targetProjId) : null;

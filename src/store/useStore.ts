@@ -8,8 +8,8 @@ import { getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehou
 import { NormalizedPendingPunch, processNormalizedPunchItem, getSignedMediaUrl } from '../lib/normalizedPunchSync';
 import { getActiveShift, setActiveShift, clearActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
 import { checkRequiredClientRelease, recordReleaseTelemetry, ReleaseCheckStatus } from '../lib/releaseCheck';
-import { getReleaseId } from '../config/release';
-import { getAttendanceV2Engine } from '../lib/attendanceV2/transport';
+import { getAppVersion, getReleaseId } from '../config/release';
+import { getAttendanceV2Engine, computeSelfieSha256 } from '../lib/attendanceV2/transport';
 import { attendanceV2Db } from '../lib/attendanceV2/db';
 
 export type AttendanceWriteMode = 'UNKNOWN' | 'RESOLVING' | 'CANARY' | 'LEGACY' | 'ERROR' | 'V2';
@@ -342,8 +342,9 @@ export interface TimesheetEntry {
 }
 
 export function mapV2ShiftToTimesheetEntry(s: any): TimesheetEntry {
-    const startDate = new Date(s.first_clock_in_at);
-    const dateStr = s.first_clock_in_at ? s.first_clock_in_at.split('T')[0] : new Date().toISOString().split('T')[0];
+    const startDate = s.first_clock_in_at ? new Date(s.first_clock_in_at) : new Date();
+    // Use local calendar date (prevents UTC midnight split for evening shifts in MX)
+    const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
     const timeInStr = s.first_clock_in_at
         ? `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`
         : null;
@@ -353,6 +354,19 @@ export function mapV2ShiftToTimesheetEntry(s: any): TimesheetEntry {
         timeOutStr = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
     }
     const workMode = s.work_type === 'HOME_OFFICE' ? 'Home Office' : 'On Site';
+    const isForgotten = s.close_method === 'FORGOTTEN_CLOCKOUT_8H' || s.status === 'COMPLETED_FORGOTTEN_8H';
+    const isZombie = s.close_method === 'ZOMBIE_AUTO_CLOSE_8H' || s.status === 'ZOMBIE_PENDING_RECONCILIATION';
+    const isManual = s.close_method === 'MANUAL_SUPERVISOR_ADJUSTMENT';
+
+    let mappedStatus: 'Pending' | 'Approved' | 'Rejected' = 'Approved';
+    if (s.review_status === 'REJECTED') {
+        mappedStatus = 'Rejected';
+    } else if (s.status === 'OPEN' || s.requires_review || s.review_status === 'PENDING' || isZombie) {
+        mappedStatus = 'Pending';
+    }
+
+    const totalHours = Number(s.payable_hours || 0) + Number(s.overtime_hours || 0);
+
     return {
         id: s.shift_id,
         personnelId: s.personnel_id,
@@ -360,11 +374,13 @@ export function mapV2ShiftToTimesheetEntry(s: any): TimesheetEntry {
         date: dateStr,
         timeIn: timeInStr,
         timeOut: timeOutStr,
-        hours: Number(s.payable_hours) || 0,
+        hours: Math.round(totalHours * 100) / 100,
         type: workMode as any,
-        status: s.status === 'OPEN' ? 'Pending' : (s.requires_review ? 'Pending' : 'Approved'),
-        gpsVerified: true,
-        source: 'gps',
+        status: mappedStatus,
+        notes: s.review_notes || undefined,
+        approvedBy: s.reviewed_by || undefined,
+        gpsVerified: !isForgotten && !isZombie && !s.requires_review,
+        source: isManual ? 'manual' : 'gps',
         punches: [
             {
                 type: 'clockIn',
@@ -374,7 +390,7 @@ export function mapV2ShiftToTimesheetEntry(s: any): TimesheetEntry {
                 lng: 0,
                 accuracy: 0,
                 timeSource: 'device',
-                gpsVerified: true
+                gpsVerified: !isManual
             },
             ...(s.final_clock_out_at ? [{
                 type: 'clockOut' as const,
@@ -384,7 +400,11 @@ export function mapV2ShiftToTimesheetEntry(s: any): TimesheetEntry {
                 lng: 0,
                 accuracy: 0,
                 timeSource: 'device' as const,
-                gpsVerified: true
+                gpsVerified: !isForgotten && !isZombie && !isManual,
+                manualAdjustment: isForgotten || isZombie || isManual,
+                adjustmentReason: isForgotten ? 'FORGOTTEN_CLOCKOUT' : undefined,
+                isZombieClose: isZombie,
+                adjustmentNote: s.review_notes || undefined
             }] : [])
         ]
     };
@@ -574,6 +594,7 @@ interface AppState {
     rejectTimesheet: (id: string, approverId: string) => void;
     clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean, explicitTimesheetId?: string) => Promise<void>;
     discardStaleShift: (timesheetId: string) => Promise<void>;
+    discardShortShift: (timesheetId: string) => Promise<void>;
     attendanceOverrides: AttendanceOverride[];
     workSchedules: WorkSchedule[];
     addAttendanceOverride: (override: AttendanceOverride) => void;
@@ -1022,7 +1043,9 @@ export const useStore = create<AppState>()(
             },
 
             checkZombieSessions: async () => {
-                const { timesheets, platformSettings, clockPunch, pendingSync, userRole, userId } = get();
+                const { timesheets, platformSettings, clockPunch, pendingSync, userRole, userId, attendanceWriteMode } = get();
+                // In Attendance V2, zombie shift closure (8.00h standard) is server-authoritative via pg_cron & record_attendance_event.
+                if (attendanceWriteMode === 'V2') return;
                 if (!platformSettings.enableAutoClockOut) return;
 
                 // Find open sessions where the current time is past 11:59 PM (23:59) on the shift's date
@@ -1088,6 +1111,14 @@ export const useStore = create<AppState>()(
 
                         // Stage 2 Normalized Punch Event Queue Handler
                         if (item.action === ('normalized_punch' as any) || item.table === 'mx_timesheet_punches') {
+                            if (get().attendanceWriteMode === 'V2') {
+                                console.warn(`[processSyncQueue] Dropping obsolete pre-V2 normalized punch ${item.id} from queue.`);
+                                set(state => ({
+                                    pendingSync: state.pendingSync.filter(i => i !== item),
+                                    syncError: null
+                                }));
+                                continue;
+                            }
                             const personnel = get().personnel.find(p => p.id === item.payload?.targetPersonnelId);
                             const subsidiary = personnel?.subsidiary || 'MX';
                             const { updatedItem, isComplete } = await processNormalizedPunchItem(item.payload, subsidiary);
@@ -1146,6 +1177,18 @@ export const useStore = create<AppState>()(
                         } catch (err: any) {
                             console.error(`Sync failed for ${item.table}/${item.id}:`, err);
                             const lastError = err.message || err.toString();
+
+                            // If an operation on mx_timesheets failed with permission denied in V2 mode,
+                            // discard the invalid legacy sync mutation so the queue does not stay permanently wedged.
+                            if (item.table === 'mx_timesheets' && (lastError.includes('permission denied') || (err as any).code === '42501')) {
+                                console.warn(`[processSyncQueue] Dropping unauthorized legacy mx_timesheets mutation for ${item.id} from queue.`);
+                                set(state => ({
+                                    pendingSync: state.pendingSync.filter(i => i !== item),
+                                    syncError: null
+                                }));
+                                continue;
+                            }
+
                             set({ syncError: `Sync Error: ${lastError} (${get().pendingSync.length} pending)` });
                             // On failure, we stop processing this queue to avoid out-of-order issues
                             break;
@@ -1153,6 +1196,14 @@ export const useStore = create<AppState>()(
                     }
                 } finally {
                     set({ isSyncing: false });
+                    // Also replay any Attendance V2 offline events & pending selfies when online
+                    if (navigator.onLine && get().attendanceWriteMode === 'V2') {
+                        try {
+                            const { engine, mediaSync } = getAttendanceV2Engine();
+                            engine.syncOfflineQueue().catch((e: any) => console.warn('[V2] Offline queue sync warning:', e));
+                            mediaSync.syncAllPendingMedia().catch((e: any) => console.warn('[V2] Media sync warning:', e));
+                        } catch { /* non-fatal */ }
+                    }
                 }
             },
 
@@ -1423,19 +1474,28 @@ export const useStore = create<AppState>()(
                             );
 
                             const dbMap = new Map(dbMapped.map(t => [t.id, t]));
-                            const merged = state.timesheets.map(t => {
-                                if (pendingIds.has(t.id)) return t;
-                                const fromDb = dbMap.get(t.id);
-                                if (fromDb) {
-                                    dbMap.delete(t.id);
-                                    return {
-                                        ...fromDb,
-                                        punches: (t.punches && t.punches.length > 0) ? t.punches : (fromDb.punches || []),
-                                        signature: t.signature || fromDb.signature,
-                                    };
-                                }
-                                return t;
-                            });
+                            const merged = state.timesheets
+                                .filter(t => {
+                                    if (pendingIds.has(t.id)) return true;
+                                    if (dbMap.has(t.id)) return true;
+                                    // Keep historical rows outside the 30-day refresh window; prune deleted/stale rows inside it
+                                    return Boolean(t.date && t.date < thirtyDaysAgoStr);
+                                })
+                                .map(t => {
+                                    if (pendingIds.has(t.id)) return t;
+                                    const fromDb = dbMap.get(t.id);
+                                    if (fromDb) {
+                                        dbMap.delete(t.id);
+                                        const localHasRealPunches = t.punches && t.punches.some((p: any) => p.lat !== 0 || p.lng !== 0 || p.selfieUrl || p.faceVerified);
+                                        const dbHasMore = (fromDb.punches?.length || 0) > (t.punches?.length || 0);
+                                        return {
+                                            ...fromDb,
+                                            punches: (localHasRealPunches && !dbHasMore) ? t.punches : (fromDb.punches || []),
+                                            signature: t.signature || fromDb.signature,
+                                        };
+                                    }
+                                    return t;
+                                });
                             for (const remaining of dbMap.values()) {
                                 if (!pendingIds.has(remaining.id)) {
                                     merged.push(remaining);
@@ -1533,7 +1593,53 @@ export const useStore = create<AppState>()(
                     // Trigger background sync for anything pending
                     get().processSyncQueue();
                     
-                    // Cleanup stale sessions (Zombies)
+                    // Attendance V2: replay offline queue/media and ensure a valid offline lease is cached
+                    if (navigator.onLine && get().attendanceWriteMode === 'V2') {
+                        (async () => {
+                            try {
+                                const { engine, mediaSync } = getAttendanceV2Engine();
+                                await engine.syncOfflineQueue();
+                                await mediaSync.syncAllPendingMedia();
+                                const pid = get().resolvePersonnelId();
+                                if (pid) {
+                                    const existingLease = await attendanceV2Db.getLatestOfflineLeaseForPersonnel(pid);
+                                    if (!existingLease) {
+                                        const deviceId = typeof localStorage !== 'undefined'
+                                            ? (localStorage.getItem('attendance_device_id') || 'DEV-WEB')
+                                            : 'DEV-WEB';
+                                        const { data: leaseRes } = await supabase.rpc('issue_attendance_offline_lease', {
+                                            p_device_id: deviceId,
+                                            p_device_platform: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 50) : 'Web',
+                                            p_client_release_id: getReleaseId(),
+                                            p_client_app_version: getAppVersion(),
+                                            p_duration_hours: 24
+                                        });
+                                        if (leaseRes?.success && leaseRes.lease_id) {
+                                            await attendanceV2Db.saveOfflineLease({
+                                                lease_id: leaseRes.lease_id,
+                                                auth_user_id: get().userId || '',
+                                                personnel_id: pid,
+                                                subsidiary: get().activeSubsidiary || 'MX',
+                                                device_id: deviceId,
+                                                attendance_protocol_version: 2,
+                                                client_release_id: getReleaseId(),
+                                                client_app_version: getAppVersion(),
+                                                valid_from: leaseRes.valid_from,
+                                                valid_until: leaseRes.valid_until,
+                                                is_revoked: false,
+                                                scopes: leaseRes.scopes || [],
+                                                cached_at: new Date().toISOString()
+                                            });
+                                        }
+                                    }
+                                }
+                            } catch (v2InitErr) {
+                                console.warn('[initDb] Attendance V2 background sync/lease warning:', v2InitErr);
+                            }
+                        })();
+                    }
+
+                    // Cleanup stale sessions (Zombies — legacy mode only)
                     get().checkZombieSessions();
 
                 } catch (error) {
@@ -1598,19 +1704,28 @@ export const useStore = create<AppState>()(
                             );
 
                             const dbMap = new Map(dbMapped.map(t => [t.id, t]));
-                            const merged = state.timesheets.map(t => {
-                                if (pendingIds.has(t.id)) return t;
-                                const fromDb = dbMap.get(t.id);
-                                if (fromDb) {
-                                    dbMap.delete(t.id);
-                                    return {
-                                        ...fromDb,
-                                        punches: (t.punches && t.punches.length > 0) ? t.punches : (fromDb.punches || []),
-                                        signature: t.signature || fromDb.signature,
-                                    };
-                                }
-                                return t;
-                            });
+                            const merged = state.timesheets
+                                .filter(t => {
+                                    if (pendingIds.has(t.id)) return true;
+                                    if (dbMap.has(t.id)) return true;
+                                    // Keep historical rows outside the 30-day refresh window; prune deleted/stale rows inside it
+                                    return Boolean(t.date && t.date < thirtyDaysAgoStr);
+                                })
+                                .map(t => {
+                                    if (pendingIds.has(t.id)) return t;
+                                    const fromDb = dbMap.get(t.id);
+                                    if (fromDb) {
+                                        dbMap.delete(t.id);
+                                        const localHasRealPunches = t.punches && t.punches.some((p: any) => p.lat !== 0 || p.lng !== 0 || p.selfieUrl || p.faceVerified);
+                                        const dbHasMore = (fromDb.punches?.length || 0) > (t.punches?.length || 0);
+                                        return {
+                                            ...fromDb,
+                                            punches: (localHasRealPunches && !dbHasMore) ? t.punches : (fromDb.punches || []),
+                                            signature: t.signature || fromDb.signature,
+                                        };
+                                    }
+                                    return t;
+                                });
                             for (const remaining of dbMap.values()) {
                                 if (!pendingIds.has(remaining.id)) {
                                     merged.push(remaining);
@@ -1651,6 +1766,9 @@ export const useStore = create<AppState>()(
             fetchTimesheetsForRange: async (startDate: string, endDate: string) => {
                 if (!startDate || !endDate) return;
                 try {
+                    // Convert local calendar date bounds to ISO timestamps so evening shifts in MX are not missed
+                    const localStartIso = new Date(`${startDate}T00:00:00`).toISOString();
+                    const localEndIso = new Date(`${endDate}T23:59:59.999`).toISOString();
                     const [legacyRes, v2Res] = await Promise.allSettled([
                         supabase
                             .from('mx_timesheets')
@@ -1660,8 +1778,8 @@ export const useStore = create<AppState>()(
                         supabase
                             .from('attendance_shifts')
                             .select('*')
-                            .gte('first_clock_in_at', `${startDate}T00:00:00.000Z`)
-                            .lte('first_clock_in_at', `${endDate}T23:59:59.999Z`)
+                            .gte('first_clock_in_at', localStartIso)
+                            .lte('first_clock_in_at', localEndIso)
                     ]);
                     
                     const legacyData = legacyRes.status === 'fulfilled' ? legacyRes.value.data : null;
@@ -1698,12 +1816,15 @@ export const useStore = create<AppState>()(
                             const dbMapped = [...legacyMapped, ...v2Mapped];
 
                             const existingMap = new Map(state.timesheets.map(t => [t.id, t]));
+                            const dbMap = new Map(dbMapped.map(d => [d.id, d]));
                             const merged = state.timesheets.map(t => {
-                                const fromDb = dbMapped.find(d => d.id === t.id);
+                                const fromDb = dbMap.get(t.id);
                                 if (fromDb) {
+                                    const localHasRealPunches = t.punches && t.punches.some((p: any) => p.lat !== 0 || p.lng !== 0 || p.selfieUrl || p.faceVerified);
+                                    const dbHasMore = (fromDb.punches?.length || 0) > (t.punches?.length || 0);
                                     return {
                                         ...fromDb,
-                                        punches: (t.punches && t.punches.length > 0) ? t.punches : (fromDb.punches || []),
+                                        punches: (localHasRealPunches && !dbHasMore) ? t.punches : (fromDb.punches || []),
                                         signature: t.signature || fromDb.signature,
                                     };
                                 }
@@ -1724,14 +1845,88 @@ export const useStore = create<AppState>()(
             fetchTimesheetDetail: async (timesheetId: string) => {
                 if (!timesheetId) return null;
                 try {
-                    if (get().attendanceWriteMode === 'CANARY' || get().normalizedAttendanceEnabled) {
+                    // 1. Attendance V2: query attendance_events + attendance_event_media first
+                    if (get().attendanceWriteMode === 'V2' || get().normalizedAttendanceEnabled) {
+                        const { data: v2Events, error: v2Err } = await supabase
+                            .from('attendance_events')
+                            .select('*')
+                            .eq('shift_id', timesheetId)
+                            .order('device_event_timestamp', { ascending: true });
+
+                        if (!v2Err && v2Events && v2Events.length > 0) {
+                            const eventIds = v2Events.map((e: any) => e.event_id);
+                            const { data: mediaRows } = await supabase
+                                .from('attendance_event_media')
+                                .select('event_id, media_type, storage_bucket, storage_path')
+                                .in('event_id', eventIds);
+
+                            const mediaByEvent = new Map<string, any[]>();
+                            for (const m of (mediaRows || [])) {
+                                const list = mediaByEvent.get(m.event_id) || [];
+                                list.push(m);
+                                mediaByEvent.set(m.event_id, list);
+                            }
+
+                            const mappedPunches = await Promise.all(v2Events.map(async (e: any) => {
+                                const mList = mediaByEvent.get(e.event_id) || [];
+                                const selfieRow = mList.find((m: any) => m.media_type === 'SELFIE');
+                                const sigRow = mList.find((m: any) => m.media_type === 'SUPERVISOR_SIGNATURE');
+                                let selfieSigned: string | undefined;
+                                let sigSigned: string | undefined;
+                                if (selfieRow?.storage_path) {
+                                    const { data: signed } = await supabase.storage
+                                        .from(selfieRow.storage_bucket || 'attendance-v2-media-private')
+                                        .createSignedUrl(selfieRow.storage_path, 3600);
+                                    selfieSigned = signed?.signedUrl;
+                                }
+                                if (sigRow?.storage_path) {
+                                    const { data: signed } = await supabase.storage
+                                        .from(sigRow.storage_bucket || 'attendance-v2-media-private')
+                                        .createSignedUrl(sigRow.storage_path, 3600);
+                                    sigSigned = signed?.signedUrl;
+                                }
+                                return {
+                                    id: e.event_id,
+                                    timestamp: e.reported_departure_timestamp || e.device_event_timestamp,
+                                    type: (e.event_type === 'CLOCK_OUT' ? 'clockOut' : 'clockIn') as ('clockIn' | 'clockOut'),
+                                    workMode: (e.work_type === 'HOME_OFFICE' ? 'Home Office' : 'On Site') as ('On Site' | 'Home Office'),
+                                    lat: Number(e.latitude) || 0,
+                                    lng: Number(e.longitude) || 0,
+                                    accuracy: Number(e.accuracy_meters) || 0,
+                                    timeSource: (e.gps_verified ? 'gps' : 'device') as ('gps' | 'device'),
+                                    manualAdjustment: Boolean(e.is_manual_adjustment),
+                                    adjustmentReason: e.adjustment_reason || undefined,
+                                    adjustmentNote: e.worker_explanation || undefined,
+                                    faceVerified: Boolean(e.face_verified),
+                                    faceBypassReason: e.face_bypass_reason || undefined,
+                                    gpsVerified: Boolean(e.gps_verified),
+                                    selfieBlob: selfieSigned,
+                                    selfieUrl: selfieSigned,
+                                    supervisorSignatureBlob: sigSigned,
+                                    supervisorSignatureUrl: sigSigned,
+                                };
+                            }));
+
+                            set((state) => ({
+                                timesheets: state.timesheets.map(t =>
+                                    t.id === timesheetId
+                                        ? { ...t, punches: mappedPunches }
+                                        : t
+                                )
+                            }));
+                            return { id: timesheetId, punches: mappedPunches };
+                        }
+                    }
+
+                    // 2. Legacy CANARY normalized punches fallback (only if rows exist)
+                    if (get().attendanceWriteMode === 'CANARY') {
                         const { data: punchesData, error } = await supabase
                             .from('mx_timesheet_punches')
                             .select('*')
                             .eq('timesheet_id', timesheetId)
                             .order('timestamp', { ascending: true });
 
-                        if (!error && punchesData) {
+                        if (!error && punchesData && punchesData.length > 0) {
                             const mappedPunches = await Promise.all(punchesData.map(async (p: any) => {
                                 const selfieSigned = await getSignedMediaUrl(p.selfie_url);
                                 const sigSigned = await getSignedMediaUrl(p.supervisor_signature_url);
@@ -2493,6 +2688,34 @@ export const useStore = create<AppState>()(
                     events: state.events.filter((e) => e.id !== id),
                 })),
             addTimesheet: async (timesheet) => {
+                if (get().attendanceWriteMode === 'V2') {
+                    const clockInIso = timesheet.timeIn
+                        ? new Date(`${timesheet.date}T${timesheet.timeIn}:00`).toISOString()
+                        : new Date(`${timesheet.date}T08:00:00`).toISOString();
+                    const clockOutIso = timesheet.timeOut
+                        ? new Date(`${timesheet.date}T${timesheet.timeOut}:00`).toISOString()
+                        : null;
+                    const totalHours = Number(timesheet.hours) || 8;
+                    const payable = Math.min(8, Math.max(0, totalHours));
+                    const overtime = Math.max(0, Math.round((totalHours - 8) * 100) / 100);
+                    const { data, error } = await supabase.rpc('v2_create_manual_shift', {
+                        p_personnel_id: timesheet.personnelId,
+                        p_project_id: timesheet.projectId,
+                        p_work_type: timesheet.type === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE',
+                        p_clock_in: clockInIso,
+                        p_clock_out: clockOutIso,
+                        p_payable_hours: payable,
+                        p_overtime_hours: overtime,
+                        p_reason: timesheet.manualReason || timesheet.notes || 'Registro manual'
+                    });
+                    if (error || !data?.success) {
+                        console.error('[addTimesheet] V2 RPC error:', error?.message || data?.error);
+                        throw new Error(error?.message || data?.error || 'Error al crear registro V2');
+                    }
+                    await get().refreshAttendance();
+                    return;
+                }
+
                 set((state) => ({ timesheets: [...state.timesheets, timesheet] }));
                 const dbPayload = {
                     id: timesheet.id,
@@ -2524,6 +2747,39 @@ export const useStore = create<AppState>()(
                 set((state) => ({
                     timesheets: state.timesheets.map((t) => (t.id === id ? { ...t, ...updates } : t)),
                 }));
+
+                if (get().attendanceWriteMode === 'V2') {
+                    const existing = get().timesheets.find(t => t.id === id);
+                    // Status-only update (e.g., Approve/Reject/Pending or GPS approval)
+                    if (updates.status && updates.hours === undefined && updates.timeOut === undefined) {
+                        const reviewStatus = updates.status === 'Approved' ? 'APPROVED' : (updates.status === 'Rejected' ? 'REJECTED' : 'PENDING');
+                        const { data, error } = await supabase.rpc('v2_approve_or_reject_shift', {
+                            p_shift_id: id,
+                            p_review_status: reviewStatus,
+                            p_notes: updates.notes || updates.correctionReason || null
+                        });
+                        if (error || !data?.success) {
+                            console.error('[updateTimesheet] V2 review RPC error:', error?.message || data?.error);
+                        }
+                    } else {
+                        const totalHours = updates.hours !== undefined ? Number(updates.hours) : Number(existing?.hours || 8);
+                        const payable = Math.min(8, Math.max(0, totalHours));
+                        const overtime = Math.max(0, Math.round((totalHours - 8) * 100) / 100);
+                        const reason = updates.correctionReason || updates.notes || updates.manualReason || 'Corrección administrativa';
+                        const { data, error } = await supabase.rpc('reconcile_shift', {
+                            p_shift_id: id,
+                            p_payable_hours: payable,
+                            p_overtime_hours: overtime,
+                            p_reason: reason
+                        });
+                        if (error || !data?.success) {
+                            console.error('[updateTimesheet] V2 reconcile_shift RPC error:', error?.message || data?.error);
+                        }
+                    }
+                    await get().refreshAttendance();
+                    return;
+                }
+
                 const dbPayload: any = {};
                 if (updates.personnelId !== undefined) dbPayload.personnel_id = updates.personnelId;
                 if (updates.projectId !== undefined) dbPayload.project_id = updates.projectId;
@@ -2554,6 +2810,17 @@ export const useStore = create<AppState>()(
                 set((state) => ({
                     timesheets: state.timesheets.filter((t) => t.id !== id),
                 }));
+                if (get().attendanceWriteMode === 'V2') {
+                    const { data, error } = await supabase.rpc('v2_void_shift', {
+                        p_shift_id: id,
+                        p_reason: 'Anulado desde gestión de tiempos'
+                    });
+                    if (error || !data?.success) {
+                        console.error('[deleteTimesheet] V2 void RPC error:', error?.message || data?.error);
+                    }
+                    await get().refreshAttendance();
+                    return;
+                }
                 await get().safeSync('mx_timesheets', id, 'delete', null);
             },
             approveTimesheet: async (id, approverId) => {
@@ -2562,6 +2829,18 @@ export const useStore = create<AppState>()(
                         t.id === id ? { ...t, status: 'Approved', approvedBy: approverId } : t
                     )
                 }));
+                if (get().attendanceWriteMode === 'V2') {
+                    const { data, error } = await supabase.rpc('v2_approve_or_reject_shift', {
+                        p_shift_id: id,
+                        p_review_status: 'APPROVED',
+                        p_notes: null
+                    });
+                    if (error || !data?.success) {
+                        console.error('[approveTimesheet] V2 RPC error:', error?.message || data?.error);
+                    }
+                    await get().refreshAttendance();
+                    return;
+                }
                 // H-03: persist actual approver id
                 await get().safeSync('mx_timesheets', id, 'update', { status: 'Approved', approved_by: approverId });
             },
@@ -2571,6 +2850,18 @@ export const useStore = create<AppState>()(
                         t.id === id ? { ...t, status: 'Rejected', approvedBy: approverId } : t
                     )
                 }));
+                if (get().attendanceWriteMode === 'V2') {
+                    const { data, error } = await supabase.rpc('v2_approve_or_reject_shift', {
+                        p_shift_id: id,
+                        p_review_status: 'REJECTED',
+                        p_notes: null
+                    });
+                    if (error || !data?.success) {
+                        console.error('[rejectTimesheet] V2 RPC error:', error?.message || data?.error);
+                    }
+                    await get().refreshAttendance();
+                    return;
+                }
                 await get().safeSync('mx_timesheets', id, 'update', { status: 'Rejected', approved_by: approverId });
             },
             addAttendanceOverride: (override) => {
@@ -2650,11 +2941,66 @@ export const useStore = create<AppState>()(
                 get().safeSync('mx_work_schedules', id, 'delete', null).catch(() => {});
             },
             discardStaleShift: async (timesheetId: string) => {
+                // Stale prior-day shift closes with 8.00 standard hours per payroll policy
                 const ts = get().timesheets.find(t => t.id === timesheetId);
-                if (!ts) return;
                 const _now = new Date();
                 const toHHMM = `${String(_now.getHours()).padStart(2, '0')}:${String(_now.getMinutes()).padStart(2, '0')}`;
-                const noteReason = ts.notes ? `${ts.notes} | Cancelado/Descartado por usuario` : 'Cancelado/Descartado por usuario';
+                const noteReason = ts?.notes ? `${ts.notes} | Cierre de turno pendiente (8.00h estándar)` : 'Cierre de turno pendiente (8.00h estándar)';
+
+                set((state) => ({
+                    timesheets: state.timesheets.map(t =>
+                        t.id === timesheetId
+                            ? { ...t, timeOut: toHHMM, hours: 8, status: 'Pending' as any, notes: noteReason }
+                            : t
+                    )
+                }));
+
+                const personnelId = ts?.personnelId || get().resolvePersonnelId() || get().userId;
+                clearActiveShift(personnelId);
+
+                if (get().attendanceWriteMode === 'V2') {
+                    try {
+                        const { engine } = getAttendanceV2Engine();
+                        const res = await engine.clockOut({
+                            shift_id: timesheetId,
+                            personnel_id: personnelId,
+                            project_id: ts?.projectId || null,
+                            work_type: ts?.type === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE',
+                            gps_verified: false,
+                            geofence_status: 'NOT_APPLICABLE' as any,
+                            face_verified: false,
+                            face_bypass_reason: 'STALE_SHIFT_CLOSED_8H',
+                            is_forgotten_clockout: true,
+                            reported_departure_timestamp: _now.toISOString(),
+                            worker_explanation: noteReason
+                        });
+                        if (!res.success) {
+                            console.warn('[discardStaleShift] V2 engine clockOut rejected:', res.error || res.status);
+                        }
+                        await attendanceV2Db.deleteActiveShift(timesheetId);
+                    } catch (e) {
+                        console.warn('[discardStaleShift] V2 engine clockOut warning:', e);
+                    }
+                    await get().refreshAttendance();
+                } else {
+                    try {
+                        await get().safeSync('mx_timesheets', timesheetId, 'update', {
+                            time_out: toHHMM,
+                            hours: 8,
+                            status: 'Pending',
+                            notes: noteReason
+                        });
+                    } catch (e) {
+                        console.error('[discardStaleShift] Sync error:', e);
+                    }
+                }
+            },
+            discardShortShift: async (timesheetId: string) => {
+                // Accidental <3 min punch -> 0.00h Rejected
+                const ts = get().timesheets.find(t => t.id === timesheetId);
+                const _now = new Date();
+                const toHHMM = `${String(_now.getHours()).padStart(2, '0')}:${String(_now.getMinutes()).padStart(2, '0')}`;
+                const noteReason = 'Turno accidental (< 3 min) descartado por usuario';
 
                 set((state) => ({
                     timesheets: state.timesheets.map(t =>
@@ -2664,15 +3010,31 @@ export const useStore = create<AppState>()(
                     )
                 }));
 
-                try {
-                    await get().safeSync('mx_timesheets', timesheetId, 'update', {
-                        time_out: toHHMM,
-                        hours: 0,
-                        status: 'Rejected',
-                        notes: noteReason
-                    });
-                } catch (e) {
-                    console.error('[discardStaleShift] Sync error:', e);
+                const personnelId = ts?.personnelId || get().resolvePersonnelId() || get().userId;
+                clearActiveShift(personnelId);
+
+                if (get().attendanceWriteMode === 'V2') {
+                    try {
+                        const { engine } = getAttendanceV2Engine();
+                        await engine.clockOut({
+                            shift_id: timesheetId,
+                            personnel_id: personnelId,
+                            project_id: ts?.projectId || null,
+                            work_type: ts?.type === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE',
+                            gps_verified: false,
+                            geofence_status: 'NOT_APPLICABLE' as any,
+                            face_verified: false,
+                            face_bypass_reason: 'SHORT_SHIFT_DISCARDED',
+                            is_short_shift_discard: true,
+                            worker_explanation: noteReason
+                        });
+                        await attendanceV2Db.deleteActiveShift(timesheetId);
+                    } catch (e) {
+                        console.warn('[discardShortShift] V2 engine clockOut warning:', e);
+                    }
+                    await get().refreshAttendance();
+                } else {
+                    await get().deleteTimesheet(timesheetId);
                 }
             },
             clockPunch: async (personnelId: string, punch: ClockPunch, projectId?: string, _lunchSkipped?: boolean, explicitTimesheetId?: string) => {
@@ -2686,25 +3048,31 @@ export const useStore = create<AppState>()(
 
                 let targetId: string = '';
                 let existing: any = null;
+                const isOfflineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
 
-                // PASS 12N Step 1: Authoritative Pre-Write Release Freshness Gate
-                const releaseCheck = await checkRequiredClientRelease();
-                if (releaseCheck.status === 'UPDATE_REQUIRED') {
-                    console.warn(`[clockPunch] Stale client blocked at transaction boundary (client r${getReleaseId()} < r${releaseCheck.requiredRelease}). Rejecting punch.`);
-                    set({ showUpdateModal: true, clientReleaseStatus: 'UPDATE_REQUIRED' });
-                    throw new Error('Actualización requerida: Debes actualizar la aplicación antes de registrar asistencia.');
+                // PASS 12N Step 1: Authoritative Pre-Write Release Freshness Gate (bypassed offline so V2 lease queue works)
+                if (!isOfflineNow) {
+                    const releaseCheck = await checkRequiredClientRelease();
+                    if (releaseCheck.status === 'UPDATE_REQUIRED') {
+                        console.warn(`[clockPunch] Stale client blocked at transaction boundary (client r${getReleaseId()} < r${releaseCheck.requiredRelease}). Rejecting punch.`);
+                        set({ showUpdateModal: true, clientReleaseStatus: 'UPDATE_REQUIRED' });
+                        throw new Error('Actualización requerida: Debes actualizar la aplicación antes de registrar asistencia.');
+                    }
+                    if (releaseCheck.status === 'CHECK_ERROR') {
+                        console.error(`[clockPunch] FAIL CLOSED: Release check failed (${releaseCheck.error}). Rejecting punch.`);
+                        set({ clientReleaseStatus: 'CHECK_ERROR' });
+                        throw new Error('No se pudo verificar la versión de la aplicación con el servidor. Intente nuevamente.');
+                    }
+                    set({ clientReleaseStatus: 'CURRENT' });
                 }
-                if (releaseCheck.status === 'CHECK_ERROR') {
-                    console.error(`[clockPunch] FAIL CLOSED: Release check failed (${releaseCheck.error}). Rejecting punch.`);
-                    set({ clientReleaseStatus: 'CHECK_ERROR' });
-                    throw new Error('No se pudo verificar la versión de la aplicación con el servidor. Intente nuevamente.');
-                }
-                set({ clientReleaseStatus: 'CURRENT' });
 
                 let currentMode = get().attendanceWriteMode;
-                if (currentMode === 'UNKNOWN' || currentMode === 'RESOLVING') {
+                if ((currentMode === 'UNKNOWN' || currentMode === 'RESOLVING') && !isOfflineNow) {
                     await get().checkAttendanceWriteMode();
                     currentMode = get().attendanceWriteMode;
+                }
+                if (isOfflineNow && (currentMode === 'UNKNOWN' || currentMode === 'RESOLVING')) {
+                    currentMode = 'V2';
                 }
 
                 if (currentMode === 'ERROR' || currentMode === 'UNKNOWN' || currentMode === 'RESOLVING') {
@@ -2716,6 +3084,7 @@ export const useStore = create<AppState>()(
                     const { engine, mediaSync } = getAttendanceV2Engine();
                     const workType = punch.workMode === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE';
                     const isForgotten = Boolean(punch.manualAdjustment && punch.adjustmentReason === 'FORGOTTEN_CLOCKOUT');
+                    const workerSubsidiary = get().personnel.find(p => p.id === personnelId)?.subsidiary || get().activeSubsidiary || 'MX';
 
                     let geofenceStatus = 'UNKNOWN';
                     if (workType === 'HOME_OFFICE') {
@@ -2748,15 +3117,16 @@ export const useStore = create<AppState>()(
                             try {
                                 const base64Data = punch.selfieBlob.replace(/^data:image\/[a-z]+;base64,/, '');
                                 const byteSize = Math.round((base64Data.length * 3) / 4);
+                                const sha256Hash = await computeSelfieSha256(punch.selfieBlob);
                                 await mediaSync.queueSelfie({
                                     eventId: res.event_id,
                                     shiftId: res.shift_id,
                                     personnelId: personnelId,
-                                    subsidiary: 'MX',
+                                    subsidiary: workerSubsidiary,
                                     dataBase64: punch.selfieBlob,
                                     mimeType: 'image/jpeg',
-                                    sha256Hash: 'selfie_' + res.event_id,
-                                    byteSize: byteSize
+                                    sha256Hash,
+                                    byteSize
                                 });
                                 mediaSync.syncAllPendingMedia().catch((err: any) => console.warn('[AttendanceV2] Background media sync error:', err));
                             } catch (mErr) {
@@ -2773,10 +3143,16 @@ export const useStore = create<AppState>()(
                             startedAt: punch.timestamp,
                             clockInPunchId: res.event_id || crypto.randomUUID()
                         });
-                        await get().refreshAttendance();
+                        if (!isOfflineNow) {
+                            await get().refreshAttendance();
+                        }
                         return;
                     } else { // clockOut
+                        const releaseId = getReleaseId();
                         let active = await attendanceV2Db.getCurrentActiveShiftForPersonnel(personnelId);
+                        if (!active && explicitTimesheetId) {
+                            active = await attendanceV2Db.getActiveShift(explicitTimesheetId);
+                        }
                         if (!active) {
                             const localActive = getActiveShift(personnelId);
                             if (localActive) {
@@ -2784,7 +3160,7 @@ export const useStore = create<AppState>()(
                                     shift_id: localActive.timesheetId,
                                     personnel_id: personnelId,
                                     clock_in_event_id: localActive.clockInPunchId || crypto.randomUUID(),
-                                    project_id: localActive.projectId || '',
+                                    project_id: localActive.projectId || projectId || '',
                                     work_type: localActive.workMode === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE',
                                     started_at: localActive.startedAt,
                                     timezone_offset_minutes: 0,
@@ -2792,11 +3168,57 @@ export const useStore = create<AppState>()(
                                     offline_lease_id: null,
                                     geofence_version_id: null,
                                     protocol_version: 2,
-                                    client_release_id: 51,
+                                    client_release_id: releaseId,
                                     state: 'ACTIVE',
                                     created_at: localActive.startedAt,
                                     updated_at: localActive.startedAt
                                 };
+                                await attendanceV2Db.saveActiveShift(active);
+                            }
+                        }
+                        if (!active) {
+                            const candidate: any = explicitTimesheetId
+                                ? get().timesheets.find(t => t.id === explicitTimesheetId)
+                                : (recoverActiveShift(personnelId, get().timesheets) || get().timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut));
+                            if (candidate) {
+                                const candId = candidate.timesheetId || candidate.id;
+                                active = {
+                                    shift_id: candId,
+                                    personnel_id: personnelId,
+                                    clock_in_event_id: candidate.clockInPunchId || crypto.randomUUID(),
+                                    project_id: candidate.projectId || projectId || '',
+                                    work_type: (candidate.workMode === 'Home Office' || candidate.type === 'Home Office') ? 'HOME_OFFICE' : 'ON_SITE',
+                                    started_at: candidate.startedAt || candidate.createdAt || (candidate.date ? `${candidate.date}T${candidate.timeIn || '08:00'}:00Z` : new Date().toISOString()),
+                                    timezone_offset_minutes: 0,
+                                    created_offline: false,
+                                    offline_lease_id: null,
+                                    geofence_version_id: null,
+                                    protocol_version: 2,
+                                    client_release_id: releaseId,
+                                    state: 'ACTIVE',
+                                    created_at: candidate.startedAt || candidate.createdAt || new Date().toISOString(),
+                                    updated_at: new Date().toISOString()
+                                };
+                                await attendanceV2Db.saveActiveShift(active);
+                            } else if (explicitTimesheetId) {
+                                active = {
+                                    shift_id: explicitTimesheetId,
+                                    personnel_id: personnelId,
+                                    clock_in_event_id: crypto.randomUUID(),
+                                    project_id: projectId || '',
+                                    work_type: punch.workMode === 'Home Office' ? 'HOME_OFFICE' : 'ON_SITE',
+                                    started_at: new Date().toISOString(),
+                                    timezone_offset_minutes: 0,
+                                    created_offline: false,
+                                    offline_lease_id: null,
+                                    geofence_version_id: null,
+                                    protocol_version: 2,
+                                    client_release_id: releaseId,
+                                    state: 'ACTIVE',
+                                    created_at: new Date().toISOString(),
+                                    updated_at: new Date().toISOString()
+                                };
+                                await attendanceV2Db.saveActiveShift(active);
                             }
                         }
                         if (!active) {
@@ -2807,6 +3229,8 @@ export const useStore = create<AppState>()(
                         const res = await engine.clockOut({
                             shift_id: active.shift_id,
                             personnel_id: personnelId,
+                            project_id: active.project_id || projectId || null,
+                            work_type: active.work_type,
                             latitude: punch.lat,
                             longitude: punch.lng,
                             accuracy_meters: punch.accuracy,
@@ -2827,15 +3251,16 @@ export const useStore = create<AppState>()(
                             try {
                                 const base64Data = punch.selfieBlob.replace(/^data:image\/[a-z]+;base64,/, '');
                                 const byteSize = Math.round((base64Data.length * 3) / 4);
+                                const sha256Hash = await computeSelfieSha256(punch.selfieBlob);
                                 await mediaSync.queueSelfie({
                                     eventId: res.event_id,
                                     shiftId: res.shift_id,
                                     personnelId: personnelId,
-                                    subsidiary: 'MX',
+                                    subsidiary: workerSubsidiary,
                                     dataBase64: punch.selfieBlob,
                                     mimeType: 'image/jpeg',
-                                    sha256Hash: 'selfie_' + res.event_id,
-                                    byteSize: byteSize
+                                    sha256Hash,
+                                    byteSize
                                 });
                                 mediaSync.syncAllPendingMedia().catch((err: any) => console.warn('[AttendanceV2] Background media sync error:', err));
                             } catch (mErr) {
@@ -2844,7 +3269,12 @@ export const useStore = create<AppState>()(
                         }
 
                         clearActiveShift(personnelId);
-                        await get().refreshAttendance();
+                        if (active.shift_id) {
+                            await attendanceV2Db.deleteActiveShift(active.shift_id);
+                        }
+                        if (!isOfflineNow) {
+                            await get().refreshAttendance();
+                        }
                         return;
                     }
                 }

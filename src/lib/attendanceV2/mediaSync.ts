@@ -159,7 +159,8 @@ export class AttendanceV2MediaSync {
         media.sync_status = 'UPLOADED';
         media.remote_storage_path = reqRes.storage_path;
         media.error_message = undefined;
-        await this.db.saveMediaBlob(media);
+        // Prune uploaded base64 payload from IndexedDB to prevent unbounded storage growth
+        await this.db.deleteMediaBlob(media.media_id);
         return { success: true, status: 'UPLOADED' };
       } else {
         media.sync_status = 'FAILED_RETRYABLE';
