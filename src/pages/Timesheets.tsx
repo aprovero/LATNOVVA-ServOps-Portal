@@ -33,7 +33,7 @@ const formatPunchTime = (iso: string) => formatTime(iso);
 
 export default function Timesheets() {
     const { t } = useTranslation();
-    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName, resolvePersonnelId, fetchTimesheetsForRange, activeSubsidiary } = useStore();
+    const { timesheets, addTimesheet, updateTimesheet, deleteTimesheet, personnel, projects, userRole, userId, getCurrentUserName, resolvePersonnelId, fetchTimesheetsForRange, fetchTimesheetDetail, activeSubsidiary } = useStore();
     const resolvedPersonnelId = resolvePersonnelId() || userId;
 
     const punchLabel: Record<string, string> = {
@@ -823,7 +823,11 @@ export default function Timesheets() {
                                             <td className="p-4">
                                                 {entry.punches && entry.punches.length > 0 ? (
                                                     <button
-                                                        onClick={() => setExpandedPunchId(expandedPunchId === entry.id ? null : entry.id)}
+                                                        onClick={() => {
+                                                            const nextId = expandedPunchId === entry.id ? null : entry.id;
+                                                            setExpandedPunchId(nextId);
+                                                            if (nextId) fetchTimesheetDetail(nextId);
+                                                        }}
                                                         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
                                                             entry.gpsVerified
                                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
@@ -837,7 +841,11 @@ export default function Timesheets() {
                                                     </button>
                                                 ) : (
                                                     <button
-                                                        onClick={() => setExpandedPunchId(expandedPunchId === entry.id ? null : entry.id)}
+                                                        onClick={() => {
+                                                            const nextId = expandedPunchId === entry.id ? null : entry.id;
+                                                            setExpandedPunchId(nextId);
+                                                            if (nextId) fetchTimesheetDetail(nextId);
+                                                        }}
                                                         className="flex items-center gap-1.5 text-[11px] px-2 py-1 bg-amber-50 text-amber-700 rounded-full font-semibold border border-amber-200 cursor-pointer hover:bg-amber-100 transition-colors"
                                                         title={entry.manualReason || t('timesheets.table.manual')}
                                                     >

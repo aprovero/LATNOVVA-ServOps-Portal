@@ -1374,4 +1374,19 @@ BEGIN
     END IF;
 END $$;
 
+-- ------------------------------------------------------------------------------
+-- 10. FORCE ALL CLIENTS TO UPDATE TO v5.1.4 (RELEASE 52)
+-- ------------------------------------------------------------------------------
+UPDATE public.attendance_v2_control
+SET minimum_v2_client_release_id = 52,
+    minimum_v2_client_version = '5.1.4',
+    updated_at = now()
+WHERE control_id = 1;
+
+UPDATE public.platform_settings
+SET minimum_client_version = '5.1.4',
+    required_client_release = 52,
+    minimum_client_version_enabled = TRUE
+WHERE id = 'global';
+
 COMMIT;
