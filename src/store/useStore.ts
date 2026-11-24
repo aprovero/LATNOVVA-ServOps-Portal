@@ -587,11 +587,11 @@ interface AppState {
     addEvent: (event: ScheduledEvent) => void;
     updateEvent: (id: string, updates: Partial<ScheduledEvent>) => void;
     deleteEvent: (id: string) => void;
-    addTimesheet: (timesheet: TimesheetEntry) => void;
-    updateTimesheet: (id: string, updates: Partial<TimesheetEntry>) => void;
-    deleteTimesheet: (id: string) => void;
-    approveTimesheet: (id: string, approverId: string) => void;
-    rejectTimesheet: (id: string, approverId: string) => void;
+    addTimesheet: (timesheet: TimesheetEntry) => Promise<void>;
+    updateTimesheet: (id: string, updates: Partial<TimesheetEntry>) => Promise<void>;
+    deleteTimesheet: (id: string) => Promise<void>;
+    approveTimesheet: (id: string, approverId: string) => Promise<void>;
+    rejectTimesheet: (id: string, approverId: string) => Promise<void>;
     clockPunch: (personnelId: string, punch: ClockPunch, projectId?: string, lunchSkipped?: boolean, explicitTimesheetId?: string) => Promise<void>;
     discardStaleShift: (timesheetId: string) => Promise<void>;
     discardShortShift: (timesheetId: string) => Promise<void>;
@@ -2695,7 +2695,9 @@ export const useStore = create<AppState>()(
                     const clockOutIso = timesheet.timeOut
                         ? new Date(`${timesheet.date}T${timesheet.timeOut}:00`).toISOString()
                         : null;
-                    const totalHours = Number(timesheet.hours) || 8;
+                    const totalHours = (timesheet.hours !== undefined && timesheet.hours !== null && !Number.isNaN(Number(timesheet.hours)))
+                        ? Number(timesheet.hours)
+                        : 8;
                     const payable = Math.min(8, Math.max(0, totalHours));
                     const overtime = Math.max(0, Math.round((totalHours - 8) * 100) / 100);
                     const { data, error } = await supabase.rpc('v2_create_manual_shift', {
@@ -2750,9 +2752,9 @@ export const useStore = create<AppState>()(
 
                 if (get().attendanceWriteMode === 'V2') {
                     const existing = get().timesheets.find(t => t.id === id);
-                    // Status-only update (e.g., Approve/Reject/Pending or GPS approval)
-                    if (updates.status && updates.hours === undefined && updates.timeOut === undefined) {
-                        const reviewStatus = updates.status === 'Approved' ? 'APPROVED' : (updates.status === 'Rejected' ? 'REJECTED' : 'PENDING');
+                    // Status or GPS-only approval (never prematurely closes an OPEN shift)
+                    if ((updates.status || updates.gpsVerified !== undefined) && updates.hours === undefined && updates.timeOut === undefined) {
+                        const reviewStatus = updates.status === 'Rejected' ? 'REJECTED' : (updates.status === 'Pending' ? 'PENDING' : 'APPROVED');
                         const { data, error } = await supabase.rpc('v2_approve_or_reject_shift', {
                             p_shift_id: id,
                             p_review_status: reviewStatus,
@@ -2760,6 +2762,7 @@ export const useStore = create<AppState>()(
                         });
                         if (error || !data?.success) {
                             console.error('[updateTimesheet] V2 review RPC error:', error?.message || data?.error);
+                            throw new Error(error?.message || data?.error || 'Error al actualizar estado V2');
                         }
                     } else {
                         const totalHours = updates.hours !== undefined ? Number(updates.hours) : Number(existing?.hours || 8);
@@ -2774,6 +2777,7 @@ export const useStore = create<AppState>()(
                         });
                         if (error || !data?.success) {
                             console.error('[updateTimesheet] V2 reconcile_shift RPC error:', error?.message || data?.error);
+                            throw new Error(error?.message || data?.error || 'Error al reconciliar turno V2');
                         }
                     }
                     await get().refreshAttendance();

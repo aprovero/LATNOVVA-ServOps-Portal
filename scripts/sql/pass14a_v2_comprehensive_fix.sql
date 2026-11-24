@@ -323,13 +323,15 @@ USING (
 );
 
 -- ------------------------------------------------------------------------------
--- 5. FIX issue_attendance_offline_lease (v_sec_loc UNASSIGNED BUG & BOUNDS)
+-- 5. FIX issue_attendance_offline_lease (EXACT SCHEMA COLUMNS, DROP OLD OVERLOAD)
 -- ------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.issue_attendance_offline_lease(TEXT, INT, INT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.issue_attendance_offline_lease(
     p_device_id TEXT,
     p_device_platform TEXT,
-    p_client_release_id INTEGER DEFAULT 51,
-    p_client_app_version TEXT DEFAULT '5.1.3',
+    p_client_release_id INTEGER DEFAULT 52,
+    p_client_app_version TEXT DEFAULT '5.1.4',
     p_duration_hours INTEGER DEFAULT 24
 )
 RETURNS JSONB
@@ -340,6 +342,8 @@ AS $$
 DECLARE
     v_uid UUID := auth.uid();
     v_personnel_id TEXT;
+    v_subsidiary TEXT;
+    v_system_state TEXT;
     v_max_duration INTEGER;
     v_min_release INTEGER;
     v_lease_id UUID := gen_random_uuid();
@@ -348,10 +352,15 @@ DECLARE
     v_geo RECORD;
     v_sec_loc_id UUID;
     v_sec_proj_loc_id UUID;
+    v_sec_locations JSONB;
     v_scopes JSONB := '[]'::jsonb;
 BEGIN
     IF v_uid IS NULL THEN
         RETURN jsonb_build_object('success', false, 'error', 'NOT_AUTHENTICATED');
+    END IF;
+
+    IF NULLIF(TRIM(p_device_id), '') IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'INVALID_DEVICE_ID');
     END IF;
 
     v_personnel_id := public.get_authoritative_personnel_id();
@@ -359,9 +368,16 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'IDENTITY_UNRESOLVED');
     END IF;
 
-    SELECT max_offline_lease_duration_hours, minimum_v2_client_release_id
-    INTO v_max_duration, v_min_release
+    SELECT COALESCE(subsidiary, 'MX') INTO v_subsidiary FROM public.mx_personnel WHERE id = v_personnel_id;
+    IF v_subsidiary IS NULL THEN v_subsidiary := 'MX'; END IF;
+
+    SELECT system_state, max_offline_lease_duration_hours, minimum_v2_client_release_id
+    INTO v_system_state, v_max_duration, v_min_release
     FROM public.attendance_v2_control WHERE control_id = 1;
+
+    IF v_system_state NOT IN ('V2_ACTIVE', 'V2_DEGRADED') THEN
+        RETURN jsonb_build_object('success', false, 'error', 'V2_NOT_ACTIVE');
+    END IF;
 
     IF v_min_release IS NOT NULL AND (p_client_release_id IS NULL OR p_client_release_id < v_min_release) THEN
         RETURN jsonb_build_object('success', false, 'error', 'CLIENT_VERSION_DEPRECATED');
@@ -374,15 +390,17 @@ BEGIN
     v_valid_until := now() + (p_duration_hours || ' hours')::interval;
 
     INSERT INTO public.attendance_offline_leases (
-        lease_id, auth_user_id, personnel_id, device_id, device_platform,
-        client_release_id, client_app_version, valid_from, valid_until
+        lease_id, auth_user_id, personnel_id, subsidiary, device_id,
+        attendance_protocol_version, client_release_id, client_app_version,
+        valid_from, valid_until
     ) VALUES (
-        v_lease_id, v_uid, v_personnel_id, p_device_id, p_device_platform,
-        p_client_release_id, p_client_app_version, now(), v_valid_until
+        v_lease_id, v_uid, v_personnel_id, v_subsidiary, TRIM(p_device_id),
+        2, COALESCE(p_client_release_id, 52), COALESCE(NULLIF(TRIM(p_client_app_version), ''), '5.1.4'),
+        now(), v_valid_until
     );
 
     FOR v_proj IN
-        SELECT p.id AS project_id
+        SELECT p.id AS project_id, p.name AS project_name
         FROM public.projects p
         WHERE p.status IN ('Active', 'In Progress')
           AND (
@@ -396,7 +414,7 @@ BEGIN
         ORDER BY effective_from DESC LIMIT 1;
 
         IF v_geo.version_id IS NOT NULL THEN
-            -- Safely resolve optional secondary location (scalar variables avoid unassigned RECORD crash)
+            -- Safely resolve optional secondary locations (scalar variables avoid unassigned RECORD crash)
             v_sec_loc_id := NULL;
             v_sec_proj_loc_id := NULL;
             SELECT l.location_id, pl.project_location_id
@@ -413,26 +431,49 @@ BEGIN
             ORDER BY pl.created_at ASC
             LIMIT 1;
 
+            SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                'location_id', l.location_id,
+                'project_location_id', pl.project_location_id,
+                'name', l.name,
+                'latitude', l.latitude,
+                'longitude', l.longitude,
+                'radius_meters', l.radius_meters,
+                'accuracy_threshold_meters', l.accuracy_threshold_meters
+            )), '[]'::jsonb)
+            INTO v_sec_locations
+            FROM public.attendance_project_locations pl
+            JOIN public.attendance_locations l ON l.location_id = pl.location_id
+            WHERE pl.project_id = v_proj.project_id
+              AND pl.is_active = TRUE
+              AND pl.valid_from <= now()
+              AND (pl.valid_until IS NULL OR pl.valid_until > now())
+              AND l.is_active = TRUE
+              AND l.valid_from <= now()
+              AND (l.valid_until IS NULL OR l.valid_until > now());
+
             INSERT INTO public.attendance_offline_lease_scopes (
                 lease_id, project_id, geofence_version_id,
                 secondary_location_id, project_location_id,
-                allowed_work_types, allow_offline_clock_in, allow_offline_clock_out
+                warehouse_bypass_allowed, home_office_allowed
             ) VALUES (
                 v_lease_id, v_proj.project_id, v_geo.version_id,
                 v_sec_loc_id, v_sec_proj_loc_id,
-                CASE WHEN v_geo.home_office_allowed THEN ARRAY['ON_SITE', 'HOME_OFFICE'] ELSE ARRAY['ON_SITE'] END,
-                TRUE, TRUE
+                COALESCE(v_geo.warehouse_bypass_allowed, FALSE),
+                COALESCE(v_geo.home_office_allowed, TRUE)
             );
 
             v_scopes := v_scopes || jsonb_build_object(
                 'project_id', v_proj.project_id,
+                'project_name', v_proj.project_name,
                 'geofence_version_id', v_geo.version_id,
                 'latitude', v_geo.latitude,
                 'longitude', v_geo.longitude,
                 'radius_meters', v_geo.radius_meters,
                 'accuracy_threshold_meters', v_geo.accuracy_threshold_meters,
-                'home_office_allowed', v_geo.home_office_allowed,
-                'secondary_location_id', v_sec_loc_id
+                'warehouse_bypass_allowed', COALESCE(v_geo.warehouse_bypass_allowed, FALSE),
+                'home_office_allowed', COALESCE(v_geo.home_office_allowed, TRUE),
+                'secondary_location_id', v_sec_loc_id,
+                'secondary_locations', v_sec_locations
             );
         END IF;
     END LOOP;
@@ -441,6 +482,7 @@ BEGIN
         'success', true,
         'lease_id', v_lease_id,
         'personnel_id', v_personnel_id,
+        'subsidiary', v_subsidiary,
         'valid_from', now(),
         'valid_until', v_valid_until,
         'scopes', v_scopes
@@ -450,6 +492,59 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.issue_attendance_offline_lease(TEXT, TEXT, INTEGER, TEXT, INTEGER) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.issue_attendance_offline_lease(TEXT, TEXT, INTEGER, TEXT, INTEGER) TO authenticated;
+
+-- ------------------------------------------------------------------------------
+-- 5B. SAFE compute_canonical_event_hash (HANDLES EMPTY project_id ON CLOCK_OUT)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.compute_canonical_event_hash(p_event jsonb)
+RETURNS TEXT
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+    v_canonical jsonb;
+    v_canonical_text text;
+    v_proj_str text := NULLIF(TRIM(p_event->>'project_id'), '');
+    v_geo_ver_str text := NULLIF(TRIM(p_event->>'geofence_version_id'), '');
+    v_lease_str text := NULLIF(TRIM(p_event->>'offline_lease_id'), '');
+    v_rep_dep_str text := NULLIF(TRIM(p_event->>'reported_departure_timestamp'), '');
+BEGIN
+    v_canonical := jsonb_build_object(
+        'accuracy_meters', CASE WHEN NULLIF(TRIM(p_event->>'accuracy_meters'), '') IS NULL THEN jsonb 'null' ELSE to_jsonb(round((p_event->>'accuracy_meters')::numeric, 2)) END,
+        'adjustment_reason', CASE WHEN NULLIF(TRIM(p_event->>'adjustment_reason'), '') IS NULL THEN jsonb 'null' ELSE to_jsonb(p_event->>'adjustment_reason') END,
+        'attendance_protocol_version', to_jsonb(COALESCE(NULLIF(TRIM(p_event->>'attendance_protocol_version'), '')::int, 2)),
+        'client_app_version', to_jsonb(COALESCE(p_event->>'client_app_version', '')),
+        'client_commit_hash', to_jsonb(lower(COALESCE(p_event->>'client_commit_hash', ''))),
+        'client_release_id', to_jsonb(COALESCE(NULLIF(TRIM(p_event->>'client_release_id'), '')::int, 0)),
+        'created_offline', to_jsonb(coalesce((p_event->>'created_offline')::boolean, false)),
+        'device_event_timestamp', to_jsonb(to_char((p_event->>'device_event_timestamp')::timestamptz at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+        'device_id', to_jsonb(COALESCE(p_event->>'device_id', '')),
+        'device_platform', to_jsonb(COALESCE(p_event->>'device_platform', '')),
+        'event_id', to_jsonb(lower((p_event->>'event_id')::uuid::text)),
+        'event_type', to_jsonb(upper(COALESCE(p_event->>'event_type', ''))),
+        'face_bypass_reason', CASE WHEN NULLIF(TRIM(p_event->>'face_bypass_reason'), '') IS NULL THEN jsonb 'null' ELSE to_jsonb(p_event->>'face_bypass_reason') END,
+        'face_verified', to_jsonb(COALESCE((p_event->>'face_verified')::boolean, false)),
+        'geofence_distance_meters', CASE WHEN NULLIF(TRIM(p_event->>'geofence_distance_meters'), '') IS NULL THEN jsonb 'null' ELSE to_jsonb(round((p_event->>'geofence_distance_meters')::numeric, 2)) END,
+        'geofence_status', to_jsonb(upper(COALESCE(NULLIF(TRIM(p_event->>'geofence_status'), ''), 'UNKNOWN'))),
+        'geofence_version_id', CASE WHEN v_geo_ver_str IS NULL THEN jsonb 'null' ELSE to_jsonb(lower(v_geo_ver_str::uuid::text)) END,
+        'gps_verified', to_jsonb(COALESCE((p_event->>'gps_verified')::boolean, false)),
+        'is_manual_adjustment', to_jsonb(coalesce((p_event->>'is_manual_adjustment')::boolean, false)),
+        'latitude', CASE WHEN NULLIF(TRIM(p_event->>'latitude'), '') IS NULL THEN jsonb 'null' ELSE to_jsonb(round((p_event->>'latitude')::numeric, 7)) END,
+        'longitude', CASE WHEN NULLIF(TRIM(p_event->>'longitude'), '') IS NULL THEN jsonb 'null' ELSE to_jsonb(round((p_event->>'longitude')::numeric, 7)) END,
+        'offline_lease_id', CASE WHEN v_lease_str IS NULL THEN jsonb 'null' ELSE to_jsonb(lower(v_lease_str::uuid::text)) END,
+        'personnel_id', to_jsonb(COALESCE(p_event->>'personnel_id', '')),
+        'project_id', CASE WHEN v_proj_str IS NULL THEN jsonb 'null' ELSE to_jsonb(lower(v_proj_str::uuid::text)) END,
+        'reported_departure_timestamp', CASE WHEN v_rep_dep_str IS NULL THEN jsonb 'null' ELSE to_jsonb(to_char(v_rep_dep_str::timestamptz at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')) END,
+        'shift_id', to_jsonb(lower((p_event->>'shift_id')::uuid::text)),
+        'timezone_offset_minutes', to_jsonb(COALESCE(NULLIF(TRIM(p_event->>'timezone_offset_minutes'), '')::smallint, 0)),
+        'work_type', to_jsonb(upper(COALESCE(p_event->>'work_type', 'ON_SITE'))),
+        'worker_explanation', CASE WHEN NULLIF(TRIM(p_event->>'worker_explanation'), '') IS NULL THEN jsonb 'null' ELSE to_jsonb(p_event->>'worker_explanation') END
+    );
+
+    v_canonical_text := v_canonical::text;
+    RETURN encode(sha256(convert_to(v_canonical_text, 'UTF8')), 'hex');
+END;
+$$;
 
 -- ------------------------------------------------------------------------------
 -- 6. HARDENED record_attendance_event(JSONB)
@@ -540,24 +635,27 @@ BEGIN
     v_shift_id := NULLIF(TRIM(p_event->>'shift_id'), '')::uuid;
     v_project_id := NULLIF(TRIM(p_event->>'project_id'), '')::uuid;
     v_target_personnel_id := NULLIF(TRIM(p_event->>'personnel_id'), '');
-    v_event_type := UPPER(COALESCE(p_event->>'event_type', ''));
-    v_work_type := UPPER(COALESCE(p_event->>'work_type', 'ON_SITE'));
+    v_event_type := UPPER(COALESCE(NULLIF(TRIM(p_event->>'event_type'), ''), ''));
+    v_work_type := CASE WHEN UPPER(COALESCE(NULLIF(TRIM(p_event->>'work_type'), ''), 'ON_SITE')) IN ('HOME_OFFICE', 'HOME OFFICE') THEN 'HOME_OFFICE' ELSE 'ON_SITE' END;
     v_device_event_timestamp := COALESCE(NULLIF(TRIM(p_event->>'device_event_timestamp'), '')::timestamptz, now());
-    v_tz_offset := COALESCE((p_event->>'timezone_offset_minutes')::smallint, 0);
+    v_tz_offset := COALESCE(NULLIF(TRIM(p_event->>'timezone_offset_minutes'), '')::smallint, 0);
     v_device_id := COALESCE(NULLIF(TRIM(p_event->>'device_id'), ''), 'unknown');
     v_device_platform := COALESCE(NULLIF(TRIM(p_event->>'device_platform'), ''), 'web');
-    v_client_app_version := COALESCE(NULLIF(TRIM(p_event->>'client_app_version'), ''), '5.1.3');
-    v_client_release_id := (p_event->>'client_release_id')::int;
+    v_client_app_version := COALESCE(NULLIF(TRIM(p_event->>'client_app_version'), ''), '5.1.4');
+    v_client_release_id := NULLIF(TRIM(p_event->>'client_release_id'), '')::int;
     v_client_commit_hash := COALESCE(NULLIF(TRIM(p_event->>'client_commit_hash'), ''), 'unknown');
-    v_protocol_version := COALESCE((p_event->>'attendance_protocol_version')::int, 2);
+    v_protocol_version := COALESCE(NULLIF(TRIM(p_event->>'attendance_protocol_version'), '')::int, 2);
     v_created_offline := COALESCE((p_event->>'created_offline')::boolean, FALSE);
     v_offline_lease_id := NULLIF(TRIM(p_event->>'offline_lease_id'), '')::uuid;
-    v_lat := (p_event->>'latitude')::numeric;
-    v_lon := (p_event->>'longitude')::numeric;
-    v_accuracy := (p_event->>'accuracy_meters')::numeric;
+    v_lat := NULLIF(TRIM(p_event->>'latitude'), '')::numeric;
+    v_lon := NULLIF(TRIM(p_event->>'longitude'), '')::numeric;
+    v_accuracy := NULLIF(TRIM(p_event->>'accuracy_meters'), '')::numeric;
     v_gps_verified := COALESCE((p_event->>'gps_verified')::boolean, FALSE);
-    v_geofence_status := UPPER(COALESCE(p_event->>'geofence_status', 'UNKNOWN'));
-    v_geofence_distance := (p_event->>'geofence_distance_meters')::numeric;
+    v_geofence_status := UPPER(COALESCE(NULLIF(TRIM(p_event->>'geofence_status'), ''), 'UNKNOWN'));
+    IF v_geofence_status NOT IN ('INSIDE', 'OUTSIDE', 'UNKNOWN', 'BYPASS_AUTHORIZED', 'NOT_APPLICABLE') THEN
+        v_geofence_status := 'UNKNOWN';
+    END IF;
+    v_geofence_distance := NULLIF(TRIM(p_event->>'geofence_distance_meters'), '')::numeric;
     v_geofence_version_id := NULLIF(TRIM(p_event->>'geofence_version_id'), '')::uuid;
     v_face_verified := COALESCE((p_event->>'face_verified')::boolean, FALSE);
     v_face_bypass_reason := NULLIF(TRIM(p_event->>'face_bypass_reason'), '');
@@ -566,7 +664,9 @@ BEGIN
     v_reported_departure := NULLIF(TRIM(p_event->>'reported_departure_timestamp'), '')::timestamptz;
     v_worker_explanation := NULLIF(TRIM(p_event->>'worker_explanation'), '');
 
-    IF NOT v_face_verified AND v_face_bypass_reason IS NULL THEN
+    IF v_face_verified THEN
+        v_face_bypass_reason := NULL;
+    ELSIF v_face_bypass_reason IS NULL THEN
         v_face_bypass_reason := 'UNSPECIFIED_BYPASS';
     END IF;
 
@@ -603,8 +703,8 @@ BEGIN
         v_personnel_id := v_caller_personnel_id;
         v_is_proxy_punch := FALSE;
     ELSIF v_caller_role IN ('Supervisor', 'Manager', 'HR', 'Admin', 'SuperAdmin') THEN
-        SELECT subsidiary INTO v_subsidiary FROM public.mx_personnel WHERE id = v_target_personnel_id;
-        IF v_subsidiary IS NULL THEN
+        SELECT COALESCE(subsidiary, 'MX') INTO v_subsidiary FROM public.mx_personnel WHERE id = v_target_personnel_id;
+        IF NOT FOUND THEN
             RETURN jsonb_build_object('success', false, 'status', 'REJECTED', 'error', 'TARGET_PERSONNEL_NOT_FOUND');
         END IF;
         IF v_caller_role NOT IN ('Admin', 'SuperAdmin') AND v_caller_subsidiary IS DISTINCT FROM v_subsidiary THEN
@@ -841,6 +941,26 @@ BEGIN
         v_project_id := v_active_shift.project_id;
         v_work_type := v_active_shift.work_type;
 
+        -- Offline lease validation for offline CLOCK_OUT (prevents chk_events_offline_lease crash)
+        IF v_created_offline THEN
+            IF v_offline_lease_id IS NULL THEN
+                RETURN jsonb_build_object('success', false, 'status', 'REJECTED', 'error', 'OFFLINE_LEASE_MISSING');
+            END IF;
+            SELECT * INTO v_lease FROM public.attendance_offline_leases WHERE lease_id = v_offline_lease_id;
+            IF v_lease.lease_id IS NULL THEN
+                RETURN jsonb_build_object('success', false, 'status', 'REJECTED', 'error', 'OFFLINE_LEASE_NOT_FOUND');
+            END IF;
+            IF v_lease.personnel_id <> v_personnel_id THEN
+                RETURN jsonb_build_object('success', false, 'status', 'REJECTED', 'error', 'OFFLINE_LEASE_IDENTITY_MISMATCH');
+            END IF;
+            IF v_device_event_timestamp < v_lease.valid_from OR v_device_event_timestamp > v_lease.valid_until THEN
+                RETURN jsonb_build_object('success', false, 'status', 'REJECTED', 'error', 'OFFLINE_LEASE_EXPIRED');
+            END IF;
+            IF v_lease.is_revoked AND v_lease.revoked_at <= v_device_event_timestamp THEN
+                RETURN jsonb_build_object('success', false, 'status', 'REJECTED', 'error', 'OFFLINE_LEASE_REVOKED');
+            END IF;
+        END IF;
+
         IF v_device_event_timestamp < v_active_shift.first_clock_in_at THEN
             RETURN jsonb_build_object('success', false, 'status', 'REJECTED', 'error', 'CLOCK_OUT_BEFORE_CLOCK_IN');
         END IF;
@@ -977,12 +1097,12 @@ BEGIN
         UPDATE public.attendance_shifts
         SET final_clock_out_at = v_effective_clock_out,
             physical_duration_minutes = v_duration_minutes,
-            payable_hours = CASE WHEN v_active_shift.status = 'ZOMBIE_PENDING_RECONCILIATION' THEN 8.00 ELSE v_payable_hours END,
-            overtime_hours = CASE WHEN v_active_shift.status = 'ZOMBIE_PENDING_RECONCILIATION' THEN 0.00 ELSE v_overtime_hours END,
-            status = v_final_status,
+            payable_hours = CASE WHEN v_adjustment_reason = 'SHORT_SHIFT_DISCARD' THEN 0.00 WHEN v_active_shift.status = 'ZOMBIE_PENDING_RECONCILIATION' THEN 8.00 ELSE v_payable_hours END,
+            overtime_hours = CASE WHEN v_adjustment_reason = 'SHORT_SHIFT_DISCARD' THEN 0.00 WHEN v_active_shift.status = 'ZOMBIE_PENDING_RECONCILIATION' THEN 0.00 ELSE v_overtime_hours END,
+            status = CASE WHEN v_active_shift.status = 'ZOMBIE_PENDING_RECONCILIATION' AND v_adjustment_reason IS NULL THEN 'ZOMBIE_PENDING_RECONCILIATION' ELSE v_final_status END,
             close_method = v_close_method,
-            requires_review = v_requires_review,
-            review_status = v_review_status,
+            requires_review = CASE WHEN v_active_shift.status = 'ZOMBIE_PENDING_RECONCILIATION' AND v_adjustment_reason IS NULL THEN TRUE ELSE v_requires_review END,
+            review_status = CASE WHEN v_active_shift.status = 'ZOMBIE_PENDING_RECONCILIATION' AND v_adjustment_reason IS NULL THEN 'PENDING' ELSE v_review_status END,
             review_notes = COALESCE(v_worker_explanation, review_notes),
             updated_at = now()
         WHERE shift_id = v_shift_id;
@@ -1272,12 +1392,32 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'UNAUTHORIZED_ROLE');
     END IF;
 
+    IF p_project_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'PROJECT_ID_REQUIRED');
+    END IF;
+    IF p_clock_in IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'CLOCK_IN_REQUIRED');
+    END IF;
+    IF p_clock_out IS NOT NULL AND p_clock_out < p_clock_in THEN
+        RETURN jsonb_build_object('success', false, 'error', 'CLOCK_OUT_BEFORE_CLOCK_IN');
+    END IF;
+    IF COALESCE(p_payable_hours, 8.00) < 0 OR COALESCE(p_payable_hours, 8.00) > 24
+       OR COALESCE(p_overtime_hours, 0.00) < 0 OR COALESCE(p_overtime_hours, 0.00) > 24 THEN
+        RETURN jsonb_build_object('success', false, 'error', 'INVALID_HOURS_RANGE');
+    END IF;
+
     SELECT COALESCE(subsidiary, 'MX') INTO v_target_subsidiary FROM public.mx_personnel WHERE id = p_personnel_id;
-    IF v_target_subsidiary IS NULL THEN
+    IF NOT FOUND THEN
         RETURN jsonb_build_object('success', false, 'error', 'TARGET_PERSONNEL_NOT_FOUND');
     END IF;
     IF v_caller_role NOT IN ('Admin', 'SuperAdmin') AND v_caller_subsidiary IS DISTINCT FROM v_target_subsidiary THEN
         RETURN jsonb_build_object('success', false, 'error', 'CROSS_SUBSIDIARY_FORBIDDEN');
+    END IF;
+
+    IF p_clock_out IS NULL AND EXISTS (
+        SELECT 1 FROM public.attendance_shifts WHERE personnel_id = p_personnel_id AND status = 'OPEN'
+    ) THEN
+        RETURN jsonb_build_object('success', false, 'error', 'ACTIVE_SHIFT_CONFLICT');
     END IF;
 
     v_dur := CASE WHEN p_clock_out IS NOT NULL AND p_clock_out >= p_clock_in
@@ -1385,8 +1525,8 @@ WHERE control_id = 1;
 
 UPDATE public.platform_settings
 SET minimum_client_version = '5.1.4',
-    required_client_release = 52,
-    minimum_client_version_enabled = TRUE
+    minimum_client_version_enabled = TRUE,
+    minimum_client_version_effective_at = now()
 WHERE id = 'global';
 
 COMMIT;

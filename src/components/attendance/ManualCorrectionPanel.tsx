@@ -14,7 +14,7 @@ interface ManualCorrectionPanelProps {
 
 export default function ManualCorrectionPanel({ employeeId, date, existingTimesheet, onClose }: ManualCorrectionPanelProps) {
     const { t } = useTranslation();
-    const { addTimesheet, updateTimesheet, getCurrentUserName } = useStore();
+    const { addTimesheet, updateTimesheet, getCurrentUserName, projects } = useStore();
 
     const [timeIn, setTimeIn] = useState(existingTimesheet?.timeIn || '');
     const [lunchStart, setLunchStart] = useState(existingTimesheet?.lunchStart || '');
@@ -59,9 +59,11 @@ export default function ManualCorrectionPanel({ employeeId, date, existingTimesh
             if (existingTimesheet) {
                 await updateTimesheet(existingTimesheet.id, payload);
             } else {
+                const assignedProj = projects.find(p => p.assignedPersonnel?.includes(employeeId)) || projects.find(p => p.status === 'Active' || p.status === 'In Progress') || projects[0];
                 const newEntry: TimesheetEntry = {
                     id: crypto.randomUUID(),
                     personnelId: employeeId,
+                    projectId: assignedProj?.id,
                     date,
                     hours: Number(hours.toFixed(2)),
                     type: 'On Site',

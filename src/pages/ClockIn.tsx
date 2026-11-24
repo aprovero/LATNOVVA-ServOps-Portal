@@ -1660,7 +1660,7 @@ function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch
                                 type="button"
                                 onClick={async () => {
                                     if (window.confirm('¿Deseas descartar este turno e iniciar de nuevo?')) {
-                                        await useStore.getState().discardStaleShift(activeEntry.id);
+                                        await useStore.getState().discardShortShift(activeEntry.id);
                                     }
                                 }}
                                 className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5"
