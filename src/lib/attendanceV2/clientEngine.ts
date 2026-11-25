@@ -346,11 +346,12 @@ export class AttendanceV2ClientEngine {
     const nowUtc = new Date().toISOString();
     const tzOffset = this.getLocalTimezoneOffsetMinutes();
 
-    // 1. Locate active shift by exact shift_id
-    let activeShift = await this.db.getActiveShift(params.shift_id);
-    if (!activeShift) {
-      activeShift = await this.db.getCurrentActiveShiftForPersonnel(params.personnel_id);
-    }
+    // 1. Locate active shift by exact shift_id.
+    // IMPORTANT: Never fall back to a DIFFERENT active shift when an explicit shift_id was provided,
+    // otherwise closing an old/stale shift ID could accidentally close a brand-new shift opened today.
+    let activeShift = params.shift_id
+      ? await this.db.getActiveShift(params.shift_id)
+      : await this.db.getCurrentActiveShiftForPersonnel(params.personnel_id);
     if (!activeShift && params.shift_id) {
       // Fallback: Synthesize active shift when shift_id is provided so that
       // device switches, cache clears, or prior-day unclosed shifts can be closed on the authoritative server.

@@ -406,7 +406,7 @@ export default function Layout() {
             });
             try {
                 await (supabase.from('mx_personnel') as any).update({
-                    face_descriptor: null
+                    faceDescriptor: null
                 }).or(`id.eq.${targetId},email.ilike.${userEmail}`);
             } catch (e) {
                 console.warn('[Layout] disableFaceId mx_personnel warning:', e);

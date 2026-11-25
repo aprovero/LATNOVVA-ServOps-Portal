@@ -204,10 +204,10 @@ export const Login: React.FC = () => {
             if (targetPerson) {
                 try {
                     await (supabase.from('mx_personnel') as any)
-                        .update({ face_descriptor: finalDescriptor, image: finalImage })
+                        .update({ faceDescriptor: finalDescriptor, image: finalImage })
                         .eq('id', targetPerson.id);
                 } catch (err) {
-                    console.warn('[Login] mx_personnel face_descriptor update warning:', err);
+                    console.warn('[Login] mx_personnel faceDescriptor update warning:', err);
                 }
                 await useStore.getState().updatePersonnel(targetPerson.id, {
                     image: finalImage,

@@ -15,7 +15,7 @@ import { attendanceV2Db } from '../lib/attendanceV2/db';
 export type AttendanceWriteMode = 'UNKNOWN' | 'RESOLVING' | 'CANARY' | 'LEGACY' | 'ERROR' | 'V2';
 
 export const TIMESHEET_LIGHTWEIGHT_COLUMNS = 'id, personnel_id, project_id, date, time_in, time_out, hours, type, classification, notes, status, approved_by, gps_verified, source, manual_reason, created_at, updated_at, corrected_by, corrected_at, correction_reason, lunch_start, lunch_end';
-export const PERSONNEL_LIGHTWEIGHT_COLUMNS = 'id, name, position, app_role, employee_number, status, email, phone_number, certifications, supervisor_id, manager_id, client_id, prevailing_wage, bench_exempt, regular_rate, rainy_day_rate, overtime_rate, meal_allowance, gas_allowance, truck_allowance, lead_pay, per_diem, dbo, emergency_contact_name, emergency_contact_phone, subsidiary, subsidiary_metadata';
+export const PERSONNEL_LIGHTWEIGHT_COLUMNS = 'id, name, position, app_role, employee_number, status, email, phone_number, certifications, supervisor_id, manager_id, client_id, prevailing_wage, bench_exempt, regular_rate, rainy_day_rate, overtime_rate, meal_allowance, gas_allowance, truck_allowance, lead_pay, per_diem, dbo, emergency_contact_name, emergency_contact_phone, subsidiary, subsidiary_metadata, faceDescriptor';
 
 
 export interface PendingSyncItem {
