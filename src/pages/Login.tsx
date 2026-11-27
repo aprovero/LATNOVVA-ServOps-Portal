@@ -207,17 +207,16 @@ export const Login: React.FC = () => {
 
             {/* Left Side: Branding / Marketing Pattern */}
             <div className="hidden lg:flex flex-col flex-1 p-12 justify-between relative overflow-hidden bg-[#00606B]">
-                {/* Video Background - Loaded conditionally only on desktop (lg: >=1024px) */}
+                {/* Optimized Static Background Image - Loaded conditionally only on desktop (lg: >=1024px) */}
                 {isDesktop && (
-                    <video 
-                        autoPlay 
-                        loop 
-                        muted 
-                        playsInline 
+                    <img
+                        src="/login-bg.webp"
+                        alt=""
+                        aria-hidden="true"
+                        decoding="async"
+                        fetchPriority="high"
                         className="absolute inset-0 w-full h-full object-cover z-0"
-                    >
-                        <source src="/HOME-LATNOVVA.mp4" type="video/mp4" />
-                    </video>
+                    />
                 )}
                 {/* Dark Overlay */}
                 <div className="absolute inset-0 bg-black/40 z-0" />
