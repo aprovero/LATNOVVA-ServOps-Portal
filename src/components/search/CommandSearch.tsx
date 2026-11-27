@@ -1,0 +1,554 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import Fuse from 'fuse.js';
+import {
+    Search, X, Folder, User,
+    Zap, Clock, ArrowRight, Hash
+} from 'lucide-react';
+import { useStore } from '../../store/useStore';
+import { canAccessOps } from '../../lib/roleAuth';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type ResultCategory = 'project' | 'personnel' | 'action' | 'recent';
+
+interface SearchResult {
+    id: string;
+    category: ResultCategory;
+    title: string;
+    subtitle: string;
+    path: string;
+    score?: number;
+    action?: () => void; // For quick actions that don't navigate
+}
+
+interface RecentItem {
+    id: string;
+    title: string;
+    subtitle: string;
+    path: string;
+    category: ResultCategory;
+    timestamp: number;
+}
+
+const RECENT_KEY = 'lnv_search_recent';
+const MAX_RECENT = 6;
+const MAX_PER_GROUP = 4;
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function getRecent(): RecentItem[] {
+    try {
+        return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    } catch {
+        return [];
+    }
+}
+
+function saveRecent(item: Omit<RecentItem, 'timestamp'>) {
+    const existing = getRecent().filter(r => r.id !== item.id);
+    const updated = [{ ...item, timestamp: Date.now() }, ...existing].slice(0, MAX_RECENT);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+}
+
+function clearRecent() {
+    localStorage.removeItem(RECENT_KEY);
+}
+
+// ─── Category Config ─────────────────────────────────────────────────────────
+
+const CATEGORY_CONFIG: (t: any) => Record<ResultCategory, { label: string; icon: React.ElementType; color: string; bg: string }> = (t) => ({
+    project:   { label: t('search.categories.project', 'Projects'),     icon: Folder,   color: 'text-blue-600',    bg: 'bg-blue-50' },
+    personnel: { label: t('search.categories.personnel', 'Personnel'),    icon: User,     color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    action:    { label: t('search.categories.action', 'Quick Actions'),icon: Zap,      color: 'text-brand-teal',  bg: 'bg-teal-50' },
+    recent:    { label: t('search.categories.recent', 'Recent'),       icon: Clock,    color: 'text-gray-500',    bg: 'bg-gray-100' },
+});
+
+// ─── Props ───────────────────────────────────────────────────────────────────
+
+interface CommandSearchProps {
+    onNewProject: () => void;
+    triggerOpen?: boolean;
+    onTriggerConsumed?: () => void;
+    isOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    showButton?: boolean;
+    showModal?: boolean;
+    isGlobal?: boolean;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export default function CommandSearch({
+    onNewProject,
+    triggerOpen,
+    onTriggerConsumed,
+    showButton = true,
+    showModal = true,
+    isOpen: controlledIsOpen,
+    onOpenChange,
+    isGlobal = false,
+}: CommandSearchProps) {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const { projects, personnel, clients, userRole, activeSubsidiary } = useStore();
+    const config = CATEGORY_CONFIG(t);
+
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    
+    // Support both controlled and uncontrolled modes (or just simplified controlled-only if used everywhere)
+    const isActuallyOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+    const setIsActuallyOpen = (val: boolean) => {
+        if (onOpenChange) onOpenChange(val);
+        setInternalIsOpen(val);
+    };
+
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<SearchResult[]>([]);
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [recent, setRecent] = useState<RecentItem[]>([]);
+
+    const inputRef = useRef<HTMLInputElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
+
+    // ── External trigger (backwards compatibility) ───────────────────────────
+    useEffect(() => {
+        if (triggerOpen) {
+            setIsActuallyOpen(true);
+            onTriggerConsumed?.();
+        }
+    }, [triggerOpen, onTriggerConsumed]);
+
+    // ── Keyboard shortcut ────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!isGlobal) return;
+        
+        const handler = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setIsActuallyOpen(!isActuallyOpen);
+            }
+            if (e.key === 'Escape') setIsActuallyOpen(false);
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [isActuallyOpen, isGlobal]);
+
+    // ── Focus input on open ───────────────────────────────────────────────────
+    useEffect(() => {
+        if (isActuallyOpen) {
+            setRecent(getRecent());
+            setQuery('');
+            setResults([]);
+            setActiveIndex(0);
+            setTimeout(() => inputRef.current?.focus(), 50);
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [isActuallyOpen]);
+
+    // ── Build Quick Actions (role-aware) ─────────────────────────────────────
+    const quickActions = useCallback((): SearchResult[] => {
+        const actions: SearchResult[] = [];
+        if (userRole && ['Supervisor', 'Manager', 'HR'].includes(userRole) && activeSubsidiary !== 'MX') {
+            actions.push({
+                id: 'qa-new-project',
+                category: 'action',
+                title: t('projects.new_project'),
+                subtitle: t('search.actions.new_project_sub'),
+                path: '',
+                action: () => { setIsActuallyOpen(false); onNewProject(); },
+            });
+        }
+        if (userRole && ['Tech', 'Supervisor', 'Office', 'HR'].includes(userRole)) {
+            actions.push({
+                id: 'qa-clock-in',
+                category: 'action',
+                title: t('attendance.labels.my_checkin'),
+                subtitle: t('search.actions.clock_in_sub'),
+                path: '/clock-in',
+            });
+        }
+        actions.push(
+            { id: 'qa-projects',  category: 'action', title: t('search.actions.go_projects'),  subtitle: t('search.actions.go_projects_sub'), path: '/projects' },
+        );
+        if (canAccessOps(userRole)) {
+            actions.push(
+                { id: 'qa-personnel', category: 'action', title: t('search.actions.go_personnel'), subtitle: t('search.actions.go_personnel_sub'), path: '/personnel' },
+                { id: 'qa-livemap',   category: 'action', title: t('nav.live_map', 'Live Map'),    subtitle: t('live_map.subtitle', 'Operaciones en Vivo'), path: '/live-map' },
+            );
+        }
+        return actions;
+    }, [userRole, activeSubsidiary, onNewProject]);
+
+    // ── Fuse search ───────────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!query.trim() || query.trim().length < 1) {
+            setResults([]);
+            setActiveIndex(0);
+            return;
+        }
+
+        const q = query.trim().toLowerCase();
+
+        // Build a typed searchable pool (PASS 15F P1-6: tenant-scoped for Customer; personnel only for Ops roles)
+        const isCustomer = userRole === 'Customer';
+        const customerClientId = useStore.getState().clientId;
+        const visibleProjects = isCustomer
+            ? projects.filter(p => customerClientId && p.clientId === customerClientId)
+            : projects;
+
+        const projectItems: SearchResult[] = visibleProjects.map(p => {
+            const client = clients.find(c => c.id === p.clientId);
+            return {
+                id: p.id,
+                category: 'project' as const,
+                title: p.name,
+                subtitle: [client?.name, p.location, p.systemType].filter(Boolean).join(' · '),
+                path: `/projects/${p.id}`,
+            };
+        });
+
+        const personnelItems: SearchResult[] = canAccessOps(userRole)
+            ? personnel.map(p => ({
+                id: p.id,
+                category: 'personnel' as const,
+                title: p.name,
+                subtitle: [p.position, p.appRole].filter(Boolean).join(' · '),
+                path: `/personnel?q=${encodeURIComponent(p.name)}`,
+            }))
+            : [];
+
+        // Quick Actions matching
+        const actionItems = quickActions().filter(a =>
+            a.title.toLowerCase().includes(q) || a.subtitle.toLowerCase().includes(q)
+        );
+
+        // Fuzzy search per group
+        const fuseOpts = {
+            keys: ['title', 'subtitle'],
+            threshold: 0.35,
+            includeScore: true,
+            minMatchCharLength: 1,
+        };
+
+        const search = <T extends SearchResult>(pool: T[]): T[] => {
+            if (pool.length === 0) return [];
+            const fuse = new Fuse(pool, fuseOpts);
+            return fuse.search(q)
+                .sort((a, b) => (a.score ?? 1) - (b.score ?? 1))
+                .map(r => r.item)
+                .slice(0, MAX_PER_GROUP);
+        };
+
+        const combined: SearchResult[] = [
+            ...actionItems.slice(0, 3),
+            ...search(projectItems),
+            ...search(personnelItems),
+        ];
+
+        setResults(combined);
+        setActiveIndex(0);
+    }, [query, projects, personnel, clients, userRole, quickActions]);
+
+    // ── Keyboard navigation ───────────────────────────────────────────────────
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        const items = getDisplayedItems();
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveIndex(i => Math.min(i + 1, items.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveIndex(i => Math.max(i - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (items[activeIndex]) handleSelect(items[activeIndex]);
+        }
+    };
+
+    // ── Get flat displayed list (for keyboard nav) ────────────────────────────
+    const getDisplayedItems = useCallback((): SearchResult[] => {
+        if (query.trim().length === 0) {
+            const recentAsResults: SearchResult[] = recent.map(r => ({
+                id: r.id,
+                category: r.category,
+                title: r.title,
+                subtitle: r.subtitle,
+                path: r.path,
+            }));
+            return [...recentAsResults, ...quickActions()];
+        }
+        return results;
+    }, [query, recent, quickActions, results]);
+
+    // ── Select an item ────────────────────────────────────────────────────────
+    const handleSelect = (item: SearchResult) => {
+        if (item.action) {
+            item.action();
+            return;
+        }
+        if (item.path) {
+            if (item.category !== 'action') {
+                saveRecent({
+                    id: item.id,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    path: item.path,
+                    category: item.category,
+                });
+            }
+            navigate(item.path);
+        }
+        setIsActuallyOpen(false);
+    };
+
+    // ── Scroll active item into view ──────────────────────────────────────────
+    useEffect(() => {
+        const el = listRef.current?.querySelector(`[data-index="${activeIndex}"]`);
+        el?.scrollIntoView({ block: 'nearest' });
+    }, [activeIndex]);
+
+    // ── Group results for rendering ───────────────────────────────────────────
+    const groupedResults = useCallback(() => {
+        const groups: Record<ResultCategory, SearchResult[]> = {
+            action: [], project: [], personnel: [], recent: [],
+        };
+        results.forEach(r => groups[r.category].push(r));
+        return groups;
+    }, [results]);
+
+    // ─── Render ───────────────────────────────────────────────────────────────
+    return (
+        <>
+            {/* Trigger Button - only shown on desktop if requested */}
+            {showButton && (
+                <button
+                    id="command-search-trigger"
+                    onClick={() => setIsActuallyOpen(true)}
+                    className="relative flex items-center gap-3 w-full max-w-md px-4 h-10 bg-gray-50 border border-gray-200 rounded-xl text-gray-400 text-sm hover:border-brand-teal/40 hover:bg-white transition-all duration-200 group hidden lg:flex"
+                >
+                    <Search size={16} className="text-gray-400 group-hover:text-brand-teal transition-colors shrink-0" />
+                    <span className="flex-1 text-left">{t('search.placeholder_short')}</span>
+                    <kbd className="hidden xl:flex items-center gap-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono text-gray-400 shadow-sm">
+                        <span className="text-[9px]">⌘</span>K
+                    </kbd>
+                </button>
+            )}
+
+            {/* Overlay */}
+            {showModal && isActuallyOpen && (
+                <div
+                    className="fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh]"
+                    style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15,23,42,0.45)' }}
+                    onClick={() => setIsActuallyOpen(false)}
+                >
+                    <div
+                        className="w-full max-w-2xl mx-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+                        style={{
+                            animation: 'cmdSearchIn 0.15s cubic-bezier(0.22,1,0.36,1)',
+                            maxHeight: '75vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Search Input */}
+                        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
+                            <Search size={20} className="text-brand-teal shrink-0" />
+                            <input
+                                ref={inputRef}
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder={t('search.placeholder')}
+                                className="flex-1 text-base text-gray-800 placeholder-gray-400 outline-none bg-transparent font-medium"
+                                autoComplete="off"
+                                spellCheck={false}
+                            />
+                            {query && (
+                                <button onClick={() => setQuery('')} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                                    <X size={16} />
+                                </button>
+                            )}
+                            <kbd className="hidden sm:flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-mono text-gray-400">
+                                ESC
+                            </kbd>
+                        </div>
+
+                        {/* Results */}
+                        <div ref={listRef} className="overflow-y-auto flex-1" style={{ overscrollBehavior: 'contain' }}>
+                            {/* Empty state — show recent + quick actions */}
+                            {query.trim().length === 0 && (
+                                <div>
+                                    {/* Recent Items */}
+                                    {recent.length > 0 && (
+                                        <div className="pt-2 pb-1">
+                                            <div className="flex items-center justify-between px-4 py-1.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('search.recent')}</span>
+                                                <button
+                                                    onClick={() => { clearRecent(); setRecent([]); }}
+                                                    className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {t('search.clear')}
+                                                </button>
+                                            </div>
+                                            {recent.map((item, idx) => {
+                                                const cfg = config[item.category];
+                                                const Icon = cfg.icon;
+                                                const flatIdx = idx;
+                                                return (
+                                                    <ResultRow
+                                                        key={item.id}
+                                                        item={{ ...item, category: item.category }}
+                                                        icon={<Icon size={15} className={cfg.color} />}
+                                                        iconBg={cfg.bg}
+                                                        isActive={activeIndex === flatIdx}
+                                                        dataIndex={flatIdx}
+                                                        onSelect={() => handleSelect({ ...item, category: item.category })}
+                                                        onHover={() => setActiveIndex(flatIdx)}
+                                                        badge={<Clock size={11} className="text-gray-300" />}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Quick Actions */}
+                                    <div className="pt-2 pb-3">
+                                        <div className="px-4 py-1.5">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('search.quick_actions')}</span>
+                                        </div>
+                                        {quickActions().map((item, idx) => {
+                                            const flatIdx = recent.length + idx;
+                                            return (
+                                                <ResultRow
+                                                    key={item.id}
+                                                    item={item}
+                                                    icon={<Zap size={15} className="text-brand-teal" />}
+                                                    iconBg="bg-teal-50"
+                                                    isActive={activeIndex === flatIdx}
+                                                    dataIndex={flatIdx}
+                                                    onSelect={() => handleSelect(item)}
+                                                    onHover={() => setActiveIndex(flatIdx)}
+                                                    badge={<ArrowRight size={13} className="text-gray-300" />}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Active query — grouped results */}
+                            {query.trim().length > 0 && results.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+                                    <Hash size={32} className="text-gray-200" />
+                                    <div className="text-center">
+                                        <p className="text-sm font-semibold text-gray-500">{t('search.no_results', { query })}</p>
+                                        <p className="text-xs mt-1">{t('search.no_results_subtitle')}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {query.trim().length > 0 && results.length > 0 && (() => {
+                                const groups = groupedResults();
+                                const order: ResultCategory[] = ['action', 'project', 'personnel'];
+                                let runningIdx = 0;
+
+                                return order.map(cat => {
+                                    const items = groups[cat];
+                                    if (items.length === 0) return null;
+                                    const cfg = config[cat];
+                                    const Icon = cfg.icon;
+
+                                    return (
+                                        <div key={cat} className="pt-2 pb-1">
+                                            <div className="px-4 py-1.5">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{cfg.label}</span>
+                                            </div>
+                                            {items.map(item => {
+                                                const flatIdx = runningIdx++;
+                                                return (
+                                                    <ResultRow
+                                                        key={item.id}
+                                                        item={item}
+                                                        icon={<Icon size={15} className={cfg.color} />}
+                                                        iconBg={cfg.bg}
+                                                        isActive={activeIndex === flatIdx}
+                                                        dataIndex={flatIdx}
+                                                        onSelect={() => handleSelect(item)}
+                                                        onHover={() => setActiveIndex(flatIdx)}
+                                                        badge={<ArrowRight size={13} className="text-gray-300" />}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                });
+                            })()}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-4 py-2.5 border-t border-gray-100 flex items-center justify-between bg-gray-50/60">
+                            <div className="flex items-center gap-3 text-[11px] text-gray-400 font-medium">
+                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">↑↓</kbd> {t('search.footer.navigate')}</span>
+                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">↵</kbd> {t('search.footer.open')}</span>
+                                <span className="flex items-center gap-1"><kbd className="bg-white border border-gray-200 rounded px-1 font-mono text-[10px]">esc</kbd> {t('search.footer.close')}</span>
+                            </div>
+                            <span className="text-[10px] text-gray-300 font-mono">⌘K</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Animation keyframe injected inline */}
+            <style>{`
+                @keyframes cmdSearchIn {
+                    from { opacity: 0; transform: scale(0.97) translateY(-8px); }
+                    to   { opacity: 1; transform: scale(1) translateY(0); }
+                }
+            `}</style>
+        </>
+    );
+}
+
+// ─── ResultRow ────────────────────────────────────────────────────────────────
+
+interface ResultRowProps {
+    item: SearchResult;
+    icon: React.ReactNode;
+    iconBg: string;
+    isActive: boolean;
+    dataIndex: number;
+    onSelect: () => void;
+    onHover: () => void;
+    badge?: React.ReactNode;
+}
+
+function ResultRow({ item, icon, iconBg, isActive, dataIndex, onSelect, onHover, badge }: ResultRowProps) {
+    return (
+        <div
+            data-index={dataIndex}
+            onClick={onSelect}
+            onMouseEnter={onHover}
+            className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-75 ${
+                isActive ? 'bg-brand-teal/5 border-l-2 border-brand-teal' : 'border-l-2 border-transparent hover:bg-gray-50'
+            }`}
+        >
+            <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                {icon}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold truncate ${isActive ? 'text-brand-teal' : 'text-gray-800'}`}>
+                    {item.title}
+                </p>
+                {item.subtitle && (
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{item.subtitle}</p>
+                )}
+            </div>
+            <div className="shrink-0 opacity-60">{badge}</div>
+        </div>
+    );
+}

@@ -1,0 +1,2066 @@
+import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import {
+    LogIn, LogOut, ChevronDown, CheckCircle, MapPin, Zap, Users, X, Check, AlertTriangle, Edit2, Wifi, WifiOff, Trash2, UserPlus, Clock, UserCheck, RotateCcw
+} from 'lucide-react';
+import { useStore, ClockPunch, Personnel } from '../store/useStore';
+import { formatTime } from '../lib/utils';
+import { Badge } from '../components/ui/badge';
+import { useAttendance } from '../hooks/useAttendance';
+import { getActiveShift, clearActiveShift, recoverActiveShift } from '../lib/activeShiftManager';
+import { isCertExpired, getGPSAccuracyThreshold, getDistanceMeters, parseCoordinates, isWarehouseBypass } from '../utils/datetime.utils';
+import QuickAddWorker from '../components/shared/QuickAddWorker';
+import UnifiedSignaturePad from '../components/shared/UnifiedSignaturePad';
+import FaceCameraModal from '../components/shared/FaceCameraModal';
+import { getFaceDescriptorCacheKey, normalizeDescriptor } from '../utils/faceId.utils';
+import { useAttendanceLocation } from '../hooks/useAttendanceLocation';
+import { AttendanceLocationCard } from '../components/attendance/AttendanceLocationCard';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type PunchStep = 'idle' | 'clocked-in' | 'clocked-out';
+type ViewMode = 'individual' | 'batch';
+type BatchScreen = 'list' | 'success';
+
+interface OutsourcedEntry {
+    tempId: string;
+    name: string;
+    role: string;
+}
+
+interface GpsState {
+    lat: number | null;
+    lng: number | null;
+    accuracy: number | null;
+    status: 'acquiring' | 'locked' | 'poor' | 'denied';
+    gpsTimestampMs: number | null;
+    gpsReceivedAt: number | null;
+}
+
+// ─── Shared Helpers ───────────────────────────────────────────────────────────
+
+/** Timezone-safe local date string "YYYY-MM-DD" — never uses UTC offset */
+const getLocalDate = (d: Date = new Date()) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+function getBestDate(gps: GpsState): Date {
+    if (gps.gpsTimestampMs !== null && gps.gpsReceivedAt !== null) {
+        const ms = gps.gpsTimestampMs + (performance.now() - gps.gpsReceivedAt);
+        // If GPS time deviates from device time by more than 24 hours, assume it's bugged/rolled over
+        if (Math.abs(ms - Date.now()) < 86400000) {
+            return new Date(ms);
+        }
+    }
+    return new Date();
+}
+
+function getBestTimestampISO(gps: GpsState): { iso: string; source: 'gps' | 'device' } {
+    if (gps.gpsTimestampMs !== null && gps.gpsReceivedAt !== null) {
+        const ms = gps.gpsTimestampMs + (performance.now() - gps.gpsReceivedAt);
+        // If GPS time deviates from device time by more than 24 hours, assume it's bugged/rolled over
+        if (Math.abs(ms - Date.now()) < 86400000) {
+            return { iso: new Date(ms).toISOString(), source: 'gps' };
+        }
+    }
+    return { iso: new Date().toISOString(), source: 'device' };
+}
+
+function getPunchStep(timesheets: any[], personnelId: string): PunchStep {
+    const activeState = getActiveShift(personnelId);
+    if (activeState) {
+        const correspondingTs = timesheets.find((t: any) => t.id === activeState.timesheetId);
+        if (correspondingTs && correspondingTs.timeOut) {
+            clearActiveShift(personnelId);
+        } else {
+            return 'clocked-in';
+        }
+    }
+    const recovered = recoverActiveShift(personnelId, timesheets);
+    if (recovered) {
+        const correspondingTs = timesheets.find((t: any) => t.id === recovered.timesheetId);
+        if (correspondingTs && correspondingTs.timeOut) {
+            clearActiveShift(personnelId);
+        } else {
+            return 'clocked-in';
+        }
+    }
+    const openEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+    if (openEntry) return 'clocked-in';
+    return 'idle';
+}
+
+
+
+const getStepMeta = (t: any): Record<PunchStep, { label: string; dot: string; bg: string; text: string }> => ({
+    idle:        { label: t('attendance.status.not_in'),   dot: '○', bg: 'bg-gray-100',    text: 'text-gray-500' },
+    'clocked-in':{ label: t('attendance.status.on_site'),  dot: '●', bg: 'bg-teal-50',     text: 'text-teal-700' },
+    'clocked-out':{ label: t('attendance.status.done'),     dot: '✓', bg: 'bg-green-50',    text: 'text-green-700'},
+});
+
+const getPunchLabel = (t: any): Record<ClockPunch['type'], string> => ({
+    clockIn: t('attendance.punches.clockIn'), 
+    clockOut: t('attendance.punches.clockOut'),
+});
+
+const punchColor: Record<ClockPunch['type'], string> = {
+    clockIn: '#00B4A6', clockOut: '#EF4444',
+};
+
+const formatShort = (iso: string) => formatTime(iso);
+
+// ─── GpsBadge ─────────────────────────────────────────────────────────────────
+
+function GpsBadge({ gps }: { gps: GpsState }) {
+    const { t } = useTranslation();
+    if (gps.status === 'acquiring') return (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold animate-pulse">
+            <Wifi size={12} /> {t('attendance.gps.acquiring')}
+        </div>
+    );
+    if (gps.status === 'locked') return (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-semibold">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            {t('attendance.gps.locked', { accuracy: Math.round(gps.accuracy!) })}
+        </div>
+    );
+    if (gps.status === 'poor') return (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full text-xs font-semibold">
+            <AlertTriangle size={12} /> {gps.accuracy !== null ? t('attendance.gps.poor', { accuracy: Math.round(gps.accuracy) }) : t('attendance.gps.none')}
+        </div>
+    );
+    return (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-full text-xs font-semibold">
+            <WifiOff size={12} /> {t('attendance.gps.none')}
+        </div>
+    );
+}
+
+// ─── SignaturePad ─────────────────────────────────────────────────────────────
+
+function SignaturePad({ onSign, onClear }: { onSign: (blob: string) => void; onClear: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <UnifiedSignaturePad 
+            onSign={onSign} 
+            onClear={onClear} 
+            placeholder={t('attendance.signature.sign_here')} 
+        />
+    );
+}
+
+
+// ─── BatchConfirmModal ────────────────────────────────────────────────────────
+
+interface BatchEntry {
+    id: string;
+    name: string;
+    role: string;
+    action: ClockPunch['type'];
+    isOutsourced?: boolean;
+}
+
+function BatchConfirmModal({ entries, gps, onConfirm, onCancel }: {
+    entries: BatchEntry[];
+    gps: GpsState;
+    onConfirm: (sigBlob: string) => void;
+    onCancel: () => void;
+}) {
+    const { t, i18n } = useTranslation();
+    const [sigBlob, setSigBlob] = useState<string | null>(null);
+    const gpsReady = gps.status === 'locked' || gps.status === 'poor';
+
+    const actionLabel: Record<ClockPunch['type'], { label: string; color: string }> = {
+        clockIn:  { label: t('attendance.labels.action_in'),        color: 'text-teal-700 bg-teal-50' },
+        clockOut: { label: t('attendance.labels.action_out'),       color: 'text-rose-700 bg-rose-50' },
+    };
+
+    // Group by action type for the header
+    const primaryAction = entries[0]?.action ?? 'clockIn';
+    const actionMeta = actionLabel[primaryAction];
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[92vh]">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100">
+                    <h3 className="text-lg font-bold text-gray-800">{t('attendance.batch.confirm_title')}</h3>
+                    <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+                </div>
+
+                <div className="overflow-y-auto flex-1">
+                    <div className="px-6 pt-4 pb-2">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                            {entries.length === 1 
+                                ? t('attendance.batch.count_label_singular')
+                                : t('attendance.batch.count_label_plural', { count: entries.length })}
+                        </p>
+                        <div className="space-y-1.5">
+                            {entries.map((e: BatchEntry) => (
+                                <div key={e.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
+                                            {e.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm text-gray-800 truncate">{e.name}</p>
+                                            <p className="text-[10px] text-gray-400">{e.role}{e.isOutsourced ? ` · ${t('attendance.labels.outsourced')}` : ''}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ml-2 ${actionLabel[e.action].color}`}>
+                                        {actionLabel[e.action].label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="px-6 pt-3 pb-2">
+                        <div className="flex justify-center">
+                            <GpsBadge gps={gps} />
+                        </div>
+                        {!gpsReady && (
+                            <p className="text-center text-xs text-amber-600 mt-1">{t('attendance.gps.waiting')}</p>
+                        )}
+                    </div>
+
+                    <div className="px-6 pb-5">
+                        <SignaturePad
+                            onSign={(b: string) => setSigBlob(b)}
+                            onClear={() => setSigBlob(null)}
+                        />
+                    </div>
+                </div>
+
+                <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+                    <button onClick={onCancel} disabled={isSubmitting} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40">{t('common.cancel')}</button>
+                    <button
+                        onClick={() => {
+                            if (sigBlob && !isSubmitting) {
+                                setIsSubmitting(true);
+                                onConfirm(sigBlob);
+                            }
+                        }}
+                        disabled={!sigBlob || !gpsReady || isSubmitting}
+                        className={`flex-1 py-3 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                            primaryAction === 'clockOut' ? 'bg-red-500' :
+                            primaryAction === 'clockIn' ? 'bg-teal-500' : 'bg-amber-500'
+                        }`}
+                    >
+                        <Check size={16} />
+                        {!sigBlob 
+                            ? t('attendance.signature.sign_to_confirm') 
+                            : `${actionMeta.label} ${entries.length} ${entries.length === 1 ? (i18n.language === 'es' ? 'persona' : 'person') : (i18n.language === 'es' ? 'personas' : 'people')}`}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── ManualAdjustModal ────────────────────────────────────────────────────────
+
+function ManualAdjustModal({ punchType, onConfirm, onCancel }: {
+    punchType: ClockPunch['type'];
+    onConfirm: (time: string, note: string) => void;
+    onCancel: () => void;
+}) {
+    const { t } = useTranslation();
+    const now = new Date();
+    const [time, setTime] = useState(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+    const [note, setNote] = useState('');
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-800">{t('attendance.manual.title')}</h3>
+                    <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+                </div>
+                <p className="text-sm text-gray-500">
+                    {t('attendance.manual.desc', { type: getPunchLabel(t)[punchType] })}
+                </p>
+                <div className="space-y-3">
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('common.date')}</label>
+                        <input type="time" value={time} onChange={e => setTime(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 font-mono focus:ring-2 focus:ring-amber-400 outline-none" />
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t('attendance.manual.reason')}</label>
+                        <textarea value={note} onChange={e => setNote(e.target.value)}
+                            placeholder={t('attendance.manual.reason')} rows={3}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-amber-400 outline-none" />
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">{t('common.cancel')}</button>
+                    <button onClick={() => note.trim() ? onConfirm(time, note) : alert(t('common.error'))}
+                        className="flex-1 py-3 rounded-xl bg-amber-500 text-white text-sm font-bold">{t('attendance.manual.submit')}</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── ForgottenClockOutModal ───────────────────────────────────────────────────
+
+function ForgottenClockOutModal({ timesheet, onConfirm, onCancel }: {
+    timesheet: { date: string; timeIn?: string; id: string };
+    onConfirm: (reportedTime: string, comment: string) => void;
+    onCancel: () => void;
+}) {
+    const { t } = useTranslation();
+    const now = new Date();
+    const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const isToday = timesheet.date === getLocalDate();
+    const [reportedTime, setReportedTime] = useState(isToday ? currentHHMM : '18:00');
+    const [comment, setComment] = useState('');
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    const handleSubmit = () => {
+        setErrorMsg(null);
+        if (!reportedTime) {
+            setErrorMsg('Por favor especifica la hora aproximada de salida.');
+            return;
+        }
+
+        if (timesheet.timeIn) {
+            const [inH, inM] = timesheet.timeIn.split(':').map(Number);
+            const [repH, repM] = reportedTime.split(':').map(Number);
+            const inMins = inH * 60 + inM;
+            const repMins = repH * 60 + repM;
+
+            if (isToday && repMins <= inMins) {
+                setErrorMsg('La hora de salida debe ser posterior a la hora de entrada (' + timesheet.timeIn + ').');
+                return;
+            }
+        }
+
+        if (isToday && reportedTime > currentHHMM) {
+            setErrorMsg('La hora de salida no puede ser una hora futura.');
+            return;
+        }
+
+        onConfirm(reportedTime, comment);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-purple-700">
+                        <Clock size={20} />
+                        <h3 className="text-lg font-bold text-gray-800">Olvidé registrar mi salida</h3>
+                    </div>
+                    <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+                </div>
+
+                <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 text-xs space-y-1">
+                    <p className="font-bold flex items-center gap-1 text-purple-800">
+                        <AlertTriangle size={14} className="text-purple-600" />
+                        Excepción de Salida Olvidada
+                    </p>
+                    <p className="text-purple-700">
+                        Las horas acreditadas para la nómina se fijarán en un <strong>máximo de 8.0 horas</strong> y se generarán <strong>0 horas extra automáticas</strong>.
+                    </p>
+                    <p className="text-[10px] text-purple-600 mt-1">
+                        Tu marcaje quedará registrado con tus coordenadas GPS actuales para auditoría de RRHH.
+                    </p>
+                </div>
+
+                {errorMsg && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold">
+                        ⚠️ {errorMsg}
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
+                            Hora aproximada de salida (HH:MM)
+                        </label>
+                        <input
+                            type="time"
+                            value={reportedTime}
+                            onChange={e => setReportedTime(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 font-mono text-base focus:ring-2 focus:ring-purple-400 outline-none"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">
+                            Ingresa la hora aproximada en que dejaste de laborar. Acreditación fijada a 8.0h máx.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
+                            Motivo / Observaciones (Opcional)
+                        </label>
+                        <textarea
+                            value={comment}
+                            onChange={e => setComment(e.target.value)}
+                            placeholder="Ej. Salí a atender cliente directo, olvidé celular..."
+                            rows={2}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-purple-400 outline-none"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                        {t('common.cancel')}
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold shadow transition-colors"
+                    >
+                        Confirmar Salida (8.0h Máx)
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── OutsideGeofenceModal ─────────────────────────────────────────────────────
+
+function OutsideGeofenceModal({ distanceMeters, radiusMeters, onForgotten, onCancel }: {
+    distanceMeters: number;
+    radiusMeters: number;
+    onForgotten: () => void;
+    onCancel: () => void;
+}) {
+    const formattedDist = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)}km` : `${distanceMeters}m`;
+    const formattedRadius = radiusMeters >= 1000 ? `${(radiusMeters / 1000).toFixed(1)}km` : `${radiusMeters}m`;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5 text-center">
+                <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
+                    <MapPin size={28} />
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-bold text-gray-800">Fuera de Geocerca</h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Te encuentras a <span className="font-bold text-red-600">{formattedDist}</span> del proyecto (límite permitido: {formattedRadius}).
+                    </p>
+                </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 text-left space-y-1">
+                    <p className="font-bold">Para registrar una salida normal:</p>
+                    <p className="text-amber-700">Debes estar físicamente dentro del área del proyecto.</p>
+                    <p className="font-bold mt-2">Si ya te retiraste del proyecto:</p>
+                    <p className="text-amber-700">Utiliza la opción de excepción <strong>"Olvidé registrar mi salida"</strong> (acreditación 8.0h máx).</p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={onForgotten}
+                        className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm shadow transition-colors flex items-center justify-center gap-2"
+                    >
+                        <Clock size={16} /> Olvidé registrar mi salida
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        className="w-full py-2.5 border border-gray-200 text-gray-600 rounded-xl font-semibold text-xs hover:bg-gray-50 transition-colors"
+                    >
+                        Volver / Intentar dentro de geocerca
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── BatchModeView ────────────────────────────────────────────────────────────
+
+function BatchModeView({ gps, projects, personnel, timesheets, clockPunch: doPunch, supervisorId }: {
+    gps: GpsState;
+    projects: any[];
+    personnel: Personnel[];
+    timesheets: any[];
+    clockPunch: (...args: any[]) => void;
+    supervisorId: string;
+}) {
+    const { t } = useTranslation();
+    const { getAttendanceState } = useAttendance();
+    const { attendanceWriteMode, checkAttendanceWriteMode } = useStore();
+    const isRoutingPending = attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'RESOLVING';
+    const isRoutingError = attendanceWriteMode === 'ERROR';
+
+    const [selectedProject, setSelectedProject] = useState(() => {
+        const assigned = projects.find(p => (p.status === 'Active' || p.status === 'In Progress') && p.assignedPersonnel?.includes(supervisorId));
+        return assigned?.id ?? '';
+    });
+    const [screen, setScreen] = useState<BatchScreen>('list');
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [outsourcedList, setOutsourcedList] = useState<OutsourcedEntry[]>([]);
+    const [showAddOutsourced, setShowAddOutsourced] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [showSupervisorFaceModal, setShowSupervisorFaceModal] = useState(false);
+    const [supervisorFaceMode, setSupervisorFaceMode] = useState<'enroll' | 'verify'>('verify');
+    const [pendingBatchSigBlob, setPendingBatchSigBlob] = useState<string | null>(null);
+    const [lastBatch, setLastBatch] = useState<{ names: string[]; action: string; time: string } | null>(null);
+    const [countdown, setCountdown] = useState(4);
+
+    const activeProjects = (() => {
+        const filtered = projects.filter((p: any) => {
+            const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
+            const isSubMatch = (p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary) && !p.name.toLowerCase().includes('test') && !p.name.toLowerCase().includes('prueba');
+            return isStatusMatch && isSubMatch;
+        });
+        return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
+    })();
+
+    // Auto-select supervisor's project when projects load or change
+    useEffect(() => {
+        if (activeProjects.length > 0) {
+            const isCurrentValid = selectedProject && activeProjects.some((p: any) => p.id === selectedProject);
+            if (!isCurrentValid) {
+                const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(supervisorId));
+                if (assigned) {
+                    setSelectedProject(assigned.id);
+                } else if (activeProjects[0]) {
+                    setSelectedProject(activeProjects[0].id);
+                }
+            }
+        }
+    }, [activeProjects, selectedProject, supervisorId]);
+
+    const sortedPersonnel = useCallback(() => {
+        const eligible = personnel.filter(p =>
+            ['Tech', 'Supervisor', 'Office', 'HR'].includes(p.appRole ?? '') && p.status === 'Active'
+        );
+        console.log('[DEBUG sortedPersonnel] personnel length:', personnel.length, 'eligible length:', eligible.length, 'selectedProject:', selectedProject);
+        if (!selectedProject) return [...eligible].sort((a, b) => a.name.localeCompare(b.name));
+        const project = projects.find(p => p.id === selectedProject);
+        const assignedIds: string[] = project?.assignedPersonnel ?? [];
+        console.log('[DEBUG sortedPersonnel] project found:', !!project, 'assignedIds count:', assignedIds.length);
+        const assigned = eligible.filter(p => assignedIds.includes(p.id)).sort((a, b) => a.name.localeCompare(b.name));
+        const rest = eligible.filter(p => !assignedIds.includes(p.id)).sort((a, b) => a.name.localeCompare(b.name));
+        return [...assigned, ...rest];
+    }, [personnel, projects, selectedProject]);
+
+    useEffect(() => {
+        if (!selectedProject) {
+            setSelectedIds(new Set([supervisorId]));
+            return;
+        }
+        const project = projects.find(p => p.id === selectedProject);
+        const assignedIds: string[] = project?.assignedPersonnel ?? [];
+        
+        const statuses = personnel
+            .filter(p => assignedIds.includes(p.id))
+            .map(p => getPunchStep(timesheets, p.id));
+        
+        const idleCount = statuses.filter(s => s === 'idle').length;
+        const clockedInCount = statuses.filter(s => s === 'clocked-in').length;
+        const targetStep = (clockedInCount > idleCount) ? 'clocked-in' : 'idle';
+
+        const validIds = personnel
+            .filter((p: Personnel) =>
+                assignedIds.includes(p.id) &&
+                ['Tech', 'Supervisor', 'Office', 'HR'].includes(p.appRole ?? '') &&
+                getPunchStep(timesheets, p.id) === targetStep
+            )
+            .map(p => p.id);
+        const initial = new Set([...validIds, supervisorId]);
+        setSelectedIds(initial);
+    }, [selectedProject, projects, personnel, supervisorId]);
+
+    useEffect(() => {
+        if (screen !== 'success') return;
+        if (countdown <= 0) { setScreen('list'); return; }
+        const id = setTimeout(() => setCountdown(c => c - 1), 1000);
+        return () => clearTimeout(id);
+    }, [screen, countdown]);
+
+    const toggleId = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const getNextAction = (id: string): ClockPunch['type'] => {
+        const step = getPunchStep(timesheets, id);
+        if (step === 'idle') return 'clockIn';
+        if (step === 'clocked-in') return 'clockOut';
+        return 'clockIn';
+    };
+
+    const dominantAction = useCallback((): ClockPunch['type'] => {
+        const list = [...selectedIds];
+        const counts: Record<string, number> = { clockIn: 0, clockOut: 0 };
+        list.forEach(id => { const a = getNextAction(id); counts[a] = (counts[a] || 0) + 1; });
+        outsourcedList.filter(o => selectedIds.has(o.tempId)).forEach(() => { counts['clockIn']++; });
+        return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'clockIn') as ClockPunch['type'];
+    }, [selectedIds, timesheets, outsourcedList]);
+
+    const buildEntries = (): BatchEntry[] => {
+        const action = dominantAction();
+        const result: BatchEntry[] = [];
+        sortedPersonnel().forEach((p: any) => {
+            if (!selectedIds.has(p.id)) return;
+            result.push({ id: p.id, name: p.name, role: p.position, action: getNextAction(p.id) });
+        });
+        outsourcedList.forEach(o => {
+            if (!selectedIds.has(o.tempId)) return;
+            result.push({ id: o.tempId, name: o.name, role: o.role, action, isOutsourced: true });
+        });
+        return result;
+    };
+
+    const commitBatch = useCallback(async (sigBlob: string, faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }) => {
+        if (isRoutingPending || isRoutingError) {
+            alert(isRoutingPending ? 'Verificando modo de asistencia con el servidor...' : 'Error verificando modo de asistencia con el servidor. Reintente.');
+            return;
+        }
+        const entries = buildEntries();
+        const action = dominantAction();
+        
+        if (action === 'clockIn') {
+            const alreadyIn = entries.filter(e => getPunchStep(timesheets, e.id) === 'clocked-in');
+            if (alreadyIn.length > 0) {
+                const names = alreadyIn.map(e => e.name).join(', ');
+                if (!window.confirm(t('attendance.batch.confirm_already_in', { names }))) {
+                    return;
+                }
+            }
+        }
+
+        const best = getBestTimestampISO(gps);
+        const timestamp = best.iso;
+        const names: string[] = [];
+        const failedNames: string[] = [];
+        const hasValidCoords = gps.lat !== null && gps.lng !== null && gps.accuracy !== null;
+        const gpsOk = hasValidCoords && (gps.status === 'locked' || gps.status === 'poor');
+
+        const results = await Promise.allSettled(
+            entries.map(async (entry: any) => {
+                const punch: ClockPunch = {
+                    timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
+                    accuracy: gps.accuracy ?? 9999,
+                    type: entry.action,
+                    timeSource: best.source,
+                    workMode: 'On Site',
+                    gpsVerified: gpsOk,
+                    supervisorSignatureBlob: sigBlob,
+                    faceVerified: faceMeta?.faceVerified,
+                    faceBypassReason: faceMeta?.faceBypassReason,
+                    selfieBlob: faceMeta?.selfieBlob,
+                    ...(entry.isOutsourced ? { isOutsourced: true, outsourcedName: entry.name } : {}),
+                };
+                await doPunch(entry.isOutsourced ? `OUT-${entry.id.replace('OUT-', '')}` : entry.id, punch, selectedProject || undefined);
+                return entry.name;
+            })
+        );
+
+        results.forEach((r, idx) => {
+            if (r.status === 'fulfilled') {
+                names.push(r.value);
+            } else {
+                const errMsg = (r.reason as any)?.message || String(r.reason);
+                failedNames.push(`${entries[idx]?.name || 'Usuario'}: ${errMsg}`);
+            }
+        });
+
+        if (failedNames.length > 0) {
+            alert(`Algunos registros fallaron:\n${failedNames.join('\n')}`);
+        }
+        if (names.length === 0) {
+            setShowConfirm(false);
+            return;
+        }
+        const finalAction = entries[0]?.action ?? 'clockIn';
+        setLastBatch({ names, action: getPunchLabel(t)[finalAction], time: formatShort(timestamp) });
+        setShowConfirm(false);
+        setSelectedIds(new Set());
+        setScreen('success');
+        setCountdown(4);
+    }, [gps, selectedIds, timesheets, outsourcedList, selectedProject, doPunch, isRoutingPending, isRoutingError]);
+
+    const handleBatchConfirmTrigger = (sigBlob: string) => {
+        setShowConfirm(false);
+
+        if (useStore.getState().platformSettings?.enableFacialId === false) {
+            commitBatch(sigBlob);
+            return;
+        }
+
+        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+        const currentUserId = (useStore.getState().userId || '');
+        const supervisorProfile = personnel.find(p => p.id === supervisorId || (p.email && p.email.toLowerCase() === currentEmail) || p.id === currentUserId);
+        const supTargetId = supervisorProfile?.id || supervisorId || currentUserId;
+
+        let cachedDesc: number[] | null = null;
+        try {
+            if (supTargetId) {
+                const raw = localStorage.getItem(getFaceDescriptorCacheKey(supTargetId));
+                cachedDesc = normalizeDescriptor(raw);
+            }
+        } catch {}
+
+        const storeDesc = normalizeDescriptor(supervisorProfile?.faceDescriptor);
+        const hasSupervisorFace = Boolean(storeDesc || cachedDesc);
+
+        setPendingBatchSigBlob(sigBlob);
+        setSupervisorFaceMode(hasSupervisorFace ? 'verify' : 'enroll');
+        setShowSupervisorFaceModal(true);
+    };
+
+    const handleSupervisorFaceSuccess = ({ image, descriptor }: { image: string; descriptor: number[] }) => {
+        setShowSupervisorFaceModal(false);
+        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+        const currentUserId = (useStore.getState().userId || '');
+        const supervisorProfile = personnel.find(p => p.id === supervisorId || (p.email && p.email.toLowerCase() === currentEmail) || p.id === currentUserId);
+        const supTargetId = supervisorProfile?.id || supervisorId || currentUserId;
+        if (supervisorFaceMode === 'enroll' && supTargetId) {
+            useStore.getState().updatePersonnel(supTargetId, { image, faceDescriptor: descriptor });
+            try {
+                localStorage.setItem(getFaceDescriptorCacheKey(supTargetId), JSON.stringify(descriptor));
+            } catch {}
+        }
+        if (pendingBatchSigBlob) {
+            commitBatch(pendingBatchSigBlob, { faceVerified: true, selfieBlob: image });
+            setPendingBatchSigBlob(null);
+        }
+    };
+
+    const handleSupervisorFaceBypass = (reason: string = 'Supervisor omitió Face ID') => {
+        setShowSupervisorFaceModal(false);
+        if (pendingBatchSigBlob) {
+            commitBatch(pendingBatchSigBlob, { faceVerified: false, faceBypassReason: reason });
+            setPendingBatchSigBlob(null);
+        }
+    };
+
+    if (screen === 'success' && lastBatch) {
+        return (
+            <div className="flex flex-col items-center py-8 gap-5 text-center">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle size={44} className="text-green-500" />
+                </div>
+                <div>
+                    <p className="text-2xl font-bold text-gray-800">{t('attendance.batch.success_title', { action: lastBatch.action })}</p>
+                    <p className="text-sm text-gray-400 mt-1">{t('attendance.batch.at_time', { time: lastBatch.time })}</p>
+                </div>
+                <div className="w-full bg-teal-50 border border-teal-200 rounded-2xl p-4 text-left space-y-1">
+                    {lastBatch.names.map((n, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm font-semibold text-teal-700">
+                            <Check size={14} className="shrink-0" /> {n}
+                        </div>
+                    ))}
+                </div>
+                <div className="text-xs text-gray-400">{t('attendance.batch.return_countdown', { count: countdown })}</div>
+                <button
+                    onClick={() => { setScreen('list'); }}
+                    className="w-full py-3 bg-brand-teal text-white rounded-2xl font-bold flex items-center justify-center gap-2"
+                >
+                    <Users size={16} /> {t('attendance.batch.back_to_team')}
+                </button>
+            </div>
+        );
+    }
+
+    const sorted = sortedPersonnel();
+    const selCount = selectedIds.size;
+
+    const actionCounts = (() => {
+        const counts: Record<string, number> = { clockIn: 0, clockOut: 0 };
+        [...selectedIds].forEach(id => {
+            if (outsourcedList.some(o => o.tempId === id)) { counts.clockIn++; return; }
+            const a = getNextAction(id);
+            counts[a] = (counts[a] || 0) + 1;
+        });
+        return counts;
+    })();
+    const uniqueActions = Object.entries(actionCounts).filter(([, v]) => v > 0).length;
+    const hasMixedActions = uniqueActions > 1;
+
+    return (
+        <div className="space-y-4 pb-24">
+            <div className="relative">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.select_project')}</label>
+                <div className="relative">
+                    <select
+                        value={selectedProject}
+                        onChange={e => setSelectedProject(e.target.value)}
+                        className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10"
+                    >
+                        <option value="">{activeProjects.length === 0 ? (t('attendance.loading_projects', 'Cargando proyectos...') || 'Cargando proyectos...') : t('attendance.project_placeholder')}</option>
+                        {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}{p.codeName ? ` (${p.codeName})` : ''}</option>)}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+            </div>
+
+            <div className="flex justify-center"><GpsBadge gps={gps} /></div>
+
+            {isRoutingError && (
+                <div className="flex items-center justify-between p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle size={16} className="shrink-0 text-red-500" />
+                        <span>No se pudo verificar el modo de asistencia con el servidor.</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => checkAttendanceWriteMode()}
+                        className="px-3 py-1 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        Reintentar
+                    </button>
+                </div>
+            )}
+
+            <div>
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        {t('attendance.team_count', { num: sorted.length + outsourcedList.length })}
+                    </p>
+                    <button
+                        onClick={() => setShowAddOutsourced(true)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-purple-600 hover:text-purple-700 transition-colors"
+                    >
+                        <UserPlus size={13} /> {t('attendance.outsourced.add_btn')}
+                    </button>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    {sorted.length === 0 && outsourcedList.length === 0 && (
+                        <div className="text-center py-10 text-gray-400">
+                            <Users size={36} className="mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">{t('attendance.filters.no_results')}</p>
+                        </div>
+                    )}
+                    {sorted.map((p: any, idx: number) => {
+                        const isChecked = selectedIds.has(p.id);
+                        const state = getAttendanceState(p.id);
+                        const meta = getStepMeta(t)[state];
+                        const hasExpired = p.certifications?.some((c: any) => isCertExpired(c.expirationDate));
+
+                        return (
+                            <div
+                                key={p.id}
+                                onClick={() => toggleId(p.id)}
+                                className={`flex flex-col gap-2 px-4 py-3 transition-colors ${
+                                    idx > 0 ? 'border-t border-gray-50' : ''
+                                } ${isChecked ? 'bg-teal-50/60' : 'hover:bg-gray-50'}`}
+                            >
+
+                                <div className="flex items-center gap-3 cursor-pointer">
+                                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${isChecked ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
+                                        {isChecked && <Check size={12} className="text-white" />}
+                                    </div>
+                                    <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+                                        {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : p.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-semibold text-sm text-gray-800">{p.name}</p>
+                                            {hasExpired && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const expired = p.certifications?.filter((c: any) => isCertExpired(c.expirationDate)).map((c: any) => c.name) || [];
+                                                        alert(`${p.name} has expired certifications:\n- ${expired.join('\n- ')}`);
+                                                    }}
+                                                    className="text-amber-500 hover:text-amber-600 transition-colors"
+                                                    title={t('reports.labor_section.expired_certs_tag')}
+                                                >
+                                                    <AlertTriangle size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400">{p.position}</p>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.bg} ${meta.text}`}>
+                                        {meta.dot} {meta.label}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {outsourcedList.map((o: any) => {
+                        const isChecked = selectedIds.has(o.tempId);
+                        return (
+                            <div key={o.tempId} className={`flex items-center gap-3 px-4 py-3 border-t border-gray-50 ${isChecked ? 'bg-purple-50/60' : ''}`}>
+                                <div onClick={() => toggleId(o.tempId)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${isChecked ? 'bg-purple-500 border-purple-500' : 'border-gray-300'}`}>
+                                    {isChecked && <Check size={12} className="text-white" />}
+                                </div>
+                                <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">{o.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-sm text-gray-800">{o.name}</p>
+                                    <p className="text-[10px] text-gray-400">{o.role}</p>
+                                </div>
+                                <button onClick={() => { setOutsourcedList(prev => prev.filter(x => x.tempId !== o.tempId)); setSelectedIds(prev => { const n = new Set(prev); n.delete(o.tempId); return n; }); }} className="p-1.5 text-gray-300 hover:text-red-400">
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {selCount > 0 && (
+                <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-30">
+                    <div className="bg-gray-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-bold text-sm">{t('attendance.labels.selected', { count: selCount })}</p>
+                            {hasMixedActions ? (
+                                <p className="text-amber-400 text-[10px] font-semibold">
+                                    {t('attendance.batch.mixed_warning', { 
+                                        counts: `${actionCounts.clockIn} IN / ${actionCounts.clockOut} OUT` 
+                                    })}
+                                </p>
+                            ) : (
+                                <p className="text-gray-400 text-xs">{t('attendance.labels.deselect_hint')}</p>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowConfirm(true)}
+                            disabled={isRoutingPending || isRoutingError}
+                            className={`flex items-center gap-2 px-4 py-2.5 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${hasMixedActions ? 'bg-amber-500' : 'bg-teal-500'}`}
+                        >
+                            <LogIn size={15} />
+                            {isRoutingPending ? 'Verificando...' : `${(() => {
+                                const a = dominantAction();
+                                const labelMap = { clockIn: t('attendance.labels.action_in'), clockOut: t('attendance.labels.action_out') };
+                                return labelMap[a];
+                            })()} ${selCount}`}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modals */}
+            {showAddOutsourced && (
+                <QuickAddWorker 
+                    open={showAddOutsourced} 
+                    onOpenChange={setShowAddOutsourced} 
+                    onSuccess={(id, name, role) => {
+                        setOutsourcedList(prev => [...prev, { tempId: id, name, role }]);
+                        setSelectedIds(prev => new Set([...prev, id]));
+                    }}
+                />
+            )}
+            {showConfirm && (
+                <BatchConfirmModal
+                    entries={buildEntries()}
+                    gps={gps}
+                    onConfirm={handleBatchConfirmTrigger}
+                    onCancel={() => setShowConfirm(false)}
+                />
+            )}
+            {showSupervisorFaceModal && (
+                <FaceCameraModal
+                    isOpen={showSupervisorFaceModal}
+                    onClose={() => {
+                        setShowSupervisorFaceModal(false);
+                        setPendingBatchSigBlob(null);
+                    }}
+                    mode={supervisorFaceMode}
+                    personnelId={supervisorId || useStore.getState().userId || undefined}
+                    referenceDescriptor={(() => {
+                        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+                        const currentUserId = (useStore.getState().userId || '');
+                        const p = personnel.find(pr => pr.id === supervisorId || (pr.email && pr.email.toLowerCase() === currentEmail) || pr.id === currentUserId);
+                        const fromStore = normalizeDescriptor(p?.faceDescriptor);
+                        if (fromStore) return fromStore;
+                        const supTargetId = p?.id || supervisorId || currentUserId;
+                        if (supTargetId) {
+                            try {
+                                const cached = normalizeDescriptor(localStorage.getItem(getFaceDescriptorCacheKey(supTargetId)));
+                                if (cached) return cached;
+                            } catch {}
+                        }
+                        return undefined;
+                    })()}
+                    onSuccess={handleSupervisorFaceSuccess}
+                    onBypass={handleSupervisorFaceBypass}
+                />
+            )}
+        </div>
+    );
+}
+
+// ─── IndividualModeView ───────────────────────────────────────────────────────
+
+function IndividualModeView({ personnelId, gps, projects, timesheets, clockPunch: doPunch }: {
+    personnelId: string;
+    gps: GpsState;
+    projects: any[];
+    timesheets: any[];
+    clockPunch: (...args: any[]) => void;
+}) {
+    const { t } = useTranslation();
+    const { platformSettings, attendanceWriteMode, checkAttendanceWriteMode } = useStore();
+    const isRoutingPending = attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'RESOLVING';
+    const isRoutingError = attendanceWriteMode === 'ERROR';
+    const today = getLocalDate(getBestDate(gps));
+    const todayEntry = timesheets.find((t: any) => t.personnelId === personnelId && t.date === today && t.timeOut); // find a finished one for summary
+    const hasFinishedToday = !!todayEntry;
+    const punches: ClockPunch[] = todayEntry?.punches ?? [];
+    const step = getPunchStep(timesheets, personnelId);
+
+    const activeShiftState = getActiveShift(personnelId) || recoverActiveShift(personnelId, timesheets);
+    const activeEntry = activeShiftState
+        ? timesheets.find((t: any) => t.id === activeShiftState.timesheetId && !t.timeOut)
+        : [...timesheets]
+            .filter((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut)
+            .sort((a: any, b: any) => {
+                const tA = new Date(a.createdAt || `${a.date}T${a.timeIn || '00:00'}:00`).getTime();
+                const tB = new Date(b.createdAt || `${b.date}T${b.timeIn || '00:00'}:00`).getTime();
+                return tB - tA;
+            })[0];
+    const staleEntry = timesheets.find((t: any) =>
+        t.personnelId === personnelId &&
+        t.timeIn &&
+        !t.timeOut &&
+        (t.date < today || (t.date === today && (Date.now() - new Date(`${t.date}T${t.timeIn}:00`).getTime()) > 14 * 60 * 60 * 1000))
+    );
+
+    const [selectedProject, setSelectedProject] = useState(() => {
+        if (todayEntry?.projectId) return todayEntry.projectId;
+        const assigned = projects.find(p => (p.status === 'Active' || p.status === 'In Progress') && p.assignedPersonnel?.includes(personnelId));
+        return assigned?.id ?? '';
+    });
+    const [manualModal, setManualModal] = useState<ClockPunch['type'] | null>(null);
+
+    const isManualPunchDisabledToday = false;
+    const [showForgottenModal, setShowForgottenModal] = useState(false);
+    const [showOutsideGeofenceModal, setShowOutsideGeofenceModal] = useState(false);
+    const [forgottenTargetTimesheet, setForgottenTargetTimesheet] = useState<any | null>(null);
+
+    const handleForgottenConfirm = async (reportedTime: string, comment: string) => {
+        const target = forgottenTargetTimesheet || activeEntry || staleEntry;
+        if (!target) return;
+
+        const [h, m] = reportedTime.split(':').map(Number);
+        const d = new Date(`${target.date}T00:00:00`);
+        d.setHours(h, m, 0, 0);
+        // Handle overnight shifts where reported departure is past midnight
+        if (target.timeIn) {
+            const [inH, inM] = target.timeIn.split(':').map(Number);
+            if (h * 60 + m < inH * 60 + inM) {
+                d.setDate(d.getDate() + 1);
+            }
+        }
+        const timestamp = d.toISOString();
+
+        const note = comment.trim() 
+            ? `Olvidé registrar mi salida | H.Reportada: ${reportedTime} | ${comment.trim()}`
+            : `Olvidé registrar mi salida | H.Reportada: ${reportedTime}`;
+
+        const punch: ClockPunch = {
+            timestamp,
+            lat: gps.lat ?? 0,
+            lng: gps.lng ?? 0,
+            accuracy: gps.accuracy ?? 9999,
+            type: 'clockOut',
+            timeSource: 'device',
+            manualAdjustment: true,
+            adjustmentReason: 'FORGOTTEN_CLOCKOUT',
+            adjustmentNote: note,
+            workMode: effectiveWorkMode,
+            gpsVerified: false
+        };
+
+        setIsSubmitting(true);
+        try {
+            await doPunch(personnelId, punch, target.projectId || selectedProject, false, target.id);
+            clearActiveShift(personnelId);
+            setShowForgottenModal(false);
+            setShowOutsideGeofenceModal(false);
+            setForgottenTargetTimesheet(null);
+        } catch (err: any) {
+            console.error('[ClockIn] Error in handleForgottenConfirm:', err);
+            alert(`Error al registrar salida pendiente: ${err?.message || err}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    const activeShiftMode: 'On Site' | 'Home Office' = (activeEntry?.type === 'Home Office' || activeEntry?.punches?.some((p: any) => p.workMode === 'Home Office'))
+        ? 'Home Office'
+        : 'On Site';
+
+    const [workMode, setWorkMode] = useState<'On Site' | 'Home Office'>(() => {
+        if (activeEntry) {
+            return (activeEntry.type === 'Home Office' || activeEntry.punches?.some((p: any) => p.workMode === 'Home Office'))
+                ? 'Home Office'
+                : 'On Site';
+        }
+        return 'On Site';
+    });
+
+    // Keep workMode in sync if an active shift is detected or updated
+    useEffect(() => {
+        if (activeEntry) {
+            const shiftMode = (activeEntry.type === 'Home Office' || activeEntry.punches?.some((p: any) => p.workMode === 'Home Office'))
+                ? 'Home Office'
+                : 'On Site';
+            setWorkMode(shiftMode);
+        }
+    }, [activeEntry]);
+
+    const activeOrTodayId = activeEntry?.id || todayEntry?.id;
+    useEffect(() => {
+        if (activeOrTodayId) {
+            useStore.getState().fetchTimesheetDetail(activeOrTodayId);
+        }
+    }, [activeOrTodayId]);
+
+    const effectiveWorkMode = step === 'clocked-in' ? activeShiftMode : workMode;
+    
+    const userRole = useStore(state => state.userRole);
+    const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+    const isOfficeBlockedWeekend = userRole === 'Office' && isWeekend;
+    
+    const currentProjId = step === 'clocked-in' ? (activeEntry?.projectId ?? '') : selectedProject;
+    const targetProject = currentProjId ? projects.find((p: any) => p.id === currentProjId) : null;
+    const projCoords = useMemo(() => {
+        return targetProject ? parseCoordinates(targetProject.location) : null;
+    }, [targetProject?.location]);
+    const geofenceRadius = targetProject?.geofenceRadius || platformSettings?.geofenceRadius || 1000;
+
+    // Attendance V2 Reactive Multi-Location Resolver
+    const { result: resolvedLocation } = useAttendanceLocation({
+        lat: gps.lat,
+        lng: gps.lng,
+        accuracy: gps.accuracy,
+        gpsStatus: gps.status,
+        projectId: currentProjId,
+        projectName: targetProject?.name || 'Proyecto',
+        primaryCoords: projCoords,
+        primaryRadius: geofenceRadius,
+        personnelId,
+        workMode: effectiveWorkMode
+    });
+
+    const isBypass = isWarehouseBypass(personnelId, gps.lat, gps.lng, geofenceRadius);
+    const isOutsideGeofence = !!(
+        effectiveWorkMode === 'On Site' &&
+        targetProject?.locationValidated &&
+        gps.lat !== null &&
+        gps.lng !== null &&
+        resolvedLocation.status === 'OUTSIDE' &&
+        !isBypass
+    );
+    const geofenceBlocking = isOutsideGeofence;
+    const geofenceDistance = resolvedLocation.distanceMeters ?? (
+        projCoords && gps.lat !== null && gps.lng !== null
+            ? Math.round(getDistanceMeters(gps.lat, gps.lng, projCoords.lat, projCoords.lng))
+            : 0
+    );
+    const activeProjects = useMemo(() => {
+        const filtered = projects.filter((p: any) => {
+            const isStatusMatch = p.status === 'Active' || p.status === 'In Progress' || p.status === 'En proceso' || p.status === 'En procceso';
+            const isSubMatch = (p.subsidiary === 'MX' || p.subsidiary === 'Mexico' || !p.subsidiary) && !p.name.toLowerCase().includes('test') && !p.name.toLowerCase().includes('prueba');
+            return isStatusMatch && isSubMatch;
+        });
+        return filtered.length > 0 ? filtered : projects.filter((p: any) => p.status !== 'Completed');
+    }, [projects]);
+
+    // Auto-select user's assigned project (or default office) when projects load or change
+    useEffect(() => {
+        if (activeProjects.length > 0) {
+            const isCurrentValid = selectedProject && activeProjects.some((p: any) => p.id === selectedProject);
+            if (!isCurrentValid) {
+                if (todayEntry?.projectId && activeProjects.some((p: any) => p.id === todayEntry.projectId)) {
+                    setSelectedProject(todayEntry.projectId);
+                    return;
+                }
+                // 1. Check if user is assigned to an active project
+                const assigned = activeProjects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
+                if (assigned) {
+                    setSelectedProject(assigned.id);
+                    return;
+                }
+                // 2. Check if user has siteAssigned, branchOffice, or site matching an office project (bidirectional)
+                const myPerson = (useStore.getState().personnel || []).find((p: any) => p.id === personnelId);
+                const userSite = (myPerson?.subsidiaryMetadata?.siteAssigned || myPerson?.subsidiaryMetadata?.branchOffice || myPerson?.subsidiaryMetadata?.site || '').toLowerCase();
+                if (userSite) {
+                    const matchedSiteProject = activeProjects.find((p: any) => 
+                        (p.name && p.name.toLowerCase().includes(userSite)) ||
+                        (userSite && p.name && userSite.includes(p.name.toLowerCase())) ||
+                        (p.codeName && p.codeName.toLowerCase().includes(userSite)) ||
+                        (userSite && p.codeName && userSite.includes(p.codeName.toLowerCase()))
+                    );
+                    if (matchedSiteProject) {
+                        setSelectedProject(matchedSiteProject.id);
+                        return;
+                    }
+
+                    // 3. Prevent silent CDMX fallback if user is in Merida / Yucatan
+                    if (userSite.includes('merida') || userSite.includes('mérida') || userSite.includes('mid')) {
+                        const meridaOffice = activeProjects.find((p: any) => 
+                            p.id === 'c95e8081-3323-4c55-87f5-259207865768' || 
+                            (p.name && (p.name.toLowerCase().includes('merida') || p.name.toLowerCase().includes('mérida')))
+                        );
+                        if (meridaOffice) {
+                            setSelectedProject(meridaOffice.id);
+                            return;
+                        }
+                    }
+                }
+                // 4. Default to base CDMX office or first active project
+                const defaultOffice = activeProjects.find((p: any) => p.id === 'f0eead03-0e28-43fa-96c2-7480bdd579b7' || (p.name && p.name.includes('CDMX'))) || activeProjects[0];
+                if (defaultOffice) {
+                    setSelectedProject(defaultOffice.id);
+                }
+            }
+        }
+    }, [activeProjects, selectedProject, todayEntry?.projectId, personnelId]);
+    const gpsReady = effectiveWorkMode === 'Home Office' || gps.status === 'locked' || gps.status === 'poor';
+    const gpsDenied = gps.status === 'denied';
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const { personnel } = useStore();
+    const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
+    const [faceModalMode, setFaceModalMode] = useState<'enroll' | 'verify'>('verify');
+    const [pendingPunchParams, setPendingPunchParams] = useState<{ type: ClockPunch['type']; overrideTime?: string; note?: string } | null>(null);
+
+    const handlePunchClick = async (type: ClockPunch['type'], overrideTime?: string, note?: string) => {
+        if (isSubmitting) return;
+
+        // Si la verificación facial está desactivada en la configuración de la plataforma, ejecutar directamente
+        const isFaceIdGloballyEnabled = platformSettings?.enableFacialId !== false;
+        if (!isFaceIdGloballyEnabled) {
+            await executePunch(type, overrideTime, note);
+            return;
+        }
+
+        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+        const currentUserId = (useStore.getState().userId || '');
+        const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail) || (p.id === currentUserId));
+        const targetId = myProfile?.id || personnelId || currentUserId;
+
+        let cachedDescriptor: number[] | null = null;
+        try {
+            if (targetId) {
+                const rawDesc = localStorage.getItem(getFaceDescriptorCacheKey(targetId));
+                cachedDescriptor = normalizeDescriptor(rawDesc);
+            }
+        } catch {}
+
+        const storeDescriptor = normalizeDescriptor(myProfile?.faceDescriptor);
+        const hasEnrolledFace = Boolean(storeDescriptor || cachedDescriptor);
+
+        // v6.0.0: Enforce Face ID on both Clock-In and Clock-Out (auto-enrolls if user has no v6 descriptor yet)
+        import('../utils/faceId.utils').then(m => m.loadFaceModels()).catch(() => {});
+        setPendingPunchParams({ type, overrideTime, note });
+        if (!hasEnrolledFace) {
+            setFaceModalMode('enroll');
+            setIsFaceModalOpen(true);
+        } else {
+            setFaceModalMode('verify');
+            setIsFaceModalOpen(true);
+        }
+    };
+
+    const handleFaceSuccess = async ({ image, descriptor }: { image: string; descriptor: number[] }) => {
+        setIsFaceModalOpen(false);
+        const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+        const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail));
+        const targetId = myProfile?.id || personnelId;
+
+        if (faceModalMode === 'enroll' && targetId) {
+            await useStore.getState().updatePersonnel(targetId, {
+                image,
+                faceDescriptor: descriptor
+            });
+            try {
+                localStorage.setItem(getFaceDescriptorCacheKey(targetId), JSON.stringify(descriptor));
+            } catch {}
+        }
+        
+        if (pendingPunchParams) {
+            await executePunch(
+                pendingPunchParams.type, 
+                pendingPunchParams.overrideTime, 
+                pendingPunchParams.note,
+                { faceVerified: true, selfieBlob: image }
+            );
+            setPendingPunchParams(null);
+        }
+    };
+
+    const handleFaceBypass = async (reason: string = 'Cámara no disponible / Anulación de Face ID') => {
+        setIsFaceModalOpen(false);
+        if (pendingPunchParams) {
+            await executePunch(
+                pendingPunchParams.type,
+                pendingPunchParams.overrideTime,
+                pendingPunchParams.note ? `${pendingPunchParams.note} [Sin Face ID: ${reason}]` : `[Sin Face ID: ${reason}]`,
+                { faceVerified: false, faceBypassReason: reason }
+            );
+            setPendingPunchParams(null);
+        }
+    };
+
+    const executePunch = async (
+        type: ClockPunch['type'], 
+        overrideTime?: string, 
+        note?: string,
+        faceMeta?: { faceVerified?: boolean; faceBypassReason?: string; selfieBlob?: string }
+    ) => {
+        if (isSubmitting) return;
+        if (isManualPunchDisabledToday && (overrideTime || note)) {
+            alert('El registro manual está temporalmente deshabilitado para esta jornada. Por favor active los permisos de ubicación en su navegador.');
+            return;
+        }
+        setIsSubmitting(true);
+        
+        try {
+            if (type === 'clockOut') {
+                const openShift = activeEntry || timesheets.find((t: any) => t.personnelId === personnelId && t.timeIn && !t.timeOut);
+                if (openShift && openShift.timeIn && openShift.date) {
+                    const now = new Date();
+                    const [inH, inM] = openShift.timeIn.split(':').map(Number);
+                    const inTime = new Date(`${openShift.date}T00:00:00`);
+                    inTime.setHours(inH, inM, 0, 0);
+                    const diffMins = (now.getTime() - inTime.getTime()) / 60000;
+                    
+                    if (diffMins < 3 && diffMins >= 0) {
+                        if (window.confirm(t('attendance.alerts.short_shift_dismiss', 'Este turno dura menos de 3 minutos. ¿Fue un error al registrar la entrada? Haz clic en Aceptar para descartarlo o en Cancelar para registrar la salida normalmente.'))) {
+                            await useStore.getState().discardShortShift(openShift.id);
+                            setIsSubmitting(false);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            const best = getBestTimestampISO(gps);
+            let timestamp = best.iso;
+            if (overrideTime) {
+                const [h, m] = overrideTime.split(':');
+                const d = getBestDate(gps);
+                d.setHours(parseInt(h), parseInt(m), 0, 0);
+                timestamp = d.toISOString();
+            }
+            const hasValidGpsCoords = gps.lat !== null && gps.lng !== null && gps.accuracy !== null;
+            const punch: ClockPunch = {
+                timestamp, lat: gps.lat ?? 0, lng: gps.lng ?? 0,
+                accuracy: gps.accuracy ?? 9999, type,
+                timeSource: overrideTime ? 'device' : best.source,
+                ...(note ? { manualAdjustment: true, adjustmentNote: note } : {}),
+                workMode: effectiveWorkMode,
+                faceVerified: faceMeta?.faceVerified,
+                faceBypassReason: faceMeta?.faceBypassReason,
+                selfieBlob: faceMeta?.selfieBlob,
+                gpsVerified: hasValidGpsCoords && !isOutsideGeofence && (gps.status === 'locked' || gps.status === 'poor'),
+            };
+            
+            const assignedProj = projects.find((p: any) => p.assignedPersonnel?.includes(personnelId));
+            const finalProjectId = effectiveWorkMode === 'Home Office'
+                ? (assignedProj?.id || selectedProject || undefined)
+                : (selectedProject || undefined);
+                
+            await doPunch(personnelId, punch, finalProjectId);
+            if (type === 'clockOut') {
+                clearActiveShift(personnelId);
+            }
+        } catch (err: any) {
+            console.error('[ClockIn] Error during punch:', err);
+            alert(`Error al registrar asistencia: ${err?.message || err}`);
+        } finally {
+            // Slight delay before re-enabling to ensure store updates
+            setTimeout(() => setIsSubmitting(false), 1000);
+        }
+    };
+
+    return (
+        <div className="space-y-5">
+            {/* Day complete summary — Only show if they actually finished a shift today and aren't currently clocked in */}
+            {step === 'idle' && todayEntry && (
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-lg text-white mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle size={20} /><span className="font-bold text-lg">{t('attendance.status.done')}</span>
+                        </div>
+                        <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">{t('attendance.status.worked_today', 'Shift Completed')}</Badge>
+                    </div>
+                    {/* Project name */}
+                    {todayEntry.projectId && (
+                        <p className="text-emerald-100 text-xs mb-4 flex items-center gap-1">
+                            <Clock size={12} />
+                            {projects.find((p: any) => p.id === todayEntry.projectId)?.name ?? todayEntry.projectId}
+                        </p>
+                    )}
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div><p className="text-emerald-100 text-xs">{t('attendance.punches.clockIn')}</p><p className="font-bold text-lg">{todayEntry.timeIn ?? '—'}</p></div>
+                        <div><p className="text-emerald-100 text-xs">{t('attendance.punches.clockOut')}</p><p className="font-bold text-lg">{todayEntry.timeOut ?? '—'}</p></div>
+                        <div><p className="text-emerald-100 text-xs">{t('projects.table.reported_time')}</p><p className="font-bold text-2xl">{(Number(todayEntry.hours) || 0).toFixed(2)}</p></div>
+                    </div>
+                </div>
+            )}
+
+            {step === 'idle' && (
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.labels.work_mode', 'Modo de Trabajo')}</label>
+                        <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => setWorkMode('On Site')}
+                                className={`py-2 text-xs font-bold rounded-lg transition-all ${workMode === 'On Site' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                {t('attendance.work_mode.on_site', 'Presencial (On Site)')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setWorkMode('Home Office')}
+                                className={`py-2 text-xs font-bold rounded-lg transition-all ${workMode === 'Home Office' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                {t('attendance.work_mode.home_office', 'Home Office')}
+                            </button>
+                        </div>
+                    </div>
+
+                    {workMode === 'On Site' && (
+                        <div className="relative animate-in fade-in duration-200">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('attendance.select_project')}</label>
+                            <div className="relative">
+                                <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
+                                    className="w-full appearance-none bg-white border border-gray-200 rounded-2xl px-4 py-3.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-400 outline-none pr-10">
+                                    <option value="">{activeProjects.length === 0 ? (t('attendance.loading_projects', 'Cargando proyectos...') || 'Cargando proyectos...') : t('attendance.project_placeholder')}</option>
+                                    {activeProjects.map((p: any) => <option key={p.id} value={p.id}>{p.name}{p.codeName ? ` (${p.codeName})` : ''}</option>)}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
+
+                    {workMode === 'On Site' && selectedProject && (
+                        <AttendanceLocationCard
+                            result={resolvedLocation}
+                            userRole={userRole ?? ''}
+                            projectName={targetProject?.name}
+                        />
+                    )}
+                </div>
+            )}
+
+            {/* Turno previo pendiente / zombie (visible incluso si step === 'clocked-in') */}
+            {staleEntry && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm space-y-2 animate-in slide-in-from-top-1 duration-300">
+                    <div className="flex items-center gap-2 font-bold">
+                        <AlertTriangle className="text-amber-600 shrink-0" size={18} />
+                        <span>Turno previo no cerrado ({staleEntry.date} {staleEntry.timeIn})</span>
+                    </div>
+                    <p className="text-xs text-amber-700">
+                        Tienes un turno previo sin registrar salida de una jornada anterior. Puedes informar tu hora de salida o cerrarlo con jornada estándar (8.0h).
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setForgottenTargetTimesheet(staleEntry);
+                                setShowForgottenModal(true);
+                            }}
+                            className="flex-1 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Clock size={14} /> Resolver salida pendiente (Olvidé salida)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (window.confirm('¿Deseas cerrar el turno pendiente anterior con 8.0h estándar e iniciar un nuevo turno hoy?')) {
+                                    await useStore.getState().discardStaleShift(staleEntry.id);
+                                }
+                            }}
+                            className="py-2.5 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                        >
+                            <RotateCcw size={14} /> Cerrar (8.0h)
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {step === 'idle' && (
+                <div className="space-y-3">
+                    {/* Restricción de fin de semana para rol Office */}
+                    {isOfficeBlockedWeekend && (
+                        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-sm animate-in slide-in-from-top-1 duration-300">
+                            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+                            <div>
+                                <p className="font-bold">Acceso restringido en fin de semana</p>
+                                <p className="text-xs text-red-700 mt-1">
+                                    Personal administrativo/oficina no tiene permitido checar en fin de semana. En caso de trabajar en horario de fin de semana, solicitar a RH agregar los turnos correspondientes.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {workMode === 'On Site' && !gpsReady && gps.status === 'acquiring' && (
+                        <p className="text-center text-sm text-blue-500 animate-pulse">{t('attendance.gps.waiting')}</p>
+                    )}
+                    {/* Warning if already worked today */}
+                    {hasFinishedToday && (
+                        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-2xl text-blue-800 text-sm animate-in slide-in-from-top-1 duration-300">
+                            <Clock className="text-blue-500 shrink-0" size={20} />
+                            <div>
+                                <p className="font-bold">{t('attendance.alerts.double_shift', 'Starting a new shift?')}</p>
+                                <p className="text-xs text-blue-600/80">{t('attendance.alerts.shift_exists_desc', 'You already have a completed timesheet for today.')}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {isRoutingError && (
+                        <div className="flex items-center justify-between p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle size={16} className="shrink-0 text-red-500" />
+                                <span>No se pudo verificar el modo de asistencia con el servidor.</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => checkAttendanceWriteMode()}
+                                className="px-3 py-1 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Reintentar
+                            </button>
+                        </div>
+                    )}
+
+                    {/* M-01: GPS denied — amber enabled button, opens manual modal automatically (unless disabled) */}
+                    {workMode === 'On Site' && gpsDenied ? (
+                        <>
+                            <div className={`flex items-center gap-2 p-3 ${isManualPunchDisabledToday ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'} rounded-xl text-sm`}>
+                                <AlertTriangle size={16} className={`shrink-0 ${isManualPunchDisabledToday ? 'text-red-600' : 'text-amber-600'}`} />
+                                <div>
+                                    <p className="font-bold">{isManualPunchDisabledToday ? 'Registro manual deshabilitado hoy' : `${t('attendance.gps.none')} - ${t('attendance.manual.title')}`}</p>
+                                    {isManualPunchDisabledToday && (
+                                        <p className="text-xs text-red-600 mt-0.5">
+                                            El registro manual está temporalmente deshabilitado para esta jornada. Por favor otorgue permisos de ubicación en su navegador para registrar asistencia.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    if (isManualPunchDisabledToday) return;
+                                    setManualModal('clockIn');
+                                }}
+                                disabled={isManualPunchDisabledToday || isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || geofenceBlocking || !selectedProject}
+                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                                <LogIn size={26} /> {isRoutingPending ? 'Verificando servidor...' : (hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : `${t('attendance.labels.action_in')} (${t('common.other')})`)}
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={() => {
+                            if (isSubmitting) return;
+                            if (hasFinishedToday && !window.confirm(t('attendance.alerts.double_shift'))) return;
+                            handlePunchClick('clockIn');
+                        }} disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || geofenceBlocking || !gpsReady || (workMode === 'On Site' && !selectedProject)}
+                            className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
+                            <LogIn size={26} /> {isRoutingPending ? 'Verificando servidor...' : (hasFinishedToday ? t('attendance.labels.start_new_shift', 'Start New Shift') : t('attendance.labels.action_in'))}
+                        </button>
+                    )}
+                    {workMode === 'On Site' && gps.status === 'poor' && (
+                        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                            <AlertTriangle size={16} className="shrink-0" />
+                            <span>GPS signal is weak (±{Math.round(gps.accuracy!)}m). Punch will be flagged.</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {step === 'clocked-in' && (
+                <div className="space-y-3">
+                    {effectiveWorkMode === 'Home Office' && (
+                        <div className="flex items-center gap-2.5 p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl text-sm font-semibold text-blue-800">
+                            <span className="text-base">🏠</span>
+                            <div>
+                                <p className="font-bold text-[10px] uppercase tracking-wider text-blue-600">Modalidad Activa</p>
+                                <p className="text-xs">Turno en curso como <strong>Home Office</strong> (Sin restricción de geocerca)</p>
+                            </div>
+                        </div>
+                    )}
+                    {/* Restricción de fin de semana para rol Office */}
+                    {isOfficeBlockedWeekend && (
+                        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-sm animate-in slide-in-from-top-1 duration-300">
+                            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+                            <div>
+                                <p className="font-bold">Acceso restringido en fin de semana</p>
+                                <p className="text-xs text-red-700 mt-1">
+                                    Personal administrativo/oficina no tiene permitido checar en fin de semana. En caso de trabajar en horario de fin de semana, solicitar a RH agregar los turnos correspondientes.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    {isRoutingError && (
+                        <div className="flex items-center justify-between p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle size={16} className="shrink-0 text-red-500" />
+                                <span>No se pudo verificar el modo de asistencia con el servidor.</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => checkAttendanceWriteMode()}
+                                className="px-3 py-1 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Reintentar
+                            </button>
+                        </div>
+                    )}
+
+                    {/* C-02: GPS denied fallback for Clock Out */}
+                    {gpsDenied ? (
+                        <>
+                            <div className={`flex items-center gap-2 p-3 ${isManualPunchDisabledToday ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-200 text-amber-700'} rounded-xl text-sm`}>
+                                <AlertTriangle size={16} className={`shrink-0 ${isManualPunchDisabledToday ? 'text-red-600' : 'text-amber-600'}`} />
+                                <div>
+                                    <p className="font-bold">{isManualPunchDisabledToday ? 'Registro manual deshabilitado hoy' : 'Sin señal GPS'}</p>
+                                    {isManualPunchDisabledToday && (
+                                        <p className="text-xs text-red-600 mt-0.5">
+                                            El registro manual está temporalmente deshabilitado para esta jornada. Active los permisos de ubicación en su navegador para checar salida.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            <button onClick={() => {
+                                if (isManualPunchDisabledToday) return;
+                                setManualModal('clockOut');
+                            }}
+                                disabled={isManualPunchDisabledToday || isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend}
+                                className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
+                                <LogOut size={26} /> {isRoutingPending ? 'Verificando servidor...' : `${t('attendance.labels.action_out')} (${t('common.other')})`}
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={() => {
+                            if (isSubmitting) return;
+                            if (isOutsideGeofence) {
+                                setForgottenTargetTimesheet(activeEntry);
+                                setShowOutsideGeofenceModal(true);
+                                return;
+                            }
+                            handlePunchClick('clockOut');
+                        }} disabled={isSubmitting || isRoutingPending || isRoutingError || isOfficeBlockedWeekend || !gpsReady}
+                            className="w-full py-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]">
+                            <LogOut size={26} /> {isRoutingPending ? 'Verificando servidor...' : t('attendance.labels.action_out')}
+                        </button>
+                    )}
+                    {activeEntry && (
+                        <div className="flex flex-col gap-1.5 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setForgottenTargetTimesheet(activeEntry);
+                                    setShowForgottenModal(true);
+                                }}
+                                className="w-full py-2.5 px-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Clock size={14} /> Olvidé registrar mi salida (Registrar excepción 8.0h máx)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (window.confirm('¿Deseas descartar este turno e iniciar de nuevo?')) {
+                                        await useStore.getState().discardShortShift(activeEntry.id);
+                                    }
+                                }}
+                                className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5"
+                            >
+                                <RotateCcw size={13} /> Descartar turno e iniciar nuevo
+                            </button>
+                        </div>
+                    )}
+                    {effectiveWorkMode === 'On Site' && currentProjId && (
+                        <AttendanceLocationCard
+                            result={resolvedLocation}
+                            userRole={userRole ?? ''}
+                            projectName={targetProject?.name}
+                        />
+                    )}
+                </div>
+            )}
+
+            {/* Today's punch timeline */}
+            {punches.length > 0 && (
+                <div className="space-y-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('attendance.labels.todays_punches')}</p>
+                    <div className="relative pl-6">
+                        <div className="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-teal-400 via-amber-400 to-red-400 opacity-30" />
+                        {punches.map((p: any, i: number) => (
+                            <div key={i} className="relative mb-3 last:mb-0">
+                                <div className="absolute -left-4 top-1.5 w-3 h-3 rounded-full border-2 border-white shadow"
+                                    style={{ backgroundColor: punchColor[p.type as keyof typeof punchColor] }} />
+                                <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 ml-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-bold text-gray-800">{(getPunchLabel(t) as any)[p.type]}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-xs font-mono text-gray-500">{formatShort(p.timestamp)}</span>
+                                            {p.timeSource === 'gps' && (
+                                                <span className="text-[9px] px-1.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full font-bold border border-yellow-200 flex items-center gap-0.5">
+                                                    <Zap size={8} /> GPS
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {p.lat !== 0 && (
+                                        <a href={`https://maps.google.com/?q=${p.lat},${p.lng}`} target="_blank" rel="noreferrer"
+                                            className="flex items-center gap-1 text-xs text-teal-600 hover:underline mt-1">
+                                            <MapPin size={10} /> {Number(p.lat || 0).toFixed(4)}, {Number(p.lng || 0).toFixed(4)} · ±{Math.round(Number(p.accuracy) || 0)}m
+                                        </a>
+                                    )}
+                                    {p.selfieBlob && (
+                                        <div className="mt-2 rounded-lg overflow-hidden border border-gray-100 w-16 h-12">
+                                            <img src={p.selfieBlob} alt="Selfie" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                        {p.faceVerified && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-semibold border border-emerald-200">
+                                                🛡️ Face ID
+                                            </span>
+                                        )}
+                                        {p.faceBypassReason && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-semibold border border-amber-200" title={p.faceBypassReason}>
+                                                ⚠️ Sin Face ID: {p.faceBypassReason}
+                                            </span>
+                                        )}
+                                        {p.manualAdjustment && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full font-semibold">
+                                                <Edit2 size={8} /> {t('attendance.labels.manual_adj')}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {manualModal && (
+                <ManualAdjustModal punchType={manualModal}
+                    onConfirm={(t, n) => { handlePunchClick(manualModal, t, n); setManualModal(null); }}
+                    onCancel={() => setManualModal(null)} />
+            )}
+
+            {isFaceModalOpen && (
+                <FaceCameraModal
+                    isOpen={isFaceModalOpen}
+                    onClose={() => {
+                        setIsFaceModalOpen(false);
+                        setPendingPunchParams(null);
+                    }}
+                    mode={faceModalMode}
+                    personnelId={personnelId || useStore.getState().userId || undefined}
+                    referenceDescriptor={(() => {
+                        try {
+                            const currentEmail = (useStore.getState().userEmail || '').toLowerCase();
+                            const currentUserId = (useStore.getState().userId || '');
+                            const myProfile = personnel.find(p => p.id === personnelId || (p.email && p.email.toLowerCase() === currentEmail) || (p.id === currentUserId));
+                            const fromStore = normalizeDescriptor(myProfile?.faceDescriptor);
+                            if (fromStore) return fromStore;
+                            const targetId = myProfile?.id || personnelId || currentUserId;
+                            if (targetId) {
+                                const cached = normalizeDescriptor(localStorage.getItem(getFaceDescriptorCacheKey(targetId)));
+                                if (cached) return cached;
+                            }
+                        } catch (e) {
+                            console.warn('[ClockIn] Error resolving referenceDescriptor:', e);
+                        }
+                        return undefined;
+                    })()}
+                    onSuccess={handleFaceSuccess}
+                    onBypass={handleFaceBypass}
+                    allowBypass={true}
+                />
+            )}
+
+            {showForgottenModal && (
+                <ForgottenClockOutModal
+                    timesheet={forgottenTargetTimesheet || activeEntry || staleEntry || { date: today, id: '' }}
+                    onConfirm={handleForgottenConfirm}
+                    onCancel={() => {
+                        setShowForgottenModal(false);
+                        setForgottenTargetTimesheet(null);
+                    }}
+                />
+            )}
+
+            {showOutsideGeofenceModal && (
+                <OutsideGeofenceModal
+                    distanceMeters={geofenceDistance}
+                    radiusMeters={geofenceRadius}
+                    onForgotten={() => {
+                        setShowOutsideGeofenceModal(false);
+                        setForgottenTargetTimesheet(activeEntry);
+                        setShowForgottenModal(true);
+                    }}
+                    onCancel={() => setShowOutsideGeofenceModal(false)}
+                />
+            )}
+        </div>
+    );
+}
+
+// ─── Main ClockIn Page ────────────────────────────────────────────────────────
+
+export default function ClockIn() {
+    const { userId, userRole, projects, personnel, timesheets, clockPunch, refreshAttendance, platformSettings, initDb, attendanceWriteMode, checkAttendanceWriteMode } = useStore();
+
+    // Auto re-resolve attendance routing mode if previously unresolved/errored once userId is authenticated
+    useEffect(() => {
+        if (userId && (attendanceWriteMode === 'UNKNOWN' || attendanceWriteMode === 'ERROR')) {
+            checkAttendanceWriteMode().catch(() => {});
+        }
+    }, [userId, attendanceWriteMode, checkAttendanceWriteMode]);
+
+    useEffect(() => {
+        if (personnel.length === 0 || projects.length === 0) {
+            console.log('[ClockIn] Personnel or projects empty, triggering initDb...');
+            initDb();
+        }
+        // Direct project fetch safeguard to guarantee project dropdown populates immediately
+        if (projects.length === 0) {
+            const activeSub = useStore.getState().activeSubsidiary || 'MX';
+            import('../lib/supabase').then(({ supabase }) => {
+                supabase.from('projects').select('*').eq('subsidiary', activeSub).then(({ data }) => {
+                    if (data && data.length > 0) {
+                        console.log('[ClockIn] Direct project safeguard loaded', data.length, 'projects');
+                        useStore.setState({
+                            projects: (data as any[]).map((p: any) => ({
+                                id: p.id,
+                                clientId: p.client_id,
+                                name: p.name,
+                                type: p.type,
+                                status: p.status,
+                                progress: p.progress,
+                                location: p.location,
+                                locationValidated: p.location_validated ?? true,
+                                projectSize: p.project_size,
+                                systemType: p.system_type,
+                                codeName: p.code_name,
+                                assignedPersonnel: p.assigned_personnel || [],
+                                siteLeadIds: p.site_lead_ids || [],
+                                hasNoDefinedScope: p.has_no_defined_scope || false,
+                                disciplines: p.disciplines || [],
+                                scopes: p.scopes || [],
+                                subsidiary: p.subsidiary || 'MX',
+                                subsidiaryMetadata: p.subsidiary_metadata || {},
+                                defaultScheduleId: p.subsidiary_metadata?.defaultScheduleId || p.default_schedule_id || undefined,
+                                geofenceRadius: p.subsidiary_metadata?.geofenceRadius ? Number(p.subsidiary_metadata.geofenceRadius) : (p.geofence_radius ? Number(p.geofence_radius) : undefined)
+                            }))
+                        });
+                    }
+                });
+            });
+        }
+    }, [personnel.length, projects.length, initDb]);
+
+    useEffect(() => {
+        refreshAttendance();
+        // Periodically refresh every 30 seconds while in ClockIn view to ensure real-time status (only when visible)
+        const id = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                refreshAttendance();
+            }
+        }, 30000);
+        return () => clearInterval(id);
+    }, [refreshAttendance]);
+
+    // GPS state with satellite timestamp and instant local cache hot-start
+    const [gps, setGps] = useState<GpsState>(() => {
+        try {
+            const raw = localStorage.getItem('latnovva_last_gps_fix');
+            if (raw) {
+                const cached = JSON.parse(raw);
+                if (cached && cached.lat && cached.lng && (Date.now() - cached.timestamp < 60000)) {
+                    return {
+                        lat: cached.lat,
+                        lng: cached.lng,
+                        accuracy: cached.accuracy,
+                        status: cached.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor',
+                        gpsTimestampMs: cached.gpsTimestampMs || cached.timestamp,
+                        gpsReceivedAt: performance.now(),
+                    };
+                }
+            }
+        } catch {}
+        return {
+            lat: null, lng: null, accuracy: null, status: 'acquiring',
+            gpsTimestampMs: null, gpsReceivedAt: null,
+        };
+    });
+    const watchRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (!navigator.geolocation) { setGps(g => ({ ...g, status: 'denied' })); return; }
+
+        // Tier 1: Fast Hot-Start (0-200ms using browser cached location up to 5 mins old)
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                setGps(prev => {
+                    if (prev.status === 'locked' && (prev.accuracy || 9999) <= pos.coords.accuracy) {
+                        return prev;
+                    }
+                    return {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy,
+                        status: pos.coords.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor',
+                        gpsTimestampMs: pos.timestamp,
+                        gpsReceivedAt: performance.now(),
+                    };
+                });
+            },
+            () => {},
+            { enableHighAccuracy: false, timeout: 2500, maximumAge: 300000 }
+        );
+
+        // Tier 2: Background High-Accuracy Refinement (Hot Polish)
+        watchRef.current = navigator.geolocation.watchPosition(
+            pos => {
+                const status = pos.coords.accuracy <= getGPSAccuracyThreshold(platformSettings?.gpsAccuracyThreshold) ? 'locked' : 'poor';
+                setGps({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    status,
+                    gpsTimestampMs: pos.timestamp,
+                    gpsReceivedAt: performance.now(),
+                });
+                try {
+                    localStorage.setItem('latnovva_last_gps_fix', JSON.stringify({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy,
+                        gpsTimestampMs: pos.timestamp,
+                        timestamp: Date.now()
+                    }));
+                } catch {}
+            },
+            () => setGps(g => (g.lat === null ? { ...g, status: 'denied' } : g)),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+        );
+
+        // Graceful fallback: If after 8s still in 'acquiring', gracefully transition so UI does not freeze permanently
+        const acquiringFallbackTimer = setTimeout(() => {
+            setGps(g => (g.status === 'acquiring' ? { ...g, status: 'poor' } : g));
+        }, 8000);
+
+        return () => {
+            if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
+            clearTimeout(acquiringFallbackTimer);
+        };
+    }, [platformSettings?.gpsAccuracyThreshold]);
+
+    // Live clock driven by GPS time when available
+    const [displayTime, setDisplayTime] = useState(new Date());
+    useEffect(() => {
+        const id = setInterval(() => setDisplayTime(getBestDate(gps)), 500);
+        return () => clearInterval(id);
+    }, [gps]);
+
+    const isSupervisor = userRole === 'Supervisor' || userRole === 'Manager' || userRole === 'HR';
+    const [viewMode, setViewMode] = useState<ViewMode>('individual');
+
+    const { t, i18n } = useTranslation();
+    const timeSourceLabel = gps.gpsTimestampMs !== null
+        ? { icon: <Zap size={11} className="text-yellow-400" />, text: t('attendance.labels.gps_time'), cls: 'text-yellow-300' }
+        : { icon: <Clock size={11} className="text-gray-400" />, text: t('attendance.labels.device_time'), cls: 'text-gray-400' };
+
+    // Resolve the real personnel ID for data linking
+    const resolvedPersonnelId = useStore.getState().resolvePersonnelId() || userId;
+
+    // Current step for individual mode (used for status chip only)
+    const myStep = getPunchStep(timesheets, resolvedPersonnelId);
+    const myActiveEntry = timesheets.find((t: any) => t.personnelId === resolvedPersonnelId && t.timeIn && !t.timeOut);
+    const isMyShiftHomeOffice = myActiveEntry?.type === 'Home Office' || myActiveEntry?.punches?.some((p: any) => p.workMode === 'Home Office');
+
+    return (
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+            {/* Clock header */}
+            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white py-8 px-6 flex flex-col items-center">
+                <div className="flex items-center gap-2 mb-4">
+                    <Clock size={16} className="text-teal-400" />
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{t('attendance.labels.field_tracker')}</span>
+                </div>
+                <div className="font-mono text-5xl md:text-6xl font-bold tracking-tight tabular-nums text-white drop-shadow-lg">
+                    {formatTime(displayTime, { second: '2-digit' })}
+                </div>
+                <p className="mt-1 text-gray-400 text-sm">
+                    {displayTime.toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                </p>
+                <div className="mt-3 flex flex-col items-center gap-2">
+                    <div className={`flex items-center gap-1.5 text-xs font-semibold ${timeSourceLabel.cls}`}>
+                        {timeSourceLabel.icon} {timeSourceLabel.text}
+                    </div>
+                </div>
+            </div>
+
+            {/* Status + tabs */}
+            <div className="flex flex-col items-center -mt-4 z-10 relative gap-3 px-4">
+                <div className={`px-5 py-2 rounded-full text-sm font-bold shadow-md border-2 border-white ${
+                    viewMode === 'batch' ? 'bg-purple-50 text-purple-700' :
+                    myStep === 'idle' ? 'bg-gray-100 text-gray-600' :
+                    myStep === 'clocked-in' ? (isMyShiftHomeOffice ? 'bg-blue-50 text-blue-700' : 'bg-teal-50 text-teal-700') :
+                    'bg-green-50 text-green-700'
+                }`}>
+                    {viewMode === 'batch' && <><Users size={14} className="inline mr-1 -mt-0.5" /> {t('attendance.labels.team_batch_mode')}</>}
+                    {viewMode === 'individual' && myStep === 'idle' && `○ ${t('attendance.status.not_in')}`}
+                    {viewMode === 'individual' && myStep === 'clocked-in' && (
+                        isMyShiftHomeOffice ? `🏠 Home Office` : `● ${t('attendance.status.on_site')}`
+                    )}
+                    {viewMode === 'individual' && myStep === 'clocked-out' && `✓ ${t('attendance.status.done')}`}
+                </div>
+
+                {/* Tab switcher — supervisors only */}
+                {isSupervisor && (
+                    <div className="flex bg-white border border-gray-200 rounded-2xl p-1 shadow-sm">
+                        <button onClick={() => setViewMode('individual')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${viewMode === 'individual' ? 'bg-teal-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                            <UserCheck size={15} /> {t('attendance.labels.my_checkin')}
+                        </button>
+                        <button onClick={() => setViewMode('batch')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${viewMode === 'batch' ? 'bg-purple-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                            <Users size={15} /> {t('attendance.labels.team_batch')}
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 px-4 py-6 max-w-lg mx-auto w-full">
+                {viewMode === 'individual' ? (
+                    <IndividualModeView
+                        personnelId={resolvedPersonnelId}
+                        gps={gps}
+                        projects={projects}
+                        timesheets={timesheets}
+                        clockPunch={clockPunch}
+                    />
+                ) : (
+                    <BatchModeView
+                        gps={gps}
+                        projects={projects}
+                        personnel={personnel}
+                        timesheets={timesheets}
+                        clockPunch={clockPunch}
+                        supervisorId={resolvedPersonnelId}
+                    />
+                )}
+            </div>
+
+            {/* GPS denied banner */}
+            {gps.status === 'denied' && (
+                <div className="fixed bottom-20 md:bottom-6 left-4 right-4 max-w-md mx-auto bg-red-600 text-white rounded-2xl p-4 shadow-xl flex items-start gap-3 z-40">
+                    <WifiOff size={20} className="shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-bold text-sm">{t('attendance.gps.none')}</p>
+                        <p className="text-xs text-red-100">{t('attendance.gps.waiting')}</p> {/* Fallback text if I didn't add the specific permission denied text. Wait, I'll use the hardcoded translated one if I add it. No, I'll use existing keys. */}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

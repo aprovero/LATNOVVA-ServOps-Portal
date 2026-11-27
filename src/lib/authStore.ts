@@ -1,0 +1,532 @@
+import { create } from 'zustand';
+import { supabase } from './supabase';
+import type { Session, User } from '@supabase/supabase-js';
+import type { Database } from './database.types';
+import { useStore } from '../store/useStore';
+import { normalizeRole } from './roleAuth';
+import { clearAuthSessionStorage } from './storageMigration';
+
+type PersonnelRow = Database['public']['Tables']['personnel']['Row'];
+
+interface IdentityProfile {
+    id: string;
+    name: string;
+    email: string | null;
+    role: string | null;
+    client_id: string | null;
+    password_policy_version?: number | null;
+    password_changed_at?: string | null;
+    is_service_account?: boolean | null;
+}
+
+// Fetches the identity profile and optionally the personnel data.
+async function fetchAccountData(userId: string): Promise<{ profile: IdentityProfile | null; personnel: PersonnelRow | null }> {
+    let profile: IdentityProfile | null = null;
+    let personnel: PersonnelRow | null = null;
+
+    try {
+        // 1. Fetch the universal identity profile
+        const { data: profileData, error: profileError } = await (supabase as any)
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        // PASS 15F / P1-1: On genuine network/offline failure with no server response, preserve
+        // valid hydrated cached identity so offline Attendance V2 cold-boot is NOT kicked to /login.
+        const isBrowserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        const errMsg = String(profileError?.message || '').toLowerCase();
+        const isTransportFailure =
+            isBrowserOffline ||
+            errMsg.includes('failed to fetch') ||
+            errMsg.includes('network') ||
+            errMsg.includes('timeout') ||
+            errMsg.includes('load failed');
+
+        if (!profileData && profileError && isTransportFailure) {
+            const storeState = useStore.getState();
+            const hydratedRole = normalizeRole(storeState.userRole);
+            if (hydratedRole && (!storeState.userId || storeState.userId === userId)) {
+                console.warn('[Auth] Offline/network failure fetching profile; preserving hydrated cached role:', hydratedRole);
+                return {
+                    profile: {
+                        id: userId,
+                        name: '',
+                        email: '',
+                        role: hydratedRole,
+                        client_id: storeState.clientId ?? null,
+                    },
+                    personnel: null,
+                };
+            }
+        }
+
+        profile = (profileData as IdentityProfile | null) ?? null;
+        
+        // Fail-closed role assignment (P0-3): never default missing/malformed role to 'Tech'
+        const normalizedRole = normalizeRole(profile?.role);
+        useStore.getState().setUserRole(normalizedRole);
+        
+        if (profile?.client_id) {
+            useStore.getState().setClientId(profile.client_id);
+        } else {
+            useStore.getState().setClientId(null);
+        }
+    } catch (err) {
+        console.error('[Auth] Error fetching profile:', err);
+        return { profile: null, personnel: null };
+    }
+
+    // 2. If they are NOT a customer, fetch their heavy personnel data (non-fatal if missing)
+    if (profile && profile.role !== 'Customer') {
+        try {
+            const { data: personnelData } = await (supabase as any)
+                .from('mx_personnel')
+                .select('*')
+                .eq('id', userId)
+                .single();
+            personnel = (personnelData as PersonnelRow | null) ?? null;
+        } catch (err) {
+            console.warn('[Auth] Error fetching mx_personnel record (non-fatal):', err);
+        }
+    }
+
+    return { profile, personnel };
+}
+
+// Record the client's running app version in Supabase on login/session init
+async function recordAppVersion(userId: string, email?: string | null) {
+    if (typeof window !== 'undefined') {
+        const sessionKey = `app_version_logged_${userId}`;
+        if (sessionStorage.getItem(sessionKey)) {
+            return; // Skip repeated version logs for the current session
+        }
+        sessionStorage.setItem(sessionKey, 'true');
+    }
+
+    const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';
+    const buildId = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'unknown';
+    const rawUserAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+    const userAgent = `${rawUserAgent} [build:${buildId}]`;
+    const now = new Date().toISOString();
+
+    console.log(`[Auth] Diagnosing client: v${version} (build: ${buildId}) for user: ${email || userId}`);
+
+    // Asynchronously update profiles, mx_personnel, and app_version_logs
+    try {
+        Promise.allSettled([
+            (supabase as any)
+                .from('profiles')
+                .update({ 
+                    last_app_version: `${version} (${buildId})`,
+                    last_active_at: now,
+                    subsidiary: 'MX'
+                })
+                .eq('id', userId),
+
+            (supabase as any)
+                .from('app_version_logs')
+                .insert({
+                    user_id: userId,
+                    email: email || null,
+                    app_version: version,
+                    user_agent: userAgent
+                }),
+
+            (async () => {
+                const { data: pData } = await (supabase as any)
+                    .from('mx_personnel')
+                    .select('subsidiary_metadata')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                if (pData) {
+                    const currentMeta = pData.subsidiary_metadata || {};
+                    await (supabase as any)
+                        .from('mx_personnel')
+                        .update({
+                            subsidiary_metadata: {
+                                ...currentMeta,
+                                appVersion: version,
+                                lastActiveAt: now,
+                                userAgent
+                            }
+                        })
+                        .eq('id', userId);
+                }
+            })()
+        ]).catch(() => {});
+    } catch (e) {
+        console.warn('[Auth] Non-fatal error recording app version:', e);
+    }
+}
+
+
+interface AuthState {
+    session: Session | null;
+    user: User | null;
+    identity: IdentityProfile | null;
+    profile: PersonnelRow | null; // Staff only
+    loading: boolean;
+    error: string | null;
+    isPasswordRecovery: boolean;
+    clearPasswordRecovery: () => void;
+    initializeAuth: () => void;
+    signInWithEmail: (email: string, password: string) => Promise<void>;
+    signInWithOtp: (email: string) => Promise<void>;
+    signOut: () => Promise<void>;
+    updateAccount: (name: string, password?: string) => Promise<void>;
+    completePasswordRotation: (newPassword: string) => Promise<void>;
+}
+
+// Module-level guard to ensure the Supabase listener is only registered once
+let isListenerRegistered = false;
+
+// ... (fetchAccountData remains the same)
+
+export const useAuthStore = create<AuthState>((set, get) => {
+    // ── AUTH HARDENING: IDEMPOTENT LISTENER ──────────────────────────────────
+    if (!isListenerRegistered) {
+        isListenerRegistered = true;
+        
+        supabase.auth.onAuthStateChange(async (event, newSession) => {
+            console.log(`[Auth] State Change: ${event}`);
+
+            try {
+                // Handle "Invalid Refresh Token" or "Refresh Token Not Found"
+                // If Supabase encounters a catastrophic refresh failure, we must purge local state.
+                if (event === 'PASSWORD_RECOVERY' && newSession?.user) {
+                    set({ session: newSession, user: newSession.user, isPasswordRecovery: true, loading: false });
+                    return;
+                }
+
+                if (event === 'SIGNED_OUT' || (event === 'USER_UPDATED' && !newSession)) {
+                    const prevUid = get().user?.id;
+                    useStore.getState().resetDb();
+                    set({ session: null, user: null, profile: null, identity: null, isPasswordRecovery: false, loading: false });
+                    try {
+                        clearAuthSessionStorage(localStorage, prevUid);
+                    } catch {}
+                    if (window.location.pathname !== '/login') {
+                        window.location.href = '/login';
+                    }
+                    return;
+                }
+
+                if (!newSession?.user) {
+                    // Verify if there is really no session cached before setting loading: false
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                        set({ loading: false });
+                    }
+                    return;
+                }
+
+                // IDEMPOTENCY CHECK: Only update store if the session is truly different.
+                // This prevents the #310 re-render loop if Supabase fires redundant events.
+                const currentSession = get().session;
+                if (newSession && currentSession?.user?.id === newSession.user.id) {
+                    const isAccountHydrated = Boolean(get().identity || get().profile);
+                    set({ session: newSession, ...(isAccountHydrated ? { loading: false } : {}) });
+                    recordAppVersion(newSession.user.id, newSession.user.email);
+                    useStore.getState().checkAttendanceWriteMode().catch(() => {});
+                    
+                    // Auto-refresh push subscription in background if permission is granted
+                    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                        import('./permissions').then(({ subscribeUserToPush }) => {
+                            subscribeUserToPush();
+                        }).catch(e => console.warn('[Auth] Failed to auto-subscribe push:', e));
+                    }
+                    return;
+                }
+
+                // Set the session immediately so the user is authenticated in the UI
+                set({ session: newSession, user: newSession.user });
+                recordAppVersion(newSession.user.id, newSession.user.email);
+
+                // ── STEP 1: Fetch account data and init DB under a safety timeout race ──
+                const initPromise = (async () => {
+                    useStore.getState().setAuthData(newSession.user.id, newSession.user.email ?? '');
+                    const account = await fetchAccountData(newSession.user.id);
+                    await useStore.getState().initDb();
+                    return account;
+                })();
+
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Initialization Timeout')), 20000)
+                );
+
+                const { profile, personnel } = await Promise.race([initPromise, timeoutPromise]);
+
+                set({ 
+                    identity: profile, 
+                    profile: personnel, 
+                    loading: false 
+                });
+
+                // Auto-refresh push subscription in background if permission is granted
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                    import('./permissions').then(({ subscribeUserToPush }) => {
+                        subscribeUserToPush();
+                    }).catch(e => console.warn('[Auth] Failed to auto-subscribe push:', e));
+                }
+            } catch (err: any) {
+                console.error('[Auth Error] Catastrophic failure in auth listener:', err);
+                // Hardened fallback: only clear session and redirect for actual invalid auth tokens, not transient network/timeout errors
+                const isAuthError = (err?.name === 'AuthApiError' && (
+                                        err?.message?.includes('Refresh Token') || 
+                                        err?.message?.includes('invalid') ||
+                                        err?.message?.includes('not found')
+                                     ));
+
+                if (isAuthError) {
+                    console.warn('[Auth] Clearing session storage and forcing redirect due to invalid auth token...');
+                    const prevUid = get().user?.id;
+                    useStore.getState().resetDb();
+                    try {
+                        clearAuthSessionStorage(localStorage, prevUid);
+                    } catch (e) {}
+                    set({ session: null, user: null, profile: null, identity: null, isPasswordRecovery: false, loading: false });
+                    if (window.location.pathname !== '/login') {
+                        window.location.href = '/login';
+                    }
+                } else {
+                    set({ loading: false, error: err?.message || 'Authentication failed' });
+                }
+            }
+        });
+    }
+
+    return {
+        session: null,
+        user: null,
+        identity: null,
+        profile: null,
+        loading: true,
+        error: null,
+        isPasswordRecovery: false,
+        clearPasswordRecovery: () => set({ isPasswordRecovery: false }),
+
+        initializeAuth: async () => {
+            console.log('[Auth] initializeAuth called (handled by onAuthStateChange listener)');
+            
+            // Safety timeout: If the app remains in the loading state for more than 8 seconds
+            // without a session, force loading to false to unblock the router and let the user log in.
+            setTimeout(async () => {
+                if (get().loading) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                        console.warn('[Auth] Initialization safety timeout reached and no session found. Forcing loading to false.');
+                        set({ loading: false });
+                    } else {
+                        console.log('[Auth] Safety timeout reached, but session exists. Waiting for database initialization to complete.');
+                    }
+                }
+            }, 8000);
+        },
+
+        signInWithEmail: async (email, password) => {
+            const cleanEmail = (email || '').trim().toLowerCase();
+            const cleanPassword = (password || '').trim();
+            set({ loading: true, error: null });
+            try {
+                const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
+                if (error) {
+                    console.error('[Auth Error Details] signInWithPassword failed:', error);
+                    throw error;
+                }
+                // Profile loading, DB initialization, and loading: false are handled by onAuthStateChange listener
+            } catch (error: any) {
+                set({ error: error.message, loading: false });
+                throw error;
+            }
+        },
+
+        signInWithOtp: async (email) => {
+            const cleanEmail = (email || '').trim().toLowerCase();
+            set({ loading: true, error: null });
+            try {
+                const { error } = await supabase.auth.signInWithOtp({
+                    email: cleanEmail,
+                    options: { emailRedirectTo: window.location.origin },
+                });
+                if (error) throw error;
+            } catch (error: any) {
+                set({ error: error.message, loading: false });
+                throw error;
+            } finally {
+                set({ loading: false });
+            }
+        },
+
+        signOut: async () => {
+            console.log('[Auth] Initiating sign out sequence...');
+            
+            // ── STEP 1: Auto Clock Out Active Sessions (DISABLED) ─────────────────────
+            /*
+            try {
+                const currentUser = get().user;
+                if (currentUser) {
+                    const store = useStore.getState();
+                    const activeSession = store.timesheets.find(
+                        t => t.personnelId === currentUser.id && t.timeIn && !t.timeOut
+                    );
+                    if (activeSession) {
+                        console.log('[Auth] Active session found on sign out. Auto clocking out...');
+                        await store.clockPunch(currentUser.id, {
+                            timestamp: new Date().toISOString(),
+                            lat: 0, lng: 0, accuracy: 0,
+                            type: 'clockOut',
+                            timeSource: 'device',
+                            manualAdjustment: true,
+                            adjustmentNote: 'System: Auto closed by sign out.'
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('[Auth] Failed to auto clock out on sign out:', e);
+            }
+            */
+            
+            // ── STEP 1.5: Process Sync Queue ──────────────────────────────
+            try {
+                const store = useStore.getState();
+                if (store.pendingSync && store.pendingSync.length > 0) {
+                    console.log('[Auth] Pending sync queue detected. Processing before logout...');
+                    await store.processSyncQueue();
+                    await new Promise(resolve => setTimeout(resolve, 800)); // allow db operations to settle
+                }
+            } catch (e) {
+                console.warn('[Auth] Failed to process sync queue before sign out:', e);
+            }
+
+            // ── STEP 2: Capture UID BEFORE clearing stores (Item 11) ────────
+            const currentUid = get().user?.id;
+            set({ session: null, user: null, identity: null, profile: null, isPasswordRecovery: false, loading: false });
+            useStore.getState().resetDb();
+
+            // ── STEP 3: Targeted Session Cleanup (preserves attendance_device_id & active shifts) ──
+            try {
+                clearAuthSessionStorage(localStorage, currentUid);
+                sessionStorage.clear();
+            } catch (e) {
+                console.warn('[Auth] Failed to purge session storage:', e);
+            }
+
+            // ── STEP 4: Supabase Cloud SignOut & Redirect ─────────────────────
+            try {
+                await supabase.auth.signOut();
+            } catch (e) {
+                // Ignore — local state is primary
+            }
+
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        },
+
+        updateAccount: async (name: string, password?: string) => {
+            set({ loading: true, error: null });
+            try {
+                // PASS 15F / P2-6: Save profile name/metadata BEFORE password rotation signs out & redirects
+                const { data, error: authError } = await supabase.auth.updateUser({
+                    data: { name }
+                });
+                if (authError) throw authError;
+
+                if (data.user) {
+                    set({ user: data.user });
+                }
+
+                const currentProfile = get().profile;
+                if (currentProfile) {
+                    const { error: dbError } = await (supabase as any)
+                        .from('mx_personnel')
+                        .update({ name })
+                        .eq('id', currentProfile.id);
+                    
+                    if (!dbError) {
+                        set({ profile: { ...currentProfile, name } });
+                        useStore.getState().updatePersonnel(currentProfile.id, { name });
+                    }
+                }
+
+                if (password) {
+                    await get().completePasswordRotation(password);
+                }
+
+                set({ loading: false });
+            } catch (error: any) {
+                set({ error: error.message, loading: false });
+                throw error;
+            }
+        },
+
+        completePasswordRotation: async (newPassword: string) => {
+            set({ loading: true, error: null });
+            try {
+                if (!newPassword || newPassword.length < 12) {
+                    throw new Error('Password must be at least 12 characters long');
+                }
+                if (newPassword === 'Latnovva2026!') {
+                    throw new Error('New password cannot be the default shared password');
+                }
+
+                // 1. Call Edge Function to rotate password & set trusted app_metadata
+                // Direct fetch with standard auth headers prevents custom client telemetry headers
+                // (x-latnovva-build-id, x-latnovva-release-id) from causing browser CORS preflight errors.
+                const token = get().session?.access_token;
+                if (!token) {
+                    throw new Error('No active session found. Please log in again.');
+                }
+
+                const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+                const anonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+                const response = await fetch(`${supabaseUrl}/functions/v1/complete-password-rotation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'apikey': anonKey
+                    },
+                    body: JSON.stringify({ newPassword })
+                });
+
+                if (!response.ok) {
+                    const errBody = await response.json().catch(() => ({}));
+                    throw new Error(errBody.error || `Error (${response.status}): Failed to complete password rotation`);
+                }
+
+                const data = await response.json().catch(() => ({}));
+                if (data?.error) {
+                    throw new Error(data.error);
+                }
+
+                // 2. Perform global sign-out from browser
+                try {
+                    await supabase.auth.signOut({ scope: 'global' });
+                } catch (e) {
+                    console.warn('[Auth] Global sign-out warning:', e);
+                }
+
+                // 3. Targeted auth/session cleanup using single authoritative helper (Item 12)
+                const prevUid = get().user?.id;
+                set({ session: null, user: null, identity: null, profile: null, isPasswordRecovery: false, loading: false });
+                useStore.getState().resetDb();
+                try {
+                    clearAuthSessionStorage(localStorage, prevUid);
+                    sessionStorage.clear();
+                } catch (e) {}
+
+                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
+
+            } catch (err: any) {
+                set({ error: err.message, loading: false });
+                throw err;
+            }
+        },
+    };
+});

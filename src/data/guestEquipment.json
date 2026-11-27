@@ -1,0 +1,398 @@
+[
+  {
+    "id": "equip-y9ox7cejl",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Backhoe Loader 580N",
+    "brand": "CASE",
+    "unit": "Units",
+    "quantity": 1
+  },
+  {
+    "id": "equip-k757tk8l3",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Backhoe Loader",
+    "brand": "NEW HOLLAND",
+    "unit": "Units",
+    "quantity": 1
+  },
+  {
+    "id": "equip-mrolq7g3v",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Backhoe Loader",
+    "brand": "JOHN DEERE",
+    "unit": "Units",
+    "quantity": 2
+  },
+  {
+    "id": "equip-63nx3dia0",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Motor Grader",
+    "brand": "Caterpillar",
+    "unit": "Units",
+    "quantity": 2
+  },
+  {
+    "id": "equip-ai5e3oqwc",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "10-Ton Soil Compactor",
+    "brand": "Caterpillar",
+    "unit": "Units",
+    "quantity": 2
+  },
+  {
+    "id": "equip-a3gei44wg",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Articulated Boom Crane",
+    "brand": "VW",
+    "unit": "Units",
+    "quantity": 3
+  },
+  {
+    "id": "equip-qrkg0iv7s",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Wheel Trencher",
+    "brand": "VERMEER",
+    "unit": "Units",
+    "quantity": 4
+  },
+  {
+    "id": "equip-e99ql1tae",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Chain Trencher",
+    "brand": "VERMEER",
+    "unit": "Units",
+    "quantity": 1
+  },
+  {
+    "id": "equip-sr7x110j7",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Backhoe Loader 388",
+    "brand": "SHANMON",
+    "unit": "Units",
+    "quantity": 6
+  },
+  {
+    "id": "equip-x20543yni",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Telehandler",
+    "brand": "HANK 3007",
+    "unit": "Units",
+    "quantity": 3
+  },
+  {
+    "id": "equip-2xm8mhtw5",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Telehandler",
+    "brand": "HANK T5010",
+    "unit": "Units",
+    "quantity": 3
+  },
+  {
+    "id": "equip-og2xpcudn",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Hydraulic Pile Driver",
+    "brand": "Hengxing HXR526D",
+    "unit": "Units",
+    "quantity": 12
+  },
+  {
+    "id": "equip-9ru5hkp8c",
+    "type": "Machinery",
+    "classification": "Heavy Equipment",
+    "description": "Articulated Boom Lift",
+    "brand": "DINGLI BA16CRT2",
+    "unit": "Units",
+    "quantity": 3
+  },
+  {
+    "id": "equip-ovoqiq9tc",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "Urvan Van",
+    "brand": "DFSK",
+    "unit": "Vehicles",
+    "quantity": 2
+  },
+  {
+    "id": "equip-ta5kx1f0g",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "3.5-Ton Pickup Truck",
+    "brand": "RAM",
+    "unit": "Vehicles",
+    "quantity": 1
+  },
+  {
+    "id": "equip-4ayqey1gg",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "NP300 Pickup Truck",
+    "brand": "NISSAN",
+    "unit": "Vehicles",
+    "quantity": 1
+  },
+  {
+    "id": "equip-dl3anl1pl",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "NP300 Stake Truck",
+    "brand": "NISSAN",
+    "unit": "Vehicles",
+    "quantity": 1
+  },
+  {
+    "id": "equip-3lwjd5671",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "Baleno Sedan",
+    "brand": "SUZUKI",
+    "unit": "Vehicles",
+    "quantity": 5
+  },
+  {
+    "id": "equip-33yvcrjkb",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "Baleno Sedan",
+    "brand": "SUZUKI",
+    "unit": "Vehicles",
+    "quantity": 5
+  },
+  {
+    "id": "equip-jegza3wve",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "Urvan Van 2020",
+    "brand": "NISSAN",
+    "unit": "Vehicles",
+    "quantity": 1
+  },
+  {
+    "id": "equip-l5d546spn",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "NP300 Pickup Truck",
+    "brand": "NISSAN",
+    "unit": "Vehicles",
+    "quantity": 3
+  },
+  {
+    "id": "equip-n4j5oktcq",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "Urvan Van 2019",
+    "brand": "NISSAN",
+    "unit": "Vehicles",
+    "quantity": 2
+  },
+  {
+    "id": "equip-f16lqdjzl",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "Oroch Pickup Truck",
+    "brand": "RENAULT",
+    "unit": "Vehicles",
+    "quantity": 2
+  },
+  {
+    "id": "equip-uyp906sr9",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "L200 Pickup Truck",
+    "brand": "MITSUBISHI",
+    "unit": "Vehicles",
+    "quantity": 4
+  },
+  {
+    "id": "equip-nyu79b5qd",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "MG Sedan",
+    "brand": "MG",
+    "unit": "Vehicles",
+    "quantity": 3
+  },
+  {
+    "id": "equip-6xqybj2o0",
+    "type": "Vehicle",
+    "classification": "Transport",
+    "description": "MG Sedan",
+    "brand": "MG",
+    "unit": "Vehicles",
+    "quantity": 3
+  },
+  {
+    "id": "equip-q64tdayyr",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Mini Trencher",
+    "brand": "Vermeer",
+    "unit": "Units",
+    "quantity": 4
+  },
+  {
+    "id": "equip-ea2f7og4n",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Soil Compactor Roller",
+    "brand": "TDK",
+    "unit": "Units",
+    "quantity": 5
+  },
+  {
+    "id": "equip-5li3qijcu",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Mini Trencher",
+    "brand": "HYUNDAI",
+    "unit": "Units",
+    "quantity": 1
+  },
+  {
+    "id": "equip-lo8pgy2ba",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Mini Trencher",
+    "brand": "PARAZZINI",
+    "unit": "Units",
+    "quantity": 1
+  },
+  {
+    "id": "equip-lvdwz3x7t",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Mini Excavator",
+    "brand": "WACKER NEUSON",
+    "unit": "Units",
+    "quantity": 1
+  },
+  {
+    "id": "equip-dg0h63it5",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "8000W Fuel Generator",
+    "brand": "Pretul",
+    "unit": "Pcs",
+    "quantity": 2
+  },
+  {
+    "id": "equip-dgnnrbgzn",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "8000W Fuel Generator",
+    "brand": "Power expert",
+    "unit": "Pcs",
+    "quantity": 1
+  },
+  {
+    "id": "equip-icv9ifwig",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "8000W Fuel Generator",
+    "brand": "Trupper",
+    "unit": "Pcs",
+    "quantity": 2
+  },
+  {
+    "id": "equip-pwv79z1o9",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "6000W Fuel Generator",
+    "brand": "Columbia",
+    "unit": "Pcs",
+    "quantity": 1
+  },
+  {
+    "id": "equip-4hjzku8qd",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "5000W Fuel Generator",
+    "brand": "Power expert",
+    "unit": "Pcs",
+    "quantity": 1
+  },
+  {
+    "id": "equip-ajmspf4ua",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Tamping Rammer",
+    "brand": "TDK",
+    "unit": "Pcs",
+    "quantity": 2
+  },
+  {
+    "id": "equip-x6fl334fm",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Tamping Rammer",
+    "brand": "TDK",
+    "unit": "Pcs",
+    "quantity": 3
+  },
+  {
+    "id": "equip-7wniel35r",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Tamping Rammer",
+    "brand": "TONKA",
+    "unit": "Pcs",
+    "quantity": 4
+  },
+  {
+    "id": "equip-7fke38l7o",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Tamping Rammer",
+    "brand": "KOREI",
+    "unit": "Pcs",
+    "quantity": 1
+  },
+  {
+    "id": "equip-magh37y80",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Tamping Rammer",
+    "brand": "OAKLAND",
+    "unit": "Pcs",
+    "quantity": 5
+  },
+  {
+    "id": "equip-24yif6rpj",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Vibratory Plate Compactor",
+    "brand": "TONKA",
+    "unit": "Pcs",
+    "quantity": 1
+  },
+  {
+    "id": "equip-tv4oswqzh",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Vibratory Plate Compactor",
+    "brand": "FIAT",
+    "unit": "Pcs",
+    "quantity": 1
+  },
+  {
+    "id": "equip-pmy76qyq3",
+    "type": "Machinery",
+    "classification": "Light Equipment",
+    "description": "Vibratory Plate Compactor",
+    "brand": "M POWER",
+    "unit": "Pcs",
+    "quantity": 1
+  }
+]
